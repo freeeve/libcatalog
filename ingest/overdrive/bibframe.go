@@ -3,6 +3,7 @@ package overdrive
 import (
 	"strings"
 
+	"github.com/freeeve/libcatalog/identity"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 
@@ -81,6 +82,50 @@ func (it Item) WorkID() string {
 		return id
 	}
 	return sanitizeID(it.ReserveID)
+}
+
+// Identity returns the record's resolution keys and clustering fields for
+// identity.Resolver to assign stable Work/Instance ids (ARCHITECTURE §4). The
+// keys are the OverDrive title id, each ISBN, and the Reserve ID, namespaced by
+// scheme -- ordered so the most specific (the title id) resolves first and ISBN
+// serves as the cross-provider merge key. The clustering fields are the primary
+// author, the main title, and the original language.
+func (it Item) Identity() identity.Record {
+	rec := identity.Record{
+		Author: it.primaryAuthor(),
+		Title:  it.Title,
+		Lang:   it.primaryLang(),
+	}
+	if it.ID != "" {
+		rec.ProviderKeys = append(rec.ProviderKeys, identity.ProviderKey(identity.SchemeID, it.ID))
+	}
+	for _, isbn := range it.ISBNs() {
+		rec.ProviderKeys = append(rec.ProviderKeys, identity.ProviderKey(identity.SchemeISBN, isbn))
+	}
+	if it.ReserveID != "" {
+		rec.ProviderKeys = append(rec.ProviderKeys, identity.ProviderKey(identity.SchemeID, it.ReserveID))
+	}
+	return rec
+}
+
+// primaryAuthor returns the transcribed name of the item's first author, or "".
+func (it Item) primaryAuthor() string {
+	authors, _ := it.contributors()
+	if len(authors) > 0 {
+		return authors[0].name
+	}
+	return ""
+}
+
+// primaryLang returns the ISO 639-2 code of the item's first mappable language,
+// or "".
+func (it Item) primaryLang() string {
+	for _, l := range it.Languages {
+		if code := iso639_2(l.ID); code != "" {
+			return code
+		}
+	}
+	return ""
 }
 
 // bibContributions maps the item's creators to BIBFRAME contributions, marking

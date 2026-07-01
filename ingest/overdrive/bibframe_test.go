@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/freeeve/libcatalog/identity"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 	"github.com/freeeve/libcodex/rdf"
 )
@@ -81,6 +82,46 @@ func TestBIBFRAMECrosswalk(t *testing.T) {
 	if n := strings.Count(nq, "http://id.loc.gov/ontologies/bibframe/Topic"); n != 2 {
 		t.Errorf("bf:Topic count = %d, want 2", n)
 	}
+}
+
+// TestIdentityRoundTrip proves the derive-from-grains model is consistent: the
+// provider keys ScanGrain recovers from a written grain must equal the keys the
+// ingest path resolves by, or a re-ingest would fail to find the committed
+// Instance and would churn its id.
+func TestIdentityRoundTrip(t *testing.T) {
+	it := sampleItem()
+	grain := it.BIBFRAME().Graph(it.WorkID()).NQuads(rdf.NewIRI("feed:overdrive"))
+
+	ids, err := identity.ScanGrain(grain)
+	if err != nil {
+		t.Fatalf("ScanGrain: %v", err)
+	}
+	if len(ids) != 1 {
+		t.Fatalf("recovered %d instances, want 1", len(ids))
+	}
+	scanned, ingest := toSet(ids[0].ProviderKeys), toSet(it.Identity().ProviderKeys)
+	for k := range ingest {
+		if !scanned[k] {
+			t.Errorf("ingest key %q not recovered from grain (keys: %v)", k, ids[0].ProviderKeys)
+		}
+	}
+	for k := range scanned {
+		if !ingest[k] {
+			t.Errorf("grain key %q not produced by ingest", k)
+		}
+	}
+	// A Phase 0 grain shares the base between Work and Instance.
+	if ids[0].InstanceID != it.WorkID() || ids[0].WorkID != it.WorkID() {
+		t.Errorf("ids = %+v, want both = %q", ids[0], it.WorkID())
+	}
+}
+
+func toSet(ss []string) map[string]bool {
+	m := make(map[string]bool, len(ss))
+	for _, s := range ss {
+		m[s] = true
+	}
+	return m
 }
 
 func hasIdentifier(ids []codexbf.Identifier, class, value string) bool {
