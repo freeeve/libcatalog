@@ -11,7 +11,9 @@ import (
 	"os"
 
 	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcatalog/ingest/overdrive"
 	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcodex/iso2709"
 )
 
 func main() {
@@ -25,10 +27,48 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lcat build:", err)
 			os.Exit(1)
 		}
+	case "overdrive":
+		if err := runOverdrive(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "lcat overdrive:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
 	}
+}
+
+// runOverdrive maps a cached OverDrive scan (page-*.json) to a MARC file,
+// simulating a MARC Express export so it can feed `lcat build`.
+func runOverdrive(args []string) error {
+	fs := flag.NewFlagSet("overdrive", flag.ExitOnError)
+	cache := fs.String("cache", "", "OverDrive page-cache directory (contains page-*.json)")
+	marcOut := fs.String("marc", "", "output MARC (.mrc) file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *cache == "" || *marcOut == "" {
+		return fmt.Errorf("--cache and --marc are required")
+	}
+
+	items, err := overdrive.ReadCache(*cache)
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(*marcOut)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := iso2709.NewWriter(f)
+	for _, rec := range overdrive.Records(items) {
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	fmt.Printf("wrote %d records to %s\n", len(items), *marcOut)
+	return nil
 }
 
 // runBuild ingests a MARC file into canonical grains + catalog.nq under --out.
@@ -60,5 +100,7 @@ func runBuild(args []string) error {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: lcat build --marc <file.mrc> [--out <dir>] [--provider <name>]")
+	fmt.Fprintln(os.Stderr, "usage:")
+	fmt.Fprintln(os.Stderr, "  lcat overdrive --cache <dir> --marc <file.mrc>")
+	fmt.Fprintln(os.Stderr, "  lcat build --marc <file.mrc> [--out <dir>] [--provider <name>]")
 }
