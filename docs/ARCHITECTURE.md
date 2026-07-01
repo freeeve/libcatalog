@@ -151,7 +151,12 @@ catalog ships as two distributable artifacts:
 
 1. **Projector CLI** (`lcat`, Go, over libcodex + roaringrange):
    `BIBFRAME (git) -> catalog data (JSON) + search index`. Also the
-   import/export front door (MARC/MODS/BIBFRAME in and out).
+   import/export front door (MARC/MODS/BIBFRAME in and out). Its core writes
+   through a storage `Sink` abstraction (local dir / object storage / git), so
+   the same binary runs as a local build, a container/Fargate task, or a cloud
+   function -- cloud SDKs stay out of the baseline. Grains land in git (the
+   source of truth); derived artifacts (`catalog.nq`, projected JSON, index) in
+   object storage.
 2. **Hugo module** (`hugo mod get github.com/freeeve/libcatalog/hugo`): catalog
    layouts, partials (facets, vocabulary picker, live-availability + search JS
    assets), and a **content adapter** (`_content.gotmpl`, Hugo >= 0.126) that
