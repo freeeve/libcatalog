@@ -12,6 +12,7 @@ import (
 
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/editor"
+	"github.com/freeeve/libcatalog/backend/profiles"
 	"github.com/freeeve/libcatalog/backend/store"
 	"github.com/freeeve/libcatalog/backend/suggest"
 )
@@ -55,6 +56,23 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *s
 		}
 		w.Header().Set("ETag", etag)
 		writeJSON(w, http.StatusOK, grainView{WorkID: workID, ETag: etag, NQuads: string(grain)})
+	})))
+
+	// The typed editing document: the grain materialized through the default
+	// profiles (deployment profile selection arrives with the write path).
+	docMapper := defaultMapper()
+	mux.Handle("GET /v1/works/{id}/doc", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		grain, etag, workID, ok := readGrain(w, r)
+		if !ok {
+			return
+		}
+		doc, err := docMapper.ToDoc(grain, workID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "doc mapping failed")
+			return
+		}
+		w.Header().Set("ETag", etag)
+		writeJSON(w, http.StatusOK, map[string]any{"etag": etag, "doc": doc})
 	})))
 
 	// PUT applies an editorial patch under the client's If-Match token. No
@@ -285,6 +303,16 @@ func mutateWorkGrain(r *http.Request, bs blob.Store, workID string, mutate func(
 		return newTag, nil
 	}
 	return "", errors.New("write kept conflicting")
+}
+
+// defaultMapper builds the read mapper over the shipped profiles (they are
+// embedded and validate at build, so failure is impossible at runtime).
+func defaultMapper() *editor.Mapper {
+	set, err := profiles.LoadDefaults()
+	if err != nil {
+		panic(err)
+	}
+	return &editor.Mapper{WorkProfile: set["work-monograph"], InstanceProfile: set["instance-ebook"]}
 }
 
 func batchNote(results any) string {

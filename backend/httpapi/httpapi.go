@@ -56,6 +56,13 @@ type Deps struct {
 	Exports *export.Service
 	// Enrich, when set, mounts the admin enrichment surface.
 	Enrich *enrich.Service
+	// UI, when set, serves the embedded cataloging SPA at "/" (API routes
+	// keep priority under /v1/).
+	UI http.Handler
+	// ClientConfig is the JSON the SPA boots from (GET /config): auth
+	// modes, issuers, vocab schemes, provider -- deployment facts, never
+	// secrets.
+	ClientConfig map[string]any
 }
 
 // GraphPublisher is the publish pipeline seam (publish.Publisher in
@@ -85,12 +92,21 @@ func New(deps Deps) http.Handler {
 	}
 	if deps.Blob != nil && deps.DB != nil && deps.Verifier != nil {
 		registerRecords(mux, deps.Blob, deps.DB, deps.Suggest, deps.Verifier)
+		registerWorksList(mux, deps.Blob, deps.Verifier)
 	}
 	if deps.Exports != nil && deps.Verifier != nil {
 		registerExports(mux, deps.Exports, deps.Verifier)
 	}
 	if deps.Enrich != nil && deps.Verifier != nil {
 		registerEnrich(mux, deps.Enrich, deps.Verifier)
+	}
+	if deps.ClientConfig != nil {
+		mux.HandleFunc("GET /config", func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, http.StatusOK, deps.ClientConfig)
+		})
+	}
+	if deps.UI != nil {
+		mux.Handle("/", deps.UI)
 	}
 	return wrap(mux, deps.Logger)
 }

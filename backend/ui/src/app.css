@@ -1,0 +1,102 @@
+/* Hand-written base styles: system fonts, high-contrast palette, visible
+   focus. Screen-specific rules live in each component's <style>. */
+
+:root {
+  --bg: #ffffff;
+  --surface: #f4f5f7;
+  --ink: #1a1c1f;
+  --ink-muted: #50565e;
+  --rule: #d4d8dd;
+  --accent: #0b57a4;
+  --accent-ink: #ffffff;
+  --danger: #a4262c;
+  --ok: #1c6b37;
+  --info: #205ea6;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.45;
+}
+
+a {
+  color: var(--accent);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+main {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem 3rem;
+}
+
+h1 {
+  font-size: 1.4rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+}
+
+.muted {
+  color: var(--ink-muted);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.button {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.45em 1.1em;
+  font-weight: 600;
+}
+
+.button--quiet {
+  background: none;
+  color: var(--ink-muted);
+  border: 1px solid var(--rule);
+}
+
+.button--quiet:hover {
+  color: var(--ink);
+  border-color: var(--ink-muted);
+}
+
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"] {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.45em 0.6em;
+}

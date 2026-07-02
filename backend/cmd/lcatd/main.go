@@ -33,6 +33,7 @@ import (
 	"github.com/freeeve/libcatalog/backend/store"
 	"github.com/freeeve/libcatalog/backend/suggest"
 	"github.com/freeeve/libcatalog/backend/trigger"
+	"github.com/freeeve/libcatalog/backend/ui"
 	"github.com/freeeve/libcatalog/backend/vocab"
 	"github.com/freeeve/libcatalog/storage/blob"
 )
@@ -168,6 +169,23 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 	if len(verifiers) > 0 {
 		deps.Verifier = auth.NewMulti(verifiers)
 	}
+	deps.UI = ui.Handler()
+	clientCfg := map[string]any{
+		"apiBase":   "", // same-origin
+		"localAuth": cfg.LocalAuth,
+		"provider":  cfg.Provider,
+	}
+	if cfg.OIDCIssuer != "" {
+		clientCfg["oidc"] = map[string]string{"issuer": cfg.OIDCIssuer, "clientId": cfg.OIDCClientID}
+	}
+	if deps.Vocab != nil {
+		schemes := deps.Vocab.Schemes()
+		if deps.Suggest != nil {
+			schemes = append(schemes, vocab.FolkScheme)
+		}
+		clientCfg["schemes"] = schemes
+	}
+	deps.ClientConfig = clientCfg
 	if cfg.EnrichLocsh != "" && deps.Blob != nil {
 		deps.Enrich = &enrich.Service{
 			Blob: deps.Blob, Queue: deps.Suggest,
