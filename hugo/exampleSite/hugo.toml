@@ -17,3 +17,13 @@ languageCode = "en-us"
   format = "formats"
   contributor = "contributors"
   classification = "classifications"
+
+# Live availability (tasks/004): when enabled, lcat-availability.js fetches each
+# edition's status client-side from the provider, keyed on the scheme-tagged id the
+# projector emits (OverDrive: the Reserve ID). The example ships it DISABLED so the
+# built site makes no external calls; flip enabled = true and set a real slug to try
+# it against a live OverDrive library.
+[params.availability]
+  enabled = false
+  [params.availability.overdrive]
+    slug = "queerliblib"

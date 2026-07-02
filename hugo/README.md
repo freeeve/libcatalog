@@ -71,6 +71,32 @@ fails the build loudly if `catalog.json`'s version does not match the version th
 module targets (`params.catalogSchemaVersion`, currently **4**). Reproject with a
 matching `lcat` if you hit a mismatch.
 
+## Live availability (optional)
+
+Availability is fetched client-side at view time by `assets/lcat-availability.js` and
+kept out of the graph (ARCHITECTURE §5), so the static build stays backend-free. It is
+**off unless the site configures it**. To enable the bundled OverDrive/Thunder adapter:
+
+```toml
+[params.availability]
+  enabled = true
+  [params.availability.overdrive]
+    slug = "your-overdrive-library-slug"   # e.g. the {slug}.overdrive.com subdomain
+    # baseUrl / actionUrlTemplate / timeoutMs are optional overrides
+```
+
+Each edition carries `data-instance` and, for OverDrive, `data-overdrive-reserve` (the
+scheme-tagged Reserve ID from `catalog.json`). The adapter batches those ids (<=25 per
+call), POSTs to Thunder's public `/libraries/{slug}/media/availability`, normalizes to
+`{ status: available | holdable | unavailable | unknown, copiesOwned, copiesAvailable,
+holdsCount, estimatedWaitDays, actionUrl }`, caches briefly, de-dups in-flight requests,
+and fills each `.lcat-availability` placeholder. A failed or slow fetch degrades to
+`unknown` (blank) and never blocks render; with the config absent the placeholder stays
+inert. A new source plugs in via `registerAdapter({ providerKey, domAttr, batchSize,
+fetchBatch })` -- the runtime sibling of an ingest provider (`tasks/006`). A `proxied`
+transport (for sources without permissive CORS) and a physical-ILS adapter share the
+same interface and are future work (`tasks/004`).
+
 ## Overriding
 
 Everything is a plain template or asset, so a site or theme layers cleanly on top:
@@ -82,7 +108,3 @@ root and Hugo's module precedence uses yours.
 - **Search** -- the search box is wired to `assets/lcat-search.js`, an interim
   client-side substring filter (progressive enhancement). It will be replaced by
   the roaringrange WASM reader over the `search-manifest.json` index (`tasks/010`).
-- **Availability** -- each edition carries `data-instance` and, for OverDrive,
-  `data-overdrive-reserve` (the scheme-tagged Reserve ID from catalog.json v2). A
-  client-side availability adapter (`tasks/004`) reads these to fetch live
-  availability at view time; until one is wired the placeholder stays inert.

@@ -77,9 +77,50 @@ stale, distinct from the live per-view number. Decide whether this is in scope
 for Tier 1 or a Tier 2 add-on.
 
 ## Acceptance
-- OverDrive availability renders from a `direct` adapter with no committed
-  secret; proxy fallback verified to produce identical normalized output.
-- One physical-ILS adapter renders `locations[]` through the proxy.
-- A results page issues one batched call per provider, caches within TTL, and
+- [x] OverDrive availability renders from a `direct` adapter with no committed
+  secret. (Proxy fallback: interface reserved, not yet implemented -- see Remaining.)
+- [ ] One physical-ILS adapter renders `locations[]` through the proxy.
+- [x] A results page issues one batched call per provider, caches within TTL, and
   never blocks render on a failed fetch.
-- Published feasibility matrix covering at least OverDrive + one physical ILS.
+- [ ] Published feasibility matrix covering at least OverDrive + one physical ILS.
+
+## Delivered -- OverDrive reference adapter (commit pending)
+
+The catalog-side contract was already in place; this adds the client-side half in the
+Hugo module (in-repo), grounded in the real Thunder API (verified against deeplibby's
+`overdrive_client.go`):
+
+- **`hugo/assets/lcat-availability.js`** -- the normalized model + adapter registry +
+  the OverDrive/Thunder `direct` adapter (auth none). It reads `data-overdrive-reserve`
+  off each edition, batches ids (<=25, Thunder's cap), `POST`s to
+  `/libraries/{slug}/media/availability`, maps `{ownedCopies, availableCopies,
+  holdsCount|holdsPlaced, estimatedWaitDays, availabilityType}` to `{status:
+  available|holdable|unavailable|unknown, copies*, holdsCount, estimatedWaitDays,
+  actionUrl}`, caches with a short TTL, de-dups in-flight requests, and degrades to
+  `unknown` on error/timeout (AbortController) -- never blocking render. A new source
+  plugs in via `registerAdapter({providerKey, domAttr, batchSize, fetchBatch})`, the
+  runtime sibling of an ingest provider (`tasks/006`).
+- **Wiring** -- `baseof.html` emits the config as JSON and loads the script only when
+  the site sets `[params.availability] enabled=true`; `page.html` renders each
+  edition's status placeholder + `data-overdrive-reserve`/`data-format` hooks;
+  `lcat.css` colors by `data-status`. README documents the config; exampleSite ships
+  it disabled (no external calls by default).
+- **Tests** -- `hugo/availability_test.cjs` (node, no DOM/network, injected fetch): 14
+  cases over status mapping, field normalization, batching (>25 -> multiple calls),
+  cache hit, in-flight de-dup, error/non-2xx degradation, and `readConfig` (incl. the
+  Hugo module-context double-encoded-JSON quirk). Validated the real Hugo build output
+  parses through `readConfig` to a usable config.
+
+## Remaining (deferred)
+
+- **Proxy transport** (`proxied`) + the stateless edge/serverless proxy artifact --
+  for sources without permissive CORS (and to strip secrets). Interface is reserved;
+  the proxy function itself is a deployment-repo artifact.
+- **Physical-ILS adapter** (DAIA / ILS-DI) populating `locations[]` -- proves the
+  digital/physical superset; needs the proxy.
+- **Feasibility matrix** (CORS/auth/batch/rate-limit per source: OverDrive,
+  Boundless/Axis 360, hoopla, cloudLibrary, a physical ILS).
+- **Coarse "available now" facet sidecar** (§ Known trade-off) -- a Tier 2 add-on;
+  decide if in scope.
+- **Live CORS check** against a real deployment origin (can't verify here); if Thunder
+  is not permissive from the site origin, flip that provider to `proxied`.

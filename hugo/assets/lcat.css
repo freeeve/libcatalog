@@ -104,5 +104,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .lcat-terms { list-style: none; padding: 0; columns: 2; }
 .lcat-editions { list-style: none; padding: 0; }
 .lcat-edition { padding: 0.5rem 0; border-bottom: 1px dashed var(--lcat-border); }
+.lcat-format { font-weight: 600; text-transform: capitalize; margin-right: 0.5rem; }
+.lcat-isbn { color: var(--lcat-muted, #667); }
+/* Live availability (tasks/004): color by resolved data-status; empty (unknown or
+   not-yet-fetched) stays invisible so it never shows a misleading state. */
+.lcat-availability { margin-left: 0.5rem; font-size: 0.9em; }
+.lcat-availability:empty { display: none; }
+.lcat-availability[data-status="available"] { color: #1a7f37; }
+.lcat-availability[data-status="holdable"] { color: #9a6700; }
+.lcat-availability[data-status="unavailable"] { color: #8b1a1a; }
 .lcat-meta dt { font-weight: 600; }
 .pagination { list-style: none; display: flex; gap: 0.5rem; padding: 0; margin: 1.5rem 0; }

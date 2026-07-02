@@ -46,9 +46,11 @@
       <li class="lcat-edition" data-instance="{{ .id }}"{{ with .format }} data-format="{{ . }}"{{ end }}{{ range .providerIds }}{{ if eq .source "overdrive-reserve" }} data-overdrive-reserve="{{ .value }}"{{ end }}{{ end }}>
         {{ with .format }}<span class="lcat-format">{{ . }}</span>{{ end }}
         {{ with .isbns }}<span class="lcat-isbn">ISBN {{ index . 0 }}</span>{{ end }}
-        {{/* Availability is fetched client-side at view time by a provider adapter
-             (libcatalog tasks/004); the data-* keys above are its scheme-tagged
-             input. Until an adapter is wired the placeholder stays inert. */}}
+        {{/* Availability is fetched client-side at view time by lcat-availability.js
+             (libcatalog tasks/004), keyed on data-overdrive-reserve above; it fills
+             this placeholder in when the site enables [params.availability]. Without
+             that config (or JS) the placeholder stays inert -- the static page never
+             depends on it. */}}
         <span class="lcat-availability" data-availability role="status" aria-live="polite"></span>
       </li>
       {{ end }}

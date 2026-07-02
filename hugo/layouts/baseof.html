@@ -20,5 +20,12 @@
     </main>
   </div>
   {{ with resources.Get "lcat-search.js" }}<script src="{{ .RelPermalink }}" defer></script>{{ end }}
+  {{- /* Client-side live availability (tasks/004), enabled only when the site
+         configures [params.availability]. The config (library slug etc.) is emitted
+         as JSON for the adapter; no availability data is in the static build. */ -}}
+  {{ with site.Params.availability }}{{ if .enabled }}
+  <script id="lcat-availability-config" type="application/json">{{ . | jsonify }}</script>
+  {{ with resources.Get "lcat-availability.js" }}<script src="{{ .RelPermalink }}" defer></script>{{ end }}
+  {{ end }}{{ end }}
 </body>
 </html>
