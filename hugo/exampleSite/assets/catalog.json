@@ -1,0 +1,82 @@
+{
+  "version": 2,
+  "works": [
+    {
+      "id": "wexampleone",
+      "title": "Herculine",
+      "subtitle": "A Novel",
+      "contributors": [
+        {
+          "name": "Byron, Grace",
+          "role": "author"
+        },
+        {
+          "name": "Endres, Nicky",
+          "role": "narrator"
+        }
+      ],
+      "subjects": [
+        "Fiction",
+        "Transgender people"
+      ],
+      "languages": [
+        "eng"
+      ],
+      "classifications": [
+        "FIC073000"
+      ],
+      "instances": [
+        {
+          "id": "iexoneaudio",
+          "isbns": [
+            "9781668128251"
+          ],
+          "providerIds": [
+            {
+              "source": "overdrive",
+              "value": "11682058"
+            },
+            {
+              "source": "overdrive-reserve",
+              "value": "24760f5d-028e-4749-968f-85a458a79ad2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wexampletwo",
+      "title": "The House of the Spirits",
+      "contributors": [
+        {
+          "name": "Allende, Isabel",
+          "role": "author"
+        }
+      ],
+      "subjects": [
+        "Fiction",
+        "Family"
+      ],
+      "languages": [
+        "spa"
+      ],
+      "classifications": [
+        "FIC000000"
+      ],
+      "instances": [
+        {
+          "id": "iextwoebook",
+          "isbns": [
+            "9780553383805"
+          ],
+          "providerIds": [
+            {
+              "source": "overdrive-reserve",
+              "value": "aaaa1111-bbbb-2222-cccc-333344445555"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{{- /*
+  Accessible search form. The results list is filtered by lcat-search.js -- an
+  interim progressive-enhancement client-side substring filter until the
+  roaringrange WASM reader is wired (libcatalog tasks/010). Without JS the form
+  submits to /works/ and shows the full list, so search never blocks browsing.
+*/ -}}
+<form class="lcat-search" role="search" action="{{ "/works/" | relURL }}" method="get">
+  <label for="lcat-q" class="lcat-visually-hidden">Search the catalog</label>
+  <input type="search" id="lcat-q" name="q" placeholder="Search titles, authors, subjects…" autocomplete="off">
+  <button type="submit">Search</button>
+</form>

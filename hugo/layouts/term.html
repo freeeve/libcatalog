@@ -1,0 +1,15 @@
+{{ define "sidebar" }}
+<aside class="lcat-sidebar" aria-label="Facets">{{ partial "facets.html" . }}</aside>
+{{ end }}
+
+{{ define "main" }}
+<h1><span class="lcat-facet-dim">{{ .Data.Singular | humanize }}:</span> {{ .Title }}</h1>
+{{ $paginator := .Paginate .Pages }}
+<p class="lcat-resultcount" role="status">{{ len .Pages }} works</p>
+<ol class="lcat-results" id="lcat-results">
+  {{ range $paginator.Pages }}
+  <li>{{ partial "work-card.html" . }}</li>
+  {{ end }}
+</ol>
+{{ template "_internal/pagination.html" . }}
+{{ end }}

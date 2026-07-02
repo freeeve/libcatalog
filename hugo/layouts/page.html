@@ -1,0 +1,42 @@
+{{ define "main" }}
+<article class="lcat-work">
+  <h1>{{ .Title }}{{ with .Params.subtitle }} <span class="lcat-subtitle">{{ . }}</span>{{ end }}</h1>
+
+  {{ with .Params.contributorList }}
+  <p class="lcat-contribs">
+    {{ range $i, $c := . }}{{ if $i }}; {{ end }}{{ $c.name }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
+  </p>
+  {{ end }}
+
+  {{ with .Params.subjects }}
+  <section aria-labelledby="lcat-subj"><h2 id="lcat-subj">Subjects</h2>
+    <ul class="lcat-tags">
+      {{ range . }}<li><a href="{{ printf "/subjects/%s/" (urlize .) | relURL }}">{{ . }}</a></li>{{ end }}
+    </ul>
+  </section>
+  {{ end }}
+
+  <dl class="lcat-meta">
+    {{ with .Params.languages }}<dt>Language</dt><dd>{{ delimit . ", " }}</dd>{{ end }}
+    {{ with .Params.classifications }}<dt>Classification</dt><dd>{{ delimit . ", " }}</dd>{{ end }}
+  </dl>
+
+  {{ with .Params.instances }}
+  <section aria-labelledby="lcat-ed"><h2 id="lcat-ed">Editions &amp; formats</h2>
+    <ul class="lcat-editions">
+      {{ range . }}
+      <li class="lcat-edition" data-instance="{{ .id }}"{{ range .providerIds }}{{ if eq .source "overdrive-reserve" }} data-overdrive-reserve="{{ .value }}"{{ end }}{{ end }}>
+        {{ with .isbns }}<span class="lcat-isbn">ISBN {{ index . 0 }}</span>{{ end }}
+        {{/* Availability is fetched client-side at view time by a provider adapter
+             (libcatalog tasks/004); the data-* keys above are its scheme-tagged
+             input. Until an adapter is wired the placeholder stays inert. */}}
+        <span class="lcat-availability" data-availability role="status" aria-live="polite"></span>
+      </li>
+      {{ end }}
+    </ul>
+  </section>
+  {{ end }}
+
+  <p><a href="{{ "/works/" | relURL }}">&larr; Back to all works</a></p>
+</article>
+{{ end }}

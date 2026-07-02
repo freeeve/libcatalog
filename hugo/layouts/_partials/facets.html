@@ -1,0 +1,35 @@
+{{- /*
+  Facet sidebar built from the projector's facets.json (precomputed value+count per
+  dimension) rather than aggregating catalog.json in templates (tasks/009 contract).
+  Each value links to its Hugo taxonomy term page, which the content adapter's page
+  params generate. Falls back silently when facets.json is absent.
+*/ -}}
+{{- $facets := "" -}}
+{{- with resources.Get "facets.json" -}}{{- $facets = . | transform.Unmarshal -}}{{- end -}}
+{{- $dims := slice
+  (dict "key" "languages" "label" "Languages")
+  (dict "key" "classifications" "label" "Classifications")
+  (dict "key" "subjects" "label" "Subjects")
+  (dict "key" "contributors" "label" "Contributors") -}}
+{{- with $facets -}}
+<nav class="lcat-facets" aria-label="Filter works">
+  {{- range $dims -}}
+    {{- $dim := . -}}
+    {{- with index $facets $dim.key -}}
+    <details class="lcat-facet" open>
+      <summary>{{ $dim.label }} <span class="lcat-facet-total">{{ len . }}</span></summary>
+      <ul>
+        {{- range first 20 . }}
+        <li>
+          <a href="{{ printf "/%s/%s/" $dim.key (urlize .value) | relURL }}">
+            <span class="lcat-facet-value">{{ .value }}</span>
+            <span class="lcat-count">{{ .count }}</span>
+          </a>
+        </li>
+        {{- end }}
+      </ul>
+    </details>
+    {{- end -}}
+  {{- end -}}
+</nav>
+{{- end -}}

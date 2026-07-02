@@ -1,0 +1,38 @@
+{{- /*
+  libcatalog content adapter (Hugo >= 0.126): mint one Page per Work directly from
+  the projected catalog.json -- no per-record content files (tasks/009 contract,
+  ARCHITECTURE §7). catalog.json is read as an asset resource, NOT .Site.Data, so
+  the whole corpus is not pinned in global site data. The graph stays source of
+  truth; this JSON is a derived build artifact.
+
+  The site mounts the projector output under assets/ (assets/catalog.json).
+*/ -}}
+{{- $res := resources.Get "catalog.json" -}}
+{{- with $res -}}
+  {{- $data := . | transform.Unmarshal -}}
+  {{- $want := site.Params.catalogSchemaVersion | int -}}
+  {{- if ne ($data.version | int) $want -}}
+    {{- errorf "libcatalog: catalog.json schema version %v, module targets %d -- reproject with a matching lcat (tasks/009)" $data.version $want -}}
+  {{- end -}}
+  {{- range $data.works -}}
+    {{- $names := slice -}}
+    {{- range .contributors -}}{{- $names = $names | append .name -}}{{- end -}}
+    {{- $.AddPage (dict
+      "kind" "page"
+      "path" .id
+      "title" (or .title .id)
+      "params" (dict
+        "subtitle" .subtitle
+        "languages" .languages
+        "subjects" .subjects
+        "contributors" $names
+        "classifications" .classifications
+        "contributorList" .contributors
+        "instances" .instances
+        "workID" .id
+      )
+    ) -}}
+  {{- end -}}
+{{- else -}}
+  {{- errorf "libcatalog: assets/catalog.json not found -- run `lcat project` and mount its output under the site assets/ (tasks/009)" -}}
+{{- end -}}

@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "languages": [
+    { "value": "eng", "count": 1 },
+    { "value": "spa", "count": 1 }
+  ],
+  "subjects": [
+    { "value": "Fiction", "count": 2 },
+    { "value": "Family", "count": 1 },
+    { "value": "Transgender people", "count": 1 }
+  ],
+  "contributors": [
+    { "value": "Allende, Isabel", "count": 1 },
+    { "value": "Byron, Grace", "count": 1 },
+    { "value": "Endres, Nicky", "count": 1 }
+  ],
+  "classifications": [
+    { "value": "FIC000000", "count": 1 },
+    { "value": "FIC073000", "count": 1 }
+  ]
+}

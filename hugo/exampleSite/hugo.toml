@@ -1,0 +1,17 @@
+baseURL = "https://example.org/"
+title = "libcatalog example catalog"
+languageCode = "en-us"
+
+# Import the libcatalog module (resolved locally via go.mod replace during dev).
+[module]
+  [[module.imports]]
+    path = "github.com/freeeve/libcatalog/hugo"
+
+[pagination]
+  pagerSize = 10
+
+[taxonomies]
+  language = "languages"
+  subject = "subjects"
+  contributor = "contributors"
+  classification = "classifications"

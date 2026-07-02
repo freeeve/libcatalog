@@ -1,0 +1,16 @@
+{{ define "sidebar" }}
+<aside class="lcat-sidebar" aria-label="Facets">{{ partial "facets.html" . }}</aside>
+{{ end }}
+
+{{ define "main" }}
+<h1>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}</h1>
+{{ $pages := .RegularPagesRecursive }}
+{{ $paginator := .Paginate $pages }}
+<p class="lcat-resultcount" role="status">{{ len $pages }} works</p>
+<ol class="lcat-results" id="lcat-results">
+  {{ range $paginator.Pages }}
+  <li>{{ partial "work-card.html" . }}</li>
+  {{ end }}
+</ol>
+{{ template "_internal/pagination.html" . }}
+{{ end }}

@@ -1,0 +1,13 @@
+{{ define "sidebar" }}
+<aside class="lcat-sidebar" aria-label="Facets">{{ partial "facets.html" . }}</aside>
+{{ end }}
+
+{{ define "main" }}
+<h1>{{ .Title }}</h1>
+<p class="lcat-resultcount" role="status">{{ len .Pages }} {{ .Data.Plural }}</p>
+<ul class="lcat-terms">
+  {{ range .Pages.ByTitle }}
+  <li><a href="{{ .RelPermalink }}">{{ .Title }}</a> <span class="lcat-count">{{ len .Pages }}</span></li>
+  {{ end }}
+</ul>
+{{ end }}

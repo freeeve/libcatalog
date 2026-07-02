@@ -1,0 +1,23 @@
+# Module config merged into any site that imports the libcatalog Hugo module.
+# It declares the facet taxonomies the content adapter populates, so importing the
+# module is enough to get faceted navigation -- the site need only mount the
+# projected catalog.json / facets.json under assets/ (see exampleSite).
+
+[module]
+  [module.hugoVersion]
+    min = "0.146.0" # content adapters (>= 0.126) + the flat template system (>= 0.146)
+
+# Facet dimensions. NOTE: Hugo does not merge a module's [taxonomies] into the
+# importing site, so the site must also declare this block (see README / exampleSite);
+# it is kept here as the canonical reference to copy. Each maps a taxonomy name ->
+# the page param the adapter sets; the keys mirror catalog.json field names.
+[taxonomies]
+  language = "languages"
+  subject = "subjects"
+  contributor = "contributors"
+  classification = "classifications"
+
+[params]
+  # catalogSchemaVersion the module targets; the adapter fails the build loudly on
+  # a mismatch with catalog.json's top-level "version" (tasks/009 contract).
+  catalogSchemaVersion = 2

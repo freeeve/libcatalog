@@ -1,0 +1,4 @@
+# Hugo build artifacts (exampleSite and any local builds)
+public/
+resources/_gen/
+.hugo_build.lock

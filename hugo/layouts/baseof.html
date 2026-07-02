@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="{{ or site.Language.LanguageCode site.Language.Lang "en" }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} · {{ site.Title }}{{ end }}</title>
+  {{ with resources.Get "lcat.css" }}<link rel="stylesheet" href="{{ .RelPermalink }}">{{ end }}
+  {{ block "head" . }}{{ end }}
+</head>
+<body>
+  <a class="lcat-skip" href="#lcat-main">Skip to main content</a>
+  <header class="lcat-header">
+    <a class="lcat-brand" href="{{ "/" | relURL }}">{{ site.Title }}</a>
+    {{ partial "search.html" . }}
+  </header>
+  <div class="lcat-layout">
+    {{ block "sidebar" . }}{{ end }}
+    <main id="lcat-main" class="lcat-main" tabindex="-1">
+      {{ block "main" . }}{{ .Content }}{{ end }}
+    </main>
+  </div>
+  {{ with resources.Get "lcat-search.js" }}<script src="{{ .RelPermalink }}" defer></script>{{ end }}
+</body>
+</html>
