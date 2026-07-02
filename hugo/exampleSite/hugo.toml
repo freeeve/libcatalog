@@ -23,6 +23,15 @@ defaultContentLanguage = "en"
 [pagination]
   pagerSize = 10
 
+# Search engine (tasks/017). "pagefind" swaps the header search box to the Pagefind
+# Component UI -- real ranked, per-language, CJK-capable full-text over the built
+# HTML. It needs one post-build step (`npm run search:index`, run after `hugo`).
+# Remove this block (or set any other value) to fall back to the interim client-side
+# substring filter, which needs no post-build step. Either way the no-JS form still
+# submits to /works/.
+[params.search]
+  engine = "pagefind"
+
 [taxonomies]
   language = "languages"
   subject = "subjects"

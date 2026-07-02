@@ -1,11 +1,18 @@
 {{- /*
-  Accessible search form. The results list is filtered by lcat-search.js -- an
-  interim progressive-enhancement client-side substring filter until the
-  roaringrange WASM reader is wired (libcatalog tasks/010). Without JS the form
-  submits to /works/ and shows the full list, so search never blocks browsing.
+  Search box. Two engines (tasks/017), chosen by [params.search] engine:
+    - "pagefind" -> the Pagefind Component UI (search-pagefind.html): real ranked,
+      per-language, CJK-capable full-text over the built HTML. Opt-in.
+    - anything else / absent -> the interim client-side substring filter driven by
+      lcat-search.js. Default.
+  Both degrade to a plain GET form to /works/ without JS, so search never blocks
+  browsing.
 */ -}}
+{{- if eq (site.Params.search.engine | default "") "pagefind" -}}
+{{ partial "search-pagefind.html" . }}
+{{- else -}}
 <form class="lcat-search" role="search" action="{{ "/works/" | relURL }}" method="get">
   <label for="lcat-q" class="lcat-visually-hidden">{{ i18n "searchLabel" }}</label>
   <input type="search" id="lcat-q" name="q" placeholder="{{ i18n "searchPlaceholder" }}" autocomplete="off">
   <button type="submit">{{ i18n "searchButton" }}</button>
 </form>
+{{- end -}}

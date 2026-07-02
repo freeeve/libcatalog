@@ -5,7 +5,8 @@
   "description": "Dev-only accessibility + JS tests for the libcatalog Hugo module. Not shipped: Hugo consumes only the templates and assets, never this package.",
   "scripts": {
     "test:a11y": "node a11y_audit.js exampleSite/public",
-    "test:js": "node availability_test.cjs"
+    "test:js": "node availability_test.cjs",
+    "search:index": "npx -y pagefind --site exampleSite/public"
   },
   "devDependencies": {
     "axe-core": "^4",

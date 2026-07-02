@@ -77,6 +77,32 @@ as advanced; `tasks/009` becomes the advanced-path option rather than the only p
 - README + ARCHITECTURE present the choose-your-search decision (Pagefind default,
   roaringrange advanced).
 
+## Outcome (done)
+
+Implemented and verified end-to-end on the bilingual exampleSite.
+
+- **Template markup.** `page.html` (Work detail) carries `data-pagefind-body` (scopes
+  the index to Work pages only -- list/home/taxonomy pages are excluded), `data-pagefind-meta`
+  for title/author, and `data-pagefind-filter` for all six facet dimensions (format,
+  language, subject, tag, contributor, classification). `data-pagefind-ignore` on the
+  header chrome, authority `↗` links, and the back link keeps them out of the index.
+- **Opt-in UI.** `[params.search] engine = "pagefind"` swaps `search.html` to the new
+  `search-pagefind.html` (Pagefind drop-in UI, loaded by URL from `public/pagefind/`);
+  absent/other keeps `lcat-search.js`. The interim JS is gated off in `baseof.html` when
+  Pagefind is on. No-JS `<noscript>` form still submits to `/works/`.
+- **Build wiring.** `npm run search:index` -> `npx pagefind --site exampleSite/public`;
+  output lands in the already-gitignored `public/pagefind/`. Standalone-binary path
+  documented. `exampleSite` ships with Pagefind enabled as the reference.
+- **Multilingual + CJK, verified.** Added a CJK sample Work (雪国 / Snow Country, `jpn`)
+  to the example catalog + facets. Pagefind (v1.5.2 Extended) built **2 per-language
+  indexes** (en, es), 6 pages, **12 filters**. A real WASM search in Node returned the
+  CJK page for both `雪` and `雪国` (segmentation confirmed) and the Latin sanity query;
+  `国` alone returned nothing, confirming proper tokenized prefix search, not substring.
+- **Checks.** a11y audit clean over all 91 built pages; 17 availability JS tests pass.
+- **Docs.** hugo/README "Search" section, ARCHITECTURE §8 reframed (Pagefind default,
+  roaringrange advanced), top-level README "powered by" note; tasks/009 repositioned as
+  the advanced-path reader.
+
 ## Refs
 
 - https://pagefind.app (multilingual, filters, Component UI, CLI).

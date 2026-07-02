@@ -1,10 +1,16 @@
 {{ define "main" }}
-<article class="lcat-work">
-  <h1>{{ .Title }}{{ with .Params.subtitle }} <span class="lcat-subtitle">{{ . }}</span>{{ end }}</h1>
+{{- /* data-pagefind-body scopes the optional Pagefind index (tasks/017) to Work
+       detail pages only: because just this article carries it, list/home/taxonomy
+       pages are excluded from the index. data-pagefind-meta captures title/author
+       for result cards; data-pagefind-filter reuses the facet dimensions. Inert
+       unless the site sets [params.search] engine = "pagefind" and runs the index
+       step; the attributes are harmless otherwise. */ -}}
+<article class="lcat-work" data-pagefind-body>
+  <h1 data-pagefind-meta="title">{{ .Title }}{{ with .Params.subtitle }} <span class="lcat-subtitle">{{ . }}</span>{{ end }}</h1>
 
   {{ with .Params.contributorList }}
-  <p class="lcat-contribs">
-    {{ range $i, $c := . }}{{ if $i }}; {{ end }}{{ $c.name }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
+  <p class="lcat-contribs" data-pagefind-meta="author">
+    {{ range $i, $c := . }}{{ if $i }}; {{ end }}<span data-pagefind-filter="contributor">{{ $c.name }}</span>{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
   </p>
   {{ end }}
 
@@ -15,8 +21,8 @@
       {{ range . }}
         {{ $label := .id }}{{ with .labels }}{{ $label = or (index . $lang) (index . "en") $label }}{{ end }}
         {{/* Facet by label; the subject's canonical link is its authority URI. */}}
-        <li><a href="{{ printf "/subjects/%s/" (urlize $label) | relURL }}">{{ $label }}</a>
-          {{ if ne $label .id }}<a class="lcat-authority" href="{{ .id }}" rel="external" aria-label="{{ i18n "authorityRecordFor" (dict "Label" $label) }}">↗</a>{{ end }}
+        <li><a href="{{ printf "/subjects/%s/" (urlize $label) | relURL }}" data-pagefind-filter="subject">{{ $label }}</a>
+          {{ if ne $label .id }}<a class="lcat-authority" href="{{ .id }}" rel="external" aria-label="{{ i18n "authorityRecordFor" (dict "Label" $label) }}" data-pagefind-ignore>↗</a>{{ end }}
         </li>
       {{ end }}
     </ul>
@@ -26,17 +32,17 @@
   {{ with .Params.tags }}
   <section aria-labelledby="lcat-tags"><h2 id="lcat-tags">{{ i18n "genresAndTags" }}</h2>
     <ul class="lcat-tags">
-      {{ range . }}<li><a href="{{ printf "/tags/%s/" (urlize .) | relURL }}">{{ . }}</a></li>{{ end }}
+      {{ range . }}<li><a href="{{ printf "/tags/%s/" (urlize .) | relURL }}" data-pagefind-filter="tag">{{ . }}</a></li>{{ end }}
     </ul>
   </section>
   {{ end }}
 
   <dl class="lcat-meta">
     {{ with .Params.formats }}<dt>{{ i18n "formats" }}</dt><dd>
-      {{ range $i, $f := . }}{{ if $i }}, {{ end }}<a href="{{ printf "/formats/%s/" (urlize $f) | relURL }}">{{ $f }}</a>{{ end }}
+      {{ range $i, $f := . }}{{ if $i }}, {{ end }}<a href="{{ printf "/formats/%s/" (urlize $f) | relURL }}" data-pagefind-filter="format">{{ $f }}</a>{{ end }}
     </dd>{{ end }}
-    {{ with .Params.languages }}<dt>{{ i18n "language" }}</dt><dd>{{ delimit . ", " }}</dd>{{ end }}
-    {{ with .Params.classifications }}<dt>{{ i18n "classification" }}</dt><dd>{{ delimit . ", " }}</dd>{{ end }}
+    {{ with .Params.languages }}<dt>{{ i18n "language" }}</dt><dd>{{ range $i, $l := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="language">{{ $l }}</span>{{ end }}</dd>{{ end }}
+    {{ with .Params.classifications }}<dt>{{ i18n "classification" }}</dt><dd>{{ range $i, $c := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="classification">{{ $c }}</span>{{ end }}</dd>{{ end }}
   </dl>
 
   {{ with .Params.instances }}
@@ -58,6 +64,6 @@
   </section>
   {{ end }}
 
-  <p><a href="{{ "/works/" | relURL }}">&larr; {{ i18n "backToAllWorks" }}</a></p>
+  <p data-pagefind-ignore><a href="{{ "/works/" | relURL }}">&larr; {{ i18n "backToAllWorks" }}</a></p>
 </article>
 {{ end }}

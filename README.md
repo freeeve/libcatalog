@@ -20,8 +20,10 @@ lives in here.
   - [`libcodex`](https://github.com/freeeve/libcodex) -- MARC / MODS / Dublin
     Core / schema.org / BIBFRAME read, write, convert (the interchange, import,
     and export engine).
-  - [`roaringrange`](https://github.com/freeeve/roaringrange) -- the search
-    index and reader (lexical by default; semantic embeddings opt-in).
+  - [`roaringrange`](https://github.com/freeeve/roaringrange) -- the **advanced**
+    search index and reader (lexical BM25; semantic embeddings opt-in) for
+    large-corpus / custom-ranking deployments. The default static search is
+    **Pagefind** over the built HTML (tasks/017).
 - **No triplestore, no database for the static tier** -- files in git, files on
   S3/CloudFront. No paid AI in the default build.
 

@@ -64,6 +64,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
   border-radius: 4px;
   cursor: pointer;
 }
+/* Optional Pagefind search UI (tasks/017): themed to the module accent and sized to
+   sit in the header. Pagefind ships its own pagefind-ui.css; these custom properties
+   just align it with lcat.css. Only present when [params.search] engine = "pagefind". */
+.lcat-search-pagefind {
+  --pagefind-ui-primary: var(--lcat-accent);
+  --pagefind-ui-text: var(--lcat-fg);
+  --pagefind-ui-background: var(--lcat-bg);
+  --pagefind-ui-border: var(--lcat-border);
+  --pagefind-ui-font: inherit;
+  --pagefind-ui-border-radius: 4px;
+  min-width: 18rem;
+  flex: 1 1 22rem;
+  max-width: 32rem;
+}
 .lcat-layout {
   display: grid;
   grid-template-columns: 16rem 1fr;

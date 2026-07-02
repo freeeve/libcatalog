@@ -142,6 +142,50 @@ deployment artifact (an edge/serverless handler), not shipped by this module; en
 it per provider so a pure-`direct` deployment stays backend-free. A physical-ILS
 adapter (DAIA/ILS-DI, populating `locations[]`) is future work (`tasks/004`).
 
+## Search
+
+Two engines, chosen by `[params.search] engine`:
+
+- **Pagefind (recommended).** A static search library that indexes the **built HTML**
+  under `public/` *after* Hugo runs -- so the content-adapter-minted Work pages index
+  with no markdown and no extra data artifact. It gives real ranked full-text search
+  that is **per-language** (it reads the `<html lang>` this module emits and auto-loads
+  the matching index, tasks/016), **CJK-capable** (its Extended build segments CJK
+  natively), and **facet-filtered** (the Work templates carry `data-pagefind-filter` for
+  format, language, subject, tag, contributor, and classification). No custom WASM
+  wiring. Enable it and run one post-build step:
+
+  ```toml
+  [params.search]
+    engine = "pagefind"
+  ```
+  ```
+  hugo --destination public       # build the site
+  npm run search:index            # index public/ -> public/pagefind/ (runs npx pagefind)
+  # or the standalone binary:  pagefind --site public
+  ```
+
+  Pagefind writes its index and drop-in UI into `public/pagefind/` (gitignored along with
+  the rest of `public/`). The search partial loads those by URL, so Hugo builds fine
+  before the index exists -- the widget simply activates once the index is in place.
+  `exampleSite` ships with Pagefind enabled as the reference setup.
+
+- **Interim filter (default when the param is absent).** `assets/lcat-search.js`, a small
+  dependency-free client-side substring filter over the rendered list. No post-build
+  step; not ranked. This is what an adopter gets out of the box until they opt into
+  Pagefind.
+
+Either way, **with JavaScript disabled the search form still submits to `/works/`** and
+the full faceted list browses -- search never blocks navigation.
+
+### Advanced: roaringrange
+
+For very large corpora, custom BM25 ranking internals, split-set sharding, or a
+**no-Node** build, `roaringrange` (Go build-side indexes + a WASM reader) is the opt-in
+advanced engine. Its build-side index arms exist (`tasks/005`/`010`); the browser reader
+(`tasks/009`) is the remaining advanced-path work. Pagefind covers the multilingual/CJK
+goal natively for the default path, so most deployments will not need it.
+
 ## Accessibility
 
 Accessibility is a first-class goal (ARCHITECTURE §6/§7): semantic landmarks, a skip
@@ -156,6 +200,10 @@ cd .. && npm install && npm run test:a11y   # audits every built page, exits non
 `npm run test:js` runs the availability adapter's unit tests. `color-contrast` is
 excluded from the automated run (jsdom has no layout) -- verify it in a real browser
 (Lighthouse / axe DevTools), and re-check contrast whenever you override `assets/lcat.css`.
+
+`npm run search:index` builds the optional Pagefind index over `exampleSite/public`
+(see "Search"). Like the a11y audit, it is optional post-build tooling -- Hugo never
+consumes it.
 
 ## Overriding
 

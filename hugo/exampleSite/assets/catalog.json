@@ -69,6 +69,26 @@
           ]
         }
       ]
+    },
+    {
+      "id": "wexamplethree",
+      "title": "雪国",
+      "subtitle": "Snow Country",
+      "contributors": [{ "name": "Kawabata, Yasunari", "role": "author" }],
+      "tags": ["Fiction"],
+      "languages": ["jpn"],
+      "classifications": ["FIC019000"],
+      "formats": ["ebook"],
+      "instances": [
+        {
+          "id": "iexthreeebook",
+          "format": "ebook",
+          "isbns": ["9780679761044"],
+          "providerIds": [
+            { "source": "overdrive-reserve", "value": "cccc3333-dddd-4444-eeee-555566667777" }
+          ]
+        }
+      ]
     }
   ]
 }

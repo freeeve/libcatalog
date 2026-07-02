@@ -9,7 +9,7 @@
 </head>
 <body>
   <a class="lcat-skip" href="#lcat-main">Skip to main content</a>
-  <header class="lcat-header">
+  <header class="lcat-header" data-pagefind-ignore>
     <a class="lcat-brand" href="{{ "/" | relURL }}">{{ site.Title }}</a>
     {{ partial "search.html" . }}
   </header>
@@ -19,7 +19,9 @@
       {{ block "main" . }}{{ .Content }}{{ end }}
     </main>
   </div>
-  {{ with resources.Get "lcat-search.js" }}<script src="{{ .RelPermalink }}" defer></script>{{ end }}
+  {{- /* The interim substring filter loads only for the default search path; the
+         Pagefind path (tasks/017) ships its own UI from the search partial. */ -}}
+  {{ if ne (site.Params.search.engine | default "") "pagefind" }}{{ with resources.Get "lcat-search.js" }}<script src="{{ .RelPermalink }}" defer></script>{{ end }}{{ end }}
   {{- /* Client-side live availability (tasks/004), enabled only when the site
          configures [params.availability]. The config (library slug etc.) is emitted
          as JSON for the adapter; no availability data is in the static build. */ -}}

@@ -1,0 +1,32 @@
+{{- /*
+  Pagefind Component UI search (opt-in via [params.search] engine = "pagefind").
+
+  Pagefind indexes the built public/ HTML *after* `hugo` runs (see `npm run
+  search:index` / README "Search"), emitting /pagefind/pagefind-ui.{js,css} and a
+  per-language index. Those assets are referenced by absolute URL -- NOT via
+  resources.Get -- so Hugo builds cleanly before the index exists; the widget simply
+  activates once the post-build step has run. Pagefind reads <html lang> (tasks/016)
+  to auto-load the matching language index and segments CJK natively (tasks/005).
+
+  Without JS the <noscript> form still submits to /works/, so search never blocks
+  browsing. data-pagefind-ignore keeps the widget's own chrome out of the index.
+*/ -}}
+<link href="{{ "/pagefind/pagefind-ui.css" | relURL }}" rel="stylesheet">
+<div class="lcat-search lcat-search-pagefind">
+  <div id="lcat-pagefind" data-pagefind-ignore></div>
+  <noscript>
+    <form role="search" action="{{ "/works/" | relURL }}" method="get">
+      <label for="lcat-q" class="lcat-visually-hidden">{{ i18n "searchLabel" }}</label>
+      <input type="search" id="lcat-q" name="q" placeholder="{{ i18n "searchPlaceholder" }}" autocomplete="off">
+      <button type="submit">{{ i18n "searchButton" }}</button>
+    </form>
+  </noscript>
+</div>
+<script src="{{ "/pagefind/pagefind-ui.js" | relURL }}" defer></script>
+<script>
+  window.addEventListener("DOMContentLoaded", function () {
+    if (window.PagefindUI) {
+      new PagefindUI({ element: "#lcat-pagefind", showSubResults: true, showImages: false });
+    }
+  });
+</script>

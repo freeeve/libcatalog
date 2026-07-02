@@ -175,11 +175,30 @@ Downstream is tool-stable: the search reader runs over the emitted index; live
 availability is client-side JS; the dynamic backend (if present) only touches
 the graph.
 
-## 8. Search: roaringrange, embeddings opt-in
+## 8. Search: Pagefind default, roaringrange advanced
 
-- **Default: lexical.** roaringrange's BM25 / `terms` path (the Rust crate's
+Two engines sit at different complexity points; the Hugo module lets a deployment
+choose between them (`[params.search] engine`, tasks/017):
+
+- **Default path: Pagefind.** A static search library that indexes the **built HTML**
+  (`public/`) *after* Hugo runs -- no markdown, no separate index artifact. It gives
+  real ranked full-text search that is per-language (off the `<html lang>` the module
+  emits, §7 / tasks/016), CJK-segmenting (its Extended build), and facet-filtered
+  (`data-pagefind-filter` reuses the six facet dimensions), with **no bespoke WASM
+  wiring**. Cost: one optional Node/npx (or standalone-binary) post-build step at
+  deploy -- the same category of optional tooling as the a11y audit, kept out of the Go
+  core and the Hugo module runtime. This is the out-of-the-box recommendation for Tier
+  1's static, self-serve, minimal-complexity pitch (§6), and it natively covers the
+  multilingual + CJK goal the roaringrange work below chased by hand.
+
+- **Advanced path: roaringrange.** The opt-in engine for very large corpora, split-set
+  sharding, custom BM25 ranking internals, or a **no-Node** build. Its build-side index
+  arms are built (tasks/005 / tasks/010); the browser reader (tasks/009) is the
+  remaining advanced-path work, no longer the sole search plan. Its shape:
+
+- **Lexical.** roaringrange's BM25 / `terms` path (the Rust crate's
   `terms` feature; WASM reader in the browser). **No embeddings, no paid AI, no
-  Bedrock** in the default build -- a library can stand up a good catalog with
+  Bedrock** in the base build -- a library can stand up a good catalog with
   zero cloud-AI dependency.
 - **Multilingual scope (stated precisely).** Tokenization is Unicode-correct --
   maximal runs of Unicode alphanumerics, full Unicode lowercasing -- and so
