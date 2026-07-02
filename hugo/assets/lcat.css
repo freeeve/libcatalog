@@ -1,27 +1,41 @@
 /* libcatalog reference styles: accessible, desktop-credible, override-friendly. Every
    component is driven by the --lcat-* tokens below, so an adopter re-themes by re-setting
    those variables in their own stylesheet (loaded after this one) -- no need to shadow
-   assets/lcat.css or reimplement any chrome (tasks/025). Uses system fonts and CSS grid. */
+   assets/lcat.css or reimplement any chrome (tasks/025). Uses system fonts and CSS grid.
+
+   The default identity is "library-ish but modern": work titles in a zero-payload
+   system serif (the bookish register), UI chrome in a clean sans, catalog-drawer
+   small caps on facet labels, an index-card double rule under the work heading, and
+   a curator-green accent -- the same ink the cataloging backend renders editorial
+   provenance in. All of it retunes from the tokens; nothing is baked into markup. */
 :root {
-  --lcat-fg: #1a1a1a;
-  --lcat-bg: #fff;
-  --lcat-accent: #0b5cad;       /* links, active states: >=4.5:1 on --lcat-bg */
-  --lcat-accent-ink: #084281;   /* darker accent for headings / large text */
-  --lcat-muted: #5a5a5a;
-  --lcat-border: #d5d5d5;
-  --lcat-surface: #fff;         /* raised cards and the facet panel */
-  --lcat-surface-alt: #f2f4f7;  /* tag chips, subtle fills */
-  --lcat-radius: 8px;
-  --lcat-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --lcat-fg: #1f2421;           /* iron-gall green-black ink */
+  --lcat-bg: #f7f6f2;           /* bone: warm near-white, not cream */
+  --lcat-accent: #1e6b4e;       /* curator green; links, active states (>=4.5:1 on bg) */
+  --lcat-accent-ink: #14523a;   /* darker accent for headings / large text */
+  --lcat-muted: #5b615d;
+  --lcat-border: #d9d5cb;
+  --lcat-surface: #fff;         /* raised cards and the facet panel: index-card white */
+  --lcat-surface-alt: #edeae2;  /* tag chips, subtle fills */
+  --lcat-radius: 6px;
+  --lcat-shadow: 0 1px 0 rgba(31, 36, 33, 0.07), 0 3px 10px rgba(31, 36, 33, 0.06);
   --lcat-gap: 2rem;
   --lcat-maxw: 72rem;           /* readable measure, wider than the old minimal 68rem */
+  /* Type roles: display carries the bookish personality (work titles only); the
+     body stays a modern sans; mono covers identifiers and call numbers. */
+  --lcat-display: "Charter", "Iowan Old Style", "Palatino", Georgia, serif;
+  --lcat-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --lcat-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0;
   color: var(--lcat-fg);
   background: var(--lcat-bg);
-  font: 100%/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font: 100%/1.5 var(--lcat-sans);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 /* Underline links by default so in-text links do not rely on color alone
    (WCAG 1.4.1); chrome links with a non-color affordance (brand, facet rows,
@@ -60,7 +74,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
   background: var(--lcat-surface);
   border-bottom: 1px solid var(--lcat-border);
 }
-.lcat-brand { font-weight: 700; font-size: 1.2rem; color: var(--lcat-accent-ink); text-decoration: none; }
+.lcat-brand {
+  font-family: var(--lcat-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--lcat-accent-ink);
+  text-decoration: none;
+}
 .lcat-search { display: flex; gap: 0.5rem; }
 .lcat-search input {
   padding: 0.4rem 0.6rem;
@@ -115,7 +135,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
   box-shadow: var(--lcat-shadow);
 }
 .lcat-facet { margin-bottom: 1rem; border-bottom: 1px solid var(--lcat-border); padding-bottom: 0.5rem; }
-.lcat-facet summary { cursor: pointer; font-weight: 600; color: var(--lcat-accent-ink); }
+/* Facet group labels read like catalog-drawer labels: small caps, tracked out. */
+.lcat-facet summary {
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--lcat-accent-ink);
+}
 .lcat-facet-total, .lcat-count { color: var(--lcat-muted); font-size: 0.85em; }
 .lcat-facets ul { list-style: none; margin: 0.5rem 0 0; padding: 0; }
 .lcat-facets li a {
@@ -132,7 +160,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
    the body is the lone flex child and fills the width (tasks/025). */
 .lcat-card { display: flex; gap: 1rem; align-items: flex-start; }
 .lcat-card-body { flex: 1 1 auto; min-width: 0; }
-.lcat-card-title { margin: 0 0 0.25rem; font-size: 1.15rem; line-height: 1.3; }
+.lcat-card-title {
+  margin: 0 0 0.25rem;
+  font-family: var(--lcat-display);
+  font-size: 1.3rem;
+  line-height: 1.25;
+  letter-spacing: 0.005em;
+}
 .lcat-subtitle { font-weight: 400; color: var(--lcat-muted); }
 .lcat-contribs { margin: 0.15rem 0; color: var(--lcat-muted); }
 .lcat-role { font-style: italic; }
@@ -151,14 +185,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .lcat-editions { list-style: none; padding: 0; }
 .lcat-edition { padding: 0.5rem 0; border-bottom: 1px dashed var(--lcat-border); }
 .lcat-format { font-weight: 600; text-transform: capitalize; margin-right: 0.5rem; }
-.lcat-isbn { color: var(--lcat-muted, #667); }
+.lcat-isbn { color: var(--lcat-muted, #667); font-family: var(--lcat-mono); font-size: 0.85em; }
 /* Live availability (tasks/004): color by resolved data-status; empty (unknown or
    not-yet-fetched) stays invisible so it never shows a misleading state. */
 .lcat-availability { margin-left: 0.5rem; font-size: 0.9em; }
 .lcat-availability:empty { display: none; }
-.lcat-availability[data-status="available"] { color: #1a7f37; }
-.lcat-availability[data-status="holdable"] { color: #9a6700; }
-.lcat-availability[data-status="unavailable"] { color: #8b1a1a; }
+.lcat-availability[data-status="available"] { color: #1e6b4e; }
+.lcat-availability[data-status="holdable"] { color: #8a5a00; }
+.lcat-availability[data-status="unavailable"] { color: #a34224; }
 .lcat-meta dt { font-weight: 600; }
 /* Optional cover art (tasks/025): rendered by lcat-cover.html only when the site sets
    [params] covers = true. Set BOTH width and height in CSS per variant -- the <img>
@@ -201,3 +235,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .pagination .page-link:hover { border-color: var(--lcat-accent); }
 .pagination .active .page-link { background: var(--lcat-accent); border-color: var(--lcat-accent); color: #fff; }
 .pagination .disabled .page-link { color: var(--lcat-muted); border-color: var(--lcat-border); pointer-events: none; }
+
+/* Work detail heading: the display serif over an index-card double rule --
+   the theme's one structural flourish, and it encodes the page's job (this is
+   the record's title line). */
+.lcat-main h1 {
+  font-family: var(--lcat-display);
+  font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+  line-height: 1.2;
+  margin: 0.25rem 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 3px double var(--lcat-border);
+}
+/* Record metadata labels echo the facet drawer register. */
+.lcat-meta dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--lcat-muted);
+}
