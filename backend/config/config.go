@@ -66,6 +66,10 @@ type Config struct {
 	// Provider names the primary feed graph (CSV export projection).
 	// Default "overdrive".
 	Provider string
+
+	// EnrichLocsh enables the id.loc.gov LCSH reconciliation source when set
+	// to "queue" (moderated) or "direct" (auto-approve).
+	EnrichLocsh string
 }
 
 // FromEnv reads configuration from LCATD_-prefixed environment variables.
@@ -87,6 +91,10 @@ func FromEnv() (Config, error) {
 		WebhookURL:        os.Getenv("LCATD_WEBHOOK_URL"),
 		WebhookSecret:     os.Getenv("LCATD_WEBHOOK_SECRET"),
 		Provider:          envOr("LCATD_PROVIDER", "overdrive"),
+		EnrichLocsh:       os.Getenv("LCATD_ENRICH_LOCSH"),
+	}
+	if cfg.EnrichLocsh != "" && cfg.EnrichLocsh != "queue" && cfg.EnrichLocsh != "direct" {
+		return Config{}, fmt.Errorf("config: LCATD_ENRICH_LOCSH must be queue or direct")
 	}
 	if raw := os.Getenv("LCATD_VOCAB_SCHEMES"); raw != "" {
 		for s := range strings.SplitSeq(raw, ",") {

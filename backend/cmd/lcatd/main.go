@@ -20,7 +20,10 @@ import (
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/auth/local"
 	"github.com/freeeve/libcatalog/backend/auth/oidc"
+	"github.com/freeeve/libcatalog/ingest/locsh"
+
 	"github.com/freeeve/libcatalog/backend/config"
+	"github.com/freeeve/libcatalog/backend/enrich"
 	"github.com/freeeve/libcatalog/backend/export"
 	"github.com/freeeve/libcatalog/backend/httpapi"
 	"github.com/freeeve/libcatalog/backend/publish"
@@ -141,6 +144,14 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 	}
 	if len(verifiers) > 0 {
 		deps.Verifier = auth.NewMulti(verifiers)
+	}
+	if cfg.EnrichLocsh != "" && deps.Blob != nil {
+		deps.Enrich = &enrich.Service{
+			Blob: deps.Blob, Queue: deps.Suggest,
+			Sources: map[string]enrich.Source{
+				locsh.Name: {Enricher: locsh.New(), Mode: enrich.Mode(cfg.EnrichLocsh), Scheme: "lcsh"},
+			},
+		}
 	}
 	if deps.Blob != nil && cfg.AbuseSecret != "" {
 		exports, err := export.New(db, deps.Blob, cfg.Provider, []byte(cfg.AbuseSecret))

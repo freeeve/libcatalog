@@ -196,6 +196,40 @@ func (s *Service) ManualTerm(ctx context.Context, workID string, ref vocab.TermR
 	return nil
 }
 
+// PipelineSuggest lands one machine-produced candidate in the moderation
+// queue: a PENDING aggregate with PIPELINE provenance and confidence,
+// create-only (an existing aggregate for the pair -- from patrons or a prior
+// run -- is left untouched, so re-running an enrichment source never spams
+// the queue). The term is deliberately not gated by the vocabulary index:
+// enrichment sources assert terms from vocabularies too large to load, and
+// moderation is the gate. Tombstoned pairs are skipped silently.
+func (s *Service) PipelineSuggest(ctx context.Context, workID string, term vocab.TermRef, confidence float64) error {
+	if _, err := s.db.Get(ctx, store.Key{PK: workPK(workID), SK: tombstoneSK(term)}); err == nil {
+		return nil
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
+	now := s.now().UTC()
+	sg := Suggestion{
+		WorkID: workID, Term: term, Type: TypeAdd,
+		Status: StatusPending, Provenance: ProvenancePipeline,
+		Confidence: confidence, CreatedAt: now, LastActivityAt: now,
+	}
+	data, err := marshalSuggestion(sg)
+	if err != nil {
+		return err
+	}
+	key := store.Key{PK: workPK(workID), SK: suggSK(term, TypeAdd)}
+	if _, err := s.db.Put(ctx, store.Record{Key: key, Data: data}, store.CondIfAbsent); err != nil {
+		if errors.Is(err, store.ErrConditionFailed) {
+			return nil // pair already suggested; moderation owns it
+		}
+		return err
+	}
+	s.writeStatusIndex(ctx, StatusPending, key)
+	return nil
+}
+
 // SetFolkStatus accepts or blocks a folksonomy term. Accepted terms enter
 // the autocomplete index; blocking removes them from it and refuses future
 // suggestions.

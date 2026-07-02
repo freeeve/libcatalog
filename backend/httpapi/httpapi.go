@@ -12,6 +12,7 @@ import (
 
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/auth/local"
+	"github.com/freeeve/libcatalog/backend/enrich"
 	"github.com/freeeve/libcatalog/backend/export"
 	"github.com/freeeve/libcatalog/backend/publish"
 	"github.com/freeeve/libcatalog/backend/store"
@@ -53,6 +54,8 @@ type Deps struct {
 	DB store.Store
 	// Exports, when set, mounts the export-job surface.
 	Exports *export.Service
+	// Enrich, when set, mounts the admin enrichment surface.
+	Enrich *enrich.Service
 }
 
 // GraphPublisher is the publish pipeline seam (publish.Publisher in
@@ -85,6 +88,9 @@ func New(deps Deps) http.Handler {
 	}
 	if deps.Exports != nil && deps.Verifier != nil {
 		registerExports(mux, deps.Exports, deps.Verifier)
+	}
+	if deps.Enrich != nil && deps.Verifier != nil {
+		registerEnrich(mux, deps.Enrich, deps.Verifier)
 	}
 	return wrap(mux, deps.Logger)
 }
