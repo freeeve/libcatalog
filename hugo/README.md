@@ -97,6 +97,21 @@ fetchBatch })` -- the runtime sibling of an ingest provider (`tasks/006`). A `pr
 transport (for sources without permissive CORS) and a physical-ILS adapter share the
 same interface and are future work (`tasks/004`).
 
+## Accessibility
+
+Accessibility is a first-class goal (ARCHITECTURE §6/§7): semantic landmarks, a skip
+link, labeled search, `role="status"` result counts, and ordered headings. A repeatable
+axe-core (WCAG 2.1 A/AA) audit ships as dev tooling -- Hugo never consumes it:
+
+```
+cd exampleSite && hugo --destination public
+cd .. && npm install && npm run test:a11y   # audits every built page, exits non-zero on a violation
+```
+
+`npm run test:js` runs the availability adapter's unit tests. `color-contrast` is
+excluded from the automated run (jsdom has no layout) -- verify it in a real browser
+(Lighthouse / axe DevTools), and re-check contrast whenever you override `assets/lcat.css`.
+
 ## Overriding
 
 Everything is a plain template or asset, so a site or theme layers cleanly on top:

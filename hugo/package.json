@@ -1,0 +1,14 @@
+{
+  "name": "libcatalog-hugo-a11y",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dev-only accessibility + JS tests for the libcatalog Hugo module. Not shipped: Hugo consumes only the templates and assets, never this package.",
+  "scripts": {
+    "test:a11y": "node a11y_audit.js exampleSite/public",
+    "test:js": "node availability_test.cjs"
+  },
+  "devDependencies": {
+    "axe-core": "^4",
+    "jsdom": "^24"
+  }
+}

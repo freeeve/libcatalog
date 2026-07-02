@@ -2,3 +2,7 @@
 public/
 resources/_gen/
 .hugo_build.lock
+
+# Dev-only test tooling (a11y audit + JS tests); installed on demand, not shipped.
+node_modules/
+package-lock.json

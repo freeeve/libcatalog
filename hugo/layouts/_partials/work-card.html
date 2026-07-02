@@ -1,8 +1,10 @@
 {{- /* One Work in a result list. Expects a Work page (from the content adapter). */ -}}
 <article class="lcat-card">
-  <h3 class="lcat-card-title">
+  {{- /* h2: a result card sits directly under the page h1, so this is the next
+         heading level -- jumping to h3 breaks heading order (WCAG 1.3.1 / 2.4.6). */ -}}
+  <h2 class="lcat-card-title">
     <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ with .Params.subtitle }}<span class="lcat-subtitle">: {{ . }}</span>{{ end }}
-  </h3>
+  </h2>
   {{- with .Params.contributorList }}
   <p class="lcat-contribs">
     {{ range $i, $c := first 4 . }}{{ if $i }}; {{ end }}{{ $c.name }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
