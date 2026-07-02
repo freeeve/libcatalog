@@ -65,12 +65,17 @@ above (037, 084, 650 _7 $2 OverDrive) or delete it in favor of path 1.
       the in-flight libcodex refactor -- see `tasks/019`); remove the `--marc` flag,
       `writeOverdriveMARC`, and the `codex.Record` crosswalk helpers used only by
       `Item.Record()` as part of that rebuild.
-- [ ] MARC-import provider reads 037/084/650 correctly; golden test against the
-      vendored `testdata/marc-express/*.mrc`. **BLOCKED on libcodex `tasks/057`**
-      (`bibframe.FromRecord` does not yet read 037/084/650 _7).
-- [ ] `tasks/003` known-loss updated with the JSON->MARC->BIBFRAME lossiness
-      demonstrated here. Lossiness argument is captured in "The real conclusion"
-      above; `docs/marc-fidelity.md` (`tasks/003`) documents MARC->BIBFRAME loss.
+- [x] MARC-import provider reads 037/084/650 correctly; golden test against the
+      vendored `testdata/marc-express/*.mrc`. **Done (libcodex v0.8.0 / its 057):**
+      `codexbf.FromRecord` recovers 037 $a -> Instance Identifier (Reserve ID),
+      084 $a -> Work BISAC classifications ($2 bisacsh), and 650 _7 $a -> Work subjects
+      ($2 OverDrive). Verified end-to-end through the `ingest/marc` provider by
+      `ingest/marc/marc_express_test.go` over all 15+15 vendored records.
+- [x] `tasks/003` known-loss: moot for shipped code -- the JSON->MARC writer is now
+      deleted, so there is no JSON->MARC->BIBFRAME path left to lose fidelity. The
+      lossiness argument (why MARC Express is not a higher-fidelity source than the
+      Thunder JSON) is in "The real conclusion" above; `docs/marc-fidelity.md`
+      (`tasks/003`) documents MARC->BIBFRAME loss generally.
 
 ## Status (2026-07-02)
 
@@ -99,3 +104,13 @@ does not currently compile because the sibling libcodex checkout is mid-refactor
 
 Item 3 (MARC-import reads 037/084/650 + golden test over the vendored samples) is
 the substantive remaining work and is **blocked on libcodex `tasks/057`**.
+
+## Closeout (done, 2026-07-02)
+
+All four acceptance items resolved. Path 1 (direct Thunder JSON -> BIBFRAME) is the live
+ingest; the synthetic `lcat overdrive --marc` writer is **deleted** (commit `69e9d5a`);
+and the MARC-import read side is proven against the real vendored MARC Express samples --
+libcodex **v0.8.0** (its `tasks/057`) reads 037 (Reserve ID), 084 (BISAC), and 650 _7
+(subjects), verified end-to-end through the `ingest/marc` provider by
+`ingest/marc/marc_express_test.go` over all 15+15 records. `go build ./...` +
+`go test ./...` green; `gofmt -s` clean.
