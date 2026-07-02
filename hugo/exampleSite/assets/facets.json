@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "languages": [
     { "value": "eng", "count": 1 },
     { "value": "spa", "count": 1 }
@@ -14,6 +14,10 @@
   "tags": [
     { "value": "Fiction", "count": 2 },
     { "value": "Family", "count": 1 }
+  ],
+  "formats": [
+    { "value": "ebook", "count": 2 },
+    { "value": "audiobook", "count": 1 }
   ],
   "contributors": [
     { "value": "Allende, Isabel", "count": 1 },

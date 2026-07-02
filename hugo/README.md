@@ -44,6 +44,7 @@ assets.
      language = "languages"
      subject = "subjects"
      tag = "tags"
+     format = "formats"
      contributor = "contributors"
      classification = "classifications"
    ```
@@ -54,17 +55,20 @@ That is the whole setup -- see `exampleSite/` for a runnable reference.
 
 - `/` and `/works/` -- a paginated, faceted list of Works.
 - `/works/<id>/` -- a Work detail page: contributors, controlled subjects (label +
-  authority link), genre/tags, languages, classifications, and its Instances/editions.
-- `/languages/`, `/subjects/`, `/tags/`, `/contributors/`, `/classifications/` and
-  their term pages -- the facet navigation, with counts from `facets.json`.
-  Controlled subjects (authority URIs, e.g. Homosaurus) are a distinct dimension
-  from uncontrolled feed genre tags; subjects display their resolved label.
+  authority link), genre/tags, formats, languages, classifications, and its
+  Instances/editions (each labeled with its format).
+- `/languages/`, `/subjects/`, `/tags/`, `/formats/`, `/contributors/`,
+  `/classifications/` and their term pages -- the facet navigation, with counts from
+  `facets.json`. Controlled subjects (authority URIs, e.g. Homosaurus) are a distinct
+  dimension from uncontrolled feed genre tags; subjects display their resolved label.
+  Format (ebook / audiobook) is a per-Instance property, so a Work that clusters an
+  ebook and an audiobook edition appears under both formats (tasks/011).
 
 ## Schema version
 
 Both JSON files carry a top-level `version` (`project.SchemaVersion`). The adapter
 fails the build loudly if `catalog.json`'s version does not match the version the
-module targets (`params.catalogSchemaVersion`, currently **3**). Reproject with a
+module targets (`params.catalogSchemaVersion`, currently **4**). Reproject with a
 matching `lcat` if you hit a mismatch.
 
 ## Overriding

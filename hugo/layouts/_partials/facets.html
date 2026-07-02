@@ -24,6 +24,7 @@
   {{- end -}}
   {{- /* Plain {value,count} dimensions. */ -}}
   {{- $dims := slice
+    (dict "key" "formats" "label" "Formats")
     (dict "key" "tags" "label" "Genres & tags")
     (dict "key" "languages" "label" "Languages")
     (dict "key" "classifications" "label" "Classifications")

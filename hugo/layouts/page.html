@@ -32,6 +32,9 @@
   {{ end }}
 
   <dl class="lcat-meta">
+    {{ with .Params.formats }}<dt>Formats</dt><dd>
+      {{ range $i, $f := . }}{{ if $i }}, {{ end }}<a href="{{ printf "/formats/%s/" (urlize $f) | relURL }}">{{ $f }}</a>{{ end }}
+    </dd>{{ end }}
     {{ with .Params.languages }}<dt>Language</dt><dd>{{ delimit . ", " }}</dd>{{ end }}
     {{ with .Params.classifications }}<dt>Classification</dt><dd>{{ delimit . ", " }}</dd>{{ end }}
   </dl>
@@ -40,7 +43,8 @@
   <section aria-labelledby="lcat-ed"><h2 id="lcat-ed">Editions &amp; formats</h2>
     <ul class="lcat-editions">
       {{ range . }}
-      <li class="lcat-edition" data-instance="{{ .id }}"{{ range .providerIds }}{{ if eq .source "overdrive-reserve" }} data-overdrive-reserve="{{ .value }}"{{ end }}{{ end }}>
+      <li class="lcat-edition" data-instance="{{ .id }}"{{ with .format }} data-format="{{ . }}"{{ end }}{{ range .providerIds }}{{ if eq .source "overdrive-reserve" }} data-overdrive-reserve="{{ .value }}"{{ end }}{{ end }}>
+        {{ with .format }}<span class="lcat-format">{{ . }}</span>{{ end }}
         {{ with .isbns }}<span class="lcat-isbn">ISBN {{ index . 0 }}</span>{{ end }}
         {{/* Availability is fetched client-side at view time by a provider adapter
              (libcatalog tasks/004); the data-* keys above are its scheme-tagged

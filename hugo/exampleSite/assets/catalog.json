@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "works": [
     {
       "id": "wexampleone",
@@ -18,13 +18,23 @@
       "tags": ["Fiction"],
       "languages": ["eng"],
       "classifications": ["FIC073000"],
+      "formats": ["audiobook", "ebook"],
       "instances": [
         {
           "id": "iexoneaudio",
+          "format": "audiobook",
           "isbns": ["9781668128251"],
           "providerIds": [
             { "source": "overdrive", "value": "11682058" },
             { "source": "overdrive-reserve", "value": "24760f5d-028e-4749-968f-85a458a79ad2" }
+          ]
+        },
+        {
+          "id": "iexoneebook",
+          "format": "ebook",
+          "isbns": ["9781668128244"],
+          "providerIds": [
+            { "source": "overdrive-reserve", "value": "bbbb2222-cccc-3333-dddd-444455556666" }
           ]
         }
       ]
@@ -42,9 +52,11 @@
       "tags": ["Fiction", "Family"],
       "languages": ["spa"],
       "classifications": ["FIC000000"],
+      "formats": ["ebook"],
       "instances": [
         {
           "id": "iextwoebook",
+          "format": "ebook",
           "isbns": ["9780553383805"],
           "providerIds": [
             { "source": "overdrive-reserve", "value": "aaaa1111-bbbb-2222-cccc-333344445555" }
