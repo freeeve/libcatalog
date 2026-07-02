@@ -1,0 +1,977 @@
+[
+  {
+    "id": 4091604,
+    "rating": 5.0,
+    "last_read_date": "2024-05-01",
+    "first_read_date": "2024-05-01",
+    "book": {
+      "id": 375663,
+      "slug": "a-thousand-splendid-suns",
+      "title": "A Thousand Splendid Suns",
+      "subtitle": null,
+      "description": "\"Born a generation apart and with very different ideas about love and family, Mariam and Laila are two women brought jarringly together by war, by loss and by fate. As they endure the ever escalating dangers around them-in their home as well as in the streets of Kabul-they come to form a bond that makes them both sisters and mother-daughter to each other, and that will ultimately alter the course not just of their own lives but of the next generation. With heart-wrenching power and suspense, Hosseini shows how a woman's love for her family can move her to shocking and heroic acts of self-sacrifice, and that in the end it is love, or even the memory of love, that is often the key to survival.\n\nA stunning accomplishment, A Thousand Splendid Suns is a haunting, heartbreaking, compelling story of an unforgiving time, an unlikely friendship, and an indestructible love.\"-- Provided by Amazon",
+      "image": {
+        "url": "https://assets.hardcover.app/external_data/24940052/59ad59ca7c66a094a7fe06e7c955f2aa384816a3.jpeg"
+      },
+      "contributions": [
+        {
+          "contribution": null,
+          "author": {
+            "name": "Khaled Hosseini"
+          }
+        }
+      ],
+      "cached_tags": {
+        "Tag": [
+          {
+            "tag": "Strong Character Development",
+            "count": 16,
+            "tagSlug": "strong-character-development",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Loveable Characters",
+            "count": 16,
+            "tagSlug": "loveable-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Diverse Characters",
+            "count": 12,
+            "tagSlug": "diverse-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Character driven",
+            "count": 10,
+            "tagSlug": "character-driven-93bc26e1-5a51-45d4-854b-c94b6a16141a",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "A mix driven",
+            "count": 10,
+            "tagSlug": "a-mix-driven",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Not Diverse Characters",
+            "count": 7,
+            "tagSlug": "not-diverse-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Unloveable Characters",
+            "count": 3,
+            "tagSlug": "unloveable-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Afghanistan",
+            "count": 1,
+            "tagSlug": "afghanistan-8deffec0-a3ce-4e6d-ba6f-e96c7e4c8b5e",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Weak Character Development",
+            "count": 1,
+            "tagSlug": "weak-character-development",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "from-audible",
+            "count": 1,
+            "tagSlug": "from-audible",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          }
+        ],
+        "Mood": [
+          {
+            "tag": "emotional",
+            "count": 21,
+            "tagSlug": "emotional",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "sad",
+            "count": 18,
+            "tagSlug": "sad",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "dark",
+            "count": 14,
+            "tagSlug": "dark",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "reflective",
+            "count": 13,
+            "tagSlug": "reflective",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "hopeful",
+            "count": 8,
+            "tagSlug": "hopeful",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "challenging",
+            "count": 8,
+            "tagSlug": "challenging",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "inspiring",
+            "count": 8,
+            "tagSlug": "inspiring",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "tense",
+            "count": 8,
+            "tagSlug": "tense",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "informative",
+            "count": 5,
+            "tagSlug": "informative",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Adventurous",
+            "count": 2,
+            "tagSlug": "adventurous",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          }
+        ],
+        "Genre": [
+          {
+            "tag": "Fiction",
+            "count": 4,
+            "tagSlug": "fiction",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Young Adult",
+            "count": 1,
+            "tagSlug": "young-adult",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "General",
+            "count": 1,
+            "tagSlug": "general",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "War",
+            "count": 1,
+            "tagSlug": "war",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Literature",
+            "count": 1,
+            "tagSlug": "literature",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Friendship",
+            "count": 1,
+            "tagSlug": "friendship",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Women",
+            "count": 1,
+            "tagSlug": "women",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Family",
+            "count": 1,
+            "tagSlug": "family",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Classics",
+            "count": 1,
+            "tagSlug": "classics",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Love stories",
+            "count": 0,
+            "tagSlug": "love-stories",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": null
+          }
+        ],
+        "Content Warning": [
+          {
+            "tag": "Emotional abuse",
+            "count": 1,
+            "tagSlug": "emotional-abuse",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Physical abuse",
+            "count": 1,
+            "tagSlug": "physical-abuse",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Death of parent",
+            "count": 1,
+            "tagSlug": "death-of-parent",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "War",
+            "count": 1,
+            "tagSlug": "war",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          }
+        ]
+      },
+      "editions": [
+        {
+          "id": 11765318,
+          "isbn_13": "9781594488887",
+          "isbn_10": "1594488886",
+          "reading_format_id": 1,
+          "edition_format": "Hardcover",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/edition/11765318/4600dc86fb23db9f493fd00cd0f1fdd220e63bb4.jpeg"
+          }
+        },
+        {
+          "id": 30765324,
+          "isbn_13": "9781101010907",
+          "isbn_10": "1101010908",
+          "reading_format_id": 4,
+          "edition_format": "Kindle",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/edition/30765324/f7a6dc9f-9db3-4727-8a68-9b5522ef57d0.jpg"
+          }
+        },
+        {
+          "id": 19509049,
+          "isbn_13": "9780743554459",
+          "isbn_10": "0743554450",
+          "reading_format_id": 2,
+          "edition_format": "Audiobook",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/external_data/24940066/6e13ccfc77708e6f03f375b833e0f320c4b4acb9.jpeg"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": 4091606,
+    "rating": 5.0,
+    "last_read_date": "2024-08-11",
+    "first_read_date": "2024-08-11",
+    "book": {
+      "id": 677907,
+      "slug": "vampires-of-el-norte",
+      "title": "Vampires of El Norte",
+      "subtitle": null,
+      "description": "\"But something more sinister lurks near the ranch at night, something that drains men of their blood and leaves them for dead.\n\nSomething that once attacked Nena nine years ago.\n\nBelieving Nena dead, Néstor has been on the run from his grief ever since, moving from ranch to ranch working as a vaquero. But no amount of drink can dispel the night terrors of sharp teeth; no woman can erase his childhood sweetheart from his mind.\n\nWhen the United States invades Mexico in 1846, the two are brought abruptly together on the road to war: Nena as a curandera, a healer striving to prove her worth to her father so that he does not marry her off to a stranger, and Néstor as a member of the auxiliary cavalry of ranchers and vaqueros. But the shock of their reunion—and Nena’s rage at Néstor for seemingly abandoning her long ago—is quickly overshadowed by the appearance of a nightmare made flesh.\n\nAnd unless Nena and Néstor work through their past and face the future together, neither will survive to see the dawn.\"-- Provided by Amazon",
+      "image": {
+        "url": "https://assets.hardcover.app/external_data/61033271/17d7f0ddd011d5ba040fb971860ab3890f91b956.jpeg"
+      },
+      "contributions": [
+        {
+          "contribution": null,
+          "author": {
+            "name": "Isabel Cañas"
+          }
+        }
+      ],
+      "cached_tags": {
+        "Tag": [
+          {
+            "tag": "Loveable Characters",
+            "count": 13,
+            "tagSlug": "loveable-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Strong Character Development",
+            "count": 13,
+            "tagSlug": "strong-character-development",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Diverse Characters",
+            "count": 11,
+            "tagSlug": "diverse-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "A mix driven",
+            "count": 10,
+            "tagSlug": "a-mix-driven",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Character driven",
+            "count": 6,
+            "tagSlug": "character-driven-93bc26e1-5a51-45d4-854b-c94b6a16141a",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Not Diverse Characters",
+            "count": 5,
+            "tagSlug": "not-diverse-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Weak Character Development",
+            "count": 3,
+            "tagSlug": "weak-character-development",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Unloveable Characters",
+            "count": 3,
+            "tagSlug": "unloveable-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "vampires",
+            "count": 1,
+            "tagSlug": "vampires",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          }
+        ],
+        "Mood": [
+          {
+            "tag": "emotional",
+            "count": 12,
+            "tagSlug": "emotional",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Adventurous",
+            "count": 11,
+            "tagSlug": "adventurous",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "dark",
+            "count": 11,
+            "tagSlug": "dark",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "tense",
+            "count": 10,
+            "tagSlug": "tense",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "mysterious",
+            "count": 7,
+            "tagSlug": "mysterious",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "challenging",
+            "count": 2,
+            "tagSlug": "challenging",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Magical",
+            "count": 1,
+            "tagSlug": "magical",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "inspiring",
+            "count": 1,
+            "tagSlug": "inspiring",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "reflective",
+            "count": 1,
+            "tagSlug": "reflective",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Romantic",
+            "count": 1,
+            "tagSlug": "romantic",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          }
+        ],
+        "Genre": [
+          {
+            "tag": "Romance",
+            "count": 3,
+            "tagSlug": "romance",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Horror",
+            "count": 3,
+            "tagSlug": "horror",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Fantasy",
+            "count": 2,
+            "tagSlug": "fantasy",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Gothic",
+            "count": 2,
+            "tagSlug": "gothic",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Fiction",
+            "count": 1,
+            "tagSlug": "fiction",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "War",
+            "count": 1,
+            "tagSlug": "war",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          }
+        ],
+        "Content Warning": [
+          {
+            "tag": "Violence",
+            "count": 1,
+            "tagSlug": "violence",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Blood",
+            "count": 1,
+            "tagSlug": "blood",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Injury/Injury detail",
+            "count": 1,
+            "tagSlug": "injury-injury-detail",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          }
+        ]
+      },
+      "editions": [
+        {
+          "id": 32450484,
+          "isbn_13": "9781837860852",
+          "isbn_10": "1837860858",
+          "reading_format_id": 1,
+          "edition_format": "",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/edition/32450484/5924a510567d2af9e1216adc834b4490f183cfda.jpeg"
+          }
+        },
+        {
+          "id": 31670085,
+          "isbn_13": "9780593684283",
+          "isbn_10": "0593684281",
+          "reading_format_id": 2,
+          "edition_format": "Audiobook",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/external_data/61687755/64cdda36de3b87224727801876fdcf1bee998e59.jpeg"
+          }
+        },
+        {
+          "id": 32407392,
+          "isbn_13": "9781837860845",
+          "isbn_10": "183786084X",
+          "reading_format_id": 4,
+          "edition_format": "",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/external_data/1708982/7e897a52a0bbf05ebe2b6418d786dfdea8f4d898.jpeg"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": 4091610,
+    "rating": 5.0,
+    "last_read_date": "2024-08-16",
+    "first_read_date": "2024-08-16",
+    "book": {
+      "id": 292354,
+      "slug": "the-martian",
+      "title": "The Martian",
+      "subtitle": "Stranded on Mars, one astronaut fights to survive",
+      "description": "After a dust storm nearly kills him and forces his crew to evacuate the planet while thinking him dead, Mark finds himself stranded on Mars' surface, completely alone. with no way to signal Earth that he's alive. And even if he could get word out, his supplies would be gone years before a rescue could arrive.\n\nChances are, though, Mark won't have time to starve to death. The damaged machinery, unforgiving environment, or plain-old \"human error\" are much more likely to kill him first. But Mark's not ready to quit. Armed with nothing but his ingenuity and his engineering skills—and a gallows sense of humor that proves to be his greatest source of strength—he embarks on a dogged quest to stay alive, using his botany expertise to grow food and even hatch- ing a mad plan to contact NASA back on Earth.\n\nAs he overcomes one seemingly insurmountable obstacle after the next, Mark begins to let himself believe he might make it off the planet alive.\n\nBut Mars has plenty of surprises in store for him yet.\n\nGrounded in real, present-day science from the first page to the last. yet propelled by a brilliantly ingenious plot that surprises the reader again and again, The Martian is a truly remarkable thriller: an impossible-to- put-down suspense novel that manages tc read like a real-life survival tale.",
+      "image": {
+        "url": "https://assets.hardcover.app/editions/21716111/5323176149970177.jpg"
+      },
+      "contributions": [
+        {
+          "contribution": null,
+          "author": {
+            "name": "Andy Weir"
+          }
+        }
+      ],
+      "cached_tags": {
+        "Tag": [
+          {
+            "tag": "Loveable Characters",
+            "count": 64,
+            "tagSlug": "loveable-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Weak Character Development",
+            "count": 42,
+            "tagSlug": "weak-character-development",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Not Diverse Characters",
+            "count": 37,
+            "tagSlug": "not-diverse-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Diverse Characters",
+            "count": 30,
+            "tagSlug": "diverse-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "A mix driven",
+            "count": 27,
+            "tagSlug": "a-mix-driven",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Plot driven",
+            "count": 24,
+            "tagSlug": "plot-driven",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Strong Character Development",
+            "count": 24,
+            "tagSlug": "strong-character-development",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Character driven",
+            "count": 18,
+            "tagSlug": "character-driven-93bc26e1-5a51-45d4-854b-c94b6a16141a",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Unloveable Characters",
+            "count": 7,
+            "tagSlug": "unloveable-characters",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "science fiction",
+            "count": 2,
+            "tagSlug": "science-fiction-6bc66f36-0881-40e2-8e85-0276e344f248",
+            "category": "Tag",
+            "categorySlug": "tag",
+            "spoilerRatio": 0.0
+          }
+        ],
+        "Mood": [
+          {
+            "tag": "Adventurous",
+            "count": 76,
+            "tagSlug": "adventurous",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "funny",
+            "count": 71,
+            "tagSlug": "funny",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "tense",
+            "count": 45,
+            "tagSlug": "tense",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "hopeful",
+            "count": 36,
+            "tagSlug": "hopeful",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "inspiring",
+            "count": 36,
+            "tagSlug": "inspiring",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "informative",
+            "count": 21,
+            "tagSlug": "informative",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "emotional",
+            "count": 19,
+            "tagSlug": "emotional",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "lighthearted",
+            "count": 18,
+            "tagSlug": "lighthearted",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "challenging",
+            "count": 12,
+            "tagSlug": "challenging",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "reflective",
+            "count": 6,
+            "tagSlug": "reflective",
+            "category": "Mood",
+            "categorySlug": "mood",
+            "spoilerRatio": 0.0
+          }
+        ],
+        "Genre": [
+          {
+            "tag": "Science Fiction",
+            "count": 18,
+            "tagSlug": "science-fiction",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Fiction",
+            "count": 10,
+            "tagSlug": "fiction",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Adventure",
+            "count": 7,
+            "tagSlug": "adventure",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Science Fiction & Fantasy",
+            "count": 5,
+            "tagSlug": "science-fiction-fantasy-4c14c349-8d52-4893-aaf0-34f7e33bf275",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Hard Science Fiction",
+            "count": 5,
+            "tagSlug": "hard-science-fiction-c7a768a4-925e-4396-a0f3-dc1918f4cfc9",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Space",
+            "count": 5,
+            "tagSlug": "space",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Action & Adventure",
+            "count": 3,
+            "tagSlug": "action-adventure-885c1c28-c861-4e79-906d-e3ce299758ca",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Suspense",
+            "count": 2,
+            "tagSlug": "suspense",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Thriller",
+            "count": 2,
+            "tagSlug": "thriller",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Mars",
+            "count": 1,
+            "tagSlug": "mars-ea5b4fe6-036c-48c9-bb0a-1a8cff84e2ed",
+            "category": "Genre",
+            "categorySlug": "genre",
+            "spoilerRatio": 0.0
+          }
+        ],
+        "Content Warning": [
+          {
+            "tag": "confinement",
+            "count": 1,
+            "tagSlug": "confinement",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Blood",
+            "count": 1,
+            "tagSlug": "blood",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Cursing",
+            "count": 1,
+            "tagSlug": "cursing",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          },
+          {
+            "tag": "Abandonment",
+            "count": 1,
+            "tagSlug": "abandonment",
+            "category": "Content Warning",
+            "categorySlug": "content-warning",
+            "spoilerRatio": 0.0
+          }
+        ]
+      },
+      "editions": [
+        {
+          "id": 32707772,
+          "isbn_13": "9782820517814",
+          "isbn_10": null,
+          "reading_format_id": 1,
+          "edition_format": "Kindle Edition",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/external_data/266214/411ffe16a8ef6dee2478150b2a87cf56e91766d1.jpeg"
+          }
+        },
+        {
+          "id": 14732551,
+          "isbn_13": "9786155514142",
+          "isbn_10": "6155514143",
+          "reading_format_id": 4,
+          "edition_format": "ebook",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/external_data/59351411/69c87ef64de5368cd011aa1558ffd517fedfa1c2.jpeg"
+          }
+        },
+        {
+          "id": 1013249,
+          "isbn_13": "9783837127515",
+          "isbn_10": "3837127516",
+          "reading_format_id": 2,
+          "edition_format": "Audiobook",
+          "physical_format": null,
+          "image": {
+            "url": "https://assets.hardcover.app/edition/1013249/8137210-L.jpg"
+          }
+        }
+      ]
+    }
+  }
+]

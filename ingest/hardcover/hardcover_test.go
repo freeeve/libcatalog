@@ -189,6 +189,67 @@ func TestEndToEndProjection(t *testing.T) {
 	}
 }
 
+// TestLiveShapeFixture runs a real captured shelf (testdata/read-shelf-live.json, 3 books
+// with editions trimmed to a representative set per format) through the pipeline and
+// asserts structural properties, so a Hardcover schema drift that breaks the crosswalk is
+// caught even though the synthetic fixture above pins the exact edge-case behavior.
+func TestLiveShapeFixture(t *testing.T) {
+	prov, err := hardcover.New(ingest.Config{Source: "testdata/read-shelf-live.json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	if _, err := ingest.Run(prov, out); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	nq, err := os.ReadFile(filepath.Join(out, "catalog.nq"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cat, err := project.Project(nq, "hardcover")
+	if err != nil {
+		t.Fatalf("Project: %v", err)
+	}
+	if len(cat.Works) != 3 {
+		t.Fatalf("works = %d, want 3", len(cat.Works))
+	}
+	byTitle := map[string]project.Work{}
+	labeledBroaderSubjects := 0
+	for _, w := range cat.Works {
+		byTitle[w.Title] = w
+		if len(w.Formats) == 0 || len(w.Instances) == 0 {
+			t.Errorf("%q: formats/instances empty (%v / %d)", w.Title, w.Formats, len(w.Instances))
+		}
+		if len(w.Contributors) == 0 {
+			t.Errorf("%q: no contributors", w.Title)
+		}
+		if e := w.Extra; e == nil || e["cover"] == "" || e["rating"] == "" || e["dateRead"] == "" {
+			t.Errorf("%q: incomplete extras: %v", w.Title, e)
+		}
+		for _, s := range w.Subjects {
+			if s.Labels["en"] != "" && len(s.Broader) > 0 {
+				labeledBroaderSubjects++
+			}
+		}
+	}
+	// The Martian clusters ebook/audiobook/print editions and credits Andy Weir.
+	m, ok := byTitle["The Martian"]
+	if !ok {
+		t.Fatalf("The Martian missing from %v", byTitle)
+	}
+	if len(m.Formats) < 2 {
+		t.Errorf("The Martian formats = %v, want the multi-format cluster", m.Formats)
+	}
+	if m.Contributors[0].Name != "Weir, Andy" {
+		t.Errorf("The Martian primary contributor = %q, want %q", m.Contributors[0].Name, "Weir, Andy")
+	}
+	// At least one controlled subject resolved a localized label and a broader parent,
+	// exercising the authority table against real genres.
+	if labeledBroaderSubjects == 0 {
+		t.Error("no controlled subject with both a label and a broader parent in the live fixture")
+	}
+}
+
 // hasHardcoverProvenance reports whether every instance carries a hardcover-source id.
 func hasHardcoverProvenance(w project.Work) bool {
 	for _, inst := range w.Instances {
