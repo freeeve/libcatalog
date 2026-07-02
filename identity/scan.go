@@ -1,10 +1,6 @@
 package identity
 
 import (
-	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/freeeve/libcodex/rdf"
@@ -102,35 +98,6 @@ func ScanGrain(nq []byte) (GrainIdentity, error) {
 		}
 	}
 	return gi, nil
-}
-
-// ScanDir scans every per-Work grain (*.nq) under dir, skipping the bulk
-// catalog.nq, and returns the recovered identities. A missing directory (a first
-// build) yields no identities and no error.
-func ScanDir(dir string) ([]GrainIdentity, error) {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return nil, nil
-	}
-	var out []GrainIdentity
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || !strings.HasSuffix(path, ".nq") || d.Name() == "catalog.nq" {
-			return nil
-		}
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		gi, err := ScanGrain(b)
-		if err != nil {
-			return fmt.Errorf("%s: %w", path, err)
-		}
-		out = append(out, gi)
-		return nil
-	})
-	return out, err
 }
 
 // SeedResolver seeds r with the committed identity from scanned grains, so a

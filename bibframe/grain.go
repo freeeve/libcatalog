@@ -20,6 +20,14 @@ func FeedGraph(provider string) rdf.Term {
 	return rdf.NewIRI("feed:" + provider)
 }
 
+// EditorialGraph is the named graph for human- and authority-owned statements
+// (ARCHITECTURE §5): merge/split decisions, curated subjects, and any hand-
+// authored triples. Unlike feed:<provider> statements -- regenerated on every
+// ingest -- editorial: statements are preserved verbatim across re-ingest.
+func EditorialGraph() rdf.Term {
+	return rdf.NewIRI("editorial:")
+}
+
 // Grain crosswalks one record to BIBFRAME and returns its canonical N-Quads
 // grain: every statement tagged with the given provenance graph and RDFC-1.0
 // canonicalized (blank-node labels + statement order), so an unchanged record

@@ -56,12 +56,12 @@ func runOverdrive(args []string) error {
 // the resolver from any grains already under out), clusters items into Works, and
 // writes one per-Work grain.
 func buildOverdriveGrains(items []overdrive.Item, out, provider string) error {
-	grains, err := identity.ScanDir(out)
+	prior, err := bibframe.LoadPrior(out, provider)
 	if err != nil {
-		return fmt.Errorf("scan existing grains: %w", err)
+		return fmt.Errorf("load prior grains: %w", err)
 	}
 	r := identity.NewResolver()
-	identity.SeedResolver(r, grains)
+	identity.SeedResolver(r, prior.Grains)
 
 	// Group items by resolved Work. The first item to reach a Work supplies its
 	// shared Work-level metadata, and the first to reach an Instance supplies that
@@ -101,7 +101,11 @@ func buildOverdriveGrains(items []overdrive.Item, out, provider string) error {
 	sort.Strings(ids)
 	works := make([]bibframe.WorkGroup, 0, len(ids))
 	for _, id := range ids {
-		works = append(works, *byWork[id])
+		wg := byWork[id]
+		// Carry the Work's committed editorial statements across the re-ingest so
+		// the feed rewrite does not clobber them (ARCHITECTURE §5).
+		wg.Editorial = prior.Editorial[id]
+		works = append(works, *wg)
 	}
 
 	stats, err := bibframe.BuildWorks(storage.Dir(out), works, provider)
