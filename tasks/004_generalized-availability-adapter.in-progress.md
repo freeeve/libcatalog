@@ -73,8 +73,10 @@ Because availability is out of the graph and fetched at view time, the catalog
 deployment needs that, the mitigation is a periodically-refreshed availability
 **sidecar** (not committed to the graph, regenerated on a schedule) that the
 projector can fold into the index for a *coarse* availability facet -- explicitly
-stale, distinct from the live per-view number. Decide whether this is in scope
-for Tier 1 or a Tier 2 add-on.
+stale, distinct from the live per-view number. **Decision (2026-07-02): Tier 2 add-on,
+not Tier 1.** A scheduled refresh job is backend-ish and cuts against Tier 1's
+backend-free pitch (ARCHITECTURE §6); Tier 1 keeps availability live/per-view only, and a
+deployment that needs an "available now" facet opts into the sidecar at Tier 2.
 
 ## Acceptance
 - [x] OverDrive availability renders from a `direct` adapter with no committed
@@ -146,7 +148,7 @@ one physical ILS); the digital-vendor cells are marked for per-deployment verifi
   digital/physical superset; needs the proxy.
 - **Feasibility matrix** (CORS/auth/batch/rate-limit per source: OverDrive,
   Boundless/Axis 360, hoopla, cloudLibrary, a physical ILS).
-- **Coarse "available now" facet sidecar** (§ Known trade-off) -- a Tier 2 add-on;
-  decide if in scope.
+- **Coarse "available now" facet sidecar** (§ Known trade-off) -- **decided: Tier 2
+  add-on** (2026-07-02), out of scope for Tier 1's backend-free path.
 - **Live CORS check** against a real deployment origin (can't verify here); if Thunder
   is not permissive from the site origin, flip that provider to `proxied`.

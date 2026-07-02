@@ -58,9 +58,13 @@ above (037, 084, 650 _7 $2 OverDrive) or delete it in favor of path 1.
 
 - [x] Decide: direct JSON->BIBFRAME provider vs. keep the MARC writer. **Decided +
       implemented: direct JSON->BIBFRAME (path 1).** See Status below.
-- [ ] If MARC writer stays: emit 037 (reserve id), 084 (BISAC), 650 _7 $2 OverDrive.
-      **Pending directional call** -- delete the leftover `--marc` writer vs. align it
-      (see Status).
+- [x] Directional call on the leftover `--marc` writer: **decided -- delete it**
+      (2026-07-02). Path 1 is authoritative and the vendored MARC Express samples are the
+      real import fixtures, so a synthetic writer buys nothing. Execution is gated on the
+      Go build compiling again (the `ingest/overdrive` package is currently red through
+      the in-flight libcodex refactor -- see `tasks/019`); remove the `--marc` flag,
+      `writeOverdriveMARC`, and the `codex.Record` crosswalk helpers used only by
+      `Item.Record()` as part of that rebuild.
 - [ ] MARC-import provider reads 037/084/650 correctly; golden test against the
       vendored `testdata/marc-express/*.mrc`. **BLOCKED on libcodex `tasks/057`**
       (`bibframe.FromRecord` does not yet read 037/084/650 _7).
@@ -80,16 +84,18 @@ decided direction; the MARC-writer contrivance is retired from the ingest flow.
 
 **The leftover MARC writer** (`overdrive.go` `Records`/`Item.Record()` -> `codex.Record`,
 exposed only via `lcat overdrive --marc <path>`) is now the sole remaining consumer of
-the JSON->MARC crosswalk. Two options remain (item 2), a directional call left for the
-maintainer rather than taken autonomously:
-  - **Delete it** (leaning here): path 1 is authoritative, and the **real vendored
-    MARC Express samples** (`testdata/marc-express/*.mrc`, 15+15 records) are the
-    authentic fixtures for the MARC-import ramp -- so a hand-aligned synthetic writer
-    buys nothing. Removing it drops the `--marc` flag, `writeOverdriveMARC`, and the
-    `codex.Record` crosswalk helpers in `overdrive.go` used only by `Record()`.
-  - **Align it** to real MARC Express (037/084/650 _7 `$2 OverDrive`) so it is a
-    faithful path-2 stand-in -- weaker than the vendored samples, and still can't be
-    round-trip-verified until libcodex `tasks/057` lands the read side.
+the JSON->MARC crosswalk. **Decision (2026-07-02): delete it.** Path 1 is authoritative
+and the real vendored MARC Express samples (`testdata/marc-express/*.mrc`, 15+15 records)
+are the authentic fixtures for the MARC-import ramp, so a hand-aligned synthetic writer
+buys nothing. Removing it drops the `--marc` flag, `writeOverdriveMARC`, and the
+`codex.Record` crosswalk helpers in `overdrive.go` used only by `Record()`.
+
+**Execution is gated** on the Go build being green again -- the `ingest/overdrive` package
+does not currently compile because the sibling libcodex checkout is mid-refactor (see
+`tasks/019`). Do the deletion as part of that rebuild, then confirm `go build ./...` +
+`go test ./...`. The rejected alternative -- align the writer to 037/084/650 _7
+`$2 OverDrive` -- was weaker than the vendored samples and unverifiable until libcodex
+`tasks/057` lands the read side.
 
 Item 3 (MARC-import reads 037/084/650 + golden test over the vendored samples) is
 the substantive remaining work and is **blocked on libcodex `tasks/057`**.
