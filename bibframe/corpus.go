@@ -120,7 +120,7 @@ func writeCatalog(sink storage.Sink, records []*codex.Record, feed rdf.Term) err
 	if err != nil {
 		return fmt.Errorf("create catalog.nq: %w", err)
 	}
-	nw := codexbf.NewNQuadsWriter(w, func(*codex.Record) rdf.Term { return feed })
+	nw := codexbf.NewNQuadsWriter(w, func(*codex.Record, int) rdf.Term { return feed })
 	for _, rec := range records {
 		if err := nw.Write(rec); err != nil {
 			w.Close()
