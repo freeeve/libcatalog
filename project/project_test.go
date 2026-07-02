@@ -36,6 +36,8 @@ _:id1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "9781668128251" <feed:o
 <#i1Instance> <http://id.loc.gov/ontologies/bibframe/identifiedBy> _:id2 <feed:overdrive> .
 _:id2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Identifier> <feed:overdrive> .
 _:id2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "11682058" <feed:overdrive> .
+_:id2 <http://id.loc.gov/ontologies/bibframe/source> _:src2 <feed:overdrive> .
+_:src2 <http://www.w3.org/2000/01/rdf-schema#label> "overdrive" <feed:overdrive> .
 `
 
 func TestProject(t *testing.T) {
@@ -77,7 +79,7 @@ func TestProject(t *testing.T) {
 	}
 	inst := w.Instances[0]
 	if inst.ID != "i1" || !reflect.DeepEqual(inst.ISBNs, []string{"9781668128251"}) ||
-		!reflect.DeepEqual(inst.ProviderIDs, []string{"11682058"}) {
+		!reflect.DeepEqual(inst.ProviderIDs, []ProviderID{{Source: "overdrive", Value: "11682058"}}) {
 		t.Errorf("instance = %+v", inst)
 	}
 }

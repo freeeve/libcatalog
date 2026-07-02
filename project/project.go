@@ -32,15 +32,18 @@ const (
 	pClassPortion = bfNS + "classificationPortion"
 	pHasInstance  = bfNS + "hasInstance"
 	pIdentifiedBy = bfNS + "identifiedBy"
+	pSource       = bfNS + "source"
 	classIsbn     = bfNS + "Isbn"
 	pLabel        = rdfsNS + "label"
 	pValue        = rdfNS + "value"
 	primaryContr  = bflcNS + "PrimaryContribution"
 )
 
-// SchemaVersion is the catalog.json / facets.json schema version. The Hugo module
-// and search-index builder read it to detect a projector/consumer mismatch.
-const SchemaVersion = 1
+// SchemaVersion is the catalog.json / facets.json / redirects.json schema version.
+// The Hugo module and search-index builder read it to detect a projector/consumer
+// mismatch. v2 added the per-Instance identifier scheme (ProviderID.Source), so the
+// runtime availability adapter can select its key by scheme (tasks/004/008).
+const SchemaVersion = 2
 
 // Catalog is the projected corpus: one record per Work, sorted by id.
 type Catalog struct {
@@ -67,12 +70,21 @@ type Contributor struct {
 	Role string `json:"role,omitempty"`
 }
 
-// Instance is one edition/format: its id, ISBNs, and the provider ids the runtime
-// availability adapter keys on.
+// Instance is one edition/format: its id, ISBNs, and the scheme-tagged provider
+// ids the runtime availability adapter keys on.
 type Instance struct {
-	ID          string   `json:"id"`
-	ISBNs       []string `json:"isbns,omitempty"`
-	ProviderIDs []string `json:"providerIds,omitempty"`
+	ID          string       `json:"id"`
+	ISBNs       []string     `json:"isbns,omitempty"`
+	ProviderIDs []ProviderID `json:"providerIds,omitempty"`
+}
+
+// ProviderID is one non-ISBN identifier with its bf:source scheme, so a client-side
+// availability adapter selects its key by scheme (e.g. OverDrive's "overdrive-reserve"
+// Reserve ID vs the "overdrive" title id) rather than guessing from a flat list
+// (ARCHITECTURE §9, tasks/004). Source is empty for an untagged identifier.
+type ProviderID struct {
+	Source string `json:"source,omitempty"`
+	Value  string `json:"value"`
 }
 
 // Facets is the precomputed facet index: for each facetable dimension, the
@@ -333,7 +345,8 @@ func (p *projector) instances(w rdf.Term) []Instance {
 	var out []Instance
 	for _, inst := range p.feed.Objects(w, pHasInstance) {
 		i := Instance{ID: fragID(inst.Value, "Instance")}
-		var isbns, pids []string
+		var isbns []string
+		var pids []ProviderID
 		for _, id := range p.feed.Objects(inst, pIdentifiedBy) {
 			v, ok := p.feed.Literal(id, pValue)
 			if !ok || v == "" {
@@ -341,17 +354,33 @@ func (p *projector) instances(w rdf.Term) []Instance {
 			}
 			if p.feed.HasType(id, classIsbn) {
 				isbns = append(isbns, v)
-			} else {
-				pids = append(pids, v)
+				continue
 			}
+			pids = append(pids, ProviderID{Source: p.identifierSource(id), Value: v})
 		}
 		sort.Strings(isbns)
-		sort.Strings(pids)
+		sort.Slice(pids, func(a, b int) bool {
+			if pids[a].Source != pids[b].Source {
+				return pids[a].Source < pids[b].Source
+			}
+			return pids[a].Value < pids[b].Value
+		})
 		i.ISBNs, i.ProviderIDs = isbns, pids
 		out = append(out, i)
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].ID < out[b].ID })
 	return out
+}
+
+// identifierSource returns the rdfs:label of an identifier node's bf:source scheme,
+// or "" when the identifier carries no scheme.
+func (p *projector) identifierSource(id rdf.Term) string {
+	if src, ok := p.feed.Object(id, pSource); ok {
+		if label, ok := p.feed.Literal(src, pLabel); ok {
+			return label
+		}
+	}
+	return ""
 }
 
 // fragID extracts an id from a node IRI of the form "#<id><suffix>".
