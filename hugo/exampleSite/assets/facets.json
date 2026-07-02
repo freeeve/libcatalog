@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "languages": [
     { "value": "eng", "count": 1 },
     { "value": "spa", "count": 1 }
@@ -8,7 +8,13 @@
     {
       "id": "https://homosaurus.org/v3/homoit0000669",
       "labels": { "en": "Transgender people", "es": "Personas trans" },
+      "broader": ["https://homosaurus.org/v3/homoit0000282"],
       "count": 2
+    },
+    {
+      "id": "https://homosaurus.org/v3/homoit0000282",
+      "labels": { "en": "Gender identity" },
+      "count": 1
     }
   ],
   "tags": [

@@ -68,7 +68,7 @@ That is the whole setup -- see `exampleSite/` for a runnable reference.
 
 Both JSON files carry a top-level `version` (`project.SchemaVersion`). The adapter
 fails the build loudly if `catalog.json`'s version does not match the version the
-module targets (`params.catalogSchemaVersion`, currently **4**). Reproject with a
+module targets (`params.catalogSchemaVersion`, currently **5**). Reproject with a
 matching `lcat` if you hit a mismatch.
 
 ## Live availability (optional)

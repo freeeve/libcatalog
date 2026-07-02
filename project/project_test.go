@@ -43,6 +43,8 @@ _:m1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontolo
 _:m1 <http://www.w3.org/2000/01/rdf-schema#label> "computer" <feed:overdrive> .
 <https://homosaurus.org/v3/homoit0000669> <http://www.w3.org/2004/02/skos/core#prefLabel> "Transgender people"@en <authority:homosaurus> .
 <https://homosaurus.org/v3/homoit0000669> <http://www.w3.org/2004/02/skos/core#prefLabel> "Personas trans"@es <authority:homosaurus> .
+<https://homosaurus.org/v3/homoit0000669> <http://www.w3.org/2004/02/skos/core#broader> <https://homosaurus.org/v3/homoit0000282> <authority:homosaurus> .
+<https://homosaurus.org/v3/homoit0000282> <http://www.w3.org/2004/02/skos/core#prefLabel> "Gender identity"@en <authority:homosaurus> .
 `
 
 func TestProject(t *testing.T) {
@@ -71,8 +73,9 @@ func TestProject(t *testing.T) {
 	// The editorial IRI subject is controlled -- carried as {URI, resolved labels};
 	// the feed genre string is an uncontrolled tag. They no longer conflate (tasks/012).
 	wantSubjects := []Subject{{
-		ID:     "https://homosaurus.org/v3/homoit0000669",
-		Labels: map[string]string{"en": "Transgender people", "es": "Personas trans"},
+		ID:      "https://homosaurus.org/v3/homoit0000669",
+		Labels:  map[string]string{"en": "Transgender people", "es": "Personas trans"},
+		Broader: []string{"https://homosaurus.org/v3/homoit0000282"},
 	}}
 	if !reflect.DeepEqual(w.Subjects, wantSubjects) {
 		t.Errorf("subjects = %+v, want %+v", w.Subjects, wantSubjects)
@@ -196,9 +199,10 @@ func TestFacets(t *testing.T) {
 	// Controlled subjects and feed tags facet separately (tasks/012): the Homosaurus
 	// URI is the sole subject facet (with resolved labels), "Fiction" the sole tag.
 	wantSubj := []SubjectFacet{{
-		ID:     "https://homosaurus.org/v3/homoit0000669",
-		Labels: map[string]string{"en": "Transgender people", "es": "Personas trans"},
-		Count:  1,
+		ID:      "https://homosaurus.org/v3/homoit0000669",
+		Labels:  map[string]string{"en": "Transgender people", "es": "Personas trans"},
+		Broader: []string{"https://homosaurus.org/v3/homoit0000282"},
+		Count:   1,
 	}}
 	if !reflect.DeepEqual(f.Subjects, wantSubj) {
 		t.Errorf("subject facet = %+v, want %+v", f.Subjects, wantSubj)
@@ -248,5 +252,41 @@ func TestRedirectsCycleSafe(t *testing.T) {
 		if r.From == r.To {
 			t.Errorf("self-redirect emitted: %+v", r)
 		}
+	}
+}
+
+// TestSubjectBroader covers the skos:broader projection (tasks/015): a term's parents
+// are emitted sorted + deduped, non-IRI broader objects are ignored, and a subject
+// with no broader omits the field.
+func TestSubjectBroader(t *testing.T) {
+	const nq = `<#waWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+<#waWork> <http://id.loc.gov/ontologies/bibframe/subject> <https://ex.org/child> <feed:overdrive> .
+<#wbWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+<#wbWork> <http://id.loc.gov/ontologies/bibframe/subject> <https://ex.org/orphan> <feed:overdrive> .
+<https://ex.org/child> <http://www.w3.org/2004/02/skos/core#broader> <https://ex.org/zparent> <authority:x> .
+<https://ex.org/child> <http://www.w3.org/2004/02/skos/core#broader> <https://ex.org/aparent> <authority:x> .
+<https://ex.org/child> <http://www.w3.org/2004/02/skos/core#broader> <https://ex.org/aparent> <authority:x> .
+<https://ex.org/child> <http://www.w3.org/2004/02/skos/core#broader> _:blanknode <authority:x> .
+<https://ex.org/child> <http://www.w3.org/2004/02/skos/core#broader> "literal parent" <authority:x> .
+`
+	cat, err := Project([]byte(nq), "overdrive")
+	if err != nil {
+		t.Fatalf("Project: %v", err)
+	}
+	byID := map[string][]string{}
+	for _, w := range cat.Works {
+		for _, s := range w.Subjects {
+			byID[s.ID] = s.Broader
+		}
+	}
+	// child's parents: deduped (aparent given twice -> once) + sorted (aparent <
+	// zparent); the blank-node and literal broader objects are ignored (IRIs only).
+	wantChild := []string{"https://ex.org/aparent", "https://ex.org/zparent"}
+	if got := byID["https://ex.org/child"]; !reflect.DeepEqual(got, wantChild) {
+		t.Errorf("child broader = %v, want %v", got, wantChild)
+	}
+	// orphan has no skos:broader -> Broader omitted (nil).
+	if got, ok := byID["https://ex.org/orphan"]; !ok || got != nil {
+		t.Errorf("orphan broader = %v (present=%v), want nil", got, ok)
 	}
 }

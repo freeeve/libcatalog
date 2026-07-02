@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "works": [
     {
       "id": "wexampleone",
@@ -11,8 +11,13 @@
       ],
       "subjects": [
         {
+          "id": "https://homosaurus.org/v3/homoit0000282",
+          "labels": { "en": "Gender identity" }
+        },
+        {
           "id": "https://homosaurus.org/v3/homoit0000669",
-          "labels": { "en": "Transgender people", "es": "Personas trans" }
+          "labels": { "en": "Transgender people", "es": "Personas trans" },
+          "broader": ["https://homosaurus.org/v3/homoit0000282"]
         }
       ],
       "tags": ["Fiction"],
@@ -46,7 +51,8 @@
       "subjects": [
         {
           "id": "https://homosaurus.org/v3/homoit0000669",
-          "labels": { "en": "Transgender people", "es": "Personas trans" }
+          "labels": { "en": "Transgender people", "es": "Personas trans" },
+          "broader": ["https://homosaurus.org/v3/homoit0000282"]
         }
       ],
       "tags": ["Fiction", "Family"],

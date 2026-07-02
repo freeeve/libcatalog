@@ -123,7 +123,11 @@ BIBFRAME-native, matching FRBR/LRM:
   (`bf:subject <vocab-uri>`); a global relabel propagates for free because
   records reference authorities by id, not string. Homosaurus is one such
   vocabulary (already SKOS/JSON-LD); LCSH/LCNAF stream in via libcodex's RDF
-  decoder.
+  decoder. The projector resolves each subject's `skos:prefLabel`/`rdfs:label`
+  and its `skos:broader` parents from the authority graph into the projected
+  `Subject` (labels + `broader` URIs), so a consumer renders vocabulary hierarchy
+  (breadcrumb trails, broader/narrower drill-down) without re-reading the graph
+  (`tasks/015`).
 
 ## 6. Two product tiers
 

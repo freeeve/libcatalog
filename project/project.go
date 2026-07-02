@@ -39,6 +39,7 @@ const (
 	classIsbn     = bfNS + "Isbn"
 	pLabel        = rdfsNS + "label"
 	pPrefLabel    = skosNS + "prefLabel"
+	pBroader      = skosNS + "broader"
 	pValue        = rdfNS + "value"
 	primaryContr  = bflcNS + "PrimaryContribution"
 )
@@ -50,7 +51,9 @@ const (
 // URIs + resolved labels) from uncontrolled feed tags (tasks/012). v4 added
 // per-Instance format (from the Instance's RDA media type) and the Work-level
 // formats facet, so a clustered mixed-format Work exposes each format (tasks/011).
-const SchemaVersion = 4
+// v5 added subject skos:broader parents (Subject.Broader / SubjectFacet.Broader) so
+// consumers render vocabulary hierarchy without re-reading the graph (tasks/015).
+const SchemaVersion = 5
 
 // Catalog is the projected corpus: one record per Work, sorted by id.
 type Catalog struct {
@@ -86,9 +89,15 @@ type Contributor struct {
 // in the graph, keyed by language tag (e.g. "en", "es"; "" for an untagged label).
 // Links and facets key on ID; display uses Labels, falling back to ID when the
 // authority provides none (tasks/012). Distinct from an uncontrolled feed Tag.
+//
+// Broader holds the authority URIs of this term's skos:broader parents (sorted,
+// deduped), so a consumer can render vocabulary hierarchy (breadcrumb trails,
+// broader/narrower drill-down) without re-reading the graph (tasks/015). It is
+// id-only: a parent's label resolves from the parent's own Subject/authority record.
 type Subject struct {
-	ID     string            `json:"id"`
-	Labels map[string]string `json:"labels,omitempty"`
+	ID      string            `json:"id"`
+	Labels  map[string]string `json:"labels,omitempty"`
+	Broader []string          `json:"broader,omitempty"`
 }
 
 // Instance is one edition/format: its id, format (from its RDA media type), ISBNs,
@@ -129,12 +138,14 @@ type FacetValue struct {
 }
 
 // SubjectFacet is one controlled-subject facet value: the authority URI (the key),
-// its resolved labels, and the number of Works carrying it. Facets key on ID so a
+// its resolved labels, its skos:broader parents (for hierarchy-aware facet
+// drill-down, tasks/015), and the number of Works carrying it. Facets key on ID so a
 // relabel does not churn the facet; display uses Labels (tasks/012).
 type SubjectFacet struct {
-	ID     string            `json:"id"`
-	Labels map[string]string `json:"labels,omitempty"`
-	Count  int               `json:"count"`
+	ID      string            `json:"id"`
+	Labels  map[string]string `json:"labels,omitempty"`
+	Broader []string          `json:"broader,omitempty"`
+	Count   int               `json:"count"`
 }
 
 // Facets aggregates the catalog into per-dimension value counts, each value
@@ -162,7 +173,7 @@ func (c *Catalog) Facets() Facets {
 			seen[s.ID] = true
 			sf := subj[s.ID]
 			if sf == nil {
-				sf = &SubjectFacet{ID: s.ID, Labels: s.Labels}
+				sf = &SubjectFacet{ID: s.ID, Labels: s.Labels, Broader: s.Broader}
 				subj[s.ID] = sf
 			}
 			sf.Count++
@@ -301,9 +312,10 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 		return nil, err
 	}
 	p := &projector{
-		feed:   ds.Graph(bibframe.FeedGraph(provider)),
-		ed:     ds.Graph(bibframe.EditorialGraph()),
-		labels: buildLabelIndex(ds),
+		feed:    ds.Graph(bibframe.FeedGraph(provider)),
+		ed:      ds.Graph(bibframe.EditorialGraph()),
+		labels:  buildLabelIndex(ds),
+		broader: buildBroaderIndex(ds),
 	}
 	cat := &Catalog{Version: SchemaVersion}
 	if p.feed == nil {
@@ -317,9 +329,10 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 }
 
 type projector struct {
-	feed   *rdf.Graph
-	ed     *rdf.Graph                   // editorial graph; nil when the corpus has no editorial statements
-	labels map[string]map[string]string // authority URI -> language tag -> label
+	feed    *rdf.Graph
+	ed      *rdf.Graph                   // editorial graph; nil when the corpus has no editorial statements
+	labels  map[string]map[string]string // authority URI -> language tag -> label
+	broader map[string][]string          // authority URI -> sorted parent (skos:broader) URIs
 }
 
 func (p *projector) work(w rdf.Term) Work {
@@ -406,7 +419,7 @@ func (p *projector) subjectsAndTags(w rdf.Term) ([]Subject, []string) {
 		for _, s := range g.Objects(w, pSubject) {
 			if s.IsIRI() {
 				if _, ok := subj[s.Value]; !ok {
-					subj[s.Value] = Subject{ID: s.Value, Labels: p.labels[s.Value]}
+					subj[s.Value] = Subject{ID: s.Value, Labels: p.labels[s.Value], Broader: p.broader[s.Value]}
 				}
 			} else if label, ok := g.Literal(s, pLabel); ok && label != "" {
 				tags[label] = true
@@ -466,6 +479,34 @@ func buildLabelIndex(ds *rdf.Dataset) map[string]map[string]string {
 	}
 	if len(idx) == 0 {
 		return nil
+	}
+	return idx
+}
+
+// buildBroaderIndex indexes the skos:broader hierarchy links of controlled-vocabulary
+// terms across every graph (tasks/015): for each IRI subject with an IRI skos:broader
+// object it maps the term URI -> sorted, deduped parent term URIs. These come from
+// authority statements (e.g. an authority:<vocab> graph). A consumer joins a parent
+// URI back to its own Subject/authority record to render breadcrumb trails. The index
+// is provider/vocabulary-agnostic and nil when the corpus carries no skos:broader.
+func buildBroaderIndex(ds *rdf.Dataset) map[string][]string {
+	set := map[string]map[string]bool{}
+	for _, q := range ds.Quads {
+		if q.P.Value == pBroader && q.S.IsIRI() && q.O.IsIRI() {
+			parents := set[q.S.Value]
+			if parents == nil {
+				parents = map[string]bool{}
+				set[q.S.Value] = parents
+			}
+			parents[q.O.Value] = true
+		}
+	}
+	if len(set) == 0 {
+		return nil
+	}
+	idx := make(map[string][]string, len(set))
+	for uri, parents := range set {
+		idx[uri] = sortedKeys(parents)
 	}
 	return idx
 }
