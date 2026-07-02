@@ -35,6 +35,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lcat project:", err)
 			os.Exit(1)
 		}
+	case "serialize":
+		if err := runSerialize(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "lcat serialize:", err)
+			os.Exit(1)
+		}
 	case "merge":
 		if err := runMerge(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, "lcat merge:", err)
@@ -89,6 +94,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  lcat overdrive --cache <dir> --out <dir> [--marc <file.mrc>] [--provider <name>]")
 	fmt.Fprintln(os.Stderr, "  lcat build --marc <file.mrc> [--out <dir>] [--provider <name>]")
 	fmt.Fprintln(os.Stderr, "  lcat project --catalog <catalog.nq> [--out <dir>] [--provider <name>]")
+	fmt.Fprintln(os.Stderr, "  lcat serialize --dir <grains>   (regenerate catalog.nq from committed grains)")
 	fmt.Fprintln(os.Stderr, "  lcat index --catalog <catalog.json> [--out <dir>]")
 	fmt.Fprintln(os.Stderr, "  lcat merge --dir <grains> --from <workid> --to <workid>")
 	fmt.Fprintln(os.Stderr, "  lcat split --dir <grains> --from <workid> --instances <instid,instid,...>")
