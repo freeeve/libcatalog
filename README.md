@@ -37,8 +37,13 @@ lives in here.
   The onboarding ramp is **MARC import** (via libcodex): bring the MARC your
   ILS already exports.
 - **Tier 2 -- dynamic, optional.** A collaborative in-browser cataloging/review
-  app (auth, roles, edit history) that writes BIBFRAME back to git. Cloud infra;
-  self-hosted or SaaS.
+  app (auth, roles, edit history) that writes BIBFRAME back to the grain store.
+  Cloud infra; self-hosted or SaaS. Lives in [`backend/`](backend/), a **nested
+  Go module** (`github.com/freeeve/libcatalog/backend`) so its cloud SDKs never
+  reach the core's dependency tree -- CI builds and tests the root module and
+  `backend/` separately (as with `hugo/`). Serve it with `backend/cmd/lcatd`
+  (container/self-host) or `backend/cmd/lcatd-lambda` (AWS Lambda behind an
+  API Gateway v2 HTTP API); both wrap the same `net/http` handler.
 
 Because the BIBFRAME graph is the contract between them, **Tier 1 runs with zero
 Tier 2.**
