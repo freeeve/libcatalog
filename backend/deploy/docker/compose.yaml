@@ -1,0 +1,47 @@
+# Local/self-host dev stack: lcatd + MinIO (S3-compatible grain store) +
+# DynamoDB-local. From the repo root:
+#   docker compose -f backend/deploy/docker/compose.yaml up --build
+# Then seed grains into the lcat-grains bucket (mc or the AWS CLI against
+# http://localhost:9000) and log in with the bootstrap admin below.
+#
+# NOTE: lcatd's S3/Dynamo client wiring in cmd/lcatd is mem/dir-first today;
+# the LCATD_S3_* / LCATD_DYNAMO_* variables below document the contract the
+# cloud wiring consumes (tasks/054 finishes the container-native selection).
+services:
+  lcatd:
+    build:
+      context: ../../..
+      dockerfile: backend/deploy/docker/Dockerfile
+    ports:
+      - "8471:8080"
+    environment:
+      LCATD_LOCAL_AUTH: "1"
+      LCATD_BOOTSTRAP_ADMIN: "admin@example.org:changeme123"
+      LCATD_ABUSE_SECRET: "dev-only-0123456789abcdef012345"
+      LCATD_S3_ENDPOINT: "http://minio:9000"
+      LCATD_S3_BUCKET: "lcat-grains"
+      LCATD_DYNAMO_ENDPOINT: "http://dynamodb:8000"
+      LCATD_DYNAMO_TABLE: "lcat-sidecar"
+      AWS_ACCESS_KEY_ID: "minioadmin"
+      AWS_SECRET_ACCESS_KEY: "minioadmin"
+      AWS_REGION: "us-east-1"
+    depends_on:
+      - minio
+      - dynamodb
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  dynamodb:
+    image: amazon/dynamodb-local
+    ports:
+      - "8000:8000"
+
+volumes:
+  minio-data:

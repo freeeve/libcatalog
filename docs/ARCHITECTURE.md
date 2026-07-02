@@ -140,11 +140,45 @@ exports. Pure static output; no cloud infra beyond static hosting.
 
 ### Tier 2 -- dynamic, optional (collaborative cataloging)
 
-An authenticated in-browser cataloging/review app (roles, edit history/audit)
-that writes BIBFRAME back to git. Cloud infra: an API + serverless functions +
-a small datastore + a git content store + OIDC auth. Distribution is a product
-decision -- **self-hosted** (Terraform in the library's own cloud) or **SaaS**
-(multi-tenant). Optional, because the graph is the contract.
+An authenticated cataloging/review backend that writes BIBFRAME back to the
+grain store -- **implemented in [`backend/`](../backend/)**, a nested Go
+module so its cloud SDKs never reach this module's dependency tree. The
+shape:
+
+- **Grain store**: BIBFRAME grains in object storage (`storage/blob.Store`;
+  S3/R2/MinIO via `backend/blobs3`, local directory for dev). All writes are
+  ETag-conditional; the write discipline is read -> patch -> conditional put
+  -> retry-from-fresh, which the §5 provenance model makes safe: editorial
+  statements are independent IRI-based quads, so a concurrent feed re-ingest
+  and an editorial publish merge instead of clobbering. An advisory ingest
+  lease (document-store record, TTL in the body) keeps re-ingest single-
+  flight and defers -- never drops -- publishing while it runs.
+- **Sidecar datastore** (`backend/store`): a portable pk/sk document store
+  (suggestion queue, users, drafts, audit, jobs, lease) -- DynamoDB first,
+  interface shaped for Firestore/Cosmos-class stores. No transactions or
+  GSIs: services keep repairable index items; aggregates are truth.
+- **Auth** (`backend/auth`): pluggable external OIDC (any issuer; JWKS,
+  role-claim mapping, PKCE exchange proxy) and/or built-in local users
+  (argon2id, rotating refresh tokens), behind one ranked role model
+  (patron < moderator < librarian < admin).
+- **Services**: anonymous suggestion queue with folksonomy lifecycle and
+  anti-abuse (`backend/suggest`), moderation + audit, record editing with
+  ETag optimistic locking and a predicate allowlist (`backend/editor`),
+  merge/split/batch, export jobs (MARC/N-Quads/JSON-LD/CSV with presigned
+  downloads, `backend/export`), and enrichment execution -- per-source
+  queue (approval gate) or direct (auto-approve) subject import
+  (`ingest/enrich.go`, `backend/enrich`).
+- **Compute**: one `net/http` handler; `cmd/lcatd` (container/self-host,
+  workers in-process) and `cmd/lcatd-lambda` (API Gateway v2) wrap it.
+  Publishes emit grains-changed events (HMAC webhook, SQS, or EventBridge)
+  so downstream rebuild (serialize/project/index -> static deploy) stays
+  pluggable.
+
+Distribution is a product decision -- **self-hosted** (the Terraform
+reference in `backend/deploy/terraform/`, or the container/compose path in
+`backend/deploy/docker/`) or **SaaS** (multi-tenant). Optional, because the
+graph is the contract: the static tier runs unchanged with the backend
+absent.
 
 ## 7. Static tier: projector CLI + Hugo module
 
