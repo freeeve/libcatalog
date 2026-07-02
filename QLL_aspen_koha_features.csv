@@ -1,0 +1,621 @@
+Tier,System,Part,Feature,Subfeature
+Tier 1,Aspen Discovery,Search & Discovery,Search engine (Solr),Keyword search across MARC 010-899
+Tier 1,Aspen Discovery,Search & Discovery,Search engine (Solr),Weighted field relevancy (title/author/series/subjects/IDs)
+Tier 1,Aspen Discovery,Search & Discovery,Search engine (Solr),Nightly full reindex + few-minute incremental
+Tier 1,Aspen Discovery,Search & Discovery,Search engine (Solr),Force reindex on individual records
+Tier 1,Aspen Discovery,Search & Discovery,Search engine (Solr),Custom 0XX/9XX fields indexed as keyword
+Tier 1,Aspen Discovery,Search & Discovery,Search indexes,Keyword (default)
+Tier 1,Aspen Discovery,Search & Discovery,Search indexes,Title / Start of Title
+Tier 1,Aspen Discovery,Search & Discovery,Search indexes,Series
+Tier 1,Aspen Discovery,Search & Discovery,Search indexes,Author
+Tier 1,Aspen Discovery,Search & Discovery,Search indexes,Subject
+Tier 1,Aspen Discovery,Search & Discovery,Search indexes,Call number
+Tier 1,Aspen Discovery,Search & Discovery,Search indexes,Proper (quoted) variants
+Tier 1,Aspen Discovery,Search & Discovery,Relevance & boosting,Per-search-type boost values
+Tier 1,Aspen Discovery,Search & Discovery,Relevance & boosting,Checkout/popularity boosting
+Tier 1,Aspen Discovery,Search & Discovery,Relevance & boosting,Number-of-holdings boost
+Tier 1,Aspen Discovery,Search & Discovery,Relevance & boosting,Per-format boost (Format Map)
+Tier 1,Aspen Discovery,Search & Discovery,Relevance & boosting,Format-aware relevancy
+Tier 1,Aspen Discovery,Search & Discovery,Advanced / Boolean search,Multiple fields with per-field index
+Tier 1,Aspen Discovery,Search & Discovery,Advanced / Boolean search,Match settings ALL/ANY/NO terms
+Tier 1,Aspen Discovery,Search & Discovery,Advanced / Boolean search,Boolean operators AND/OR/NOT/+/-
+Tier 1,Aspen Discovery,Search & Discovery,Advanced / Boolean search,"Phrase, wildcard, range, term-boost operators"
+Tier 1,Aspen Discovery,Search & Discovery,Advanced / Boolean search,Configurable advanced-search facet fields
+Tier 1,Aspen Discovery,Search & Discovery,Search assistance,Predictive autocomplete
+Tier 1,Aspen Discovery,Search & Discovery,Search assistance,Spelling suggestions / auto-correction
+Tier 1,Aspen Discovery,Search & Discovery,Search assistance,Similar searches on low/no results
+Tier 1,Aspen Discovery,Search & Discovery,Search assistance,Non-keyword to keyword redirect
+Tier 1,Aspen Discovery,Search & Discovery,Search assistance,Selective stop-word removal
+Tier 1,Aspen Discovery,Search & Discovery,Search assistance,Search-all-libraries redirect (consortia)
+Tier 1,Aspen Discovery,Search & Discovery,Facets & toggles,Configurable grouped-work facets
+Tier 1,Aspen Discovery,Search & Discovery,Facets & toggles,Search-within toggles (collection/available now/online)
+Tier 1,Aspen Discovery,Search & Discovery,Facets & toggles,Available At / Branch facets
+Tier 1,Aspen Discovery,Search & Discovery,Facets & toggles,eContent collection facet
+Tier 1,Aspen Discovery,Search & Discovery,Facets & toggles,Format category icons
+Tier 1,Aspen Discovery,Search & Discovery,Facets & toggles,Facet-within-a-facet
+Tier 1,Aspen Discovery,Search & Discovery,Sort options,Best match
+Tier 1,Aspen Discovery,Search & Discovery,Sort options,Publication year
+Tier 1,Aspen Discovery,Search & Discovery,Sort options,Author / Title
+Tier 1,Aspen Discovery,Search & Discovery,Sort options,Date purchased
+Tier 1,Aspen Discovery,Search & Discovery,Sort options,Call number
+Tier 1,Aspen Discovery,Search & Discovery,Sort options,Total checkouts (popularity)
+Tier 1,Aspen Discovery,Search & Discovery,Sort options,User rating
+Tier 1,Aspen Discovery,Search & Discovery,Sort options,Number of holds
+Tier 1,Aspen Discovery,Search & Discovery,Alternate search scopes,Combined results (bento)
+Tier 1,Aspen Discovery,Search & Discovery,Alternate search scopes,Online collection only
+Tier 1,Aspen Discovery,Search & Discovery,Alternate search scopes,Website / Lists / Events / Archives / WorldCat / Databases / ILL
+Tier 1,Aspen Discovery,Search & Discovery,Saved searches,Save from search tools
+Tier 1,Aspen Discovery,Search & Discovery,Saved searches,Manage in account
+Tier 1,Aspen Discovery,Search & Discovery,Saved searches,Personalized browse category
+Tier 1,Aspen Discovery,Search & Discovery,Saved searches,LiDA push alerts for new matches
+Tier 1,Aspen Discovery,Search & Discovery,Search tools,Email this search
+Tier 1,Aspen Discovery,Search & Discovery,Search tools,RSS feed
+Tier 1,Aspen Discovery,Search & Discovery,Search tools,Export to CSV
+Tier 1,Aspen Discovery,Search & Discovery,Search tools,Export to RIS
+Tier 1,Aspen Discovery,Search & Discovery,Search tools,Create spotlight / add to browse (staff)
+Tier 1,Aspen Discovery,Search & Discovery,Search testing (staff),Grouped-work search tests
+Tier 1,Aspen Discovery,Search & Discovery,Search testing (staff),Compare test results
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Record grouping (FRBR),Group on title/author/grouping-category/language
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Record grouping (FRBR),Title normalization
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Record grouping (FRBR),Author field precedence
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Record grouping (FRBR),Grouping categories (Books/Movies/Music/Comic/Other)
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Manual grouping (staff),Group With button
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Manual grouping (staff),Group With Work via Staff View
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Manual grouping (staff),Manual grouping authorities
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Manual grouping (staff),Ungroup / allow-to-group
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Manual grouping (staff),Records to not group
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Author authorities,Authoritative name + variants
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Author authorities,Auto-load Koha author authorities
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Grouped-work display,Title/author display fields
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Grouped-work display,Format display & view-all-formats
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Grouped-work display,Appears-on-lists display
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Cover images,Multiple cover sources w/ caching
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Cover images,Auto-generated default covers
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Cover images,Custom default-cover background
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Third-party enrichment,NoveList Select
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Third-party enrichment,Syndetics / Syndetics Unbound
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Third-party enrichment,ContentCafe
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Third-party enrichment,Accelerated Reader
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Third-party enrichment,Wikipedia content
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Series & recommendations,Series info display
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Series & recommendations,Recommended For You (ratings)
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Series & recommendations,While You Wait suggestions
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Series & recommendations,Similar-title placards
+Tier 1,Aspen Discovery,Grouped Works / Grouping & Enrichment,Series & recommendations,User ratings & reviews
+Tier 1,Aspen Discovery,eContent & Integrations,Direct API providers,"OverDrive / Libby (Sora, Advantage, CPC, previews)"
+Tier 1,Aspen Discovery,eContent & Integrations,Direct API providers,"hoopla (Instant Borrows, BingePass)"
+Tier 1,Aspen Discovery,eContent & Integrations,Direct API providers,cloudLibrary
+Tier 1,Aspen Discovery,eContent & Integrations,Direct API providers,Boundless (Axis 360)
+Tier 1,Aspen Discovery,eContent & Integrations,Direct API providers,Palace Project
+Tier 1,Aspen Discovery,eContent & Integrations,In-catalog circulation,Check out / hold / renew / return in account
+Tier 1,Aspen Discovery,eContent & Integrations,In-catalog circulation,Cross-platform sync
+Tier 1,Aspen Discovery,eContent & Integrations,In-catalog circulation,Hold queue position
+Tier 1,Aspen Discovery,eContent & Integrations,In-catalog circulation,Provider account settings
+Tier 1,Aspen Discovery,eContent & Integrations,eContent scoping,Scope by library/location
+Tier 1,Aspen Discovery,eContent & Integrations,eContent scoping,Scope by audience
+Tier 1,Aspen Discovery,eContent & Integrations,eContent scoping,hoopla exclusion rules
+Tier 1,Aspen Discovery,eContent & Integrations,Side Loads (MARC),Load .mrc from any vendor (Kanopy etc.)
+Tier 1,Aspen Discovery,eContent & Integrations,Side Loads (MARC),Unique identifier requirement
+Tier 1,Aspen Discovery,eContent & Integrations,Side Loads (MARC),Group side-loaded titles with works
+Tier 1,Aspen Discovery,eContent & Integrations,Side Loads (MARC),Full/incremental update scheduling
+Tier 1,Aspen Discovery,eContent & Integrations,Article/database integrations,EBSCOhost / EDS in Explore More
+Tier 1,Aspen Discovery,eContent & Integrations,Article/database integrations,Resources / databases page
+Tier 1,Aspen Discovery,eContent & Integrations,Article/database integrations,Keyword-triggered database placards
+Tier 1,Aspen Discovery,eContent & Integrations,External collections,Website indexing
+Tier 1,Aspen Discovery,eContent & Integrations,External collections,History & Archives via OAI-PMH
+Tier 1,Aspen Discovery,eContent & Integrations,External collections,Genealogy module
+Tier 1,Aspen Discovery,eContent & Integrations,External collections,WorldCat search
+Tier 1,Aspen Discovery,eContent & Integrations,Open-access / linked,Access-Online link-out when no API
+Tier 1,Aspen Discovery,ILS Integrations,Supported ILS,Koha
+Tier 1,Aspen Discovery,ILS Integrations,Supported ILS,Symphony
+Tier 1,Aspen Discovery,ILS Integrations,Supported ILS,Polaris
+Tier 1,Aspen Discovery,ILS Integrations,Supported ILS,Sierra
+Tier 1,Aspen Discovery,ILS Integrations,Supported ILS,Horizon
+Tier 1,Aspen Discovery,ILS Integrations,Supported ILS,Evergreen
+Tier 1,Aspen Discovery,ILS Integrations,Supported ILS,Evolve
+Tier 1,Aspen Discovery,ILS Integrations,Supported ILS,CARL.X
+Tier 1,Aspen Discovery,ILS Integrations,Data ingestion,API-based updates
+Tier 1,Aspen Discovery,ILS Integrations,Data ingestion,Scheduled SFTP MARC exports
+Tier 1,Aspen Discovery,ILS Integrations,Data ingestion,Indexing profiles (format map/call number/boost)
+Tier 1,Aspen Discovery,ILS Integrations,Data ingestion,Indexing log
+Tier 1,Aspen Discovery,ILS Integrations,Holdings & availability sync,Item status batch-loaded & indexed
+Tier 1,Aspen Discovery,ILS Integrations,Holdings & availability sync,Format determination via Format Map
+Tier 1,Aspen Discovery,ILS Integrations,Holdings & availability sync,eContent record suppression for API copies
+Tier 1,Aspen Discovery,ILS Integrations,Patron account sync,Checkouts/holds/fines refresh
+Tier 1,Aspen Discovery,ILS Integrations,Patron account sync,Login via barcode or username
+Tier 1,Aspen Discovery,ILS Integrations,Patron account sync,"Place/cancel/freeze/thaw holds, renew"
+Tier 1,Aspen Discovery,ILS Integrations,Patron account sync,Reading history opt-in
+Tier 1,Aspen Discovery,ILS Integrations,Offline mode,Catalog offline (no login)
+Tier 1,Aspen Discovery,ILS Integrations,Offline mode,Catalog offline (login + eContent)
+Tier 1,Aspen Discovery,ILS Integrations,Offline mode,Offline messaging / LiDA behavior
+Tier 1,Aspen Discovery,Vocabularies / Subject Enrichment,Subject & genre facets,Subject/topic/geographic/genre/era indexing
+Tier 1,Aspen Discovery,Vocabularies / Subject Enrichment,Subject & genre facets,Configurable subject/genre facets
+Tier 1,Aspen Discovery,Vocabularies / Subject Enrichment,Subject searching,By-subject index with boosting
+Tier 1,Aspen Discovery,Vocabularies / Subject Enrichment,Subject searching,Subject facet as searchable advanced search
+Tier 1,Aspen Discovery,Vocabularies / Subject Enrichment,NoveList/Syndetics subject enrichment,Genre & appeal-term enrichment
+Tier 1,Aspen Discovery,Vocabularies / Subject Enrichment,NoveList/Syndetics subject enrichment,Similar subject/series/author browsing
+Tier 1,Aspen Discovery,Lists & Curation,User lists,Create/edit/delete
+Tier 1,Aspen Discovery,Lists & Curation,User lists,Sort options
+Tier 1,Aspen Discovery,Lists & Curation,User lists,Private / shareable-by-link / public
+Tier 1,Aspen Discovery,Lists & Curation,User lists,Custom list covers
+Tier 1,Aspen Discovery,Lists & Curation,User lists,List-of-lists
+Tier 1,Aspen Discovery,Lists & Curation,Staff / public lists,Public lists searchable
+Tier 1,Aspen Discovery,Lists & Curation,Staff / public lists,NYT lists via API
+Tier 1,Aspen Discovery,Lists & Curation,Browse categories,Create from search/list
+Tier 1,Aspen Discovery,Lists & Curation,Browse categories,Category groups
+Tier 1,Aspen Discovery,Lists & Curation,Browse categories,Sub-categories
+Tier 1,Aspen Discovery,Lists & Curation,Browse categories,Scheduling / rotation
+Tier 1,Aspen Discovery,Lists & Curation,Browse categories,Statistics
+Tier 1,Aspen Discovery,Lists & Curation,Browse categories,Size/layout/color options
+Tier 1,Aspen Discovery,Lists & Curation,Browse categories,Personalized categories
+Tier 1,Aspen Discovery,Lists & Curation,Browse categories,Patron hide/show
+Tier 1,Aspen Discovery,Lists & Curation,Collection spotlights,6 spotlight layouts
+Tier 1,Aspen Discovery,Lists & Curation,Collection spotlights,Embed code for external sites
+Tier 1,Aspen Discovery,Lists & Curation,Placards,Keyword-triggered banners
+Tier 1,Aspen Discovery,Lists & Curation,Placards,Dismissable placards
+Tier 1,Aspen Discovery,Lists & Curation,Explore More,Contextual results sidebar
+Tier 1,Aspen Discovery,User Accounts,Login & auth,Barcode/username + PIN
+Tier 1,Aspen Discovery,User Accounts,Login & auth,Forgot barcode via Twilio text
+Tier 1,Aspen Discovery,User Accounts,Login & auth,Single sign-on
+Tier 1,Aspen Discovery,User Accounts,Linked accounts,Manage others' checkouts/holds
+Tier 1,Aspen Discovery,User Accounts,Linked accounts,See who links to you
+Tier 1,Aspen Discovery,User Accounts,Checkouts,View/renew physical & econtent
+Tier 1,Aspen Discovery,User Accounts,Checkouts,Provider tabs
+Tier 1,Aspen Discovery,User Accounts,Holds,Place/cancel/freeze/thaw
+Tier 1,Aspen Discovery,User Accounts,Holds,Change pickup location
+Tier 1,Aspen Discovery,User Accounts,Holds,Ready-for-pickup / queue position
+Tier 1,Aspen Discovery,User Accounts,Reading history,Opt-in recording
+Tier 1,Aspen Discovery,User Accounts,Reading history,Sort/delete
+Tier 1,Aspen Discovery,User Accounts,Reading history,Privacy controls
+Tier 1,Aspen Discovery,User Accounts,Preferences,Profile from patron record
+Tier 1,Aspen Discovery,User Accounts,Preferences,Display mode selection
+Tier 1,Aspen Discovery,User Accounts,Preferences,Provider option settings
+Tier 1,Aspen Discovery,User Accounts,Preferences,Notification preferences
+Tier 1,Aspen Discovery,User Accounts,Preferences,Cookie/consent
+Tier 1,Aspen Discovery,User Accounts,Materials requests,Aspen native request system
+Tier 1,Aspen Discovery,User Accounts,Materials requests,ILS request (purchase suggestions)
+Tier 1,Aspen Discovery,User Accounts,Materials requests,External request link
+Tier 1,Aspen Discovery,User Accounts,Materials requests,Multiple placement points
+Tier 1,Aspen Discovery,User Accounts,Materials requests,Manage submitted requests
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Themes,Full color customization w/ contrast checks
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Themes,Logo/favicon/footer/header images
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Themes,Fonts (preloaded + custom)
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Themes,Custom format/Explore-More icons
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Themes,Cover image style
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Themes,Custom CSS
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Themes,Copy/extend themes
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Multiple themes / display modes,Patron-selectable themes
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Multiple themes / display modes,Dark mode
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Multiple themes / display modes,High-contrast theme
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Layout settings,Logo/home link behavior
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Layout settings,Home vs book icon / breadcrumb
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Layout settings,Hours & locations link
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Layout settings,Top-of-page button
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Layout settings,Dismiss-placard options
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Layout settings,Minimum contrast ratio
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Languages & translations,Enable multiple languages
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Languages & translations,Translate any term (translation mode)
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Languages & translations,Language selector
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Languages & translations,Community language sharing
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Community sharing,Import/share themes & languages
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Community sharing,Community Content Server
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Cookie consent,GDPR banner per library
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Cookie consent,Essential vs analytics cookies
+Tier 1,Aspen Discovery,Theme & Layout / Branding,Cookie consent,Customizable banner
+Tier 1,Aspen Discovery,Web Builder / CMS,Basic pages,TinyMCE WYSIWYG
+Tier 1,Aspen Discovery,Web Builder / CMS,Basic pages,URL alias/teaser/audiences
+Tier 1,Aspen Discovery,Web Builder / CMS,Basic pages,Login-restricted pages
+Tier 1,Aspen Discovery,Web Builder / CMS,Custom pages,Row/cell grid builder
+Tier 1,Aspen Discovery,Web Builder / CMS,Custom pages,Source types
+Tier 1,Aspen Discovery,Web Builder / CMS,Custom pages,Accordion/columns/design options
+Tier 1,Aspen Discovery,Web Builder / CMS,Custom pages,HTML/CSS editing
+Tier 1,Aspen Discovery,Web Builder / CMS,Site structure,Custom menus/links
+Tier 1,Aspen Discovery,Web Builder / CMS,Site structure,Copy pages / templates
+Tier 1,Aspen Discovery,Web Builder / CMS,Site structure,Use page as home
+Tier 1,Aspen Discovery,Web Builder / CMS,Forms & directories,Custom embeddable forms
+Tier 1,Aspen Discovery,Web Builder / CMS,Forms & directories,Staff directories
+Tier 1,Aspen Discovery,Web Builder / CMS,Web resources & portals,Web resources list
+Tier 1,Aspen Discovery,Web Builder / CMS,Web resources & portals,Portal pages
+Tier 1,Aspen Discovery,Web Builder / CMS,Website indexing/search,Web indexer module
+Tier 1,Aspen Discovery,Web Builder / CMS,Website indexing/search,In-library-website search
+Tier 1,Aspen Discovery,Web Builder / CMS,Website indexing/search,Website facet settings
+Tier 1,Aspen Discovery,Events,Platform integrations,Communico Attend
+Tier 1,Aspen Discovery,Events,Platform integrations,Springshare LibCal
+Tier 1,Aspen Discovery,Events,Platform integrations,Library Market Calendar
+Tier 1,Aspen Discovery,Events,Event discovery,Events in search
+Tier 1,Aspen Discovery,Events,Event discovery,Events in Explore More
+Tier 1,Aspen Discovery,Events,Event discovery,Event facet settings
+Tier 1,Aspen Discovery,Events,Patron event actions,Save event to account
+Tier 1,Aspen Discovery,Events,Patron event actions,Registration hand-off
+Tier 1,Aspen Discovery,Events,Patron event actions,LiDA event integration
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Versions & login,Community & branded apps
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Versions & login,Geolocation/library selection
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Versions & login,ILS credential login
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Versions & login,Offline support
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Discover view,Browse categories
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Discover view,Load all / manage / refresh
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Discover view,Quick searches
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Search,Format availability
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Search,Filters & facets
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Search,Item details / place hold / add to list
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Library card,Scannable barcode auto-brighten
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Library card,Multiple barcodes (linked)
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Library card,Auto-rotate landscape
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Account,Checkouts (renew)
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Account,Holds (cancel/freeze/pickup)
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Account,Lists
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Account,Saved searches / history / profile / linked
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Notifications,Allow-notifications toggle
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Notifications,Saved-search / library / account alerts
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Notifications,Due-date & hold-ready alerts
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Display,Dark mode toggle
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Display,Branded theming
+Tier 1,Aspen Discovery,Aspen LiDA (mobile app),Display,Library contact & privacy
+Tier 1,Aspen Discovery,Administration,System administration,Modules (enable integrations)
+Tier 1,Aspen Discovery,Administration,System administration,Admin users & roles
+Tier 1,Aspen Discovery,Administration,System administration,DB maintenance / updates
+Tier 1,Aspen Discovery,Administration,System administration,System variables
+Tier 1,Aspen Discovery,Administration,System administration,Email (SES/SendGrid) & Twilio
+Tier 1,Aspen Discovery,Administration,Permissions / roles,Granular per-feature permissions
+Tier 1,Aspen Discovery,Administration,Permissions / roles,Custom roles
+Tier 1,Aspen Discovery,Administration,Permissions / roles,Lock/unlock admin fields
+Tier 1,Aspen Discovery,Administration,Permissions / roles,Copy settings between libraries
+Tier 1,Aspen Discovery,Administration,Primary configuration,Library systems & locations
+Tier 1,Aspen Discovery,Administration,Primary configuration,Host info / basic display
+Tier 1,Aspen Discovery,Administration,Primary configuration,Hours/holidays/location
+Tier 1,Aspen Discovery,Administration,Primary configuration,Batch update selected/all
+Tier 1,Aspen Discovery,Administration,Indexing administration,Indexing profiles & format map
+Tier 1,Aspen Discovery,Administration,Indexing administration,Indexing/cron logs
+Tier 1,Aspen Discovery,Administration,Indexing administration,Reindex timing per content type
+Tier 1,Aspen Discovery,Administration,Settings management,Search for a setting
+Tier 1,Aspen Discovery,Administration,Settings management,Filters & sorting
+Tier 1,Aspen Discovery,Administration,Settings management,Export admin tables to CSV
+Tier 1,Aspen Discovery,Administration,Single sign-on admin,Centralized SSO config
+Tier 1,Aspen Discovery,Administration,Single sign-on admin,Unique-ID to ILS mapping
+Tier 1,Aspen Discovery,Administration,Support tools,Submit tickets
+Tier 1,Aspen Discovery,Administration,Support tools,System messages
+Tier 1,Aspen Discovery,Analytics / Reporting,System reports,Site status / performance
+Tier 1,Aspen Discovery,Analytics / Reporting,System reports,Usage dashboard
+Tier 1,Aspen Discovery,Analytics / Reporting,System reports,Usage by IP
+Tier 1,Aspen Discovery,Analytics / Reporting,System reports,"Index/cron/error logs, PHP info"
+Tier 1,Aspen Discovery,Analytics / Reporting,eContent dashboards,Per-provider dashboards
+Tier 1,Aspen Discovery,Analytics / Reporting,eContent dashboards,Active users / loans / renewals / downloads
+Tier 1,Aspen Discovery,Analytics / Reporting,eContent dashboards,API errors / connection failures
+Tier 1,Aspen Discovery,Analytics / Reporting,Feature usage stats,Browse category statistics
+Tier 1,Aspen Discovery,Analytics / Reporting,Feature usage stats,NYT lists update log
+Tier 1,Aspen Discovery,Analytics / Reporting,Feature usage stats,Google Analytics / JS snippet
+Tier 1,Aspen Discovery,Accessibility & Standards,WCAG compliance,WCAG 2.1 AA target
+Tier 1,Aspen Discovery,Accessibility & Standards,WCAG compliance,Configurable minimum contrast
+Tier 1,Aspen Discovery,Accessibility & Standards,WCAG compliance,Contrast enforcement in theme editor
+Tier 1,Aspen Discovery,Accessibility & Standards,Assistive tech support,ARIA attributes
+Tier 1,Aspen Discovery,Accessibility & Standards,Assistive tech support,Keyboard navigation / tab order
+Tier 1,Aspen Discovery,Accessibility & Standards,Assistive tech support,Alt-text fields
+Tier 1,Aspen Discovery,Accessibility & Standards,Accessibility themes,High-contrast options
+Tier 1,Aspen Discovery,Accessibility & Standards,Accessibility themes,Dark mode
+Tier 1,Aspen Discovery,Accessibility & Standards,Accessibility themes,Minimum font-size enforcement
+Tier 1,Aspen Discovery,Accessibility & Standards,Responsive design,Mobile-responsive UI
+Tier 1,Aspen Discovery,Accessibility & Standards,Responsive design,Modern browser support
+Tier 1,Aspen Discovery,Hosting / Deployment,Deployment options,"Open source, no license"
+Tier 1,Aspen Discovery,Hosting / Deployment,Deployment options,Self-hosted
+Tier 1,Aspen Discovery,Hosting / Deployment,Deployment options,ByWater hosted
+Tier 1,Aspen Discovery,Hosting / Deployment,Deployment options,Equinox hosted (Sequoia)
+Tier 1,Aspen Discovery,Hosting / Deployment,Architecture,Solr search index
+Tier 1,Aspen Discovery,Hosting / Deployment,Architecture,Web-based admin
+Tier 1,Aspen Discovery,Hosting / Deployment,Architecture,Community Content Server
+Tier 1,Aspen Discovery,Hosting / Deployment,Update cadence,Monthly releases
+Tier 1,Aspen Discovery,Hosting / Deployment,Update cadence,Test then production
+Tier 1,Aspen Discovery,Hosting / Deployment,Update cadence,Automated late-night updates
+Tier 1,Koha,Cataloging - Bibliographic records,Adding records,Basic editor cataloging
+Tier 1,Koha,Cataloging - Bibliographic records,Adding records,Advanced editor cataloging
+Tier 1,Koha,Cataloging - Bibliographic records,Adding records,Advanced cataloging keyboard shortcuts
+Tier 1,Koha,Cataloging - Bibliographic records,Adding records,Advanced cataloging virtual keyboard
+Tier 1,Koha,Cataloging - Bibliographic records,Adding records,Macros in advanced cataloging
+Tier 1,Koha,Cataloging - Bibliographic records,Importing records,Staging records for import
+Tier 1,Koha,Cataloging - Bibliographic records,Importing records,Managing staged records
+Tier 1,Koha,Cataloging - Bibliographic records,Importing records,Record matching on import
+Tier 1,Koha,Cataloging - Bibliographic records,Importing records,Overlay existing records
+Tier 1,Koha,Cataloging - Bibliographic records,Adding analytic records,Easy analytics
+Tier 1,Koha,Cataloging - Bibliographic records,Adding analytic records,Analytics enhanced workflow
+Tier 1,Koha,Cataloging - Bibliographic records,Adding analytic records,Editing analytics
+Tier 1,Koha,Cataloging - Bibliographic records,Adding analytic records,Showing volumes
+Tier 1,Koha,Cataloging - Bibliographic records,Editing records,Batch record modification
+Tier 1,Koha,Cataloging - Bibliographic records,Editing records,MARC modification templates
+Tier 1,Koha,Cataloging - Bibliographic records,Editing records,Edit items from record
+Tier 1,Koha,Cataloging - Bibliographic records,Duplicating records,Duplicate/clone a bib record
+Tier 1,Koha,Cataloging - Bibliographic records,Attaching files to records,Upload & link digital files
+Tier 1,Koha,Cataloging - Bibliographic records,Adding cover images,Single local cover image
+Tier 1,Koha,Cataloging - Bibliographic records,Adding cover images,Batch of cover images
+Tier 1,Koha,Cataloging - Bibliographic records,Adding cover images,Delete a local cover image
+Tier 1,Koha,Cataloging - Bibliographic records,Merging records,Merge two bib records
+Tier 1,Koha,Cataloging - Bibliographic records,Merging records,Merging bib records with lists
+Tier 1,Koha,Cataloging - Bibliographic records,Merging records,Choose destination framework/fields
+Tier 1,Koha,Cataloging - Bibliographic records,Deleting records,Delete single record
+Tier 1,Koha,Cataloging - Bibliographic records,Deleting records,Batch deleting records
+Tier 1,Koha,Cataloging - Bibliographic records,Catalog concerns,Report concerns about bib records
+Tier 1,Koha,Cataloging - Bibliographic records,Catalog concerns,Manage catalog concerns
+Tier 1,Koha,Cataloging - Item records,Adding items,Add item to record
+Tier 1,Koha,Cataloging - Item records,Adding items,Item templates (create/update/use/delete)
+Tier 1,Koha,Cataloging - Item records,Adding items,Fast add framework
+Tier 1,Koha,Cataloging - Item records,Editing items,Quick item status updates
+Tier 1,Koha,Cataloging - Item records,Editing items,Duplicating items
+Tier 1,Koha,Cataloging - Item records,Editing items,Batch editing items
+Tier 1,Koha,Cataloging - Item records,Editing items,Batch edit from bib record
+Tier 1,Koha,Cataloging - Item records,Editing items,Batch edit from a report
+Tier 1,Koha,Cataloging - Item records,Editing items,Batch edit from item search
+Tier 1,Koha,Cataloging - Item records,Deleting items,Delete single item
+Tier 1,Koha,Cataloging - Item records,Deleting items,Batch item deletion
+Tier 1,Koha,Cataloging - Item records,Item movement,Move item between records
+Tier 1,Koha,Cataloging - Item records,Item movement,Attach/detach host items (analytics)
+Tier 1,Koha,Cataloging - Item records,Item search,Multi-field item search
+Tier 1,Koha,Cataloging - Item records,Item search,Saved item-search fields
+Tier 1,Koha,Cataloging - Item records,Item search,Export item-search results
+Tier 1,Koha,Cataloging - Value builders (plugins),Fixed-field builders,008 fixed-length field builder
+Tier 1,Koha,Cataloging - Value builders (plugins),Fixed-field builders,Leader builder
+Tier 1,Koha,Cataloging - Value builders (plugins),Fixed-field builders,006 / 007 builders
+Tier 1,Koha,Cataloging - Value builders (plugins),Field plugins,Date/time plugins
+Tier 1,Koha,Cataloging - Value builders (plugins),Field plugins,Authorized-value plugins
+Tier 1,Koha,Cataloging - Value builders (plugins),Field plugins,Authority link plugins
+Tier 1,Koha,Cataloging - Value builders (plugins),Field plugins,UNIMARC plugins
+Tier 1,Koha,Copy cataloging (Z39.50 / SRU),External search & import,Search Z39.50/SRU targets from cataloging
+Tier 1,Koha,Copy cataloging (Z39.50 / SRU),External search & import,Import incoming record into editor
+Tier 1,Koha,Copy cataloging (Z39.50 / SRU),External search & import,Merge/choose incoming record
+Tier 1,Koha,Copy cataloging (Z39.50 / SRU),Target administration,Configure Z39.50 servers
+Tier 1,Koha,Copy cataloging (Z39.50 / SRU),Target administration,Configure SRU servers & field mappings
+Tier 1,Koha,Copy cataloging (Z39.50 / SRU),Target administration,Set search-target syntax/encoding
+Tier 1,Koha,Authorities,Authority records,Add authority record (manual)
+Tier 1,Koha,Authorities,Authority records,Import authority via Z39.50
+Tier 1,Koha,Authorities,Authority records,Search authorities
+Tier 1,Koha,Authorities,Authority records,Edit authority record
+Tier 1,Koha,Authorities,Authority records,Delete authority record
+Tier 1,Koha,Authorities,Cross-references,See references (4XX / used-for)
+Tier 1,Koha,Authorities,Cross-references,See-also references (5XX / BT-NT-RT)
+Tier 1,Koha,Authorities,Linking bibs to authorities,Automatic linking (BiblioAddsAuthorities)
+Tier 1,Koha,Authorities,Linking bibs to authorities,Automatic authority creation (AutoCreateAuthorities)
+Tier 1,Koha,Authorities,Linking bibs to authorities,link_bibs_to_authorities cron
+Tier 1,Koha,Authorities,Linking bibs to authorities,Manual heading linking in editor
+Tier 1,Koha,Authorities,Authority maintenance,Merge authority records
+Tier 1,Koha,Authorities,Authority maintenance,Global heading update via merge
+Tier 1,Koha,Authorities,Authority maintenance,Authority record matching rules
+Tier 1,Koha,Authorities,Authority maintenance,Batch authority record modification/deletion
+Tier 1,Koha,Cataloging administration,MARC bibliographic frameworks,Add/edit frameworks
+Tier 1,Koha,Cataloging administration,MARC bibliographic frameworks,MARC structure (tags/subfields)
+Tier 1,Koha,Cataloging administration,MARC bibliographic frameworks,Subfield settings (mandatory/repeatable/hidden/AV/plugin/link)
+Tier 1,Koha,Cataloging administration,MARC bibliographic frameworks,Default values per framework
+Tier 1,Koha,Cataloging administration,Framework testing,MARC bibliographic framework test
+Tier 1,Koha,Cataloging administration,MARC mappings,Koha to MARC mapping
+Tier 1,Koha,Cataloging administration,MARC mappings,Keyword to MARC mapping
+Tier 1,Koha,Cataloging administration,Authority framework config,Authority types
+Tier 1,Koha,Cataloging administration,Classification config,Classification sources (DDC/LCC/etc.)
+Tier 1,Koha,Cataloging administration,Classification config,Classification filing rules
+Tier 1,Koha,Cataloging administration,Classification config,Classification splitting rules
+Tier 1,Koha,Cataloging administration,Record matching & harvesting,Record matching rules
+Tier 1,Koha,Cataloging administration,Record matching & harvesting,OAI sets configuration
+Tier 1,Koha,Cataloging administration,Item cataloging config,Item search fields
+Tier 1,Koha,Cataloging administration,Item cataloging config,Item types
+Tier 1,Koha,Cataloging - Search engine config,Elasticsearch mappings,Bibliographic field mappings
+Tier 1,Koha,Cataloging - Search engine config,Elasticsearch mappings,Authority field mappings
+Tier 1,Koha,Cataloging - Search engine config,Elasticsearch mappings,Facet configuration
+Tier 1,Koha,Cataloging - Search engine config,Engine choice,Zebra vs Elasticsearch
+Tier 2,Koha,Circulation,Check out,Checkout with due-date override
+Tier 2,Koha,Circulation,Check out,On-site checkout
+Tier 2,Koha,Circulation,Check out,Batch checkout
+Tier 2,Koha,Circulation,Check out,Checkout messages/alerts
+Tier 2,Koha,Circulation,Check in,Backdated check in
+Tier 2,Koha,Circulation,Check in,Book drop mode
+Tier 2,Koha,Circulation,Check in,Transfer on check in
+Tier 2,Koha,Circulation,Renewals,Renew by barcode
+Tier 2,Koha,Circulation,Renewals,Override renewal limits
+Tier 2,Koha,Circulation,Transfers,Transfer items between branches
+Tier 2,Koha,Circulation,Transfers,Transfers to receive
+Tier 2,Koha,Circulation,Overdues & fines,Overdues report
+Tier 2,Koha,Circulation,Overdues & fines,Fine calculation
+Tier 2,Koha,Circulation,Overdues & fines,Fine payment / writeoff
+Tier 2,Koha,Circulation,Circulation tools,Set library / desk
+Tier 2,Koha,Circulation,Circulation tools,Fast add during circ
+Tier 2,Koha,Circulation,Circulation tools,Offline circulation
+Tier 2,Koha,Circulation,Circulation tools,SIP2 self-check
+Tier 2,Koha,Circulation,Bookings,Book a title for a date range
+Tier 2,Koha,Circulation,Article requests,Request article/chapter scans
+Tier 2,Koha,Circulation,Recalls,Recall checked-out items
+Tier 2,Koha,Circulation,Rotating collections,Manage rotating collections
+Tier 2,Koha,Circulation,Curbside pickup,Schedule curbside pickups
+Tier 2,Koha,Holds / Reserves,Placing holds,Bib-level hold
+Tier 2,Koha,Holds / Reserves,Placing holds,Item-level hold
+Tier 2,Koha,Holds / Reserves,Placing holds,Hold on order (acq)
+Tier 2,Koha,Holds / Reserves,Managing holds,Holds queue
+Tier 2,Koha,Holds / Reserves,Managing holds,Holds to pull
+Tier 2,Koha,Holds / Reserves,Managing holds,Holds awaiting pickup
+Tier 2,Koha,Holds / Reserves,Managing holds,Priority reordering
+Tier 2,Koha,Holds / Reserves,Managing holds,Suspend/resume holds
+Tier 2,Koha,Patrons,Patron records,Add/edit patron
+Tier 2,Koha,Patrons,Patron records,Guarantor/guarantee links
+Tier 2,Koha,Patrons,Patron records,Patron attributes (custom fields)
+Tier 2,Koha,Patrons,Patron records,Patron images
+Tier 2,Koha,Patrons,Patron management,Patron search
+Tier 2,Koha,Patrons,Patron management,Batch patron modification
+Tier 2,Koha,Patrons,Patron management,Batch patron deletion/anonymization
+Tier 2,Koha,Patrons,Patron management,Patron import (CSV)
+Tier 2,Koha,Patrons,Patron management,Patron lists
+Tier 2,Koha,Patrons,Patron management,Patron clubs
+Tier 2,Koha,Patrons,Permissions & restrictions,Staff permissions/flags
+Tier 2,Koha,Patrons,Permissions & restrictions,Patron restrictions/debarments
+Tier 2,Koha,Patrons,Fines & accounts,Manual invoice/credit
+Tier 2,Koha,Patrons,Fines & accounts,Payments
+Tier 2,Koha,Patrons,Fines & accounts,Account/fee types
+Tier 2,Koha,Patrons,Messaging,Messaging preferences (email/SMS/digest)
+Tier 2,Koha,Patrons,Messaging,Notices to patron
+Tier 2,Koha,Patrons,Self-service,OPAC self-registration
+Tier 2,Koha,Patrons,Self-service,Housebound module
+Tier 2,Koha,OPAC,Search & browse,Simple/advanced search
+Tier 2,Koha,OPAC,Search & browse,Facets
+Tier 2,Koha,OPAC,Search & browse,Search history
+Tier 2,Koha,OPAC,Search & browse,Did you mean
+Tier 2,Koha,OPAC,Record display,Detail view
+Tier 2,Koha,OPAC,Record display,Availability
+Tier 2,Koha,OPAC,Record display,Enhanced content (covers/reviews)
+Tier 2,Koha,OPAC,Patron account,Checkouts/holds/fines
+Tier 2,Koha,OPAC,Patron account,Renew online
+Tier 2,Koha,OPAC,Patron account,Purchase suggestions
+Tier 2,Koha,OPAC,Patron account,Reading history / privacy
+Tier 2,Koha,OPAC,Patron account,Messaging settings
+Tier 2,Koha,OPAC,Community features,User tags
+Tier 2,Koha,OPAC,Community features,Tag moderation
+Tier 2,Koha,OPAC,Community features,Tag cloud
+Tier 2,Koha,OPAC,Community features,Comments/reviews
+Tier 2,Koha,OPAC,Community features,Lists & cart
+Tier 2,Koha,OPAC,Customization,OPAC news
+Tier 2,Koha,OPAC,Customization,HTML customizations
+Tier 2,Koha,OPAC,Customization,Custom CSS/JS
+Tier 2,Koha,OPAC,Customization,Languages
+Tier 2,Koha,OPAC,Customization,RSS feeds
+Tier 2,Koha,Searching (staff),Catalog search,Keyword/advanced search
+Tier 2,Koha,Searching (staff),Catalog search,Search filters
+Tier 2,Koha,Searching (staff),Item search,Multi-field item search
+Tier 2,Koha,Searching (staff),External search,Z39.50/SRU search
+Tier 2,Koha,Lists and cart,Lists,Public/private lists
+Tier 2,Koha,Lists and cart,Lists,Shelf permissions
+Tier 2,Koha,Lists and cart,Lists,Add from search/cart
+Tier 2,Koha,Lists and cart,Cart,Add to cart
+Tier 2,Koha,Lists and cart,Cart,Email/print/download cart
+Tier 2,Koha,Lists and cart,Cart,Batch operations from cart
+Tier 2,Koha,Acquisitions,Vendors,Add/manage vendors
+Tier 2,Koha,Acquisitions,Vendors,Contracts
+Tier 2,Koha,Acquisitions,Budgets & funds,Budgets
+Tier 2,Koha,Acquisitions,Budgets & funds,Funds & fund hierarchy
+Tier 2,Koha,Acquisitions,Budgets & funds,Fund planning/allocation
+Tier 2,Koha,Acquisitions,Ordering,Create basket
+Tier 2,Koha,Acquisitions,Ordering,Add order (suggestion/existing/new/external/MARC file)
+Tier 2,Koha,Acquisitions,Ordering,Basket groups
+Tier 2,Koha,Acquisitions,Ordering,EDIFACT (EDI) ordering
+Tier 2,Koha,Acquisitions,Receiving,Receive shipments
+Tier 2,Koha,Acquisitions,Receiving,Invoices
+Tier 2,Koha,Acquisitions,Receiving,Late orders / claims
+Tier 2,Koha,Acquisitions,Suggestions,Manage purchase suggestions
+Tier 2,Koha,Acquisitions,Acq reports,Acquisitions statistics
+Tier 2,Koha,Serials,Subscriptions,Add subscription
+Tier 2,Koha,Serials,Subscriptions,Prediction pattern / frequency
+Tier 2,Koha,Serials,Subscriptions,Numbering patterns
+Tier 2,Koha,Serials,Receiving,Receive issues
+Tier 2,Koha,Serials,Receiving,Claim late issues
+Tier 2,Koha,Serials,Routing,Routing lists
+Tier 2,Koha,Serials,Maintenance,Subscription renewal
+Tier 2,Koha,Serials,Maintenance,Serial collection reports
+Tier 2,Koha,Course reserves,Courses,Add course
+Tier 2,Koha,Course reserves,Courses,Instructors
+Tier 2,Koha,Course reserves,Reserve items,Add items to course
+Tier 2,Koha,Course reserves,Reserve items,Temporary item changes (loan period/location)
+Tier 2,Koha,ERM (Electronic resource management),Agreements & licenses,Agreements
+Tier 2,Koha,ERM (Electronic resource management),Agreements & licenses,Licenses
+Tier 2,Koha,ERM (Electronic resource management),Content,Local packages & titles
+Tier 2,Koha,ERM (Electronic resource management),Content,EBSCO / KBART import
+Tier 2,Koha,ERM (Electronic resource management),Content,eHoldings
+Tier 2,Koha,ERM (Electronic resource management),Usage,Data providers (SUSHI/COUNTER usage stats)
+Tier 2,Koha,ILL (Interlibrary loan),Requests,Create request
+Tier 2,Koha,ILL (Interlibrary loan),Requests,Request management/status
+Tier 2,Koha,ILL (Interlibrary loan),Backends & partners,"ILL backends (FreeForm, BLDSS, etc.)"
+Tier 2,Koha,ILL (Interlibrary loan),Backends & partners,Partner libraries
+Tier 2,Koha,Preservation,Preservation module,Waiting list
+Tier 2,Koha,Preservation,Preservation module,Trains
+Tier 2,Koha,Preservation,Preservation module,Processing config
+Tier 2,Koha,Point of sale (cash management),Register,Cash registers
+Tier 2,Koha,Point of sale (cash management),Register,Pay for items / sale
+Tier 2,Koha,Point of sale (cash management),Reporting,Transaction reports
+Tier 2,Koha,Point of sale (cash management),Reporting,Cashup
+Tier 2,Koha,Reports,Guided reports,Guided report wizard
+Tier 2,Koha,Reports,SQL reports,Custom SQL reports
+Tier 2,Koha,Reports,SQL reports,Runtime parameters
+Tier 2,Koha,Reports,SQL reports,Public reports
+Tier 2,Koha,Reports,SQL reports,Report scheduler
+Tier 2,Koha,Reports,Statistics wizards,Circulation / catalog / patrons / acquisitions / serials / holds / cash stats
+Tier 2,Koha,Reports,Support,Report dictionary
+Tier 2,Koha,Reports,Support,Report groups/subgroups
+Tier 2,Koha,Tools,Patron tools,Patron lists
+Tier 2,Koha,Tools,Patron tools,Batch patron modification
+Tier 2,Koha,Tools,Patron tools,Patron card creator
+Tier 2,Koha,Tools,Patron tools,Upload patron images
+Tier 2,Koha,Tools,Notices & slips,Notice/slip templates
+Tier 2,Koha,Tools,Notices & slips,Overdue notice/status triggers
+Tier 2,Koha,Tools,Content tools,News / HTML customizations
+Tier 2,Koha,Tools,Content tools,Quote editor (QOTD)
+Tier 2,Koha,Tools,Content tools,Tags moderation
+Tier 2,Koha,Tools,Content tools,Comments moderation
+Tier 2,Koha,Tools,Automation,Task scheduler
+Tier 2,Koha,Tools,Automation,Log viewer
+Tier 2,Koha,Tools,Automation,Calendar / holidays
+Tier 2,Koha,Tools,Label tools,Label creator (batches/templates/layouts)
+Tier 2,Koha,Tools,Label tools,Quick spine label creator
+Tier 2,Koha,Tools,Batch tools,Batch item modification
+Tier 2,Koha,Tools,Batch tools,Batch item deletion
+Tier 2,Koha,Tools,Batch tools,Batch record modification
+Tier 2,Koha,Tools,Batch tools,Batch record deletion
+Tier 2,Koha,Tools,Batch tools,Batch extend due dates
+Tier 2,Koha,Tools,Batch tools,Automatic item modifications by age
+Tier 2,Koha,Tools,Data tools,CSV profiles
+Tier 2,Koha,Tools,Data tools,Inventory
+Tier 2,Koha,Tools,Data tools,Stock rotation
+Tier 2,Koha,Tools,Data tools,Rotating collections
+Tier 2,Koha,Tools,Data tools,Upload files
+Tier 2,Koha,Tools,Data tools,Access files
+Tier 2,Koha,Administration (non-cataloging),Basic parameters,Libraries
+Tier 2,Koha,Administration (non-cataloging),Basic parameters,Library groups
+Tier 2,Koha,Administration (non-cataloging),Basic parameters,Circulation desks
+Tier 2,Koha,Administration (non-cataloging),Basic parameters,Item types
+Tier 2,Koha,Administration (non-cataloging),Basic parameters,Authorized values
+Tier 2,Koha,Administration (non-cataloging),Patrons & circulation admin,Patron categories
+Tier 2,Koha,Administration (non-cataloging),Patrons & circulation admin,Circulation and fine rules
+Tier 2,Koha,Administration (non-cataloging),Patrons & circulation admin,Patron attribute types
+Tier 2,Koha,Administration (non-cataloging),Patrons & circulation admin,Library transfer limits
+Tier 2,Koha,Administration (non-cataloging),Patrons & circulation admin,Item circulation alerts
+Tier 2,Koha,Administration (non-cataloging),Patrons & circulation admin,Cities/towns
+Tier 2,Koha,Administration (non-cataloging),Patrons & circulation admin,Curbside pickup config
+Tier 2,Koha,Administration (non-cataloging),Accounting admin,Account debit/credit types
+Tier 2,Koha,Administration (non-cataloging),Accounting admin,Cash registers
+Tier 2,Koha,Administration (non-cataloging),Additional parameters,Z39.50/SRU servers
+Tier 2,Koha,Administration (non-cataloging),Additional parameters,Did you mean
+Tier 2,Koha,Administration (non-cataloging),Additional parameters,Column settings
+Tier 2,Koha,Administration (non-cataloging),Additional parameters,Share content (Mana KB)
+Tier 2,Koha,Administration (non-cataloging),Additional parameters,Currencies & exchange rates
+Tier 2,Koha,Administration (non-cataloging),Additional parameters,Audio alerts
+Tier 2,Koha,Administration (non-cataloging),Additional parameters,SMS providers
+Tier 2,Koha,Administration (non-cataloging),Additional parameters,Additional fields
+Tier 2,Koha,Administration (non-cataloging),System admin,Plugins administration
+Tier 2,Koha,Administration (non-cataloging),System admin,Background jobs administration
+Tier 2,Koha,System preferences,Preference groups,Accounting
+Tier 2,Koha,System preferences,Preference groups,Acquisitions
+Tier 2,Koha,System preferences,Preference groups,Administration
+Tier 2,Koha,System preferences,Preference groups,Authorities
+Tier 2,Koha,System preferences,Preference groups,Cataloging
+Tier 2,Koha,System preferences,Preference groups,Circulation
+Tier 2,Koha,System preferences,Preference groups,Enhanced content
+Tier 2,Koha,System preferences,Preference groups,ERM
+Tier 2,Koha,System preferences,Preference groups,I18N/L10N
+Tier 2,Koha,System preferences,Preference groups,ILL
+Tier 2,Koha,System preferences,Preference groups,Local use
+Tier 2,Koha,System preferences,Preference groups,Logs
+Tier 2,Koha,System preferences,Preference groups,OPAC
+Tier 2,Koha,System preferences,Preference groups,Patrons
+Tier 2,Koha,System preferences,Preference groups,Preservation
+Tier 2,Koha,System preferences,Preference groups,Searching
+Tier 2,Koha,System preferences,Preference groups,Serials
+Tier 2,Koha,System preferences,Preference groups,Staff interface
+Tier 2,Koha,System preferences,Preference groups,Tools
+Tier 2,Koha,System preferences,Preference groups,Web services
+Tier 2,Koha,Web services & APIs,APIs,REST API
+Tier 2,Koha,Web services & APIs,APIs,ILS-DI
+Tier 2,Koha,Web services & APIs,APIs,OAI-PMH server
+Tier 2,Koha,Web services & APIs,APIs,SRU server
+Tier 2,Koha,Web services & APIs,Protocols,SIP2
+Tier 2,Koha,Web services & APIs,Protocols,EDIFACT (EDI)
+Tier 2,Koha,Web services & APIs,Authentication,OAuth2
+Tier 2,Koha,Web services & APIs,Authentication,LDAP
+Tier 2,Koha,Web services & APIs,Authentication,CAS
+Tier 2,Koha,Web services & APIs,Authentication,SAML / Shibboleth
+Tier 2,Koha,Web services & APIs,Authentication,Google OAuth
+Tier 2,Koha,Server administration,Automation,Cron jobs and daemons
+Tier 2,Koha,Server administration,Automation,Command-line maintenance tools
+Tier 2,Koha,Server administration,Extensibility,Plugin system (install/manage/hooks)
+Tier 2,Koha,Server administration,Third-party stack,Zebra
+Tier 2,Koha,Server administration,Third-party stack,Elasticsearch
+Tier 2,Koha,Server administration,Third-party stack,Message broker (RabbitMQ)
+Tier 2,Koha,Server administration,Third-party stack,Memcached
+Tier 2,Koha,Server administration,Hardware,Receipt printers
