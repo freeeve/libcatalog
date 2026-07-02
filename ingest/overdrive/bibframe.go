@@ -7,6 +7,20 @@ import (
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 
+// bf:source scheme codes for OverDrive's identifiers and classification, tagged so
+// each is unambiguously recoverable from a grain (ARCHITECTURE §9, tasks/008). They
+// are exported so downstream consumers -- notably the runtime availability adapter
+// (tasks/004), which keys on the Reserve ID -- select the right node by scheme.
+const (
+	// SourceBISAC is the bf:source of a BISAC subject-category code.
+	SourceBISAC = "bisacsh"
+	// SourceOverDrive is the bf:source of the OverDrive title id.
+	SourceOverDrive = "overdrive"
+	// SourceReserveID is the bf:source of the OverDrive Reserve ID -- the stable
+	// per-edition key the availability adapter queries at view time.
+	SourceReserveID = "overdrive-reserve"
+)
+
 // BIBFRAME crosswalks one OverDrive item directly to a libcodex BIBFRAME
 // Work/Instance pair -- the OverDrive reference provider's real path
 // (ARCHITECTURE §9), mapping the Thunder JSON feed straight to BIBFRAME with no
@@ -37,13 +51,12 @@ func (it Item) Work() codexbf.Work {
 			w.Languages = append(w.Languages, code)
 		}
 	}
-	// BISAC is a controlled classification. libcodex's Classification carries a
-	// class + value but no scheme, so the "bisacsh" source is not yet expressed
-	// (see tasks/008); the code is retained -- which the MARC path dropped.
+	// BISAC is a controlled classification: the code carries bf:source "bisacsh" so
+	// the scheme is explicit (tasks/008). The MARC detour dropped these entirely.
 	for _, b := range it.BISAC {
 		if b.Code != "" {
 			w.Classifications = append(w.Classifications,
-				codexbf.Classification{Class: "Classification", Value: b.Code})
+				codexbf.Classification{Class: "Classification", Value: b.Code, Source: SourceBISAC})
 		}
 	}
 	return w
@@ -64,14 +77,16 @@ func (it Item) Instance() codexbf.Instance {
 	for _, isbn := range it.ISBNs() {
 		inst.Identifiers = append(inst.Identifiers, codexbf.Identifier{Class: "Isbn", Value: isbn})
 	}
-	// The OverDrive title id and Reserve ID are local identifiers. They land as
-	// bf:Identifier; the scheme that distinguishes them (overdrive vs the Thunder
-	// availability key) awaits libcodex Identifier source support (tasks/008).
+	// The OverDrive title id and Reserve ID are local identifiers, distinguished by
+	// bf:source (tasks/008): the title id carries "overdrive", the Reserve ID
+	// "overdrive-reserve" so the availability adapter can recover it unambiguously.
+	// The Reserve ID is a stable per-edition key (not volatile availability data),
+	// so it stays in the feed grain per the ARCHITECTURE §5 provenance model.
 	if it.ID != "" {
-		inst.Identifiers = append(inst.Identifiers, codexbf.Identifier{Class: "Identifier", Value: it.ID})
+		inst.Identifiers = append(inst.Identifiers, codexbf.Identifier{Class: "Identifier", Value: it.ID, Source: SourceOverDrive})
 	}
 	if it.ReserveID != "" {
-		inst.Identifiers = append(inst.Identifiers, codexbf.Identifier{Class: "Identifier", Value: it.ReserveID})
+		inst.Identifiers = append(inst.Identifiers, codexbf.Identifier{Class: "Identifier", Value: it.ReserveID, Source: SourceReserveID})
 	}
 	return inst
 }

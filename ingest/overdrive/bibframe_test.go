@@ -33,8 +33,8 @@ func TestBIBFRAMECrosswalk(t *testing.T) {
 	if got := bib.Work.Languages; len(got) != 1 || got[0] != "eng" {
 		t.Errorf("Work.Languages = %v, want [eng]", got)
 	}
-	if n := len(bib.Work.Classifications); n != 1 || bib.Work.Classifications[0].Value != "FIC073000" {
-		t.Errorf("Work.Classifications = %+v, want one BISAC code (MARC path drops it)", bib.Work.Classifications)
+	if c := bib.Work.Classifications; len(c) != 1 || c[0].Value != "FIC073000" || c[0].Source != SourceBISAC {
+		t.Errorf("Work.Classifications = %+v, want one BISAC code with source %q", bib.Work.Classifications, SourceBISAC)
 	}
 
 	if n := len(bib.Work.Contributions); n != 2 {
@@ -53,27 +53,31 @@ func TestBIBFRAMECrosswalk(t *testing.T) {
 	if p := bib.Instance.Provision; p == nil || p.Publisher != "Simon & Schuster Audio" || p.Date != "2025" {
 		t.Errorf("Provision = %+v", p)
 	}
-	if !hasIdentifier(bib.Instance.Identifiers, "Isbn", "9781668128251") {
+	if !hasIdentifier(bib.Instance.Identifiers, "Isbn", "9781668128251", "") {
 		t.Error("missing ISBN identifier")
 	}
-	if !hasIdentifier(bib.Instance.Identifiers, "Identifier", it.ID) {
-		t.Error("missing OverDrive title-id identifier")
+	if !hasIdentifier(bib.Instance.Identifiers, "Identifier", it.ID, SourceOverDrive) {
+		t.Error("missing OverDrive title-id identifier with source overdrive")
 	}
-	if !hasIdentifier(bib.Instance.Identifiers, "Identifier", it.ReserveID) {
-		t.Error("missing Reserve ID identifier")
+	if !hasIdentifier(bib.Instance.Identifiers, "Identifier", it.ReserveID, SourceReserveID) {
+		t.Error("missing Reserve ID identifier with source overdrive-reserve")
 	}
 	if got := it.WorkID(); got != "11682058" {
 		t.Errorf("WorkID = %q, want 11682058", got)
 	}
 
 	// The serialized graph must carry the audiobook class, the LC language URI,
-	// both topical subjects and the ISBN, all in the feed:overdrive graph.
+	// both topical subjects, the ISBN, and the bf:source scheme labels (tasks/008),
+	// all in the feed:overdrive graph.
 	nq := string(bib.Graph(it.WorkID()).NQuads(rdf.NewIRI("feed:overdrive")))
 	for _, want := range []string{
 		"http://id.loc.gov/ontologies/bibframe/Audio",
 		"http://id.loc.gov/vocabulary/languages/eng",
 		"9781668128251",
 		"feed:overdrive",
+		SourceBISAC,     // bf:source "bisacsh" on the BISAC classification
+		SourceReserveID, // bf:source "overdrive-reserve" on the Reserve ID
+		"http://id.loc.gov/ontologies/bibframe/source",
 	} {
 		if !strings.Contains(nq, want) {
 			t.Errorf("n-quads missing %q", want)
@@ -130,9 +134,9 @@ func toSet(ss []string) map[string]bool {
 	return m
 }
 
-func hasIdentifier(ids []codexbf.Identifier, class, value string) bool {
+func hasIdentifier(ids []codexbf.Identifier, class, value, source string) bool {
 	for _, id := range ids {
-		if id.Class == class && id.Value == value {
+		if id.Class == class && id.Value == value && id.Source == source {
 			return true
 		}
 	}
