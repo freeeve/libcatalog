@@ -74,6 +74,12 @@ func Run(prov Provider, out string) (Result, error) {
 		wg, ok := byWork[a.WorkID]
 		if !ok {
 			wg = &bibframe.WorkGroup{WorkID: a.WorkID, Work: rec.Work()}
+			// The first record of a clustered Work also supplies its non-BIBFRAME
+			// display extras (cover/rating/dateRead), carried through to catalog.json's
+			// `extra` object via the feed provenance graph (tasks/026).
+			if ep, ok := rec.(ExtraProvider); ok {
+				wg.Extras = ep.Extras()
+			}
 			byWork[a.WorkID] = wg
 		}
 		if seenInstance[a.InstanceID] {

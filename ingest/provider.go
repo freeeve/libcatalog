@@ -63,6 +63,17 @@ type Record interface {
 	Instance() codexbf.Instance
 }
 
+// ExtraProvider is an optional capability a Record may implement to carry per-Work
+// display fields that are not part of BIBFRAME -- e.g. a cover URL, a personal rating,
+// or a read date. Run writes them into the Work's feed provenance graph under
+// bibframe.ExtraPred, and the projector surfaces them as catalog.json's `extra` object
+// (tasks/026), which the Hugo module forwards to page params (tasks/022). A Record that
+// does not implement it carries no extras, leaving the graph unchanged. For a clustered
+// Work the first record's extras win, matching how shared Work metadata is taken.
+type ExtraProvider interface {
+	Extras() map[string]string
+}
+
 // Config carries a provider's build-time configuration into its Factory. Feed
 // overrides the provenance graph name (default: the registry key); Source is the
 // primary input (a cache directory, a file, a URL); Params holds provider-specific

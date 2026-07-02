@@ -153,6 +153,60 @@ func TestRunGraphRouting(t *testing.T) {
 	}
 }
 
+// extraStub is a stubRecord that also carries adopter display extras, exercising the
+// optional ingest.ExtraProvider path (tasks/026).
+type extraStub struct {
+	stubRecord
+	extras map[string]string
+}
+
+func (r extraStub) Extras() map[string]string { return r.extras }
+
+// TestRunWorkExtras proves a Record implementing ExtraProvider has its non-BIBFRAME
+// display fields emitted into the Work's feed provenance graph under bibframe.ExtraPred,
+// so the projector can surface them as catalog.json's `extra` (tasks/026). A record that
+// does not implement ExtraProvider (plain stubRecord) emits no such statements.
+func TestRunWorkExtras(t *testing.T) {
+	recs := []ingest.Record{
+		extraStub{
+			stubRecord: stubRecord{id: "e1", author: "Doe, Jane", title: "Alpha", lang: "eng", isbn: "9780000000001"},
+			extras:     map[string]string{"cover": "https://covers.example.org/a.jpg", "rating": "4"},
+		},
+		stubRecord{id: "e2", author: "Roe, Rick", title: "Beta", lang: "eng", isbn: "9780000000002"},
+	}
+	reg := ingest.NewRegistry()
+	if err := reg.Register("acme", stubFactory(recs)); err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	prov, err := reg.New("acme", ingest.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ingest.Run(prov, out); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	nq := readNQuads(t, out)
+	const extraNS = "https://github.com/freeeve/libcatalog/ns#extra/"
+	for _, want := range []string{
+		extraNS + "cover> \"https://covers.example.org/a.jpg\"",
+		extraNS + "rating> \"4\"",
+	} {
+		if !strings.Contains(nq, want) {
+			t.Errorf("grains missing extra statement %q:\n%s", want, nq)
+		}
+	}
+	// The extras belong to the feed provenance graph, not editorial.
+	if strings.Contains(nq, extraNS) && !strings.Contains(nq, "<feed:acme>") {
+		t.Errorf("extras not in the feed graph:\n%s", nq)
+	}
+	// A record without ExtraProvider emits no extra predicate for its Work.
+	if strings.Contains(nq, "Beta") && strings.Count(nq, extraNS) != 2 {
+		t.Errorf("expected exactly the two extras from e1, got %d occurrences:\n%s", strings.Count(nq, extraNS), nq)
+	}
+}
+
 // TestRunReingestStable proves the pipeline is derive-from-grains: a second run over
 // the same records seeds ids from the committed grains, mints nothing, and rewrites
 // byte-identical grains (the tasks/002 no-churn gate, now exercised generically).

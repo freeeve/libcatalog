@@ -290,3 +290,37 @@ func TestSubjectBroader(t *testing.T) {
 		t.Errorf("orphan broader = %v (present=%v), want nil", got, ok)
 	}
 }
+
+// TestWorkExtras covers the adopter-extras projection (tasks/026): a Work's
+// bibframe.ExtraPred literals in the projected provider's feed graph surface as
+// Work.Extra; an extra predicate in another graph is ignored (provenance-scoped); and a
+// Work with no extras omits the field.
+func TestWorkExtras(t *testing.T) {
+	const nq = `<#weWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+<#weWork> <https://github.com/freeeve/libcatalog/ns#extra/cover> "https://covers.example.org/x.jpg" <feed:overdrive> .
+<#weWork> <https://github.com/freeeve/libcatalog/ns#extra/rating> "5" <feed:overdrive> .
+<#weWork> <https://github.com/freeeve/libcatalog/ns#extra/dateRead> "2026-01-15" <feed:overdrive> .
+<#weWork> <https://github.com/freeeve/libcatalog/ns#extra/ignored> "other feed" <feed:other> .
+<#wnWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+`
+	cat, err := Project([]byte(nq), "overdrive")
+	if err != nil {
+		t.Fatalf("Project: %v", err)
+	}
+	byID := map[string]map[string]string{}
+	for _, w := range cat.Works {
+		byID[w.ID] = w.Extra
+	}
+	want := map[string]string{
+		"cover":    "https://covers.example.org/x.jpg",
+		"rating":   "5",
+		"dateRead": "2026-01-15",
+	}
+	if got := byID["we"]; !reflect.DeepEqual(got, want) {
+		t.Errorf("we extra = %v, want %v (an extra predicate in feed:other must not leak in)", got, want)
+	}
+	// A Work with no extras omits the field (nil), so a catalog without extras is unchanged.
+	if got := byID["wn"]; got != nil {
+		t.Errorf("wn extra = %v, want nil", got)
+	}
+}

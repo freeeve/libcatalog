@@ -7,6 +7,7 @@ package project
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/freeeve/libcatalog/bibframe"
 	"github.com/freeeve/libcodex/rdf"
@@ -76,6 +77,11 @@ type Work struct {
 	// so a clustered mixed-format Work is faceted under each format it offers.
 	Formats   []string   `json:"formats,omitempty"`
 	Instances []Instance `json:"instances,omitempty"`
+	// Extra holds the Work's non-BIBFRAME adopter display fields (e.g. cover, rating,
+	// dateRead) a provider carried through the feed graph under bibframe.ExtraPred
+	// (tasks/026). The Hugo module forwards it to page params (tasks/022). Omitted (nil)
+	// when the corpus carries none, so a catalog without extras is unchanged.
+	Extra map[string]string `json:"extra,omitempty"`
 }
 
 // Contributor is an agent's display name and role.
@@ -316,6 +322,7 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 		ed:      ds.Graph(bibframe.EditorialGraph()),
 		labels:  buildLabelIndex(ds),
 		broader: buildBroaderIndex(ds),
+		extras:  buildExtraIndex(ds, bibframe.FeedGraph(provider)),
 	}
 	cat := &Catalog{Version: SchemaVersion}
 	if p.feed == nil {
@@ -333,6 +340,7 @@ type projector struct {
 	ed      *rdf.Graph                   // editorial graph; nil when the corpus has no editorial statements
 	labels  map[string]map[string]string // authority URI -> language tag -> label
 	broader map[string][]string          // authority URI -> sorted parent (skos:broader) URIs
+	extras  map[string]map[string]string // Work node IRI -> extra key -> value (tasks/026)
 }
 
 func (p *projector) work(w rdf.Term) Work {
@@ -347,6 +355,7 @@ func (p *projector) work(w rdf.Term) Work {
 	wk.Classifications = p.classifications(w)
 	wk.Instances = p.instances(w)
 	wk.Formats = formatUnion(wk.Instances)
+	wk.Extra = p.extras[w.Value]
 	return wk
 }
 
@@ -507,6 +516,38 @@ func buildBroaderIndex(ds *rdf.Dataset) map[string][]string {
 	idx := make(map[string][]string, len(set))
 	for uri, parents := range set {
 		idx[uri] = sortedKeys(parents)
+	}
+	return idx
+}
+
+// buildExtraIndex indexes the non-BIBFRAME adopter "extras" a provider carried through
+// the feed provenance graph (tasks/026): for each Work-node subject with a
+// bibframe.ExtraPred+<key> literal in feed, it maps the Work node IRI -> key -> value.
+// Restricting to the feed graph keeps the read provenance-scoped, mirroring how extras
+// were emitted. The result is nil when the corpus carries none, so existing catalogs are
+// unchanged (Work.Extra stays omitted).
+func buildExtraIndex(ds *rdf.Dataset, feed rdf.Term) map[string]map[string]string {
+	idx := map[string]map[string]string{}
+	for _, q := range ds.Quads {
+		if q.G != feed || !q.S.IsIRI() || !q.O.IsLiteral() {
+			continue
+		}
+		if !strings.HasPrefix(q.P.Value, bibframe.ExtraPred) {
+			continue
+		}
+		key := q.P.Value[len(bibframe.ExtraPred):]
+		if key == "" {
+			continue
+		}
+		m := idx[q.S.Value]
+		if m == nil {
+			m = map[string]string{}
+			idx[q.S.Value] = m
+		}
+		m[key] = q.O.Value
+	}
+	if len(idx) == 0 {
+		return nil
 	}
 	return idx
 }

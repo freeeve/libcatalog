@@ -21,6 +21,42 @@ type WorkGroup struct {
 	// statements, preserved verbatim from the prior grain so a feed re-ingest
 	// never clobbers them (ARCHITECTURE §5). Empty when there are none.
 	Editorial []byte
+	// Extras are the Work's non-BIBFRAME adopter display fields (e.g. cover,
+	// rating, dateRead) that a provider carries through to catalog.json's `extra`
+	// object (tasks/026). They are emitted into the feed provenance graph under
+	// ExtraPred, so their origin is tracked like every other feed statement. Empty
+	// when the provider supplies none, leaving the grain byte-for-byte unchanged.
+	Extras map[string]string
+}
+
+// ExtraPred is the reserved predicate namespace for adopter "extras": per-Work fields
+// that are not BIBFRAME (e.g. cover, rating, dateRead) but a provider wants carried
+// through to catalog.json's `extra` object (tasks/026). A key K is emitted as the
+// predicate ExtraPred+K on the Work node, in the feed provenance graph; the projector
+// harvests the same namespace back into Work.Extra, and the Hugo module forwards it to
+// page params (tasks/022).
+const ExtraPred = LcatNS + "extra/"
+
+// addWorkExtras attaches a Work's non-BIBFRAME display extras to its graph as
+// ExtraPred+<key> literal statements on the Work node, in deterministic key order. It
+// is a no-op for an empty map, so a provider that carries no extras yields an unchanged
+// graph. Empty keys or values are skipped.
+func addWorkExtras(g *rdf.Graph, workID string, extras map[string]string) {
+	if len(extras) == 0 {
+		return
+	}
+	w := rdf.NewIRI(WorkIRI(workID))
+	keys := make([]string, 0, len(extras))
+	for k := range extras {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		if k == "" || extras[k] == "" {
+			continue
+		}
+		g.Add(w, rdf.NewIRI(ExtraPred+k), rdf.NewLiteral(extras[k], "", ""))
+	}
 }
 
 // GroupInstance is one Instance of a WorkGroup: its minted id and Instance-level
@@ -80,6 +116,7 @@ func BuildWorks(sink storage.Sink, works []WorkGroup, provider string) (BuildSta
 			bases[i] = gi.InstanceID
 		}
 		g := wi.Graph(wg.WorkID, bases)
+		addWorkExtras(g, wg.WorkID, wg.Extras)
 		grain, err := grainWithEditorial(g, feed, wg.Editorial)
 		if err != nil {
 			return stats, fmt.Errorf("grain %s: %w", wg.WorkID, err)
