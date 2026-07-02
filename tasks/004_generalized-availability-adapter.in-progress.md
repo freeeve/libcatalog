@@ -84,7 +84,7 @@ for Tier 1 or a Tier 2 add-on.
   never blocks render on a failed fetch.
 - [ ] Published feasibility matrix covering at least OverDrive + one physical ILS.
 
-## Delivered -- OverDrive reference adapter (commit pending)
+## Delivered -- OverDrive reference adapter (commit `45f5acd`)
 
 The catalog-side contract was already in place; this adds the client-side half in the
 Hugo module (in-repo), grounded in the real Thunder API (verified against deeplibby's
