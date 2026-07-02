@@ -86,3 +86,24 @@ func TestConflictSurfaced(t *testing.T) {
 		t.Error("expected a provider-key conflict to be surfaced")
 	}
 }
+
+// TestSplitPinOverridesCluster checks that an editorial split pin (tasks/001)
+// assigns an Instance to its pinned Work even though the existing instance->work
+// link and the computed key would cluster it elsewhere.
+func TestSplitPinOverridesCluster(t *testing.T) {
+	r := NewResolver()
+	r.SeedInstance("i1", "wshared", []string{ProviderKey(SchemeISBN, "111")})
+	r.SeedInstance("i2", "wshared", []string{ProviderKey(SchemeISBN, "222")})
+	r.SeedWorkKey(WorkKey("A", "T", "eng"), "wshared")
+	r.SeedPin("i2", "wnew")
+
+	rec := func(isbn string) Record {
+		return Record{ProviderKeys: []string{ProviderKey(SchemeISBN, isbn)}, Author: "A", Title: "T", Lang: "eng"}
+	}
+	if a := r.Resolve(rec("111")); a.WorkID != "wshared" {
+		t.Errorf("unpinned instance resolved to %s, want wshared", a.WorkID)
+	}
+	if a := r.Resolve(rec("222")); a.WorkID != "wnew" {
+		t.Errorf("pinned instance resolved to %s, want wnew (pin ignored)", a.WorkID)
+	}
+}

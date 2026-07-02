@@ -88,6 +88,53 @@ func AddMergeMarker(grainNQ []byte, from, to string) ([]byte, error) {
 	return ds.Canonical()
 }
 
+// ScanPins recovers the editorial split pins in one grain's N-Quads: every
+// lcat:workAssignment statement in the editorial graph, as Instance->Work id
+// pairs. A grain with none yields nil.
+func ScanPins(nq []byte) ([]identity.Pin, error) {
+	ds, err := rdf.ParseNQuads(nq)
+	if err != nil {
+		return nil, err
+	}
+	ed := EditorialGraph()
+	var out []identity.Pin
+	for _, q := range ds.Quads {
+		if q.G == ed && q.P.Value == PredWorkAssignment && q.S.IsIRI() && q.O.IsIRI() {
+			out = append(out, identity.Pin{Instance: fragInstance(q.S.Value), Work: fragWork(q.O.Value)})
+		}
+	}
+	return out, nil
+}
+
+// AddSplitMarkers records an editorial split in a grain's N-Quads: a
+// lcat:splitFrom provenance statement (newWork split off fromWork) plus one
+// lcat:workAssignment pin per Instance, all in the editorial graph, and returns the
+// re-canonicalized grain. Adding a marker that already exists is a no-op, so it is
+// idempotent. Recorded in the source Work's grain, the pins are recovered on the
+// next ingest and force the pinned Instances onto newWork.
+func AddSplitMarkers(grainNQ []byte, newWork, fromWork string, instanceIDs []string) ([]byte, error) {
+	ds, err := rdf.ParseNQuads(grainNQ)
+	if err != nil {
+		return nil, err
+	}
+	ed := EditorialGraph()
+	addUnique(ds, rdf.NewIRI(WorkIRI(newWork)), rdf.NewIRI(PredSplitFrom), rdf.NewIRI(WorkIRI(fromWork)), ed)
+	for _, inst := range instanceIDs {
+		addUnique(ds, rdf.NewIRI(InstanceIRI(inst)), rdf.NewIRI(PredWorkAssignment), rdf.NewIRI(WorkIRI(newWork)), ed)
+	}
+	return ds.Canonical()
+}
+
+// addUnique appends a quad to the dataset only if it is not already present.
+func addUnique(ds *rdf.Dataset, s, p, o, g rdf.Term) {
+	for _, q := range ds.Quads {
+		if q.S == s && q.P == p && q.O == o && q.G == g {
+			return
+		}
+	}
+	ds.Add(s, p, o, g)
+}
+
 // RetiredWorks returns the sorted, distinct retired Work ids among merges (the From
 // side of every merge). Their grains are removed on ingest once their Instances
 // have moved to the survivor.
@@ -110,4 +157,10 @@ func RetiredWorks(merges []identity.Merge) []string {
 // inverse of WorkIRI.
 func fragWork(iri string) string {
 	return strings.TrimSuffix(strings.TrimPrefix(iri, "#"), "Work")
+}
+
+// fragInstance strips the "#" prefix and "Instance" suffix from an Instance node
+// IRI, the inverse of InstanceIRI.
+func fragInstance(iri string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(iri, "#"), "Instance")
 }

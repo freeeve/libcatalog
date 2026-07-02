@@ -63,10 +63,14 @@ func buildOverdriveGrains(items []overdrive.Item, out, provider string) error {
 	}
 	r := identity.NewResolver()
 	identity.SeedResolver(r, prior.Grains)
-	// Seed editorial merges (tasks/001) so a retired Work's Instances resolve onto
-	// the surviving Work; the computed key cannot undo the human decision.
+	// Seed editorial merges and split pins (tasks/001): a merge resolves a retired
+	// Work's Instances onto the survivor; a pin forces an over-merged Instance onto
+	// its split-off Work. Neither can be undone by the computed key.
 	for _, m := range prior.Merges {
 		r.SeedMerge(m.From, m.To)
+	}
+	for _, p := range prior.Pins {
+		r.SeedPin(p.Instance, p.Work)
 	}
 
 	// Group items by resolved Work. The first item to reach a Work supplies its

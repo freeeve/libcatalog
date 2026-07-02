@@ -20,6 +20,7 @@ type Prior struct {
 	Grains    []identity.GrainIdentity
 	Editorial map[string][]byte // Work id -> raw N-Quads of its non-feed statements
 	Merges    []identity.Merge  // editorial lcat:mergedInto decisions to seed (tasks/001)
+	Pins      []identity.Pin    // editorial lcat:workAssignment split pins to seed (tasks/001)
 }
 
 // LoadPrior reads every per-Work grain (*.nq, skipping the bulk catalog.nq) under
@@ -62,6 +63,11 @@ func LoadPrior(dir, provider string) (Prior, error) {
 			return fmt.Errorf("%s: %w", path, err)
 		}
 		prior.Merges = append(prior.Merges, merges...)
+		pins, err := ScanPins(b)
+		if err != nil {
+			return fmt.Errorf("%s: %w", path, err)
+		}
+		prior.Pins = append(prior.Pins, pins...)
 		return nil
 	})
 	return prior, err

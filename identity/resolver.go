@@ -34,6 +34,15 @@ type Merge struct {
 	To   string
 }
 
+// Pin is an editorial split decision recovered from the grains (ARCHITECTURE §4):
+// Instance is assigned to Work regardless of the computed clustering key. It is the
+// over-merge fix -- records the key wrongly clustered together are pinned apart --
+// and makes the split reproducible across re-ingest.
+type Pin struct {
+	Instance string
+	Work     string
+}
+
 // Resolver assigns stable Work/Instance ids across ingests. Seed it with the
 // identity already committed (from the grains), then Resolve each incoming record
 // to an existing id or a freshly minted one. It is the mint-or-resolve core of
@@ -47,6 +56,7 @@ type Resolver struct {
 	workByInst     map[string]string // instance id -> work id
 	workByKey      map[string]string // computed cluster key -> work id
 	mergedInto     map[string]string // work id -> canonical work id (editorial overlay)
+	pinByInst      map[string]string // instance id -> pinned work id (editorial split overlay)
 	usedInst       map[string]bool
 	usedWork       map[string]bool
 	// conflicts records provider keys seen mapped to more than one instance
@@ -62,6 +72,7 @@ func NewResolver() *Resolver {
 		workByInst:     map[string]string{},
 		workByKey:      map[string]string{},
 		mergedInto:     map[string]string{},
+		pinByInst:      map[string]string{},
 		usedInst:       map[string]bool{},
 		usedWork:       map[string]bool{},
 	}
@@ -96,26 +107,41 @@ func (r *Resolver) SeedMerge(from, to string) {
 	r.mergedInto[from] = to
 }
 
+// SeedPin records an editorial split pin (tasks/001): instanceID is assigned to
+// workID regardless of the computed clustering key, so an over-merge the key would
+// otherwise recreate stays split across re-ingest. The pinned Work id is reserved
+// so it is never minted for anything else.
+func (r *Resolver) SeedPin(instanceID, workID string) {
+	r.pinByInst[instanceID] = workID
+	r.usedWork[workID] = true
+}
+
 // Resolve returns the stable identity for a record, minting only what is genuinely
-// new. An Instance resolves by its first already-known provider key; a new
-// Instance clusters into a Work by the existing instance->work link, else the
-// computed key, else a freshly minted Work. Editorial merges are applied last.
+// new. An Instance resolves by its first already-known provider key. Its Work is
+// an editorial pin if one exists (an over-merge split, applied first), else the
+// existing instance->work link, else the computed cluster key, else a freshly
+// minted Work. Editorial merges are applied last, so a pinned or clustered Work
+// still follows a later merge to its survivor.
 func (r *Resolver) Resolve(rec Record) Assignment {
 	instanceID, mintedInst := r.resolveInstance(rec.ProviderKeys)
 
-	workID, ok := r.workByInst[instanceID]
 	mintedWork := false
-	if !ok {
-		key := WorkKey(rec.Author, rec.Title, rec.Lang)
-		if wid, seen := r.workByKey[key]; seen {
-			workID = wid
-		} else {
-			workID = r.mint(WorkPrefix, r.usedWork)
-			r.workByKey[key] = workID
-			mintedWork = true
+	workID, pinned := r.pinByInst[instanceID]
+	if !pinned {
+		var ok bool
+		workID, ok = r.workByInst[instanceID]
+		if !ok {
+			key := WorkKey(rec.Author, rec.Title, rec.Lang)
+			if wid, seen := r.workByKey[key]; seen {
+				workID = wid
+			} else {
+				workID = r.mint(WorkPrefix, r.usedWork)
+				r.workByKey[key] = workID
+				mintedWork = true
+			}
 		}
-		r.workByInst[instanceID] = workID
 	}
+	r.workByInst[instanceID] = workID
 
 	return Assignment{
 		InstanceID:     instanceID,

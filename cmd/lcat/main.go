@@ -40,6 +40,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lcat merge:", err)
 			os.Exit(1)
 		}
+	case "split":
+		if err := runSplit(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "lcat split:", err)
+			os.Exit(1)
+		}
 	case "index":
 		if err := runIndex(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, "lcat index:", err)
@@ -86,4 +91,5 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  lcat project --catalog <catalog.nq> [--out <dir>] [--provider <name>]")
 	fmt.Fprintln(os.Stderr, "  lcat index --catalog <catalog.json> [--out <dir>]")
 	fmt.Fprintln(os.Stderr, "  lcat merge --dir <grains> --from <workid> --to <workid>")
+	fmt.Fprintln(os.Stderr, "  lcat split --dir <grains> --from <workid> --instances <instid,instid,...>")
 }

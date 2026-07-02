@@ -180,7 +180,7 @@ func Redirects(catalogNQ []byte) (RedirectMap, error) {
 			raw[fragID(q.S.Value, "Work")] = fragID(q.O.Value, "Work")
 		}
 	}
-	rm := RedirectMap{Version: SchemaVersion}
+	rm := RedirectMap{Version: SchemaVersion, Redirects: []Redirect{}}
 	froms := make([]string, 0, len(raw))
 	for from := range raw {
 		froms = append(froms, from)
