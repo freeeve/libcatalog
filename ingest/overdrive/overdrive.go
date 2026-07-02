@@ -1,9 +1,10 @@
-// Package overdrive maps OverDrive/Libby "thunder" API records (as cached by a
-// scan) into codex.Record (MARC), following docs/bibframe-field-mapping.md. It is
-// the ingest half of the OverDrive provider (ARCHITECTURE §9): its output feeds
-// the same bibframe.BuildCorpus path as any MARC source, so a cached collection
-// becomes canonical feed:overdrive grains. The live fetch is a separate concern;
-// this reads the on-disk page cache so a build needs no API call.
+// Package overdrive maps OverDrive/Libby "thunder" API records (as cached by a scan)
+// directly to libcodex BIBFRAME Work/Instance grains (see bibframe.go). It is the
+// ingest half of the OverDrive reference provider (ARCHITECTURE §9): each cached Item
+// exposes Identity/Work/Instance for the shared ingest.Run pipeline, so a cached
+// collection becomes canonical feed:overdrive grains with no MARC intermediate. The
+// live fetch is a separate concern; this reads the on-disk page cache so a build needs
+// no API call.
 package overdrive
 
 import (
@@ -13,8 +14,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-
-	codex "github.com/freeeve/libcodex"
 )
 
 // Item is the subset of an OverDrive media record this connector maps. Field
@@ -93,94 +92,14 @@ func ReadCache(dir string) ([]Item, error) {
 	return items, nil
 }
 
-// Records maps every item to a codex.Record.
-func Records(items []Item) []*codex.Record {
-	recs := make([]*codex.Record, 0, len(items))
-	for _, it := range items {
-		recs = append(recs, it.Record())
-	}
-	return recs
-}
-
-// Record crosswalks one OverDrive item to a MARC record per
-// docs/bibframe-field-mapping.md.
-func (it Item) Record() *codex.Record {
-	r := codex.NewRecord()
-	r.SetLeader(leaderFor(it.Type.ID))
-
-	if it.ID != "" {
-		r.AddField(codex.NewControlField("001", it.ID))
-	}
-	for _, isbn := range it.ISBNs() {
-		r.AddField(codex.NewDataField("020", ' ', ' ', codex.NewSubfield('a', isbn)))
-	}
-	if it.ID != "" {
-		r.AddField(codex.NewDataField("024", '7', ' ',
-			codex.NewSubfield('a', it.ID), codex.NewSubfield('2', "overdrive")))
-	}
-	if it.ReserveID != "" {
-		r.AddField(codex.NewDataField("024", '8', ' ', codex.NewSubfield('a', it.ReserveID)))
-	}
-	for _, l := range it.Languages {
-		if code := iso639_2(l.ID); code != "" {
-			r.AddField(codex.NewDataField("041", ' ', ' ', codex.NewSubfield('a', code)))
-		}
-	}
-	for _, b := range it.BISAC {
-		if b.Code != "" {
-			r.AddField(codex.NewDataField("072", ' ', '7',
-				codex.NewSubfield('a', b.Code), codex.NewSubfield('2', "bisacsh")))
-		}
-	}
-
-	authors, others := it.contributors()
-	titleInd1 := byte('0')
-	if len(authors) > 0 {
-		titleInd1 = '1'
-		r.AddField(codex.NewDataField("100", '1', ' ', nameSubfields(authors[0])...))
-		authors = authors[1:]
-	}
-
-	title := []codex.Subfield{codex.NewSubfield('a', it.Title)}
-	if it.Subtitle != "" {
-		title = append(title, codex.NewSubfield('b', it.Subtitle))
-	}
-	r.AddField(codex.NewDataField("245", titleInd1, '0', title...))
-
-	if it.Edition != "" {
-		r.AddField(codex.NewDataField("250", ' ', ' ', codex.NewSubfield('a', it.Edition)))
-	}
-	if pub := it.provision(); len(pub) > 0 {
-		r.AddField(codex.NewDataField("264", ' ', '1', pub...))
-	}
-	r.AddField(codex.NewDataField("336", ' ', ' ',
-		codex.NewSubfield('a', rdaContent(it.Type.ID)), codex.NewSubfield('2', "rdacontent")))
-	r.AddField(codex.NewDataField("338", ' ', ' ',
-		codex.NewSubfield('a', "online resource"), codex.NewSubfield('b', "cr"), codex.NewSubfield('2', "rdacarrier")))
-	if it.Series != "" {
-		r.AddField(codex.NewDataField("490", '1', ' ', codex.NewSubfield('a', it.Series)))
-	}
-	// OverDrive subjects are uncontrolled marketing strings. They go in 650 with
-	// ind2=4 (source not specified) rather than 653, because libcodex's crosswalk
-	// maps 6xx access points (600/610/611/650/651/655) to bf:subject and drops
-	// 653 entirely -- so 653 would silently lose every subject.
-	for _, s := range it.Subjects {
-		if s.Name != "" {
-			r.AddField(codex.NewDataField("650", ' ', '4', codex.NewSubfield('a', s.Name)))
-		}
-	}
-	for _, c := range append(authors, others...) {
-		r.AddField(codex.NewDataField("700", '1', ' ', nameSubfields(c)...))
-	}
-	return r
-}
-
 // contributor is a name field's transcribed form, relationship term, and relator.
 type contributor struct {
 	name, role, relator string
 }
 
-// contributors splits creators into author entries (100/700) and other roles.
+// contributors splits creators into author entries and other roles, resolving each
+// role to its lowercased term and MARC relator code (author -> aut, narrator -> nrt).
+// Both the direct BIBFRAME path (bibframe.go) and identity clustering read these.
 func (it Item) contributors() (authors, others []contributor) {
 	for _, c := range it.Creators {
 		name := c.SortName
@@ -195,18 +114,6 @@ func (it Item) contributors() (authors, others []contributor) {
 		}
 	}
 	return authors, others
-}
-
-// provision builds the 264 subfields (publisher, date).
-func (it Item) provision() []codex.Subfield {
-	var sf []codex.Subfield
-	if it.Publisher != nil && it.Publisher.Name != "" {
-		sf = append(sf, codex.NewSubfield('b', it.Publisher.Name))
-	}
-	if len(it.PublishDate) >= 4 {
-		sf = append(sf, codex.NewSubfield('c', it.PublishDate[:4]))
-	}
-	return sf
 }
 
 // ISBNs returns the deduped ISBNs across all formats, in first-seen order.
@@ -224,17 +131,8 @@ func (it Item) ISBNs() []string {
 	return out
 }
 
-func nameSubfields(c contributor) []codex.Subfield {
-	sf := []codex.Subfield{codex.NewSubfield('a', c.name)}
-	if c.role != "" {
-		sf = append(sf, codex.NewSubfield('e', c.role))
-	}
-	if c.relator != "" {
-		sf = append(sf, codex.NewSubfield('4', c.relator))
-	}
-	return sf
-}
-
+// relatorCode maps an OverDrive creator role to its MARC/LoC relator code, or "" when
+// the role has no controlled mapping (bibframe.go turns a code into a relators IRI).
 func relatorCode(role string) string {
 	switch role {
 	case "Author":
@@ -252,25 +150,8 @@ func relatorCode(role string) string {
 	}
 }
 
-// leaderFor sets Leader/06 (type of record) by media type: text for an ebook,
-// nonmusical sound recording for an audiobook. Both are monographs (/07 = m).
-func leaderFor(typeID string) codex.Leader {
-	b := []byte("00000nam a2200000 a 4500")
-	if typeID == "audiobook" {
-		b[6] = 'i'
-	}
-	return codex.Leader(b)
-}
-
-func rdaContent(typeID string) string {
-	if typeID == "audiobook" {
-		return "spoken word"
-	}
-	return "text"
-}
-
-// iso639_2 maps an ISO 639-1 code (the feed's language id) to ISO 639-2/B for
-// MARC 041. Unmapped codes return "" (omitted).
+// iso639_2 maps an ISO 639-1 code (the feed's language id) to ISO 639-2/B, the code
+// the BIBFRAME language node uses. Unmapped codes return "" (omitted).
 func iso639_2(code string) string {
 	return iso639[strings.ToLower(code)]
 }
