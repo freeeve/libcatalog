@@ -1,5 +1,17 @@
 # 004 -- Generalized availability adapter (all library sources)
 
+## Catalog-side contract (done in libcatalog)
+
+The libcatalog half is in place: `catalog.json` (schema v2) now carries each
+non-ISBN Instance identifier as `{source, value}` (`project.ProviderID`), sourced
+from the grain's `bf:source` (`tasks/008`). So an adapter configured with an
+`idField` picks its key by scheme -- OverDrive keys on `source == "overdrive-reserve"`
+(the title id is `"overdrive"`) -- e.g.
+`inst.providerIds.filter(p => p.source === idField).map(p => p.value)`. Everything
+below is the client-side adapter + optional proxy, which live in the Hugo-module /
+deployment repo, not libcatalog; per the cross-repo boundary they need a task filed
+there.
+
 ## Problem
 Live availability is fetched client-side at view time and kept out of the graph
 (ARCHITECTURE.md §5). OverDrive's Thunder API exposes an *unauthenticated*
