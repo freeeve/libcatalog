@@ -51,10 +51,10 @@ than aggregating `catalog.json` in templates.
 - [x] `hugo mod get` + content adapter renders one page per Work from catalog.json.
 - [x] Facets filter the list; Work detail shows its Instances/formats.
 - [x] No per-record content files; theme overrides layer cleanly on top.
-- [ ] Axe/Lighthouse a11y pass on list + detail. (Markup follows a11y best
-      practices -- skip link, landmarks, ARIA labels, visually-hidden form label,
-      focus-visible styles, `lang`, ordered headings -- but an automated
-      axe/Lighthouse run needs a browser env; pending.)
+- [x] Axe/Lighthouse a11y pass on list + detail. **Delivered by `tasks/014`**: an
+      axe-core (WCAG 2.1 A/AA) audit ships as dev tooling (`hugo/a11y_audit.js`,
+      `npm run test:a11y`) and runs green over every built page (91 pages, no
+      violations). `color-contrast` stays a real-browser check (jsdom has no layout).
 
 ## Done (MVP, commit `ed8e3f2`)
 
@@ -73,11 +73,24 @@ Hugo 0.148 over `hugo/exampleSite/` (2 works -> 35 pages):
   does not merge a module's taxonomy config (documented in README + exampleSite).
 - **Overrides**: plain templates/assets; a site/theme shadows any file.
 
-### Still stubbed (blocked on other tasks, by design)
+### Resolved since MVP
 
-- **Search** -- `assets/lcat-search.js` is an interim client-side substring filter
-  (progressive enhancement). Replace with the roaringrange WASM reader over
-  `search-manifest.json` once its browser query half ships (`tasks/010`).
-- **Availability** -- Work-detail editions carry `data-instance` +
-  `data-overdrive-reserve` (the v2 scheme-tagged Reserve ID). A client-side adapter
-  (`tasks/004`) reads these at view time; none is wired yet.
+- **Search** -- **delivered**. `tasks/017` made **Pagefind** the default full-text
+  search (real ranked, per-language, CJK-capable) over the built HTML; the interim
+  `assets/lcat-search.js` filter is now the no-config fallback, and the roaringrange
+  WASM reader over `search-manifest.json` (`tasks/010`) is repositioned as the opt-in
+  **advanced** path rather than the sole plan.
+- **Availability** -- **delivered**. `tasks/004` wired the client-side OverDrive/Thunder
+  adapter: Work-detail editions carry `data-instance` + `data-overdrive-reserve`, and
+  `assets/lcat-availability.js` fills them at view time when the site enables
+  `[params.availability]` (off by default -- the shipped example makes no external calls).
+
+## Closeout (done)
+
+All acceptance items are met: the content adapter, faceted list, Work detail, and
+clean-override model shipped in the MVP; the a11y pass is delivered via `tasks/014`
+(axe green over 91 pages); and default search + availability are delivered via
+`tasks/017` and `tasks/004`. Multilingual page-minting (`tasks/016`) and the
+subject/format facet refinements (`tasks/011`/`012`/`015`) landed on top. The
+roaringrange WASM browser reader is now the opt-in advanced search path (`tasks/017`
+decision), tracked with `tasks/010` -- not a gate on this task.

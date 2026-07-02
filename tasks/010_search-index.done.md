@@ -30,9 +30,11 @@ A `search/` package wiring roaringrange (`github.com/freeeve/roaringrange`):
 - [x] `lcat` builds per-language indexes + the routing map from the projected data
       (now with a **BM25 impact sidecar** per language + **all-18 Snowball stemming**
       + a **trigram (RRSI) arm** for unsegmented scripts, manifest v3 -- see below).
-- [ ] The roaringrange WASM reader answers a query in the browser over the emitted
-      index (smoke test in the Hugo module, `tasks/009`). **Remaining gate** -- the
-      build side is complete; this is browser/WASM front-end wiring.
+- [x] Browser search answers queries over the built site. **Delivered via `tasks/017`
+      (Pagefind default)** -- per-language, CJK-capable, faceted, no bespoke WASM wiring.
+      The roaringrange WASM reader over this manifest is now the opt-in **advanced**
+      search path, no longer the default-ship gate. The build side below is complete;
+      the WASM reader remains tracked as advanced-path work (`tasks/009`).
 - [x] Embeddings remain opt-in (build flag), off by default -- lexical only; no
       vector arm is wired.
 
@@ -77,3 +79,19 @@ is **byte-identical** (deterministic). `go test ./search` passes.
 Manifest (v3) carries `version` + per-index `kind` + tokenizer flags + `impacts`/`gramSize`
 so the WASM reader picks the query path (term tokenizer vs `NgramKeys`), tokenizes
 identically, and loads the BM25 sidecar.
+
+## Closeout (build side done; reader -> advanced path)
+
+The build-side deliverable is complete and committed: `lcat index` emits per-language
+term (`.rrt`) + BM25 impact (`.rrb`) + trigram (`.rrs`) indexes and the v3 routing
+manifest, validated on the 5,659-Work corpus (`go test ./search` green at commit). The
+one open acceptance item -- the browser WASM reader -- was superseded as a *default*
+requirement by `tasks/017` (Pagefind is the default browser search; roaringrange is the
+opt-in advanced engine), so this task is closed for its build-side scope with the reader
+tracked as advanced-path work (`tasks/009`).
+
+Note: `go test ./search` cannot be re-run in the current working tree because the sibling
+`../libcodex` checkout is mid-refactor (uncommitted contribution/role changes) and does
+not compile through the local `replace`. That is an external concurrent edit, not a
+libcatalog regression -- the search build side is unchanged here and was green when
+committed. Re-validate once libcodex settles.
