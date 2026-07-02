@@ -53,6 +53,10 @@ type Config struct {
 	// AuthoritiesPrefix is the blob path prefix holding authority grains.
 	// Default "data/authorities/".
 	AuthoritiesPrefix string
+
+	// AbuseSecret (>=16 bytes) keys IP pseudonymization and challenge
+	// tokens; setting it enables the anonymous suggestion endpoints.
+	AbuseSecret string
 }
 
 // FromEnv reads configuration from LCATD_-prefixed environment variables.
@@ -70,6 +74,7 @@ func FromEnv() (Config, error) {
 		OIDCClientID:      os.Getenv("LCATD_OIDC_CLIENT_ID"),
 		OIDCClientSecret:  os.Getenv("LCATD_OIDC_CLIENT_SECRET"),
 		AuthoritiesPrefix: envOr("LCATD_AUTHORITIES_PREFIX", "data/authorities/"),
+		AbuseSecret:       os.Getenv("LCATD_ABUSE_SECRET"),
 	}
 	if raw := os.Getenv("LCATD_VOCAB_SCHEMES"); raw != "" {
 		for s := range strings.SplitSeq(raw, ",") {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/auth/local"
+	"github.com/freeeve/libcatalog/backend/suggest"
 	"github.com/freeeve/libcatalog/backend/vocab"
 	"github.com/freeeve/libcatalog/storage/blob"
 )
@@ -36,6 +37,10 @@ type Deps struct {
 	// Vocab, when set, mounts GET /v1/terms autocomplete over the loaded
 	// controlled vocabularies.
 	Vocab *vocab.Index
+	// Suggest and Abuse together mount the anonymous suggestion surface
+	// (challenge, submit, public counts).
+	Suggest *suggest.Service
+	Abuse   *suggest.Abuse
 }
 
 // New assembles the routed, middleware-wrapped API handler.
@@ -50,6 +55,9 @@ func New(deps Deps) http.Handler {
 	}
 	if deps.Vocab != nil {
 		registerTerms(mux, deps.Vocab)
+	}
+	if deps.Suggest != nil && deps.Abuse != nil {
+		registerSuggestions(mux, deps.Suggest, deps.Abuse)
 	}
 	return wrap(mux, deps.Logger)
 }

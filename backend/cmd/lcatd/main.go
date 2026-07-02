@@ -23,6 +23,7 @@ import (
 	"github.com/freeeve/libcatalog/backend/config"
 	"github.com/freeeve/libcatalog/backend/httpapi"
 	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcatalog/backend/suggest"
 	"github.com/freeeve/libcatalog/backend/vocab"
 	"github.com/freeeve/libcatalog/storage/blob"
 )
@@ -78,6 +79,14 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 		}
 	}
 	db := store.NewMem()
+	if cfg.AbuseSecret != "" {
+		abuse, err := suggest.NewAbuse([]byte(cfg.AbuseSecret))
+		if err != nil {
+			return httpapi.Deps{}, err
+		}
+		deps.Abuse = abuse
+		deps.Suggest = suggest.New(db, deps.Vocab, suggest.Caps{})
+	}
 	verifiers := map[string]auth.TokenVerifier{}
 	if cfg.LocalAuth {
 		key, err := signingKey(cfg.LocalSigningKey, logger)

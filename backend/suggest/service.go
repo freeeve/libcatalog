@@ -1,0 +1,394 @@
+package suggest
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"slices"
+	"time"
+
+	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcatalog/backend/vocab"
+)
+
+// Service is the suggestion queue over the document store. Controlled terms
+// are validated against the vocabulary index; folksonomy terms pass through
+// the normalizer and their own moderation lifecycle.
+type Service struct {
+	db    store.Store
+	vocab *vocab.Index
+	caps  Caps
+	now   func() time.Time
+}
+
+// New wires the service (zero-value caps fall back to DefaultCaps; a nil
+// index rejects every controlled term but folk terms still work).
+func New(db store.Store, ix *vocab.Index, caps Caps) *Service {
+	if caps.PerDay <= 0 {
+		caps.PerDay = DefaultCaps.PerDay
+	}
+	if caps.PerHour <= 0 {
+		caps.PerHour = DefaultCaps.PerHour
+	}
+	if caps.SupporterTTL <= 0 {
+		caps.SupporterTTL = DefaultCaps.SupporterTTL
+	}
+	return &Service{db: db, vocab: ix, caps: caps, now: time.Now}
+}
+
+// SetClock overrides the clock (tests).
+func (s *Service) SetClock(now func() time.Time) { s.now = now }
+
+// Submit records one anonymous suggestion/flag: term validation, tombstone
+// and folk-lifecycle gates, per-supporter rate caps, supporter dedup, then
+// the aggregate bump and dispute reconciliation. Unlike qllpoc's single
+// TransactWriteItems this is a sequence of conditional writes -- a crash
+// mid-sequence can lose one vote's count bump, which is acceptable for
+// approximate supporter tallies (review is the arbiter); it can never
+// double-count (the dedup marker is first) or corrupt review state.
+func (s *Service) Submit(ctx context.Context, in SubmitInput) (SubmitResult, error) {
+	if in.Type != TypeAdd && in.Type != TypeRemove {
+		return SubmitResult{}, fmt.Errorf("suggest: invalid type %q", in.Type)
+	}
+	if in.Type == TypeRemove && !validReason(in.Reason) {
+		return SubmitResult{}, fmt.Errorf("suggest: invalid reason %q", in.Reason)
+	}
+	result := SubmitResult{}
+	term, folkNew, err := s.resolveTerm(ctx, in.Term)
+	if err != nil {
+		return SubmitResult{}, err
+	}
+	in.Term = term
+	result.FolkProposed = folkNew
+
+	// Tombstone gate.
+	if _, err := s.db.Get(ctx, store.Key{PK: workPK(in.WorkID), SK: tombstoneSK(in.Term)}); err == nil {
+		return SubmitResult{}, ErrTombstoned
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return SubmitResult{}, err
+	}
+
+	// Rate caps: bump-then-check; a rejected attempt stays counted, which
+	// only makes the cap stricter under abuse.
+	now := s.now().UTC()
+	day := now.Format("2006-01-02")
+	hour := now.Format("2006010215")
+	dayCount, err := s.db.Increment(ctx, store.Key{PK: "RATE#" + in.SupporterHash, SK: "DAY#" + day}, 1, now.Add(48*time.Hour))
+	if err != nil {
+		return SubmitResult{}, err
+	}
+	hourCount, err := s.db.Increment(ctx, store.Key{PK: "RATE#" + in.SupporterHash, SK: "HOUR#" + hour}, 1, now.Add(3*time.Hour))
+	if err != nil {
+		return SubmitResult{}, err
+	}
+	if dayCount > int64(s.caps.PerDay) || hourCount > int64(s.caps.PerHour) {
+		return SubmitResult{}, ErrRateLimited
+	}
+
+	// Supporter dedup marker -- create-only; existing = idempotent no-op.
+	marker := store.Record{
+		Key:      store.Key{PK: workPK(in.WorkID), SK: suppSK(in.Term, in.Type, in.SupporterHash)},
+		ExpireAt: now.Add(s.caps.SupporterTTL),
+	}
+	if _, err := s.db.Put(ctx, marker, store.CondIfAbsent); err != nil {
+		if errors.Is(err, store.ErrConditionFailed) {
+			result.Duplicate = true
+			return result, nil
+		}
+		return SubmitResult{}, err
+	}
+
+	// Aggregate bump under optimistic concurrency.
+	if err := s.bumpAggregate(ctx, in, now); err != nil {
+		return SubmitResult{}, err
+	}
+	if in.Term.Scheme == vocab.FolkScheme {
+		// Folk-term use count is a moderation signal only.
+		s.bumpFolkUse(ctx, in.Term)
+	}
+
+	// Per-work velocity signal (abuse dashboards).
+	_, _ = s.db.Increment(ctx, store.Key{PK: "VEL#WORK#" + in.WorkID, SK: "HOUR#" + hour}, 1, now.Add(24*time.Hour))
+
+	// Dispute reconciliation is read-after-write and self-healing: every
+	// subsequent vote re-runs it, so a racing pair converges.
+	disputed, err := s.reconcileDispute(ctx, in.WorkID, in.Term)
+	if err != nil {
+		return result, nil //nolint:nilerr // the vote landed; marking heals later
+	}
+	result.Disputed = disputed
+	return result, nil
+}
+
+// resolveTerm validates a controlled term against the vocabulary index or
+// runs a folk term through normalization and its lifecycle gate. Returns the
+// canonicalized ref and whether a novel folk term was just proposed.
+func (s *Service) resolveTerm(ctx context.Context, ref vocab.TermRef) (vocab.TermRef, bool, error) {
+	if ref.Scheme != vocab.FolkScheme {
+		if s.vocab == nil {
+			return ref, false, ErrBadTerm
+		}
+		term, ok := s.vocab.Lookup(ref.Scheme, ref.ID)
+		if !ok {
+			return ref, false, ErrBadTerm
+		}
+		ref.Label = term.Label("")
+		return ref, false, nil
+	}
+	norm, err := vocab.NormalizeFolk(ref.ID)
+	if err != nil {
+		return ref, false, ErrBadTerm
+	}
+	ref.ID = norm
+	ref.Label = norm
+	rec, err := s.db.Get(ctx, folkKey(norm))
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		ft := FolkTerm{Term: norm, Status: FolkProposed, CreatedAt: s.now().UTC()}
+		data, _ := json.Marshal(ft)
+		if _, err := s.db.Put(ctx, store.Record{Key: folkKey(norm), Data: data}, store.CondIfAbsent); err != nil && !errors.Is(err, store.ErrConditionFailed) {
+			return ref, false, err
+		}
+		return ref, true, nil
+	case err != nil:
+		return ref, false, err
+	}
+	var ft FolkTerm
+	if err := json.Unmarshal(rec.Data, &ft); err != nil {
+		return ref, false, err
+	}
+	if ft.Status == FolkBlocked {
+		return ref, false, ErrFolkBlocked
+	}
+	return ref, false, nil
+}
+
+func (s *Service) bumpFolkUse(ctx context.Context, ref vocab.TermRef) {
+	_ = s.mutateFolk(ctx, ref.ID, func(ft *FolkTerm) { ft.UseCount++ })
+}
+
+// mutateFolk applies mutate to a folk term record under optimistic
+// concurrency.
+func (s *Service) mutateFolk(ctx context.Context, norm string, mutate func(*FolkTerm)) error {
+	for attempt := range casRetries {
+		casBackoff(attempt)
+		rec, err := s.db.Get(ctx, folkKey(norm))
+		if err != nil {
+			return err
+		}
+		var ft FolkTerm
+		if err := json.Unmarshal(rec.Data, &ft); err != nil {
+			return err
+		}
+		mutate(&ft)
+		data, err := json.Marshal(ft)
+		if err != nil {
+			return err
+		}
+		rec.Data = data
+		if _, err := s.db.Put(ctx, rec, store.CondIfVersion); err == nil {
+			return nil
+		} else if !errors.Is(err, store.ErrConditionFailed) {
+			return err
+		}
+	}
+	return errors.New("suggest: folk update conflict")
+}
+
+// casRetries bounds optimistic-concurrency retry loops; contention on a hot
+// aggregate is short-lived, so back off briefly between attempts.
+const casRetries = 24
+
+func casBackoff(attempt int) {
+	if attempt > 2 {
+		time.Sleep(time.Duration(attempt) * time.Millisecond)
+	}
+}
+
+// bumpAggregate creates or updates the (work, term, type) aggregate and its
+// status index item.
+func (s *Service) bumpAggregate(ctx context.Context, in SubmitInput, now time.Time) error {
+	key := store.Key{PK: workPK(in.WorkID), SK: suggSK(in.Term, in.Type)}
+	for attempt := range casRetries {
+		casBackoff(attempt)
+		rec, err := s.db.Get(ctx, key)
+		var sg Suggestion
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			sg = Suggestion{
+				WorkID:     in.WorkID,
+				Term:       in.Term,
+				Type:       in.Type,
+				Status:     StatusPending,
+				Provenance: ProvenancePatron,
+				WorkTitle:  in.WorkTitle,
+				SourceRef:  in.SourceRef,
+				CreatedAt:  now,
+			}
+			rec = store.Record{Key: key}
+		case err != nil:
+			return err
+		default:
+			if sg, err = unmarshalSuggestion(rec.Data); err != nil {
+				return err
+			}
+		}
+		sg.SupporterCount++
+		sg.LastActivityAt = now
+		if in.Type == TypeRemove {
+			if sg.ReasonCounts == nil {
+				sg.ReasonCounts = map[Reason]int{}
+			}
+			sg.ReasonCounts[in.Reason]++
+		}
+		data, err := marshalSuggestion(sg)
+		if err != nil {
+			return err
+		}
+		rec.Data = data
+		if _, err := s.db.Put(ctx, rec, store.CondIfVersion); err != nil {
+			if errors.Is(err, store.ErrConditionFailed) {
+				continue // concurrent vote; re-read and retry
+			}
+			return err
+		}
+		s.writeStatusIndex(ctx, sg.Status, key)
+		return nil
+	}
+	return errors.New("suggest: aggregate update conflict")
+}
+
+// writeStatusIndex mirrors an aggregate into its status partition
+// (best-effort; hydration self-heals stale items).
+func (s *Service) writeStatusIndex(ctx context.Context, status Status, aggKey store.Key) {
+	data, _ := json.Marshal(aggKey)
+	_, _ = s.db.Put(ctx, store.Record{Key: statusIndexKey(status, aggKey), Data: data}, store.CondNone)
+}
+
+// moveStatusIndex retires the old partition's item and writes the new one.
+func (s *Service) moveStatusIndex(ctx context.Context, from, to Status, aggKey store.Key) {
+	if from == to {
+		return
+	}
+	_ = s.db.Delete(ctx, store.Record{Key: statusIndexKey(from, aggKey)}, store.CondNone)
+	s.writeStatusIndex(ctx, to, aggKey)
+}
+
+// reconcileDispute flips both sides of a (work, term) pair to DISPUTED when
+// ADD and REMOVE pressure coexist while either side is still open.
+func (s *Service) reconcileDispute(ctx context.Context, workID string, term vocab.TermRef) (bool, error) {
+	var open [2]bool
+	types := [2]SuggType{TypeAdd, TypeRemove}
+	for i, t := range types {
+		rec, err := s.db.Get(ctx, store.Key{PK: workPK(workID), SK: suggSK(term, t)})
+		if errors.Is(err, store.ErrNotFound) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		sg, err := unmarshalSuggestion(rec.Data)
+		if err != nil {
+			return false, err
+		}
+		open[i] = sg.Status == StatusPending || sg.Status == StatusDisputed
+	}
+	if !open[0] || !open[1] {
+		// A resolved counterpart stays resolved; the open side still
+		// surfaces in the queue with prior context.
+		return false, nil
+	}
+	for _, t := range types {
+		if err := s.transition(ctx, store.Key{PK: workPK(workID), SK: suggSK(term, t)}, StatusDisputed, func(sg *Suggestion) {}); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+// transition moves an open aggregate to a new status under optimistic
+// concurrency, keeping the status index in step. Resolved items are left
+// alone (concurrent-reviewer safe).
+func (s *Service) transition(ctx context.Context, key store.Key, to Status, stamp func(*Suggestion)) error {
+	for attempt := range casRetries {
+		casBackoff(attempt)
+		rec, err := s.db.Get(ctx, key)
+		if err != nil {
+			return err
+		}
+		sg, err := unmarshalSuggestion(rec.Data)
+		if err != nil {
+			return err
+		}
+		if sg.Status != StatusPending && sg.Status != StatusDisputed {
+			return errAlreadyResolved
+		}
+		from := sg.Status
+		sg.Status = to
+		stamp(&sg)
+		data, err := marshalSuggestion(sg)
+		if err != nil {
+			return err
+		}
+		rec.Data = data
+		if _, err := s.db.Put(ctx, rec, store.CondIfVersion); err != nil {
+			if errors.Is(err, store.ErrConditionFailed) {
+				continue
+			}
+			return err
+		}
+		s.moveStatusIndex(ctx, from, to, key)
+		return nil
+	}
+	return errors.New("suggest: transition conflict")
+}
+
+var errAlreadyResolved = errors.New("suggest: already resolved")
+
+// ForWork returns the public per-work view: aggregates only, no supporter
+// hashes, for the "N patrons suggested this" display.
+func (s *Service) ForWork(ctx context.Context, workID string) ([]Suggestion, error) {
+	var out []Suggestion
+	for rec, err := range s.db.Query(ctx, workPK(workID), "SUGG#", store.QueryOpt{}) {
+		if err != nil {
+			return nil, err
+		}
+		sg, err := unmarshalSuggestion(rec.Data)
+		if err != nil {
+			continue
+		}
+		out = append(out, sg)
+	}
+	return out, nil
+}
+
+// FolkTermStatus returns a folk term's lifecycle record.
+func (s *Service) FolkTermStatus(ctx context.Context, norm string) (FolkTerm, error) {
+	rec, err := s.db.Get(ctx, folkKey(norm))
+	if err != nil {
+		return FolkTerm{}, err
+	}
+	var ft FolkTerm
+	if err := json.Unmarshal(rec.Data, &ft); err != nil {
+		return FolkTerm{}, err
+	}
+	return ft, nil
+}
+
+// AcceptedFolkTerms lists ACCEPTED folk terms matching prefix -- merged into
+// autocomplete beside controlled vocabularies.
+func (s *Service) AcceptedFolkTerms(ctx context.Context, prefix string, limit int) ([]string, error) {
+	var out []string
+	for rec, err := range s.db.Query(ctx, "FOLKIDX", "TERM#"+prefix, store.QueryOpt{Limit: limit}) {
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, string(rec.Data))
+	}
+	return out, nil
+}
+
+func validReason(r Reason) bool {
+	return slices.Contains(Reasons, r)
+}
