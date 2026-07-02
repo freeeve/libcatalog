@@ -44,11 +44,34 @@ stands (ARCHITECTURE.md §8):
    Tracked upstream in roaringrange `tasks/055` (language-keyed stop words).
 
 ## Acceptance
-- A non-English (e.g. Spanish or French) corpus builds a correctly stemmed index
-  via `lcat`, verified against the Rust reader (build/query stem symmetry).
-- A CJK sample is searchable via the trigram index with reasonable recall.
-- ARCHITECTURE.md §8 and any deployment docs state the coverage accurately
-  (done for §8).
+- [x] A non-English (e.g. Spanish or French) corpus builds a correctly stemmed index
+  via `lcat`, verified against the Rust reader (build/query stem symmetry). **Done**
+  (see Delivered below).
+- [ ] A CJK sample is searchable via the trigram index with reasonable recall.
+  **Remaining** -- the trigram (`RRS`) arm is not wired Go-side (not part of
+  roaringrange `073`).
+- [x] ARCHITECTURE.md §8 and any deployment docs state the coverage accurately
+  (§8 updated: all 18 stem Go-side + Rust reader as of roaringrange v0.27.0).
+
+## Delivered -- all-18 Snowball stemming Go-side (roaringrange `tasks/073`, v0.27.0)
+
+Scope item 1 (wire the remaining Snowball languages into the Go builder) and the
+Go-side stemmer wiring for the mixed-language strategy (item 2) are done. roaringrange
+v0.27.0's `NewTermTokenizerFull` now builds a Snowball stemmer for all 18 supported
+languages Go-side (byte-exact vs the Rust reader, proven by its
+`TestTokenizerStemMatchesRustGolden`), so no shelling to the Rust builder is needed --
+`lcat index` builds stemmed indexes natively in Go. libcatalog's change was minimal, as
+`073`'s consumer note predicted: `search.termLanguage` now returns `stem = tl != None`
+(was English-only), and the existing `iso639` map (already all 18) + the per-language
+index/routing structure from `tasks/010` did the rest. Validated: the corpus's `spa`
+index now builds stemmed (`stemmed:true`, 373 works); manifest records per-index
+`termLanguage`/`stemmed` so the reader tokenizes queries identically.
+
+**Remaining:** the CJK/scriptio-continua path -- emit the trigram (`RRS`) index for
+unsegmented scripts (item 3) and route CJK/Thai/Khmer/Lao to it -- plus per-language
+stop words (item 4, roaringrange `tasks/055`). Both are independent of `073`; neither
+is exercised by the current eng/spa corpus. The query-time index-selection sub-question
+(item 2) also stays open, tied to the `tasks/009` browser reader.
 
 ## Notes
 Upstream drift flagged in roaringrange: `TERMS.md` still says the header

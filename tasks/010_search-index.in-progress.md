@@ -27,11 +27,14 @@ A `search/` package wiring roaringrange (`github.com/freeeve/roaringrange`):
 
 ## Acceptance
 
-- [x] `lcat` builds per-language indexes + the routing map from the projected data.
+- [x] `lcat` builds per-language indexes + the routing map from the projected data
+      (now with a **BM25 impact sidecar** per language + **all-18 Snowball stemming**,
+      manifest v2 -- see "v2 shipped" below).
 - [ ] The roaringrange WASM reader answers a query in the browser over the emitted
-      index (smoke test in the Hugo module, `tasks/009`).
-- [x] Embeddings remain opt-in (build flag), off by default -- v1 is lexical only;
-      no vector arm is wired.
+      index (smoke test in the Hugo module, `tasks/009`). **Remaining gate** -- the
+      build side is complete; this is browser/WASM front-end wiring.
+- [x] Embeddings remain opt-in (build flag), off by default -- lexical only; no
+      vector arm is wired.
 
 ## Build notes (v1 shipped)
 
@@ -45,24 +48,29 @@ names, subject labels. Doc ids are dense from 0 in projected (sorted) order.
 Validated on the corpus: 5659 Works -> `eng(5286)` + `spa(373)` indexes (488K/79K
 `.rrt`); no `und` index (every Work carries a language). `go test ./search` passes.
 
-### Constrained by roaringrange (Go build side) -- filed for roaringrange
+### v2 shipped -- BM25 + all-language stemming (roaringrange `tasks/073` landed, v0.27.0)
 
-1. **Plain boolean index, not BM25.** `WriteTermIndexFull` is wired; the BM25
-   *impact* path (`WriteImpacts`) needs per-term head byte-offsets roaringrange does
-   not expose Go-side, so v1 indexes term *presence* (postings dedup'd per doc), not
-   frequency. Ranking is therefore boolean/positional, not BM25.
-2. **English-only stemming.** roaringrange wires a Snowball stemmer Go-side only for
-   English; `iso639` maps the other 17 Snowball languages to their `TermLanguage`
-   byte but they index word-level (stop words still apply) until wired. `spa` above
-   is unstemmed for this reason.
-3. **No trigram (`RRS`) arm yet** for unsegmented scripts (CJK/Thai) -- those would
-   currently fall to word-level; wire once (1)/(2) land.
+The two Go-build-side roaringrange gaps that pinned v1 to a degraded index closed in
+roaringrange **v0.27.0** (its `tasks/073`, done), and libcatalog now consumes them:
 
-These three are Go-build-side gaps in roaringrange (BM25 head-offset exposure +
-non-English Snowball wiring + trigram builder). Tracked in roaringrange
-`tasks/073` (uncommitted, per the cross-repo boundary). Verified against
-roaringrange source: `WriteTermIndexFull` returns only `error` (never the per-term
-`head_off` `WriteImpacts` needs, and no reader enumerates the dict); go-stemmers
-already ships all 18 languages but `NewTermTokenizerFull` wires only English.
-Manifest carries `version` + per-index tokenizer flags so the reader can adapt as
-these land without a reformat.
+1. **BM25 impact sidecar (was: plain boolean).** `search/search.go` now builds each
+   `.rrt` via `WriteTermIndexFullDict` (returns the dict with the real posting
+   head-offsets) and writes a paired `term-<lang>.rrb` (RRSB) via `WriteImpacts` with
+   `NewImpactsAccumulator` (per-doc length + term frequency) at roaringrange's default
+   k1/b. The `.rrt` stays a presence index; BM25 tf lives in the sidecar. Manifest
+   gains `impacts` per index; **SchemaVersion 1 -> 2**.
+2. **All-18 Snowball stemming (was: English-only).** `NewTermTokenizerFull` now stems
+   any mapped language Go-side, so `termLanguage` returns `stem = tl != None`. `spa`
+   now builds a stemmed index (byte-exact vs the Rust reader, guaranteed by
+   roaringrange's `TestTokenizerStemMatchesRustGolden`).
+
+Re-validated on the corpus: 5659 Works -> `eng(5286)` + `spa(373)`; each emits a
+`.rrt` + `.rrb` (RRSB magic verified), `spa stemmed:true`, manifest **v2**; re-index
+is **byte-identical** (deterministic). `go test ./search` passes.
+
+3. **Still no trigram (`RRS`) arm** for unsegmented scripts (CJK/Thai) -- **not** part
+   of `073`; those still fall to word-level. Remains future work (see `tasks/005`); no
+   CJK in the current corpus so it is unexercised.
+
+Manifest carries `version` + per-index tokenizer flags + `impacts` so the WASM reader
+tokenizes queries identically and loads the sidecar.

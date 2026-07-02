@@ -35,9 +35,9 @@ func TestTermLanguage(t *testing.T) {
 		stem bool
 	}{
 		{"eng", rr.TermLanguageEnglish, true},
-		{"spa", rr.TermLanguageSpanish, false}, // stemmer not wired Go-side yet
-		{"fre", rr.TermLanguageFrench, false},
-		{"zxx", rr.TermLanguageNone, false},
+		{"spa", rr.TermLanguageSpanish, true}, // all 18 Snowball languages stem Go-side (rr task 073)
+		{"fre", rr.TermLanguageFrench, true},
+		{"zxx", rr.TermLanguageNone, false}, // unmapped -> word-level, no stemmer
 		{"", rr.TermLanguageNone, false},
 	}
 	for _, c := range cases {
@@ -88,14 +88,20 @@ func TestBuildIndexes(t *testing.T) {
 	if byLang["eng"].DocCount != 2 || byLang["spa"].DocCount != 1 || byLang["und"].DocCount != 1 {
 		t.Errorf("doc counts = eng:%d spa:%d und:%d", byLang["eng"].DocCount, byLang["spa"].DocCount, byLang["und"].DocCount)
 	}
-	if !byLang["eng"].Stemmed || byLang["spa"].Stemmed {
-		t.Errorf("stemming: eng=%v spa=%v", byLang["eng"].Stemmed, byLang["spa"].Stemmed)
+	if !byLang["eng"].Stemmed || !byLang["spa"].Stemmed {
+		t.Errorf("both eng and spa should stem Go-side: eng=%v spa=%v", byLang["eng"].Stemmed, byLang["spa"].Stemmed)
 	}
 
-	// The English index and its doc map were written; the doc map lists the eng
-	// Work ids in order, so a query result (doc id) maps back to a Work.
+	// The English index, its BM25 sidecar, and its doc map were written; the doc map
+	// lists the eng Work ids in order, so a query result (doc id) maps back to a Work.
 	if len(sink.files["term-eng.rrt"]) == 0 {
 		t.Error("term-eng.rrt not written or empty")
+	}
+	if byLang["eng"].Impacts != "term-eng.rrb" || len(sink.files["term-eng.rrb"]) == 0 {
+		t.Errorf("BM25 sidecar term-eng.rrb not written (impacts=%q, %d bytes)", byLang["eng"].Impacts, len(sink.files["term-eng.rrb"]))
+	}
+	if got := string(sink.files["term-eng.rrb"][:4]); got != "RRSB" {
+		t.Errorf("sidecar magic = %q, want RRSB", got)
 	}
 	var docs []string
 	if err := json.Unmarshal(sink.files["term-eng.docs.json"], &docs); err != nil {

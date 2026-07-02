@@ -183,11 +183,13 @@ the graph.
   (Latin, Cyrillic, Greek, Arabic, ...) tokenize into words; scriptio-continua
   scripts (CJK, Thai, Khmer, Lao) collapse an unbroken run into a single term, so
   word-level BM25 does not work for them -- route those to the trigram (`RRS`)
-  n-gram index, which also serves substring/fuzzy. Stemming is Snowball: 18
-  languages are defined in the format and the Rust build/reader (en es ar da nl
-  fi fr de el hu it no pt ro ru sv ta tr), but the Go projector currently wires
-  only English, so the other 17 need Go-side wiring (or building the index with
-  the Rust builder). An `RRTI` index carries **one stemmer language** (a single
+  n-gram index, which also serves substring/fuzzy (not yet wired Go-side). Stemming
+  is Snowball: 18 languages (en es ar da nl fi fr de el hu it no pt ro ru sv ta tr)
+  stem on **both** the Go build side and the Rust reader as of roaringrange v0.27.0,
+  so `lcat index` builds a correctly-stemmed index in any of them (its `iso639` map
+  covers all 18). The build also emits a BM25 impact sidecar (`.rrb`, RRSB) paired
+  with each term index (`.rrt`) for relevance ranking. An `RRTI` index carries **one
+  stemmer language** (a single
   header byte), so a multilingual corpus is built as **per-language stemmed
   indexes** routed by each record's declared language (`dcterms:language` / MARC
   041) via a small **language->index map**: the 18 Snowball languages get stemmed

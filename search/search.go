@@ -1,12 +1,14 @@
 // Package search builds the catalog's lexical search index from the projected
-// catalog (ARCHITECTURE §8). It emits one roaringrange term index (.rrt) per
-// corpus language plus a manifest routing each language to its index -- the data
-// the browser's WASM reader queries. Building is the only half done in Go:
-// roaringrange has no Go term-index reader, so queries run in the Rust/WASM
-// reader the Hugo module ships.
+// catalog (ARCHITECTURE §8). Per corpus language it emits a roaringrange term
+// index (.rrt, boolean whole-word presence) paired with a BM25 impact sidecar
+// (.rrb) for relevance ranking, plus a manifest routing each language to its
+// index -- the data the browser's WASM reader queries. Building is the only half
+// done in Go: roaringrange has no Go term-index reader, so queries run in the
+// Rust/WASM reader the Hugo module ships.
 package search
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -18,8 +20,9 @@ import (
 	rr "github.com/freeeve/roaringrange"
 )
 
-// SchemaVersion is the search-manifest schema version, checked by the reader.
-const SchemaVersion = 1
+// SchemaVersion is the search-manifest schema version, checked by the reader. v2
+// adds the per-language BM25 impact sidecar (IndexInfo.Impacts).
+const SchemaVersion = 2
 
 // undetermined is the index key for Works with no declared language.
 const undetermined = "und"
@@ -38,15 +41,17 @@ type IndexInfo struct {
 	TermLanguage uint8  `json:"termLanguage"` // roaringrange stemmer-language byte
 	Stemmed      bool   `json:"stemmed"`
 	Stopwords    bool   `json:"stopwords"`
-	Index        string `json:"index"` // .rrt filename
-	Docs         string `json:"docs"`  // JSON array: doc id (index) -> Work id
+	Index        string `json:"index"`   // .rrt filename
+	Impacts      string `json:"impacts"` // .rrb BM25 impact sidecar filename
+	Docs         string `json:"docs"`    // JSON array: doc id (index) -> Work id
 	DocCount     int    `json:"docCount"`
 }
 
-// BuildIndexes writes one term index per corpus language into sink, plus a
-// doc-id->Work-id list per index and a search-manifest.json routing map. A Work
-// is indexed once per language it declares; a Work with none goes to the
-// undetermined index. Doc ids are dense from 0 in the projected (sorted) order.
+// BuildIndexes writes one term index (+ its BM25 sidecar) per corpus language
+// into sink, plus a doc-id->Work-id list per index and a search-manifest.json
+// routing map. A Work is indexed once per language it declares; a Work with none
+// goes to the undetermined index. Doc ids are dense from 0 in the projected
+// (sorted) order.
 func BuildIndexes(cat *project.Catalog, sink storage.Sink) (Manifest, error) {
 	byLang := map[string][]project.Work{}
 	for _, w := range cat.Works {
@@ -79,19 +84,25 @@ func BuildIndexes(cat *project.Catalog, sink storage.Sink) (Manifest, error) {
 	return m, nil
 }
 
-// buildLangIndex builds and writes the term index for one language group.
+// buildLangIndex builds and writes the term index and its BM25 sidecar for one
+// language group. The presence postings (for the .rrt) and the impact statistics
+// (per-doc length + term frequency, for the .rrb) are gathered over the same
+// tokenizer so both address the identical vocabulary and dense doc-id order.
 func buildLangIndex(sink storage.Sink, lang string, works []project.Work) (IndexInfo, error) {
 	tl, stem := termLanguage(lang)
 	stopwords := tl != rr.TermLanguageNone
 	tok := rr.NewTermTokenizerFull(tl, stem, stopwords, true)
+	acc := rr.NewImpactsAccumulator(tok)
 
 	postings := map[string]*roaring.Bitmap{}
 	docIDs := make([]string, len(works))
 	for i, w := range works {
 		docIDs[i] = w.ID
-		terms := tok.Tokenize(searchText(w))
+		text := searchText(w)
+		acc.AddDoc(text) // records doc length + term frequencies for BM25; doc id == i
+		terms := tok.Tokenize(text)
 		slices.Sort(terms)
-		terms = slices.Compact(terms) // presence, not frequency: plain boolean index
+		terms = slices.Compact(terms) // the .rrt is a presence index; BM25 tf lives in the sidecar
 		for _, t := range terms {
 			bm := postings[t]
 			if bm == nil {
@@ -103,8 +114,13 @@ func buildLangIndex(sink storage.Sink, lang string, works []project.Work) (Index
 	}
 
 	idxName := "term-" + lang + ".rrt"
+	sidecarName := "term-" + lang + ".rrb"
 	docsName := "term-" + lang + ".docs.json"
-	if err := writeIndex(sink, idxName, postings, tl, stem, stopwords); err != nil {
+	dict, err := writeTermIndex(sink, idxName, postings, tl, stem, stopwords)
+	if err != nil {
+		return IndexInfo{}, err
+	}
+	if err := writeImpacts(sink, sidecarName, dict, acc); err != nil {
 		return IndexInfo{}, err
 	}
 	if err := writeJSON(sink, docsName, docIDs); err != nil {
@@ -116,21 +132,49 @@ func buildLangIndex(sink storage.Sink, lang string, works []project.Work) (Index
 		Stemmed:      stem,
 		Stopwords:    stopwords,
 		Index:        idxName,
+		Impacts:      sidecarName,
 		Docs:         docsName,
 		DocCount:     len(works),
 	}, nil
 }
 
-// writeIndex writes a plain (boolean whole-word) term index. headBoundary is the
-// default 65536; blockCap 0 selects roaringrange's default dict block size.
-func writeIndex(sink storage.Sink, name string, postings map[string]*roaring.Bitmap, tl rr.TermLanguage, stem, stopwords bool) error {
+// writeTermIndex writes the boolean whole-word term index (.rrt) and returns its
+// dictionary (terms in ascending posting head-offset order) so the paired BM25
+// sidecar can address the exact postings written here. headBoundary is the default
+// 65536; blockCap 0 selects roaringrange's default dict block size.
+func writeTermIndex(sink storage.Sink, name string, postings map[string]*roaring.Bitmap, tl rr.TermLanguage, stem, stopwords bool) ([]rr.DictEntry, error) {
+	w, err := sink.Create(name)
+	if err != nil {
+		return nil, err
+	}
+	dict, err := rr.WriteTermIndexFullDict(w, postings, 65536, tl, stem, stopwords, true, 0)
+	if err != nil {
+		w.Close()
+		return nil, fmt.Errorf("write term index %s: %w", name, err)
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return dict, nil
+}
+
+// writeImpacts writes the BM25 impact sidecar (.rrb) that ranks the paired .rrt,
+// using roaringrange's default k1/b (stored in the sidecar header for the reader).
+// WriteImpacts emits many small writes, so the sink writer is buffered and flushed
+// before close.
+func writeImpacts(sink storage.Sink, name string, dict []rr.DictEntry, acc *rr.ImpactsAccumulator) error {
 	w, err := sink.Create(name)
 	if err != nil {
 		return err
 	}
-	if err := rr.WriteTermIndexFull(w, postings, 65536, tl, stem, stopwords, true, 0); err != nil {
+	bw := bufio.NewWriter(w)
+	if err := rr.WriteImpacts(bw, dict, acc, rr.DefaultK1, rr.DefaultB); err != nil {
 		w.Close()
-		return fmt.Errorf("write term index %s: %w", name, err)
+		return fmt.Errorf("write BM25 sidecar %s: %w", name, err)
+	}
+	if err := bw.Flush(); err != nil {
+		w.Close()
+		return err
 	}
 	return w.Close()
 }
@@ -169,12 +213,13 @@ func searchText(w project.Work) string {
 }
 
 // termLanguage maps an ISO 639-2 language code to a roaringrange stemmer language
-// and whether stemming is applied. roaringrange wires a Snowball stemmer on the Go
-// build side only for English, so other languages index word-level (stop words
-// still apply) until their stemmers are wired (see tasks/010).
+// and whether stemming is applied. roaringrange (v0.27.0, its task 073) wires a
+// Snowball stemmer on the Go build side for all 18 supported languages, so every
+// mapped language is stemmed; an unmapped language indexes word-level with no stop
+// words (see iso639).
 func termLanguage(iso string) (rr.TermLanguage, bool) {
 	if tl, ok := iso639[iso]; ok {
-		return tl, tl == rr.TermLanguageEnglish
+		return tl, tl != rr.TermLanguageNone
 	}
 	return rr.TermLanguageNone, false
 }

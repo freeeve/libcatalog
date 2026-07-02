@@ -12,8 +12,8 @@ import (
 )
 
 // runIndex builds the lexical search index from a projected catalog.json: one
-// roaringrange term index per corpus language plus a routing manifest, the data
-// the browser's WASM reader queries (ARCHITECTURE §8).
+// roaringrange term index plus a BM25 impact sidecar per corpus language, plus a
+// routing manifest -- the data the browser's WASM reader queries (ARCHITECTURE §8).
 func runIndex(args []string) error {
 	fs := flag.NewFlagSet("index", flag.ExitOnError)
 	catalogJSON := fs.String("catalog", "", "path to catalog.json (from lcat project)")
