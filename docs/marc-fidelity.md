@@ -32,6 +32,7 @@ changes.
 | Tag | Field | Notes |
 |-----|-------|-------|
 | 001 | Control number | |
+| 006 / 007 | Additional/physical coded elements | since libcodex v0.12.0 -- folded into media/carrier both ways (upstream tasks/082) |
 | 008 | Fixed-length data elements | since libcodex v0.9.0 -- reconstructed from typed properties (tasks/053) |
 | 020 | ISBN | qualifier text (e.g. `(electronic bk)`) rides in the value |
 | 100 / 700 | Primary / added agent | 700 present on the audiobook sample |
@@ -58,7 +59,6 @@ subjects, genre, and access link -- the fields discovery is built on.
 
 | Tag | Field | Why it is lost / where it lives instead |
 |-----|-------|------------------------------------------|
-| 006 / 007 | Fixed-length coded elements (additional/physical) | packed reconstruction is upstream libcodex tasks/082; 008 reconstructs since v0.9.0; some elements (e.g. language) re-emerge as **041**, see below |
 | 037 | Source of acquisition / **Reserve ID** | **the OverDrive availability key** -- decodes as an 024-shaped identifier, not 037; the *direct* JSON→BIBFRAME path keeps it as a `bf:source`-tagged identifier (`tasks/008`) |
 | 040 | Cataloging source | provenance is modeled as named graphs, not a 040 |
 | 084 | Other classification (**BISAC** in MARC Express) | decodes to 072, not 084; the direct path keeps BISAC as a `bf:Classification` with `bf:source "bisacsh"` |

@@ -27,23 +27,24 @@ var marcExpressSamples = []string{
 // carries them: the identifiers, primary/added agents, title, publication, extent,
 // carrier, summary, subjects, genre, and access link an adopter judges fidelity by.
 var coreFields = []string{
-	"001", "008", "020", "100", "245", "250", "260", "300", "306", "336",
-	"337", "338", "347", "490", "500", "511", "520", "521", "533", "538",
-	"650", "655", "700", "776", "856",
+	"001", "006", "007", "008", "020", "100", "245", "250", "260", "300",
+	"306", "336", "337", "338", "347", "490", "500", "511", "520", "521",
+	"533", "538", "650", "655", "700", "776", "856",
 }
 
 // knownLostFields are the tags that do NOT survive the round-trip, measured and
-// explained in docs/marc-fidelity.md: the packed coded fields 006/007 (upstream
-// libcodex tasks/082) and the vendor-convention fields 037/040/084, which decode
-// to their modeled equivalents (024-shaped identifier, provenance-out-of-band,
-// 072) rather than their original tags -- deliberate non-goals. libcodex v0.9.0
-// moved 008/336/500 to coreFields (tasks/053); v0.11.0 moved 306/347/490/511/
-// 521/533/538/776 (tasks/055, upstream 081). A round-trip that loses anything
-// NOT in this set is an unexplained regression -- and a field listed here that
-// survives is a stale table (TestMARCRoundTripLossTableCurrent); update the doc
-// and this set together when the crosswalk changes.
+// explained in docs/marc-fidelity.md -- now only the vendor-convention fields,
+// which decode to their modeled equivalents (037 -> an 024-shaped identifier,
+// 040 -> provenance-out-of-band, 084 -> 072) rather than their original tags:
+// deliberate non-goals, not losses of data. The reconstruction arc: libcodex
+// v0.9.0 moved 008/336/500 to coreFields (tasks/053), v0.11.0 moved
+// 306/347/490/511/521/533/538/776 (tasks/055, upstream 081), and v0.12.0
+// finished 006/007 (upstream 082). A round-trip that loses anything NOT in
+// this set is an unexplained regression -- and a field listed here that
+// survives is a stale table (TestMARCRoundTripLossTableCurrent); update the
+// doc and this set together when the crosswalk changes.
 var knownLostFields = map[string]bool{
-	"006": true, "007": true, "037": true, "040": true, "084": true,
+	"037": true, "040": true, "084": true,
 }
 
 // roundTripTags round-trips every record in a sample and returns how many times each
