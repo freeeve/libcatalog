@@ -169,13 +169,16 @@ func claimFields(ds *rdf.Dataset, claimed []bool, node rdf.Term, profile *profil
 		var values []FieldValue
 		switch len(field.Predicates) {
 		case 1:
-			values = claimDirect(ds, claimed, node, field.Predicates[0], overrides)
+			values = claimDirect(ds, claimed, node, field.Predicates[0], overrides, false)
 		case 2:
 			// The link quads (node -> intermediate) stay unclaimed: they
 			// belong to the structure, not the value, and passthrough
-			// preserves them.
+			// preserves them. An override marker for a chained field sits
+			// on the chain head (resource, first predicate) -- when
+			// present, every feed-sourced leaf value is shadowed.
+			headOverridden := node.IsIRI() && overrides.Shadows(node.Value, field.Predicates[0])
 			for _, mid := range objectsAll(ds, node, field.Predicates[0]) {
-				values = append(values, claimDirect(ds, claimed, mid, field.Predicates[1], overrides)...)
+				values = append(values, claimDirect(ds, claimed, mid, field.Predicates[1], overrides, headOverridden)...)
 			}
 		}
 		if len(values) > 0 {
@@ -191,7 +194,9 @@ func claimFields(ds *rdf.Dataset, claimed []bool, node rdf.Term, profile *profil
 }
 
 // claimDirect claims every (subject, predicate, *) quad across all graphs.
-func claimDirect(ds *rdf.Dataset, claimed []bool, subject rdf.Term, predicate string, overrides bibframe.Overrides) []FieldValue {
+// forceOverridden shadows feed values whose chain head carries the field's
+// override marker.
+func claimDirect(ds *rdf.Dataset, claimed []bool, subject rdf.Term, predicate string, overrides bibframe.Overrides, forceOverridden bool) []FieldValue {
 	var out []FieldValue
 	for i, q := range ds.Quads {
 		if claimed[i] || q.S != subject || q.P.Value != predicate {
@@ -208,7 +213,7 @@ func claimDirect(ds *rdf.Dataset, claimed []bool, subject rdf.Term, predicate st
 			IRI:      q.O.IsIRI(),
 			Prov:     q.G.Value,
 			Overridden: strings.HasPrefix(q.G.Value, "feed:") &&
-				subject.IsIRI() && overrides.Shadows(subject.Value, predicate),
+				(forceOverridden || (subject.IsIRI() && overrides.Shadows(subject.Value, predicate))),
 			Node: termSyntax(subject),
 		})
 	}

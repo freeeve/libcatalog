@@ -77,7 +77,11 @@
     </span>
   </header>
   {#if route.name === "work"}
-    <WorkEditor workId={route.params.id} />
+    <!-- Keyed so a direct hash jump between works remounts a fresh editor
+         session (staged ops and drafts are per-work). -->
+    {#key route.params.id}
+      <WorkEditor workId={route.params.id} />
+    {/key}
   {:else if route.name === "works"}
     <WorkSearch />
   {:else if route.name === "queue"}

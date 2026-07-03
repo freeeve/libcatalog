@@ -160,6 +160,15 @@ func registerReview(mux *http.ServeMux, svc *suggest.Service, verifier auth.Toke
 			writeError(w, http.StatusInternalServerError, "audit read failed")
 			return
 		}
+		if workID := r.URL.Query().Get("workId"); workID != "" {
+			filtered := entries[:0]
+			for _, e := range entries {
+				if e.WorkID == workID {
+					filtered = append(filtered, e)
+				}
+			}
+			entries = filtered
+		}
 		if entries == nil {
 			entries = []suggest.AuditEntry{}
 		}

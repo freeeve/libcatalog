@@ -326,19 +326,22 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 		return nil, err
 	}
 	overrides := bibframe.ScanOverrides(ds)
+	view := mergeGraphs(
+		bibframe.ApplyShadow(ds.Graph(bibframe.FeedGraph(provider)), overrides),
+		ds.Graph(bibframe.EditorialGraph()),
+	)
 	p := &projector{
-		feed:    bibframe.ApplyShadow(ds.Graph(bibframe.FeedGraph(provider)), overrides),
-		ed:      ds.Graph(bibframe.EditorialGraph()),
+		view:    view,
 		labels:  buildLabelIndex(ds),
 		broader: buildBroaderIndex(ds),
 		aliases: buildTagAliasIndex(ds),
 		extras:  buildExtraIndex(ds, bibframe.FeedGraph(provider)),
 	}
 	cat := &Catalog{Version: SchemaVersion}
-	if p.feed == nil {
+	if p.view == nil {
 		return cat, nil
 	}
-	for _, w := range p.feed.SubjectsOfType(classWork) {
+	for _, w := range p.view.SubjectsOfType(classWork) {
 		// Only the catalog's own minted Works project as records. Since
 		// libcodex v0.11.0 the crosswalk types 76X-78X relation targets as
 		// bf:Work too -- related-resource stubs that belong inside their
@@ -355,19 +358,40 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 }
 
 type projector struct {
-	feed    *rdf.Graph
-	ed      *rdf.Graph                   // editorial graph; nil when the corpus has no editorial statements
+	// view is the projection graph: the feed graph with editorially-owned
+	// (lcat:overrides) properties filtered out, merged with the editorial
+	// graph -- so cataloger edits project as first-class values for every
+	// field (tasks/045). Editorial statements are blank-free, so the merge
+	// cannot collide labels.
+	view    *rdf.Graph
 	labels  map[string]map[string]string // authority URI -> language tag -> label
 	broader map[string][]string          // authority URI -> sorted parent (skos:broader) URIs
 	aliases map[string][]string          // authority URI -> tags it subsumes (lcat:tagAlias, tasks/044)
 	extras  map[string]map[string]string // Work node IRI -> extra key -> value (tasks/026)
 }
 
+// mergeGraphs unions two graphs (either may be nil).
+func mergeGraphs(a, b *rdf.Graph) *rdf.Graph {
+	if a == nil && b == nil {
+		return nil
+	}
+	merged := &rdf.Graph{}
+	for _, g := range []*rdf.Graph{a, b} {
+		if g == nil {
+			continue
+		}
+		for _, tr := range g.Triples {
+			merged.Add(tr.S, tr.P, tr.O)
+		}
+	}
+	return merged
+}
+
 func (p *projector) work(w rdf.Term) Work {
 	wk := Work{ID: fragID(w.Value, "Work")}
-	if t, ok := p.feed.Object(w, pTitle); ok {
-		wk.Title, _ = p.feed.Literal(t, pMainTitle)
-		wk.Subtitle, _ = p.feed.Literal(t, pSubtitle)
+	if t, ok := p.view.Object(w, pTitle); ok {
+		wk.Title, _ = p.view.Literal(t, pMainTitle)
+		wk.Subtitle, _ = p.view.Literal(t, pSubtitle)
 	}
 	wk.Contributors = p.contributors(w)
 	wk.Subjects, wk.Tags = p.subjectsAndTags(w)
@@ -399,20 +423,20 @@ func (p *projector) contributors(w rdf.Term) []Contributor {
 		primary bool
 	}
 	var es []entry
-	for _, node := range p.feed.Objects(w, pContribution) {
-		agent, ok := p.feed.Object(node, pAgent)
+	for _, node := range p.view.Objects(w, pContribution) {
+		agent, ok := p.view.Object(node, pAgent)
 		if !ok {
 			continue
 		}
-		name, _ := p.feed.Literal(agent, pLabel)
+		name, _ := p.view.Literal(agent, pLabel)
 		if name == "" {
 			continue
 		}
 		var role string
-		if r, ok := p.feed.Object(node, pRole); ok {
-			role, _ = p.feed.Literal(r, pLabel)
+		if r, ok := p.view.Object(node, pRole); ok {
+			role, _ = p.view.Literal(r, pLabel)
 		}
-		es = append(es, entry{Contributor{Name: name, Role: role}, p.feed.HasType(node, primaryContr)})
+		es = append(es, entry{Contributor{Name: name, Role: role}, p.view.HasType(node, primaryContr)})
 	}
 	// Sort by (primary desc, name, role) -- a total order over the distinguishing
 	// fields, so the projection is independent of contribution statement order: two
@@ -460,8 +484,7 @@ func (p *projector) subjectsAndTags(w rdf.Term) ([]Subject, []string) {
 			}
 		}
 	}
-	collect(p.feed)
-	collect(p.ed)
+	collect(p.view)
 
 	// A promoted tag disappears where its controlled term is present: the
 	// tag "became" the subject (lcat:tagAlias, tasks/044). Works carrying
@@ -605,7 +628,7 @@ func buildExtraIndex(ds *rdf.Dataset, feed rdf.Term) map[string]map[string]strin
 
 func (p *projector) languages(w rdf.Term) []string {
 	set := map[string]bool{}
-	for _, l := range p.feed.Objects(w, pLanguage) {
+	for _, l := range p.view.Objects(w, pLanguage) {
 		if code := rdf.LocalName(l.Value); code != "" {
 			set[code] = true
 		}
@@ -615,8 +638,8 @@ func (p *projector) languages(w rdf.Term) []string {
 
 func (p *projector) classifications(w rdf.Term) []string {
 	set := map[string]bool{}
-	for _, c := range p.feed.Objects(w, pClassif) {
-		if v, ok := p.feed.Literal(c, pClassPortion); ok && v != "" {
+	for _, c := range p.view.Objects(w, pClassif) {
+		if v, ok := p.view.Literal(c, pClassPortion); ok && v != "" {
 			set[v] = true
 		}
 	}
@@ -625,16 +648,16 @@ func (p *projector) classifications(w rdf.Term) []string {
 
 func (p *projector) instances(w rdf.Term) []Instance {
 	var out []Instance
-	for _, inst := range p.feed.Objects(w, pHasInstance) {
+	for _, inst := range p.view.Objects(w, pHasInstance) {
 		i := Instance{ID: fragID(inst.Value, "Instance"), Format: p.instanceFormat(inst)}
 		var isbns []string
 		var pids []ProviderID
-		for _, id := range p.feed.Objects(inst, pIdentifiedBy) {
-			v, ok := p.feed.Literal(id, pValue)
+		for _, id := range p.view.Objects(inst, pIdentifiedBy) {
+			v, ok := p.view.Literal(id, pValue)
 			if !ok || v == "" {
 				continue
 			}
-			if p.feed.HasType(id, classIsbn) {
+			if p.view.HasType(id, classIsbn) {
 				isbns = append(isbns, v)
 				continue
 			}
@@ -657,8 +680,8 @@ func (p *projector) instances(w rdf.Term) []Instance {
 // identifierSource returns the rdfs:label of an identifier node's bf:source scheme,
 // or "" when the identifier carries no scheme.
 func (p *projector) identifierSource(id rdf.Term) string {
-	if src, ok := p.feed.Object(id, pSource); ok {
-		if label, ok := p.feed.Literal(src, pLabel); ok {
+	if src, ok := p.view.Object(id, pSource); ok {
+		if label, ok := p.view.Literal(src, pLabel); ok {
 			return label
 		}
 	}
@@ -669,13 +692,13 @@ func (p *projector) identifierSource(id rdf.Term) string {
 // rdfs:label) and maps it to a discovery format. It falls back to the carrier label
 // when no media is present, and to "" when neither is (format omitted).
 func (p *projector) instanceFormat(inst rdf.Term) string {
-	if m, ok := p.feed.Object(inst, pMedia); ok {
-		if label, ok := p.feed.Literal(m, pLabel); ok && label != "" {
+	if m, ok := p.view.Object(inst, pMedia); ok {
+		if label, ok := p.view.Literal(m, pLabel); ok && label != "" {
 			return formatFromRDA(label)
 		}
 	}
-	if c, ok := p.feed.Object(inst, pCarrier); ok {
-		if label, ok := p.feed.Literal(c, pLabel); ok {
+	if c, ok := p.view.Object(inst, pCarrier); ok {
+		if label, ok := p.view.Literal(c, pLabel); ok {
 			return formatFromCarrier(label)
 		}
 	}

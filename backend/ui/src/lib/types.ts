@@ -56,6 +56,75 @@ export interface WorkDocResponse {
   doc: WorkDoc;
 }
 
+/** editor.OpValue -- one value in a field operation. */
+export interface OpValue {
+  v: string;
+  lang?: string;
+  iri?: boolean;
+}
+
+export type OpAction = "add" | "remove" | "set" | "clear";
+
+/** editor.Op -- one field-level edit in a POST /v1/works/{id}/ops batch. */
+export interface Op {
+  resource: string; // "work" or an instance id
+  path: string;
+  action: OpAction;
+  value?: OpValue; // add / remove
+  values?: OpValue[]; // set
+}
+
+/** editor.Diff -- the exact N-Quads delta a save makes (dry-run preview). */
+export interface Diff {
+  added: string[];
+  removed: string[];
+}
+
+/** POST /v1/works/{id}/ops response (workId absent on dry runs). */
+export interface OpsResult {
+  workId?: string;
+  etag: string;
+  diff: Diff;
+}
+
+/** The 412 body: the fresh record state for a deliberate client rebase. */
+export interface GrainConflict {
+  workId: string;
+  etag: string;
+  nquads: string;
+}
+
+/** The SPA's draft payload: staged ops against the etag they were built on.
+ *  The server stores it opaquely. */
+export interface DraftBody {
+  baseEtag: string;
+  ops: Op[];
+}
+
+/** httpapi.draft -- one per-user editor draft. */
+export interface Draft {
+  id: string;
+  workId?: string;
+  body: DraftBody;
+  updatedAt: string;
+}
+
+/** suggest.AuditEntry -- one staff action in the GET /v1/audit trail. */
+export interface AuditEntry {
+  workId?: string;
+  at: string;
+  action: string;
+  actor: string;
+  terms?: string[];
+  note?: string;
+  etag?: string;
+}
+
+export interface AuditPage {
+  month: string;
+  entries: AuditEntry[];
+}
+
 /** vocab.TermRef -- a controlled term reference. */
 export interface TermRef {
   scheme: string;

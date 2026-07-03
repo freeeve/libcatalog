@@ -1,17 +1,18 @@
-// Axe audit over the Login screen, the WorkEditor's document renderer
-// (WorkDocView), the moderation Queue, and the VocabPicker modal, mounted
-// with fixture data in jsdom. color-contrast needs a real rendering engine
-// (canvas), so that single rule is skipped here; the palette in app.css is
-// chosen for WCAG AA contrast.
+// Axe audit over the Login screen, the editable WorkEditor (profile form,
+// save bar, diff preview), the moderation Queue, and the VocabPicker modal,
+// mounted with fixture data in jsdom. color-contrast needs a real rendering
+// engine (canvas), so that single rule is skipped here; the palette in
+// app.css is chosen for WCAG AA contrast.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import axe from "axe-core";
 import Login from "./screens/Login.svelte";
 import Queue from "./screens/Queue.svelte";
+import WorkEditor from "./screens/WorkEditor.svelte";
 import VocabPicker from "./components/VocabPicker.svelte";
-import WorkDocView from "./components/WorkDocView.svelte";
 import { invalidateAccess, loginLocal } from "./lib/auth";
 import { setConfig } from "./lib/config";
+import { resetKeyboard } from "./lib/keyboard";
 import { sessionStore } from "./lib/stores";
 import type { QueuePage, Suggestion, WorkDoc } from "./lib/types";
 
@@ -22,12 +23,14 @@ const fixtureDoc: WorkDoc = {
     id: "w-001",
     fields: {
       title: [{ v: "The Sea Around Us", prov: "feed:overdrive", node: "_:t1" }],
-      subjectLabels: [
-        { v: "Ocean", prov: "enrichment:locsh", node: "_:s1", iri: false },
-        { v: "Marine biology", prov: "editorial:", node: "_:s2" },
-        { v: "Oceanography -- history", prov: "feed:marc", node: "_:s3", overridden: true },
+      subjects: [
+        { v: "http://id.loc.gov/sh-ocean", prov: "enrichment:locsh", node: "_:s1", iri: true },
+        { v: "http://id.loc.gov/sh-marine", prov: "editorial:", node: "_:s2", iri: true },
+        { v: "http://id.loc.gov/sh-oceanography", prov: "feed:marc", node: "_:s3", iri: true, overridden: true },
       ],
-      language: [{ v: "en", lang: "en", prov: "feed:overdrive", node: "_:l1" }],
+      summary: [{ v: "A natural history of the ocean.", lang: "en", prov: "feed:overdrive", node: "_:sm1" }],
+      language: [{ v: "http://id.loc.gov/vocabulary/languages/eng", iri: true, prov: "feed:overdrive", node: "_:l1" }],
+      subjectLabels: [{ v: "Ocean", prov: "enrichment:locsh", node: "_:x1" }],
     },
   },
   instances: [
@@ -85,6 +88,12 @@ async function audit(node: Element): Promise<axe.AxeResults> {
   return axe.run(node, {
     rules: { "color-contrast": { enabled: false } },
   });
+}
+
+/** Lets chained mocked-fetch awaits land, then flushes Svelte effects. */
+async function tick(times = 4): Promise<void> {
+  for (let i = 0; i < times; i++) await new Promise((r) => setTimeout(r, 0));
+  flushSync();
 }
 
 function jwtLike(): string {
@@ -147,14 +156,55 @@ describe("a11y", () => {
     expect(results.violations).toEqual([]);
   });
 
-  it("WorkEditor document view has no axe violations", async () => {
-    // WorkDocView renders an <article>; give it the page's main landmark the
-    // WorkEditor screen provides in the app.
-    const host = document.createElement("main");
+  it("editable WorkEditor with staged ops and a diff preview has no axe violations", async () => {
+    setConfig({ apiBase: "", localAuth: true, provider: "test", schemes: ["lcsh", "fast", "folk"] });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValueOnce(json({ accessToken: jwtLike(), refreshToken: "r1", expiresIn: 900 }));
+    await loginLocal("staff@example.org", "pw");
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("/doc")) return Promise.resolve(json({ etag: "etag-1", doc: fixtureDoc }));
+      if (url === "/v1/drafts") return Promise.resolve(json({ drafts: [] }));
+      if (url.includes("/ops"))
+        return Promise.resolve(
+          json({
+            etag: "etag-1",
+            diff: {
+              added: ['<http://example.org/w-001> <https://github.com/freeeve/libcatalog/ns#overrides> "subjects" <editorial:> .'],
+              removed: ['<http://example.org/w-001> <http://id.loc.gov/ontologies/bibframe/subject> <http://id.loc.gov/sh-ocean> <feed:marc> .'],
+            },
+          }),
+        );
+      return Promise.resolve(json({}));
+    });
+
+    const host = document.createElement("div");
     document.body.appendChild(host);
-    const app = mount(WorkDocView, { target: host, props: { doc: fixtureDoc, etag: "etag-1" } });
-    cleanup = () => unmount(app);
+    const app = mount(WorkEditor, { target: host, props: { workId: "w-001" } });
+    cleanup = () => {
+      unmount(app);
+      vi.unstubAllGlobals();
+      setConfig(null);
+      resetKeyboard();
+      invalidateAccess();
+      localStorage.clear();
+    };
+    await tick();
+    expect(host.textContent).toContain("The Sea Around Us");
+
+    // Stage a removal so the pending styling and the save bar join the tree.
+    const removeBtn = [...host.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Remove");
+    expect(removeBtn).toBeDefined();
+    removeBtn?.click();
     flushSync();
+    expect(host.textContent).toContain("1 staged edit");
+
+    // Dry-run preview so DiffPreview is audited too.
+    const previewBtn = [...host.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Preview changes");
+    previewBtn?.click();
+    await tick();
+    expect(host.textContent).toContain("1 added");
+
     const results = await audit(host);
     expect(results.violations).toEqual([]);
   });

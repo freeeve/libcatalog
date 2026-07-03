@@ -139,6 +139,26 @@ func ComputeDiff(grain []byte, p Patch) (Diff, []byte, error) {
 	return diff, updated, nil
 }
 
+// DiffLines reports the canonical N-Quads lines added and removed between
+// two grains -- the diff-preview payload for ops and patches alike.
+func DiffLines(before, after []byte) Diff {
+	b, a := lineSet(before), lineSet(after)
+	diff := Diff{Added: []string{}, Removed: []string{}}
+	for line := range a {
+		if !b[line] {
+			diff.Added = append(diff.Added, line)
+		}
+	}
+	for line := range b {
+		if !a[line] {
+			diff.Removed = append(diff.Removed, line)
+		}
+	}
+	sort.Strings(diff.Added)
+	sort.Strings(diff.Removed)
+	return diff
+}
+
 func lineSet(nq []byte) map[string]bool {
 	set := map[string]bool{}
 	for line := range strings.SplitSeq(string(nq), "\n") {

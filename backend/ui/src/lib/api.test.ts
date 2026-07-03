@@ -3,13 +3,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import {
   clearTermCache,
+  createDraft,
   decidePromotion,
+  deleteDraft,
+  fetchAudit,
+  fetchDraft,
+  fetchDrafts,
   fetchPromotions,
   fetchQueue,
   fetchTags,
   fetchTerm,
   fetchWorkDoc,
   fetchWorks,
+  postOps,
   postPublish,
   postReview,
   proposePromotion,
@@ -17,11 +23,13 @@ import {
   searchFolkTerms,
   searchTerms,
   setFolkTermStatus,
+  updateDraft,
   ApiError,
+  ConflictError,
 } from "./api";
 import { invalidateAccess, loginLocal } from "./auth";
 import { setConfig } from "./config";
-import type { Decision } from "./types";
+import type { Decision, Op } from "./types";
 
 function jwtLike(tag: string): string {
   const body = btoa(JSON.stringify({ email: "a@b.co", roles: ["librarian"], tag }))
@@ -224,6 +232,111 @@ describe("promotion wrappers", () => {
     expect(url).toBe("/v1/promotions/decide");
     expect(JSON.parse(init.body)).toEqual({ tag: "cozy", approve: true });
     expect(res.works).toBe(12);
+  });
+});
+
+describe("ops wrapper", () => {
+  const ops: Op[] = [{ resource: "work", path: "tags", action: "add", value: { v: "sea" } }];
+
+  it("postOps sends If-Match and the op batch", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ workId: "w1", etag: "e2", diff: { added: ["a"], removed: [] } }));
+    const res = await postOps("w1", ops, { ifMatch: "e1" });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/v1/works/w1/ops");
+    expect(init.method).toBe("POST");
+    expect(init.headers["If-Match"]).toBe("e1");
+    expect(JSON.parse(init.body)).toEqual({ ops });
+    expect(res.etag).toBe("e2");
+    expect(res.diff.added).toEqual(["a"]);
+  });
+
+  it("postOps dryRun omits If-Match and carries the flag", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ etag: "e1", diff: { added: [], removed: ["r"] } }));
+    const res = await postOps("w/1", ops, { dryRun: true });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/v1/works/w%2F1/ops");
+    expect(init.headers["If-Match"]).toBeUndefined();
+    expect(JSON.parse(init.body)).toEqual({ ops, dryRun: true });
+    expect(res.diff.removed).toEqual(["r"]);
+  });
+
+  it("postOps surfaces a 412 as ConflictError with the fresh state", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ workId: "w1", etag: "e9", nquads: "<a> <b> <c> ." }, 412));
+    const err = await postOps("w1", ops, { ifMatch: "stale" }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ConflictError);
+    expect((err as ConflictError).status).toBe(412);
+    expect((err as ConflictError).state).toEqual({ workId: "w1", etag: "e9", nquads: "<a> <b> <c> ." });
+  });
+
+  it("postOps surfaces validation failures with the server's message", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ error: 'editor: op 0 (add work.nope): unknown field "nope"' }, 400));
+    await expect(postOps("w1", ops, { dryRun: true })).rejects.toMatchObject({
+      status: 400,
+      message: 'editor: op 0 (add work.nope): unknown field "nope"',
+    });
+  });
+});
+
+describe("draft wrappers", () => {
+  const body = { baseEtag: "e1", ops: [{ resource: "work", path: "tags", action: "add", value: { v: "sea" } } as Op] };
+
+  it("createDraft POSTs workId and the opaque body", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ id: "d1", workId: "w1", body, updatedAt: "2026-07-01T00:00:00Z" }, 201));
+    const d = await createDraft("w1", body);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/v1/drafts");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ workId: "w1", body });
+    expect(d.id).toBe("d1");
+  });
+
+  it("fetchDrafts lists and fetchDraft reads one", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ drafts: [{ id: "d1", workId: "w1", body, updatedAt: "x" }] }));
+    const list = await fetchDrafts();
+    expect(fetchMock.mock.calls[0][0]).toBe("/v1/drafts");
+    expect(list.drafts).toHaveLength(1);
+    fetchMock.mockResolvedValueOnce(json({ id: "d1", workId: "w1", body, updatedAt: "x" }));
+    const d = await fetchDraft("d1");
+    expect(fetchMock.mock.calls[1][0]).toBe("/v1/drafts/d1");
+    expect(d.body.baseEtag).toBe("e1");
+  });
+
+  it("updateDraft PUTs to the draft id", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ id: "d1", workId: "w1", body, updatedAt: "y" }));
+    await updateDraft("d1", "w1", body);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/v1/drafts/d1");
+    expect(init.method).toBe("PUT");
+    expect(JSON.parse(init.body)).toEqual({ workId: "w1", body });
+  });
+
+  it("deleteDraft accepts the 204", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await expect(deleteDraft("d1")).resolves.toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/v1/drafts/d1");
+    expect(init.method).toBe("DELETE");
+  });
+});
+
+describe("audit wrapper", () => {
+  it("fetchAudit shapes month and the optional workId", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ month: "2026-07", entries: [] }));
+    await fetchAudit("2026-07");
+    expect(fetchMock.mock.calls[0][0]).toBe("/v1/audit?month=2026-07");
+    fetchMock.mockResolvedValueOnce(json({ month: "2026-07", entries: [] }));
+    const res = await fetchAudit("2026-07", "w/1");
+    expect(fetchMock.mock.calls[1][0]).toBe("/v1/audit?month=2026-07&workId=w%2F1");
+    expect(res.entries).toEqual([]);
   });
 });
 

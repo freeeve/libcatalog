@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -131,6 +132,73 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *s
 		}
 		w.Header().Set("ETag", newTag)
 		writeJSON(w, http.StatusOK, map[string]string{"workId": workID, "etag": newTag})
+	})))
+
+	// Field-level operations: the SPA's write path (tasks/045). Ops apply
+	// through the profile mapper with the tasks/042 override semantics;
+	// dryRun returns the exact quad delta without writing.
+	mux.Handle("POST /v1/works/{id}/ops", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id, _ := auth.FromContext(r.Context())
+		var req struct {
+			Ops    []editor.Op `json:"ops"`
+			DryRun bool        `json:"dryRun"`
+		}
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "bad request body")
+			return
+		}
+		if len(req.Ops) == 0 || len(req.Ops) > 200 {
+			writeError(w, http.StatusBadRequest, "1-200 ops per request")
+			return
+		}
+		ifMatch := r.Header.Get("If-Match")
+		if !req.DryRun && ifMatch == "" {
+			writeError(w, http.StatusPreconditionRequired, "If-Match required")
+			return
+		}
+		grain, etag, workID, ok := readGrain(w, r)
+		if !ok {
+			return
+		}
+		if !req.DryRun && etag != ifMatch {
+			w.Header().Set("ETag", etag)
+			writeJSON(w, http.StatusPreconditionFailed, grainView{WorkID: workID, ETag: etag, NQuads: string(grain)})
+			return
+		}
+		updated, err := editor.ApplyOps(docMapper, grain, workID, req.Ops)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		diff := editor.DiffLines(grain, updated)
+		if req.DryRun {
+			writeJSON(w, http.StatusOK, map[string]any{"etag": etag, "diff": diff})
+			return
+		}
+		newTag, err := bs.Put(r.Context(), bibframe.GrainPath(workID), updated, blob.PutOptions{
+			IfMatch: etag, ContentType: "application/n-quads",
+		})
+		if errors.Is(err, blob.ErrPreconditionFailed) {
+			fresh, freshTag, _, ok := readGrain(w, r)
+			if !ok {
+				return
+			}
+			w.Header().Set("ETag", freshTag)
+			writeJSON(w, http.StatusPreconditionFailed, grainView{WorkID: workID, ETag: freshTag, NQuads: string(fresh)})
+			return
+		}
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "grain write failed")
+			return
+		}
+		if queue != nil {
+			queue.WriteAudit(r.Context(), suggest.AuditEntry{
+				WorkID: workID, Action: "RECORD_EDIT", Actor: id.Email, ETag: newTag,
+				Note: fmt.Sprintf("%d ops", len(req.Ops)),
+			})
+		}
+		w.Header().Set("ETag", newTag)
+		writeJSON(w, http.StatusOK, map[string]any{"workId": workID, "etag": newTag, "diff": diff})
 	})))
 
 	// Dry-run: the exact quad delta the patch would make, nothing written.
