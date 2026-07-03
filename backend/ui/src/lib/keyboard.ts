@@ -18,6 +18,8 @@ export interface Binding {
   legend?: string;
   keyLabel?: string;
   hidden?: boolean;
+  /** The scope the binding registered in ("global" = everywhere). */
+  scope?: string;
 }
 
 export interface BindingSpec {
@@ -81,7 +83,7 @@ export function topScope(): string {
 export function bindKeys(scope: string, map: Record<string, BindingSpec>): () => void {
   const m = scopeMap(scope);
   for (const [key, spec] of Object.entries(map)) {
-    m.set(key, { key, ...spec });
+    m.set(key, { key, scope, ...spec });
   }
   bump();
   return () => {

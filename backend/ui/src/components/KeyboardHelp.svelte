@@ -2,11 +2,14 @@
   // The "?" overlay: lists the bindings active right now (top scope plus
   // global). Mounted once by App; keyboard.ts calls the presenter to open it.
   import { onMount } from "svelte";
-  import { formatKey, setHelpPresenter, type Binding } from "../lib/keyboard";
+  import { formatKey, GLOBAL_SCOPE, setHelpPresenter, type Binding } from "../lib/keyboard";
   import Modal from "./Modal.svelte";
 
   let open = $state(false);
   let active = $state<Binding[]>([]);
+
+  const local = $derived(active.filter((b) => b.scope !== GLOBAL_SCOPE));
+  const global = $derived(active.filter((b) => b.scope === GLOBAL_SCOPE));
 
   onMount(() => {
     setHelpPresenter((bindings) => {
@@ -22,24 +25,32 @@
 </script>
 
 {#if open}
-  <Modal ariaLabel="Keyboard shortcuts" onclose={close} width="26rem">
+  <Modal ariaLabel="Keyboard shortcuts" onclose={close} width="28rem">
     <h2>Keyboard shortcuts</h2>
-    {#if active.length === 0}
-      <p class="muted">No shortcuts on this screen.</p>
-    {:else}
+    {#if local.length > 0}
+      <h3>This screen</h3>
       <dl>
-        {#each active as b (b.key)}
+        {#each local as b (b.key)}
           <div class="row">
             <dt><kbd>{formatKey(b)}</kbd></dt>
             <dd>{b.description}</dd>
           </div>
         {/each}
-        <div class="row">
-          <dt><kbd>?</kbd></dt>
-          <dd>show this help</dd>
-        </div>
       </dl>
     {/if}
+    <h3>Everywhere</h3>
+    <dl>
+      {#each global as b (b.key)}
+        <div class="row">
+          <dt><kbd>{formatKey(b)}</kbd></dt>
+          <dd>{b.description}</dd>
+        </div>
+      {/each}
+      <div class="row">
+        <dt><kbd>?</kbd></dt>
+        <dd>show this help</dd>
+      </div>
+    </dl>
     <button class="button button--quiet" onclick={close}>Close</button>
   </Modal>
 {/if}
@@ -47,6 +58,14 @@
 <style>
   h2 {
     margin-top: 0;
+  }
+  h3 {
+    font-size: 0.78rem;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-muted);
+    margin: 0.8rem 0 0.2rem;
   }
   dl {
     margin: 0 0 1rem;

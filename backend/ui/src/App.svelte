@@ -137,6 +137,7 @@
       <a href="#/macros" class:current={route.name === "macros"}>Macros</a>
       <a href="#/exports" class:current={route.name === "exports"}>Exports</a>
       <a href="#/copycat" class:current={route.name === "copycat"}>Import</a>
+      <a href="#/duplicates" class:current={route.name === "duplicates"}>Duplicates</a>
       <a href="#/queue" class:current={route.name === "queue"}>Queue</a>
     </nav>
     <span class="side">

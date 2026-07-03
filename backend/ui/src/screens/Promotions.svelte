@@ -4,6 +4,7 @@
   // batch rewrite (the response reports how many works it touched).
   import { onMount } from "svelte";
   import { ApiError, decidePromotion, fetchPromotions, proposePromotion } from "../lib/api";
+  import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { canPublish } from "../lib/auth";
   import { sessionStore } from "../lib/stores";
   import { bestLabel } from "../lib/vocab";
@@ -11,7 +12,10 @@
   import VocabPicker from "../components/VocabPicker.svelte";
   import type { Promotion, Term, TermRef } from "../lib/types";
 
+  const SCOPE = "promotions";
+
   let promotions = $state<Promotion[]>([]);
+  let selected = $state(0);
   let loading = $state(false);
   let error = $state("");
   let notice = $state("");
@@ -27,7 +31,32 @@
   const pending = $derived(promotions.filter((p) => p.status === "PENDING"));
   const decided = $derived(promotions.filter((p) => p.status !== "PENDING"));
 
-  onMount(() => void load());
+  onMount(() => {
+    pushScope(SCOPE);
+    const unbind = bindKeys(SCOPE, {
+      j: { description: "next pending proposal", legend: "move", keyLabel: "j/k", handler: () => move(1) },
+      k: { description: "previous pending proposal", hidden: true, handler: () => move(-1) },
+      ArrowDown: { description: "next pending proposal", hidden: true, handler: () => move(1) },
+      ArrowUp: { description: "previous pending proposal", hidden: true, handler: () => move(-1) },
+      a: { description: "approve the selected proposal", legend: "approve", handler: () => decideSelected(true) },
+      r: { description: "reject the selected proposal", legend: "reject", handler: () => decideSelected(false) },
+    });
+    void load();
+    return () => {
+      unbind();
+      popScope(SCOPE);
+    };
+  });
+
+  function move(delta: number): void {
+    if (pending.length === 0) return;
+    selected = Math.min(pending.length - 1, Math.max(0, selected + delta));
+  }
+
+  function decideSelected(approve: boolean): void {
+    const p = pending[selected];
+    if (p && librarian) void decide(p, approve);
+  }
 
   async function load(): Promise<void> {
     loading = true;
@@ -133,8 +162,8 @@
       <p class="muted">No pending proposals.</p>
     {:else}
       <ul class="promos">
-        {#each pending as p (p.tag)}
-          <li>
+        {#each pending as p, i (p.tag)}
+          <li class:selected={i === selected} onfocusin={() => (selected = i)}>
             <div class="what">
               <strong class="tag">{p.tag}</strong>
               <span aria-hidden="true">→</span>
@@ -224,6 +253,10 @@
   .promos li {
     border-bottom: 1px solid var(--rule);
     padding: 0.5rem 0.2rem;
+  }
+  .promos li.selected {
+    background: var(--surface);
+    box-shadow: inset 3px 0 0 var(--accent);
   }
   .what {
     display: flex;

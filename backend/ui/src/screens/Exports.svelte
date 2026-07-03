@@ -6,6 +6,7 @@
   // (#/exports?kind=search&q=…).
   import { onMount } from "svelte";
   import { ApiError, createExport, fetchSavedQueries, resolveBatch, fetchExports } from "../lib/api";
+  import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import type { ExportFormat, ExportJob, SavedQuery, Selection } from "../lib/types";
 
   // Prefill from a deep link (kind + query/ids/savedQueryId).
@@ -43,15 +44,28 @@
   let format = $state<ExportFormat>("csv");
   let matched = $state<number | null>(null);
   let jobs = $state<ExportJob[]>([]);
+  let selected = $state(0);
   let busy = $state(false);
   let error = $state("");
   let status = $state("");
   let timer: ReturnType<typeof setInterval> | undefined;
 
+  const SCOPE = "exports";
+
   const formatNote = $derived(FORMATS.find((f) => f.value === format)?.note ?? "");
   const hasActive = $derived(jobs.some((j) => j.status === "QUEUED" || j.status === "RUNNING"));
 
   onMount(() => {
+    pushScope(SCOPE);
+    const unbind = bindKeys(SCOPE, {
+      j: { description: "next job", legend: "move", keyLabel: "j/k", handler: () => move(1) },
+      k: { description: "previous job", hidden: true, handler: () => move(-1) },
+      ArrowDown: { description: "next job", hidden: true, handler: () => move(1) },
+      ArrowUp: { description: "previous job", hidden: true, handler: () => move(-1) },
+      Enter: { description: "download the selected job", legend: "download", handler: downloadSelected },
+      r: { description: "refresh the job list", legend: "refresh", handler: () => void refresh() },
+      n: { description: "focus the new-export form", legend: "new export", handler: focusForm },
+    });
     void refresh();
     fetchSavedQueries().then(
       (r) => (savedQueries = r.queries ?? []),
@@ -61,8 +75,27 @@
     timer = setInterval(() => {
       if (hasActive) void refresh();
     }, POLL_MS);
-    return () => clearInterval(timer);
+    return () => {
+      unbind();
+      popScope(SCOPE);
+      clearInterval(timer);
+    };
   });
+
+  function move(delta: number): void {
+    if (jobs.length === 0) return;
+    selected = Math.min(jobs.length - 1, Math.max(0, selected + delta));
+    document.querySelectorAll("tbody tr")[selected]?.scrollIntoView?.({ block: "nearest" });
+  }
+
+  function downloadSelected(): void {
+    const j = jobs[selected];
+    if (j && j.downloadUrl && !expired(j)) location.href = j.downloadUrl;
+  }
+
+  function focusForm(): void {
+    document.getElementById("ex-kind")?.focus();
+  }
 
   function selection(): Selection {
     switch (kind) {
@@ -197,8 +230,8 @@
           <tr><th scope="col">Created</th><th scope="col">Format</th><th scope="col">Selection</th><th scope="col">Status</th><th scope="col">Records</th><th scope="col">Download</th></tr>
         </thead>
         <tbody>
-          {#each jobs as j (j.id)}
-            <tr>
+          {#each jobs as j, i (j.id)}
+            <tr class:selected={i === selected} onfocusin={() => (selected = i)}>
               <td>{new Date(j.createdAt).toLocaleString()}</td>
               <td class="mono">{j.format}</td>
               <td>{describeSelection(j)}</td>
@@ -274,6 +307,12 @@
     text-align: left;
     padding: 0.35rem 0.6rem;
     border-bottom: 1px solid var(--rule);
+  }
+  tbody tr.selected {
+    background: var(--surface);
+  }
+  tbody tr.selected td:first-child {
+    box-shadow: inset 3px 0 0 var(--accent);
   }
   .mono {
     font-family: var(--mono);

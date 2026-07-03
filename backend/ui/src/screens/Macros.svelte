@@ -6,10 +6,14 @@
   // this screen is where recordings get parameterized and shared.
   import { onMount } from "svelte";
   import { ApiError, createMacro, deleteMacro, fetchMacros, updateMacro } from "../lib/api";
+  import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { sessionStore } from "../lib/stores";
   import type { Macro, MacroParam, Op } from "../lib/types";
 
+  const SCOPE = "macros";
+
   let macros = $state<Macro[]>([]);
+  let selected = $state(0);
   let editing = $state<Macro | null>(null);
   let label = $state("");
   let keys = $state("");
@@ -21,7 +25,32 @@
 
   const me = $derived($sessionStore?.email ?? "");
 
-  onMount(() => void load());
+  onMount(() => {
+    pushScope(SCOPE);
+    const unbind = bindKeys(SCOPE, {
+      j: { description: "next macro", legend: "move", keyLabel: "j/k", handler: () => move(1) },
+      k: { description: "previous macro", hidden: true, handler: () => move(-1) },
+      ArrowDown: { description: "next macro", hidden: true, handler: () => move(1) },
+      ArrowUp: { description: "previous macro", hidden: true, handler: () => move(-1) },
+      Enter: { description: "edit the selected macro", legend: "edit", handler: editSelected },
+      n: { description: "start a new macro", legend: "new", handler: startNew },
+    });
+    void load();
+    return () => {
+      unbind();
+      popScope(SCOPE);
+    };
+  });
+
+  function move(delta: number): void {
+    if (macros.length === 0) return;
+    selected = Math.min(macros.length - 1, Math.max(0, selected + delta));
+  }
+
+  function editSelected(): void {
+    const m = macros[selected];
+    if (m && m.owner === me) startEdit(m);
+  }
 
   async function load(): Promise<void> {
     try {
@@ -117,8 +146,8 @@
     <section aria-label="Macro list">
       <p><button class="button" onclick={startNew}>New macro</button></p>
       <ul class="list">
-        {#each macros as m (m.id)}
-          <li>
+        {#each macros as m, i (m.id)}
+          <li class:selected={i === selected} onfocusin={() => (selected = i)}>
             <span class="name">
               {m.label}
               {#if m.keys}<kbd>{m.keys}</kbd>{/if}
@@ -204,6 +233,10 @@
     gap: 0.15rem 0.8rem;
     padding: 0.5rem 0.4rem;
     border-bottom: 1px solid var(--rule);
+  }
+  .list li.selected {
+    background: var(--surface);
+    box-shadow: inset 3px 0 0 var(--accent);
   }
   .name {
     font-weight: 600;
