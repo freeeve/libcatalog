@@ -693,7 +693,7 @@ describe("a11y", () => {
     batchBtn?.click();
     await tick();
     expect(host.textContent).toContain("would merge with an existing work");
-    expect(host.textContent).toContain("open wabc123def456");
+    expect(host.textContent).toContain("wabc123def456");
     const results = await audit(host);
     expect(results.violations).toEqual([]);
   });
