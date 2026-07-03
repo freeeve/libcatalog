@@ -77,11 +77,13 @@ func ApplyShadow(g *rdf.Graph, overrides Overrides) *rdf.Graph {
 		return g
 	}
 	filtered := &rdf.Graph{}
-	for _, tr := range g.Triples {
+	filtered.Triples = make([]rdf.Triple, 0, len(g.Triples))
+	for i := range g.Triples {
+		tr := &g.Triples[i]
 		if tr.S.IsIRI() && overrides.Shadows(tr.S.Value, tr.P.Value) {
 			continue
 		}
-		filtered.Add(tr.S, tr.P, tr.O)
+		filtered.Triples = append(filtered.Triples, *tr)
 	}
 	return filtered
 }

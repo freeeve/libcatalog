@@ -326,10 +326,8 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 		return nil, err
 	}
 	overrides := bibframe.ScanOverrides(ds)
-	view := mergeGraphs(
-		bibframe.ApplyShadow(ds.Graph(bibframe.FeedGraph(provider)), overrides),
-		ds.Graph(bibframe.EditorialGraph()),
-	)
+	feedG, edG := splitGraphs(ds, bibframe.FeedGraph(provider), bibframe.EditorialGraph())
+	view := mergeGraphs(bibframe.ApplyShadow(feedG, overrides), edG)
 	p := &projector{
 		view:    view,
 		labels:  buildLabelIndex(ds),
@@ -370,20 +368,56 @@ type projector struct {
 	extras  map[string]map[string]string // Work node IRI -> extra key -> value (tasks/026)
 }
 
-// mergeGraphs unions two graphs (either may be nil).
+// splitGraphs extracts two named graphs from the dataset in one preallocated
+// pass (the generic Dataset.Graph appends with growth per call; on a
+// 300k-quad corpus those re-copies dominated the allocation profile).
+func splitGraphs(ds *rdf.Dataset, aTerm, bTerm rdf.Term) (a, b *rdf.Graph) {
+	na, nb := 0, 0
+	for i := range ds.Quads {
+		switch ds.Quads[i].G {
+		case aTerm:
+			na++
+		case bTerm:
+			nb++
+		}
+	}
+	if na > 0 {
+		a = &rdf.Graph{Triples: make([]rdf.Triple, 0, na)}
+	}
+	if nb > 0 {
+		b = &rdf.Graph{Triples: make([]rdf.Triple, 0, nb)}
+	}
+	for i := range ds.Quads {
+		q := &ds.Quads[i]
+		switch q.G {
+		case aTerm:
+			a.Triples = append(a.Triples, rdf.Triple{S: q.S, P: q.P, O: q.O})
+		case bTerm:
+			b.Triples = append(b.Triples, rdf.Triple{S: q.S, P: q.P, O: q.O})
+		}
+	}
+	return a, b
+}
+
+// mergeGraphs unions two graphs (either may be nil). When one side is empty
+// the other is returned as-is -- the common no-editorial corpus skips the
+// copy and the duplicate lookup-index build entirely. The merged slice is
+// built at exact capacity in two bulk appends rather than per-triple Add
+// calls (Add's append growth re-copied the ~300k-triple corpus log2(n)
+// times and dominated the allocation profile).
 func mergeGraphs(a, b *rdf.Graph) *rdf.Graph {
-	if a == nil && b == nil {
+	switch {
+	case a == nil && b == nil:
 		return nil
+	case b == nil || len(b.Triples) == 0:
+		return a
+	case a == nil || len(a.Triples) == 0:
+		return b
 	}
 	merged := &rdf.Graph{}
-	for _, g := range []*rdf.Graph{a, b} {
-		if g == nil {
-			continue
-		}
-		for _, tr := range g.Triples {
-			merged.Add(tr.S, tr.P, tr.O)
-		}
-	}
+	merged.Triples = make([]rdf.Triple, 0, len(a.Triples)+len(b.Triples))
+	merged.Triples = append(merged.Triples, a.Triples...)
+	merged.Triples = append(merged.Triples, b.Triples...)
 	return merged
 }
 
