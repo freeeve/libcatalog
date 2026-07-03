@@ -69,6 +69,19 @@ subjects, genre, and access link -- the fields discovery is built on.
   in `008/35-37`: the crosswalk surfaces the coded language as an explicit `041`. The
   information survives; its MARC home moves.
 
+## The `lcat:marcVerbatim` sidecar (tasks/049)
+
+Since tasks/049 the known-loss tags are **no longer dropped at MARC ingest**: each
+record's known-loss fields (see `bibframe.KnownLoss`) are serialized field-exact
+(tag + indicators + subfield runs) and stored as `lcat:marcVerbatim` literals on the
+Instance node, in the feed graph. Consumers of `bibframe.DecodeGrainMARC` -- MARC
+export and the MARC view -- re-attach them, so the original forms round-trip even
+though the crosswalk models them differently. Edits to a lossy tag in the MARC view
+land as editorial `lcat:marcVerbatim` statements with an `lcat:overrides` claim
+shadowing the feed copies, the same tasks/042 semantics every other field edit gets.
+The loss table remains the honest contract for what the *graph model* carries; the
+sidecar is the guarantee that nothing is silently thrown away.
+
 ## Why this validates the OverDrive architecture
 
 The two framework-critical MARC losses -- **037 (Reserve ID)** and **084 (BISAC)** --
@@ -76,7 +89,8 @@ are exactly the fields the OverDrive **direct JSON→BIBFRAME** provider preserv
 (`ingest/overdrive`, `tasks/008`). This is the measured backing for the decision that
 OverDrive ingests directly, and MARC is only the existing-ILS onboarding ramp
 (`tasks/007`): the MARC detour would silently drop the availability key and the
-subject classification.
+subject classification. (With the tasks/049 sidecar, even the MARC ramp now carries
+them verbatim -- the direct provider remains preferable because it *models* them.)
 
 ## MODS / schema.org
 

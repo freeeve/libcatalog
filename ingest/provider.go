@@ -64,6 +64,15 @@ type Record interface {
 	Instance() codexbf.Instance
 }
 
+// VerbatimProvider is an optional capability a Record may implement to carry the
+// crosswalk-lossy MARC fields of its source record, serialized field-exact via
+// bibframe.EncodeVerbatimField. Run writes them into the Instance's feed graph
+// under bibframe.PredMARCVerbatim, so a lossy tag is preserved verbatim rather
+// than silently dropped, and MARC export / the MARC view reproduce it (tasks/049).
+type VerbatimProvider interface {
+	Verbatim() []string
+}
+
 // ExtraProvider is an optional capability a Record may implement to carry per-Work
 // display fields that are not part of BIBFRAME -- e.g. a cover URL, a personal rating,
 // or a read date. Run writes them into the Work's feed provenance graph under

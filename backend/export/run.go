@@ -187,13 +187,15 @@ func (s *Service) emitNQuads(ctx context.Context, paths []string) ([]byte, int, 
 }
 
 // emitMARC round-trips each grain to MARC (lossiness measured in
-// docs/marc-fidelity.md; editorial statements ride along into the decode).
+// docs/marc-fidelity.md); the framework-aware decode honors editorial
+// lcat:overrides shadows and re-attaches each record's lcat:marcVerbatim
+// sidecar fields, so the crosswalk-lossy tags round-trip (tasks/049).
 func (s *Service) emitMARC(ctx context.Context, paths []string) ([]byte, int, error) {
 	var out bytes.Buffer
 	w := iso2709.NewWriter(&out)
 	count := 0
 	err := s.eachGrain(ctx, paths, func(_ string, grain []byte) error {
-		recs, err := codexbf.Decode(grain)
+		recs, err := bibframe.DecodeGrainMARC(grain)
 		if err != nil {
 			return err
 		}
@@ -213,7 +215,7 @@ func (s *Service) emitMARC(ctx context.Context, paths []string) ([]byte, int, er
 func (s *Service) emitJSONLD(ctx context.Context, paths []string) ([]byte, int, error) {
 	docs := []json.RawMessage{}
 	err := s.eachGrain(ctx, paths, func(_ string, grain []byte) error {
-		recs, err := codexbf.Decode(grain)
+		recs, err := bibframe.DecodeGrainMARC(grain)
 		if err != nil {
 			return err
 		}

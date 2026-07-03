@@ -64,22 +64,29 @@ func (p Provider) Records(_ context.Context) ([]ingest.Record, error) {
 	out := make([]ingest.Record, 0, len(recs))
 	for _, rec := range recs {
 		bib := codexbf.FromRecord(rec)
-		out = append(out, record{bib: bib, id: recordIdentity(bib, rec.ControlField("001"))})
+		out = append(out, record{
+			bib:      bib,
+			id:       recordIdentity(bib, rec.ControlField("001")),
+			verbatim: bibframe.VerbatimFields(rec),
+		})
 	}
 	return out, nil
 }
 
-// record is one MARC record as an ingest.Record: its BIBFRAME (from FromRecord) and
-// the identity keys derived from it. Identity is precomputed so the interface's
-// three accessors do not re-crosswalk.
+// record is one MARC record as an ingest.Record: its BIBFRAME (from FromRecord),
+// the identity keys derived from it, and the crosswalk-lossy fields preserved
+// verbatim for the sidecar (tasks/049). Identity is precomputed so the
+// interface's three accessors do not re-crosswalk.
 type record struct {
-	bib *codexbf.BIBFRAME
-	id  identity.Record
+	bib      *codexbf.BIBFRAME
+	id       identity.Record
+	verbatim []string
 }
 
 func (r record) Identity() identity.Record  { return r.id }
 func (r record) Work() codexbf.Work         { return r.bib.Work }
 func (r record) Instance() codexbf.Instance { return r.bib.Instance }
+func (r record) Verbatim() []string         { return r.verbatim }
 
 // recordIdentity derives resolution keys and clustering fields from a record's
 // BIBFRAME. The MARC control number (001) is the most specific provider-local key

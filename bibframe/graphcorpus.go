@@ -128,6 +128,11 @@ func addWorkExtras(g *rdf.Graph, workID string, extras map[string]string) {
 type GroupInstance struct {
 	InstanceID string
 	Instance   codexbf.Instance
+	// Verbatim carries the record's crosswalk-lossy MARC fields serialized
+	// field-exact (EncodeVerbatimField), emitted into the feed graph under
+	// PredMARCVerbatim so nothing is silently dropped (tasks/049). Empty for
+	// non-MARC providers, leaving the grain unchanged.
+	Verbatim []string
 }
 
 // GrainFromGraph canonicalizes one BIBFRAME graph into its N-Quads grain, every
@@ -182,6 +187,9 @@ func BuildWorks(sink storage.Sink, works []WorkGroup, provider string) (BuildSta
 		g := wi.Graph(wg.WorkID, bases)
 		addWorkExtras(g, wg.WorkID, wg.Extras)
 		addControlledSubjects(g, wg.WorkID, wg.Subjects)
+		for _, gi := range wg.Instances {
+			addInstanceVerbatim(g, gi.InstanceID, gi.Verbatim)
+		}
 		grain, err := grainWithEditorial(g, feed, wg.Editorial)
 		if err != nil {
 			return stats, fmt.Errorf("grain %s: %w", wg.WorkID, err)

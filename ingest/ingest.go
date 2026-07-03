@@ -91,10 +91,17 @@ func Run(prov Provider, out string) (Result, error) {
 			continue
 		}
 		seenInstance[a.InstanceID] = true
-		wg.Instances = append(wg.Instances, bibframe.GroupInstance{
+		gi := bibframe.GroupInstance{
 			InstanceID: a.InstanceID,
 			Instance:   rec.Instance(),
-		})
+		}
+		// A MARC-sourced record's crosswalk-lossy fields ride along verbatim
+		// (tasks/049), so the loss table stays a rendering concern, not a
+		// data loss.
+		if vp, ok := rec.(VerbatimProvider); ok {
+			gi.Verbatim = vp.Verbatim()
+		}
+		wg.Instances = append(wg.Instances, gi)
 	}
 
 	ids := make([]string, 0, len(byWork))
