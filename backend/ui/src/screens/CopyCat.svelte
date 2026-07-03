@@ -9,10 +9,13 @@
     ApiError,
     copycatSearch,
     deleteCopycatBatch,
+    deleteCopycatProfile,
     deleteCopycatTarget,
     fetchCopycatBatch,
     fetchCopycatBatches,
+    fetchCopycatProfiles,
     fetchCopycatTargets,
+    putCopycatProfile,
     putCopycatTarget,
     stageCopycatBatch,
   } from "../lib/api";
@@ -21,7 +24,14 @@
   import { sessionStore } from "../lib/stores";
   import CopycatResults from "../components/CopycatResults.svelte";
   import CopycatReview from "../components/CopycatReview.svelte";
-  import type { CopycatBatch, CopycatSearchResult, CopycatStagedRecord, CopycatTarget } from "../lib/types";
+  import type {
+    CopycatBatch,
+    CopycatPolicy,
+    CopycatProfile,
+    CopycatSearchResult,
+    CopycatStagedRecord,
+    CopycatTarget,
+  } from "../lib/types";
 
   const SCOPE = "copycat";
 
@@ -34,13 +44,24 @@
     batches: [] as CopycatBatch[],
     openBatch: null as CopycatBatch | null,
     openRecords: [] as CopycatStagedRecord[],
+    profileName: "",
   }));
 
   let targets = $state<CopycatTarget[]>([]);
   let newTarget = $state<CopycatTarget>({ name: "", url: "", protocol: "sru" });
+  let profiles = $state<CopycatProfile[]>([]);
+  let newProfile = $state<{ name: string; policy: CopycatPolicy; targets: Record<string, boolean> }>({
+    name: "",
+    policy: "replace-feed",
+    targets: {},
+  });
   let busy = $state(false);
   let status = $state("");
   let error = $state("");
+
+  /** The active staging profile: its targets scope the search, its policy
+   *  pre-sets staged batches (tasks/068). */
+  const profile = $derived(profiles.find((p) => p.name === st.profileName) ?? null);
 
   const isAdmin = $derived(($sessionStore?.roles ?? []).includes("admin"));
 
@@ -55,6 +76,7 @@
     });
     void loadTargets();
     void loadBatches();
+    void loadProfiles();
     return unbind;
   });
 
@@ -75,6 +97,39 @@
       st.batches = (await fetchCopycatBatches()).batches ?? [];
     } catch {
       st.batches = [];
+    }
+  }
+
+  async function loadProfiles(): Promise<void> {
+    try {
+      profiles = (await fetchCopycatProfiles()).profiles ?? [];
+    } catch {
+      profiles = [];
+    }
+  }
+
+  async function saveProfile(): Promise<void> {
+    error = "";
+    const picked = Object.entries(newProfile.targets)
+      .filter(([, on]) => on)
+      .map(([name]) => name);
+    try {
+      await putCopycatProfile({ name: newProfile.name.trim(), targets: picked, policy: newProfile.policy });
+      st.profileName = newProfile.name.trim();
+      newProfile = { name: "", policy: "replace-feed", targets: {} };
+      await loadProfiles();
+    } catch (e) {
+      error = e instanceof ApiError ? e.message : "saving the profile failed";
+    }
+  }
+
+  async function removeProfile(name: string): Promise<void> {
+    try {
+      await deleteCopycatProfile(name);
+      if (st.profileName === name) st.profileName = "";
+      await loadProfiles();
+    } catch {
+      error = "deleting the profile failed";
     }
   }
 
@@ -106,7 +161,7 @@
     st.picked = {};
     st.resultsSelected = 0;
     try {
-      const res = await copycatSearch(st.query);
+      const res = await copycatSearch(st.query, profile?.targets ?? undefined);
       st.results = res.results ?? [];
       st.failures = res.failures ?? {};
     } catch (e) {
@@ -122,7 +177,12 @@
     busy = true;
     error = "";
     try {
-      const res = await stageCopycatBatch({ label: `search: ${st.query}`, source: "search", records });
+      const res = await stageCopycatBatch({
+        label: `search: ${st.query}`,
+        source: "search",
+        records,
+        ...(profile?.policy ? { policy: profile.policy } : {}),
+      });
       status = `staged ${res.records.length} record${res.records.length === 1 ? "" : "s"}`;
       st.picked = {};
       await loadBatches();
@@ -144,7 +204,11 @@
       const buf = new Uint8Array(await file.arrayBuffer());
       let bin = "";
       for (const b of buf) bin += String.fromCharCode(b);
-      const res = await stageCopycatBatch({ label: file.name, mrc: btoa(bin) });
+      const res = await stageCopycatBatch({
+        label: file.name,
+        mrc: btoa(bin),
+        ...(profile?.policy ? { policy: profile.policy } : {}),
+      });
       status = `staged ${res.records.length} record${res.records.length === 1 ? "" : "s"} from ${file.name}`;
       await loadBatches();
       await open(res.batch.id);
@@ -218,6 +282,33 @@
     {/if}
   </details>
 
+  <details class="targets">
+    <summary>Staging profiles ({profiles.length})</summary>
+    <ul class="tlist">
+      {#each profiles as p (p.name)}
+        <li>
+          <span class="mono">{p.name}</span> ·
+          <span class="muted">{p.targets?.length ? p.targets.join(", ") : "all targets"} · {p.policy || "replace-feed"}</span>
+          <button class="button button--quiet mini" onclick={() => void removeProfile(p.name)}>Remove</button>
+        </li>
+      {:else}
+        <li class="muted">No profiles saved. A profile remembers target choices and overlay policy for recurring imports.</li>
+      {/each}
+    </ul>
+    <div class="row">
+      <input aria-label="Profile name" bind:value={newProfile.name} placeholder="name (e.g. weekly-loc)" />
+      <select aria-label="Overlay policy" bind:value={newProfile.policy}>
+        <option value="replace-feed">replace feed</option>
+        <option value="fill-holes-only">fill holes only</option>
+        <option value="never">never overlay</option>
+      </select>
+      {#each targets as t (t.name)}
+        <label class="pick"><input type="checkbox" bind:checked={newProfile.targets[t.name]} /> {t.name}</label>
+      {/each}
+      <button class="button" onclick={() => void saveProfile()} disabled={!newProfile.name.trim()}>Save profile</button>
+    </div>
+  </details>
+
   <section aria-label="External search">
     <h2>Search external targets</h2>
     <div class="row">
@@ -229,6 +320,12 @@
         placeholder="title, author, ISBN…"
         onkeydown={(ev) => ev.key === "Enter" && void search()}
       />
+      <select aria-label="Staging profile" bind:value={st.profileName}>
+        <option value="">no profile</option>
+        {#each profiles as p (p.name)}
+          <option value={p.name}>{p.name}</option>
+        {/each}
+      </select>
       <button class="button" onclick={() => void search()} disabled={busy || !st.query.trim()}>Search</button>
       <label class="button button--quiet upload-btn">
         Stage a .mrc file… <input type="file" accept=".mrc,.marc" onchange={(ev) => void upload(ev)} hidden />
@@ -327,6 +424,11 @@
   }
   .upload-btn {
     cursor: pointer;
+  }
+  .pick {
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+    white-space: nowrap;
   }
   .blist {
     list-style: none;

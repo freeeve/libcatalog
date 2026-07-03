@@ -70,6 +70,9 @@ func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.Tok
 			Records []marcview.RecordDoc `json:"records"`
 			// MRC carries a base64 ISO 2709 upload instead of records.
 			MRC string `json:"mrc"`
+			// Policy pre-sets the overlay policy (a staging profile's
+			// choice); empty keeps the replace-feed default.
+			Policy string `json:"policy"`
 		}
 		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<20)).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "bad request body")
@@ -94,6 +97,12 @@ func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.Tok
 		}
 		if writeCopycatError(w, err) {
 			return
+		}
+		if req.Policy != "" {
+			batch, err = svc.Review(r.Context(), batch.ID, req.Policy, nil)
+			if writeCopycatError(w, err) {
+				return
+			}
 		}
 		writeJSON(w, http.StatusCreated, map[string]any{"batch": batch, "records": records})
 	})))
@@ -146,6 +155,45 @@ func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.Tok
 			return
 		}
 		writeJSON(w, http.StatusOK, batch)
+	})))
+
+	// Revert (tasks/068): roll a committed batch back grain by grain;
+	// post-commit editorial edits survive as reported skips.
+	mux.Handle("POST /v1/copycat/batches/{id}/revert", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id, _ := auth.FromContext(r.Context())
+		result, err := svc.Revert(r.Context(), r.PathValue("id"), id.Email)
+		if writeCopycatError(w, err) {
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	})))
+
+	// Staging profiles (tasks/068): saved import configurations.
+	mux.Handle("GET /v1/copycat/profiles", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		profiles, err := svc.Profiles(r.Context())
+		if writeCopycatError(w, err) {
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"profiles": profiles})
+	})))
+
+	mux.Handle("POST /v1/copycat/profiles", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var p copycat.Profile
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&p); err != nil {
+			writeError(w, http.StatusBadRequest, "bad request body")
+			return
+		}
+		if writeCopycatError(w, svc.PutProfile(r.Context(), p)) {
+			return
+		}
+		writeJSON(w, http.StatusOK, p)
+	})))
+
+	mux.Handle("DELETE /v1/copycat/profiles/{name}", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeCopycatError(w, svc.DeleteProfile(r.Context(), r.PathValue("name"))) {
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	})))
 
 	mux.Handle("DELETE /v1/copycat/batches/{id}", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

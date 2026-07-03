@@ -14,7 +14,7 @@ import {
   updateDraft,
 } from "./api";
 import { createOpsStore } from "./ops";
-import type { Diff, Draft, Op, WorkDoc } from "./types";
+import type { Diff, Draft, DuplicateMatch, Op, WorkDoc } from "./types";
 
 export const AUTOSAVE_MS = 3000;
 
@@ -34,6 +34,9 @@ export interface EditorState {
   opError: string;
   /** Last successful-save summary. */
   notice: string;
+  /** Non-blocking post-save warning: the doc now clusters with another
+   *  work (tasks/068). Dismissed by further edits or dismissDuplicate. */
+  duplicate: DuplicateMatch | null;
   /** A draft found on open, awaiting the resume-or-discard choice. */
   pendingDraft: Draft | null;
   /** The autosave target draft id ("" until the first autosave lands). */
@@ -56,6 +59,8 @@ export interface EditorSession extends Readable<EditorState> {
   reload(): Promise<void>;
   /** Drops the staged ops and the autosaved draft. */
   discard(): Promise<void>;
+  /** Hides the duplicate warning banner. */
+  dismissDuplicate(): void;
   resumeDraft(): void;
   discardDraft(): Promise<void>;
   /** Cancels the pending autosave timer (screen unmount). */
@@ -76,6 +81,7 @@ export function createEditorSession(workId: string): EditorSession {
     conflict: false,
     opError: "",
     notice: "",
+    duplicate: null,
     pendingDraft: null,
     draftId: "",
   };
@@ -145,7 +151,7 @@ export function createEditorSession(workId: string): EditorSession {
   }
 
   function afterEdit(): void {
-    patch({ diff: null, opError: "", notice: "" });
+    patch({ diff: null, opError: "", notice: "", duplicate: null });
     scheduleAutosave();
   }
 
@@ -176,6 +182,7 @@ export function createEditorSession(workId: string): EditorSession {
         diff: null,
         conflict: false,
         draftId: "",
+        duplicate: res.duplicate ?? null,
         notice: `Saved ${staged.length} edit${staged.length === 1 ? "" : "s"} (+${res.diff.added.length} / -${res.diff.removed.length} statements).`,
       });
       if (draftId) await deleteDraft(draftId).catch(() => undefined);
@@ -251,6 +258,9 @@ export function createEditorSession(workId: string): EditorSession {
     save,
     dismissPreview(): void {
       patch({ diff: null });
+    },
+    dismissDuplicate(): void {
+      patch({ duplicate: null });
     },
     reload,
     discard,

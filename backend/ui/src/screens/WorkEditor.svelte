@@ -116,6 +116,17 @@
         </div>
       {/if}
 
+      {#if $session.duplicate}
+        <div class="banner banner--warn" role="alert">
+          <span>
+            Saved -- but this record now matches an existing work
+            ({$session.duplicate.via === "identifier" ? "shared identifier" : "same title and author"}).
+          </span>
+          <a class="button" href="#/works/{$session.duplicate.workId}">Open {$session.duplicate.workId}</a>
+          <button class="button button--quiet" onclick={() => session.dismissDuplicate()}>Dismiss</button>
+        </div>
+      {/if}
+
       {#if $session.notice}<p class="notice" role="status">{$session.notice}</p>{/if}
       {#if $session.opError}<p class="error" role="alert">{$session.opError}</p>{/if}
 

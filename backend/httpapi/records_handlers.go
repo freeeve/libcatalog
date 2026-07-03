@@ -183,7 +183,11 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *s
 		}
 		diff := editor.DiffLines(grain, updated)
 		if req.DryRun {
-			writeJSON(w, http.StatusOK, map[string]any{"etag": etag, "diff": diff})
+			resp := map[string]any{"etag": etag, "diff": diff}
+			if dup := findDuplicate(r.Context(), bs, workID, updated); dup != nil {
+				resp["duplicate"] = dup
+			}
+			writeJSON(w, http.StatusOK, resp)
 			return
 		}
 		newTag, err := bs.Put(r.Context(), bibframe.GrainPath(workID), updated, blob.PutOptions{
@@ -212,7 +216,11 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *s
 			_, _ = hook.AutoLink(r.Context(), workID, updated)
 		}
 		w.Header().Set("ETag", newTag)
-		writeJSON(w, http.StatusOK, map[string]any{"workId": workID, "etag": newTag, "diff": diff})
+		resp := map[string]any{"workId": workID, "etag": newTag, "diff": diff}
+		if dup := findDuplicate(r.Context(), bs, workID, updated); dup != nil {
+			resp["duplicate"] = dup
+		}
+		writeJSON(w, http.StatusOK, resp)
 	})))
 
 	// Dry-run: the exact quad delta the patch would make, nothing written.

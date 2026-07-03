@@ -121,6 +121,9 @@ type Batch struct {
 	Committed int       `json:"committed,omitempty"`
 	Skipped   int       `json:"skipped,omitempty"`
 	CommitAt  time.Time `json:"commitAt,omitzero"`
+	// Revert outcome (tasks/068).
+	Reverted int       `json:"reverted,omitempty"`
+	RevertAt time.Time `json:"revertAt,omitzero"`
 }
 
 // SearchResult is one external hit, ready to stage.
@@ -526,6 +529,11 @@ func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
 		}
 		commit = append(commit, rec)
 	}
+	// Snapshot the pre-commit state the revert path needs (tasks/068).
+	existed, priors, err := s.preCommitSnapshot(ctx, fresh)
+	if err != nil {
+		return Batch{}, err
+	}
 	changed := []string{}
 	if len(commit) > 0 {
 		prov := staticProvider{name: s.feed(), recs: marc.FromCodexRecords(commit)}
@@ -534,6 +542,9 @@ func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
 			return Batch{}, err
 		}
 		changed = paths
+	}
+	if err := s.writeRevertSet(ctx, b.ID, changed, existed, priors); err != nil {
+		return Batch{}, err
 	}
 	b.Status = StatusCommitted
 	b.Committed = len(commit)
@@ -553,7 +564,7 @@ func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
 	return b, nil
 }
 
-// DeleteBatch removes a batch and its records.
+// DeleteBatch removes a batch, its records, and its revert set.
 func (s *Service) DeleteBatch(ctx context.Context, id string) error {
 	b, records, err := s.GetBatch(ctx, id)
 	if err != nil {
@@ -561,6 +572,11 @@ func (s *Service) DeleteBatch(ctx context.Context, id string) error {
 	}
 	for _, sr := range records {
 		_ = s.DB.Delete(ctx, store.Record{Key: recordKey(id, sr.Index)}, store.CondNone)
+	}
+	for rec, err := range s.DB.Query(ctx, "CCREV#"+id, "", store.QueryOpt{}) {
+		if err == nil {
+			_ = s.DB.Delete(ctx, store.Record{Key: rec.Key}, store.CondNone)
+		}
 	}
 	return s.DB.Delete(ctx, store.Record{Key: batchKey(b.ID)}, store.CondNone)
 }

@@ -6,7 +6,7 @@
   // Escape closes the batch. Decisions render as tinted chips; bulk keys
   // ship one review call.
   import { onMount } from "svelte";
-  import { ApiError, commitCopycatBatch, reviewCopycatBatch } from "../lib/api";
+  import { ApiError, commitCopycatBatch, revertCopycatBatch, reviewCopycatBatch } from "../lib/api";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { navigate } from "../lib/router";
   import Modal from "./Modal.svelte";
@@ -35,10 +35,14 @@
 
   let selected = $state(0);
   let confirming = $state(false);
+  let confirmingRevert = $state(false);
   let busy = $state(false);
   let error = $state("");
+  let revertNote = $state("");
+  let revertSkips = $state<{ path: string; reason: string }[]>([]);
 
   const staged = $derived(batch.status === "STAGED");
+  const committed = $derived(batch.status === "COMMITTED");
   const importCount = $derived(records.filter((r) => r.decision === "import").length);
 
   onMount(() => {
@@ -97,12 +101,31 @@
     confirming = false;
     busy = true;
     error = "";
+    revertNote = "";
+    revertSkips = [];
     try {
       const done = await commitCopycatBatch(batch.id);
       batch = done;
       oncommitted(done);
     } catch (e) {
       error = e instanceof ApiError ? e.message : "commit failed";
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function revert(): Promise<void> {
+    confirmingRevert = false;
+    busy = true;
+    error = "";
+    try {
+      const res = await revertCopycatBatch(batch.id);
+      batch = res.batch;
+      revertSkips = res.skipped ?? [];
+      revertNote = `${res.reverted} grain${res.reverted === 1 ? "" : "s"} reverted${revertSkips.length ? `, ${revertSkips.length} skipped` : ""}`;
+      oncommitted(res.batch);
+    } catch (e) {
+      error = e instanceof ApiError ? e.message : "revert failed";
     } finally {
       busy = false;
     }
@@ -158,7 +181,24 @@
     <button class="button" onclick={() => (confirming = true)} disabled={busy || !staged}>
       {staged ? `Commit batch (${importCount} import · ${records.length - importCount} skip)` : `Committed ${batch.committed} / skipped ${batch.skipped}`}
     </button>
+    {#if committed}
+      <button class="button button--quiet" onclick={() => (confirmingRevert = true)} disabled={busy}>Revert commit…</button>
+    {/if}
+    {#if batch.status === "REVERTED"}
+      <span class="muted">reverted {batch.reverted} grain{batch.reverted === 1 ? "" : "s"}</span>
+    {/if}
+    {#if revertNote}<span class="ok" role="status">{revertNote}</span>{/if}
   </p>
+  {#if revertSkips.length > 0}
+    <details class="skips">
+      <summary>{revertSkips.length} grain{revertSkips.length === 1 ? "" : "s"} skipped (kept as-is)</summary>
+      <ul>
+        {#each revertSkips as s (s.path)}
+          <li><span class="mono">{s.path}</span> -- {s.reason}</li>
+        {/each}
+      </ul>
+    </details>
+  {/if}
 </div>
 
 {#if confirming}
@@ -171,6 +211,20 @@
     <p class="confirm-actions">
       <button class="button button--quiet" onclick={() => (confirming = false)}>Cancel</button>
       <button class="button" data-autofocus onclick={() => void commit()} disabled={busy}>Commit batch</button>
+    </p>
+  </Modal>
+{/if}
+
+{#if confirmingRevert}
+  <Modal ariaLabel="Revert this batch" onclose={() => (confirmingRevert = false)} width="28rem">
+    <h3>Revert "{batch.label}"?</h3>
+    <p>
+      Overlaid grains return to their pre-commit bytes and works this batch created are tombstoned. Grains edited
+      since the commit are left untouched and reported.
+    </p>
+    <p class="confirm-actions">
+      <button class="button button--quiet" onclick={() => (confirmingRevert = false)}>Cancel</button>
+      <button class="button" data-autofocus onclick={() => void revert()} disabled={busy}>Revert batch</button>
     </p>
   </Modal>
 {/if}
@@ -263,6 +317,22 @@
   }
   .actions {
     margin-top: 0.8rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .ok {
+    color: var(--accent);
+    font-size: 0.85rem;
+  }
+  .skips {
+    font-size: 0.85rem;
+    margin-top: 0.3rem;
+  }
+  .skips ul {
+    margin: 0.3rem 0;
+    padding-left: 1.1rem;
   }
   .confirm-actions {
     display: flex;

@@ -83,11 +83,19 @@ export interface Diff {
   removed: string[];
 }
 
+/** A saved doc's identity collision with another work (tasks/068). */
+export interface DuplicateMatch {
+  workId: string;
+  via: "identifier" | "title-author";
+}
+
 /** POST /v1/works/{id}/ops response (workId absent on dry runs). */
 export interface OpsResult {
   workId?: string;
   etag: string;
   diff: Diff;
+  /** Non-blocking warning: the doc now clusters with an existing work. */
+  duplicate?: DuplicateMatch;
 }
 
 /** The 412 body: the fresh record state for a deliberate client rebase. */
@@ -423,13 +431,29 @@ export interface CopycatBatch {
   label: string;
   source: string;
   policy: CopycatPolicy;
-  status: "STAGED" | "COMMITTED";
+  status: "STAGED" | "COMMITTED" | "REVERTED";
   records: number;
   owner: string;
   createdAt: string;
   committed?: number;
   skipped?: number;
   commitAt?: string;
+  reverted?: number;
+  revertAt?: string;
+}
+
+/** copycat.Profile -- a saved staging configuration (tasks/068). */
+export interface CopycatProfile {
+  name: string;
+  targets?: string[];
+  policy?: CopycatPolicy;
+}
+
+/** copycat.RevertResult -- a batch revert's outcome. */
+export interface CopycatRevertResult {
+  batch: CopycatBatch;
+  reverted: number;
+  skipped?: { path: string; reason: string }[];
 }
 
 export type ExportFormat = "marc" | "nquads" | "jsonld" | "csv";
