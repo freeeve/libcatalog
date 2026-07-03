@@ -14,6 +14,7 @@ import (
 	"github.com/freeeve/libcatalog/backend/auth/local"
 	"github.com/freeeve/libcatalog/backend/authoritiesvc"
 	"github.com/freeeve/libcatalog/backend/batch"
+	"github.com/freeeve/libcatalog/backend/copycat"
 	"github.com/freeeve/libcatalog/backend/enrich"
 	"github.com/freeeve/libcatalog/backend/export"
 	"github.com/freeeve/libcatalog/backend/publish"
@@ -54,6 +55,9 @@ type Deps struct {
 	// Batch, when set, mounts batch operations, macros, and saved queries
 	// (tasks/047).
 	Batch *batch.Service
+	// Copycat, when set, mounts external search and staged imports
+	// (tasks/050).
+	Copycat *copycat.Service
 	// Publisher, when set, carries approved decisions into the grain store
 	// (POST /v1/publish and the review publish flag).
 	Publisher GraphPublisher
@@ -115,6 +119,9 @@ func New(deps Deps) http.Handler {
 	}
 	if deps.Batch != nil && deps.Verifier != nil {
 		registerBatch(mux, deps.Batch, deps.Verifier)
+	}
+	if deps.Copycat != nil && deps.Verifier != nil {
+		registerCopycat(mux, deps.Copycat, deps.Verifier)
 	}
 	if deps.Suggest != nil && deps.Verifier != nil {
 		registerPromotions(mux, deps.Suggest, deps.Publisher, deps.Verifier)

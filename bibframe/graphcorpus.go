@@ -142,6 +142,32 @@ func GrainFromGraph(g *rdf.Graph, graph rdf.Term) ([]byte, error) {
 	return grainWithEditorial(g, graph, nil)
 }
 
+// graph assembles one WorkGroup's feed graph: the shared Work + Instances via
+// libcodex's WorkInstances, plus extras, controlled subjects, and each
+// Instance's verbatim MARC sidecar.
+func (wg WorkGroup) graph() *rdf.Graph {
+	wi := codexbf.WorkInstances{Work: wg.Work}
+	bases := make([]string, len(wg.Instances))
+	for i, gi := range wg.Instances {
+		wi.Instances = append(wi.Instances, gi.Instance)
+		bases[i] = gi.InstanceID
+	}
+	g := wi.Graph(wg.WorkID, bases)
+	addWorkExtras(g, wg.WorkID, wg.Extras)
+	addControlledSubjects(g, wg.WorkID, wg.Subjects)
+	for _, gi := range wg.Instances {
+		addInstanceVerbatim(g, gi.InstanceID, gi.Verbatim)
+	}
+	return g
+}
+
+// BuildWorkGrain serializes one WorkGroup to its canonical grain bytes -- the
+// per-Work unit BuildWorks writes, exposed for store-backed ingest
+// (tasks/050), where grains land through blob CAS instead of a Sink.
+func BuildWorkGrain(wg WorkGroup, provider string) ([]byte, error) {
+	return grainWithEditorial(wg.graph(), FeedGraph(provider), wg.Editorial)
+}
+
 // grainWithEditorial canonicalizes a feed graph together with preserved editorial
 // N-Quads into one grain. The feed statements land in graph; the editorial lines
 // carry their own 4th column and are merged in as-is, then the whole dataset is
@@ -178,18 +204,7 @@ func BuildWorks(sink storage.Sink, works []WorkGroup, provider string) (BuildSta
 	}
 	graphs := make([]built, 0, len(works))
 	for _, wg := range works {
-		wi := codexbf.WorkInstances{Work: wg.Work}
-		bases := make([]string, len(wg.Instances))
-		for i, gi := range wg.Instances {
-			wi.Instances = append(wi.Instances, gi.Instance)
-			bases[i] = gi.InstanceID
-		}
-		g := wi.Graph(wg.WorkID, bases)
-		addWorkExtras(g, wg.WorkID, wg.Extras)
-		addControlledSubjects(g, wg.WorkID, wg.Subjects)
-		for _, gi := range wg.Instances {
-			addInstanceVerbatim(g, gi.InstanceID, gi.Verbatim)
-		}
+		g := wg.graph()
 		grain, err := grainWithEditorial(g, feed, wg.Editorial)
 		if err != nil {
 			return stats, fmt.Errorf("grain %s: %w", wg.WorkID, err)

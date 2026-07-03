@@ -56,6 +56,34 @@ type RecordDoc struct {
 // ErrValidation reports an edited record that cannot be saved.
 var ErrValidation = errors.New("marcview: invalid record")
 
+// RecordToDoc materializes one parsed MARC record as a field array -- the
+// copy-cataloging search results and staged imports speak this shape too
+// (tasks/050).
+func RecordToDoc(rec *codex.Record) RecordDoc {
+	doc := RecordDoc{Leader: rec.Leader().String()}
+	for _, f := range rec.Fields() {
+		doc.Fields = append(doc.Fields, fromCodexField(f))
+	}
+	return doc
+}
+
+// DocToRecord rebuilds the full MARC record from a field array (every field
+// included, lossy or not) -- the inverse of RecordToDoc.
+func DocToRecord(doc RecordDoc) (*codex.Record, error) {
+	rec := codex.NewRecord()
+	if doc.Leader != "" {
+		rec.SetLeader(codex.Leader(doc.Leader))
+	}
+	for _, f := range doc.Fields {
+		cf, err := toCodexField(f)
+		if err != nil {
+			return nil, err
+		}
+		rec.AddField(cf)
+	}
+	return rec, nil
+}
+
 // View materializes every record a grain carries.
 func View(grain []byte) ([]RecordDoc, error) {
 	recs, err := bibframe.DecodeGrainMARC(grain)

@@ -48,6 +48,31 @@ func Run(prov Provider, out string) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("load prior grains: %w", err)
 	}
+	works, res, r := cluster(recs, prior)
+
+	stats, err := bibframe.BuildWorks(storage.Dir(out), works, feed)
+	if err != nil {
+		return res, err
+	}
+	res.Stats = stats
+
+	retired, err := removeRetiredGrains(out, prior.Merges)
+	if err != nil {
+		return res, err
+	}
+	res.Retired = retired
+	res.Conflicts = r.Conflicts()
+	return res, nil
+}
+
+// cluster is the provider-independent middle of an ingest run: it seeds the
+// resolver from the prior grains (identity map, editorial merges, split
+// pins), resolves every record to its stable two-tier ids, groups records
+// into WorkGroups (first record wins shared metadata and per-record
+// capabilities; duplicate Instances emit once), and carries each Work's
+// preserved editorial statements. Shared by the directory Run and the
+// store-backed RunStore (tasks/050).
+func cluster(recs []Record, prior bibframe.Prior) ([]bibframe.WorkGroup, Result, *identity.Resolver) {
 	r := identity.NewResolver()
 	identity.SeedResolver(r, prior.Grains)
 	// Seed editorial merges and split pins (tasks/001): a merge resolves a retired
@@ -117,20 +142,7 @@ func Run(prov Provider, out string) (Result, error) {
 		wg.Editorial = prior.Editorial[id]
 		works = append(works, *wg)
 	}
-
-	stats, err := bibframe.BuildWorks(storage.Dir(out), works, feed)
-	if err != nil {
-		return res, err
-	}
-	res.Stats = stats
-
-	retired, err := removeRetiredGrains(out, prior.Merges)
-	if err != nil {
-		return res, err
-	}
-	res.Retired = retired
-	res.Conflicts = r.Conflicts()
-	return res, nil
+	return works, res, r
 }
 
 // removeRetiredGrains deletes the per-Work grain file of every Work retired by a

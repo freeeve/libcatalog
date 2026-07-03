@@ -15,6 +15,7 @@ import (
 	"github.com/freeeve/libcatalog/bibframe"
 	"github.com/freeeve/libcatalog/identity"
 	"github.com/freeeve/libcatalog/ingest"
+	codex "github.com/freeeve/libcodex"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 
@@ -61,6 +62,14 @@ func (p Provider) Records(_ context.Context) ([]ingest.Record, error) {
 	if err != nil {
 		return nil, err
 	}
+	return FromCodexRecords(recs), nil
+}
+
+// FromCodexRecords crosswalks already-parsed MARC records to ingest records
+// -- the same shape file ingest produces, exposed for copy cataloging
+// (tasks/050), where records arrive from Z39.50/SRU targets or staged
+// uploads instead of a file.
+func FromCodexRecords(recs []*codex.Record) []ingest.Record {
 	out := make([]ingest.Record, 0, len(recs))
 	for _, rec := range recs {
 		bib := codexbf.FromRecord(rec)
@@ -70,7 +79,13 @@ func (p Provider) Records(_ context.Context) ([]ingest.Record, error) {
 			verbatim: bibframe.VerbatimFields(rec),
 		})
 	}
-	return out, nil
+	return out
+}
+
+// Identity derives the resolution keys for one parsed MARC record -- what
+// the copy-cataloging match banner runs through a dry-run resolver.
+func Identity(rec *codex.Record) identity.Record {
+	return recordIdentity(codexbf.FromRecord(rec), rec.ControlField("001"))
 }
 
 // record is one MARC record as an ingest.Record: its BIBFRAME (from FromRecord),

@@ -27,6 +27,7 @@ import (
 
 	"github.com/freeeve/libcatalog/backend/batch"
 	"github.com/freeeve/libcatalog/backend/config"
+	"github.com/freeeve/libcatalog/backend/copycat"
 	"github.com/freeeve/libcatalog/backend/editor"
 	"github.com/freeeve/libcatalog/backend/enrich"
 	"github.com/freeeve/libcatalog/backend/export"
@@ -156,6 +157,9 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 		deps.Batch = &batch.Service{
 			Blob: deps.Blob, DB: db, Mapper: defaultBatchMapper(),
 			Queue: deps.Suggest, Trigger: notifier,
+		}
+		deps.Copycat = &copycat.Service{
+			Blob: deps.Blob, DB: db, Queue: deps.Suggest, Trigger: notifier,
 		}
 	}
 	verifiers := map[string]auth.TokenVerifier{}
