@@ -21,6 +21,7 @@
   import Macros from "./screens/Macros.svelte";
   import Exports from "./screens/Exports.svelte";
   import CopyCat from "./screens/CopyCat.svelte";
+  import Duplicates from "./screens/Duplicates.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
 
   const routes: RouteDef[] = [
@@ -35,6 +36,7 @@
     { name: "macros", pattern: "/macros" },
     { name: "exports", pattern: "/exports" },
     { name: "copycat", pattern: "/copycat" },
+    { name: "duplicates", pattern: "/duplicates" },
     { name: "queue", pattern: "/queue" },
     { name: "promotions", pattern: "/promotions" },
   ];
@@ -140,6 +142,8 @@
     <Macros />
   {:else if route.name === "copycat"}
     <CopyCat />
+  {:else if route.name === "duplicates"}
+    <Duplicates />
   {:else if route.name === "exports"}
     <Exports
       initialKind={route.query.get("kind") ?? ""}

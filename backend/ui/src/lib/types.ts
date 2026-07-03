@@ -356,6 +356,28 @@ export interface MarcResponse {
   knownLoss: Record<string, string>;
 }
 
+/** bibframe.WorkVisibility -- a work's projection stance (tasks/051). */
+export interface WorkVisibility {
+  tombstoned: boolean;
+  redirectTo?: string;
+  suppressed: boolean;
+}
+
+/** bibframe.Item -- one holding of an instance (minimal bf:Item). */
+export interface WorkItem {
+  id?: string;
+  callNumber?: string;
+  location?: string;
+  barcode?: string;
+  note?: string;
+}
+
+/** GET /v1/duplicates -- one clustering-key collision group. */
+export interface DuplicateGroup {
+  key: string;
+  works: { workId: string; title?: string }[];
+}
+
 /** copycat.Target -- one external Z39.50/SRU search source. */
 export interface CopycatTarget {
   name: string;

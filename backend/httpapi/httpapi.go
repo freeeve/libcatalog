@@ -111,6 +111,7 @@ func New(deps Deps) http.Handler {
 	if deps.Blob != nil && deps.DB != nil && deps.Verifier != nil {
 		registerRecords(mux, deps.Blob, deps.DB, deps.Suggest, deps.Verifier, hook)
 		registerMARC(mux, deps.Blob, deps.Suggest, deps.Verifier)
+		registerMaintenance(mux, deps.Blob, deps.Suggest, deps.Verifier)
 		wl := registerWorksList(mux, deps.Blob, deps.Verifier)
 		registerTags(mux, wl, deps.Verifier)
 	}

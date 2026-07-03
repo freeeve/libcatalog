@@ -9,10 +9,13 @@
   import { onMount } from "svelte";
   import DiffPreview from "../components/DiffPreview.svelte";
   import HistoryPanel from "../components/HistoryPanel.svelte";
+  import ItemsPanel from "../components/ItemsPanel.svelte";
   import MacroBar from "../components/MacroBar.svelte";
   import MarcPanel from "../components/MarcPanel.svelte";
   import ProfileForm from "../components/ProfileForm.svelte";
   import SaveBar from "../components/SaveBar.svelte";
+  import VisibilityPanel from "../components/VisibilityPanel.svelte";
+  import { splitWork, ApiError } from "../lib/api";
   import { createEditorSession } from "../lib/editor";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
 
@@ -24,6 +27,26 @@
   const session = createEditorSession(workId);
 
   let tab = $state<"native" | "marc" | "history">("native");
+  let splitPick = $state<Record<string, boolean>>({});
+  let splitNotice = $state("");
+  let splitError = $state("");
+
+  const splitCount = $derived(Object.values(splitPick).filter(Boolean).length);
+
+  async function doSplit(): Promise<void> {
+    const instances = Object.entries(splitPick)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
+    if (instances.length === 0) return;
+    splitError = "";
+    try {
+      const res = await splitWork(workId, instances);
+      splitNotice = `split recorded -- ${instances.length} instance${instances.length === 1 ? "" : "s"} pin to ${res.newWork}; the new work materializes on the next ingest`;
+      splitPick = {};
+    } catch (e) {
+      splitError = e instanceof ApiError ? e.message : "split failed";
+    }
+  }
 
   onMount(() => {
     pushScope(SCOPE);
@@ -62,6 +85,7 @@
       <header class="dochead">
         <h1>{doc.workId}</h1>
         <p class="muted">profile {doc.profileId} · etag <code>{$session.etag}</code></p>
+        <VisibilityPanel {workId} />
       </header>
 
       {#if $session.pendingDraft}
@@ -119,7 +143,12 @@
             <h2 class="instances-head">Instances</h2>
             {#each doc.instances as inst (inst.id)}
               <div class="instance">
-                <h3>{inst.id}</h3>
+                <h3>
+                  {#if doc.instances.length > 1}
+                    <label class="split-pick"><input type="checkbox" bind:checked={splitPick[inst.id]} /> </label>
+                  {/if}
+                  {inst.id}
+                </h3>
                 <ProfileForm
                   res={inst}
                   resource={inst.id}
@@ -128,8 +157,20 @@
                   onstage={(op) => session.stage(op)}
                   onunstage={(op) => session.unstage(op)}
                 />
+                <ItemsPanel {workId} instanceId={inst.id} />
               </div>
             {/each}
+            {#if doc.instances.length > 1}
+              <p class="split-bar">
+                <button class="button button--quiet" onclick={() => void doSplit()} disabled={splitCount === 0}>
+                  Split {splitCount || ""} selected instance{splitCount === 1 ? "" : "s"} into a new work
+                </button>
+                <span aria-live="polite">
+                  {#if splitNotice}<span class="notice">{splitNotice}</span>{/if}
+                  {#if splitError}<span class="error">{splitError}</span>{/if}
+                </span>
+              </p>
+            {/if}
           </section>
         {/if}
 

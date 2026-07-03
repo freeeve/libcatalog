@@ -16,33 +16,36 @@ import (
 // BIBFRAME / RDF vocabulary the projection reads. These mirror libcodex's stable
 // output IRIs; kept local so the projector depends only on the rdf toolkit.
 const (
-	bfNS          = "http://id.loc.gov/ontologies/bibframe/"
-	bflcNS        = "http://id.loc.gov/ontologies/bflc/"
-	rdfNS         = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-	rdfsNS        = "http://www.w3.org/2000/01/rdf-schema#"
-	skosNS        = "http://www.w3.org/2004/02/skos/core#"
-	classWork     = bfNS + "Work"
-	pTitle        = bfNS + "title"
-	pMainTitle    = bfNS + "mainTitle"
-	pSubtitle     = bfNS + "subtitle"
-	pContribution = bfNS + "contribution"
-	pAgent        = bfNS + "agent"
-	pRole         = bfNS + "role"
-	pSubject      = bfNS + "subject"
-	pLanguage     = bfNS + "language"
-	pClassif      = bfNS + "classification"
-	pClassPortion = bfNS + "classificationPortion"
-	pHasInstance  = bfNS + "hasInstance"
-	pIdentifiedBy = bfNS + "identifiedBy"
-	pMedia        = bfNS + "media"
-	pCarrier      = bfNS + "carrier"
-	pSource       = bfNS + "source"
-	classIsbn     = bfNS + "Isbn"
-	pLabel        = rdfsNS + "label"
-	pPrefLabel    = skosNS + "prefLabel"
-	pBroader      = skosNS + "broader"
-	pValue        = rdfNS + "value"
-	primaryContr  = bflcNS + "PrimaryContribution"
+	bfNS              = "http://id.loc.gov/ontologies/bibframe/"
+	bflcNS            = "http://id.loc.gov/ontologies/bflc/"
+	rdfNS             = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	rdfsNS            = "http://www.w3.org/2000/01/rdf-schema#"
+	skosNS            = "http://www.w3.org/2004/02/skos/core#"
+	classWork         = bfNS + "Work"
+	pTitle            = bfNS + "title"
+	pMainTitle        = bfNS + "mainTitle"
+	pSubtitle         = bfNS + "subtitle"
+	pContribution     = bfNS + "contribution"
+	pAgent            = bfNS + "agent"
+	pRole             = bfNS + "role"
+	pSubject          = bfNS + "subject"
+	pLanguage         = bfNS + "language"
+	pClassif          = bfNS + "classification"
+	pClassPortion     = bfNS + "classificationPortion"
+	pHasInstance      = bfNS + "hasInstance"
+	pIdentifiedBy     = bfNS + "identifiedBy"
+	pHasItem          = bfNS + "hasItem"
+	pShelfMark        = bfNS + "shelfMark"
+	pPhysicalLocation = bfNS + "physicalLocation"
+	pMedia            = bfNS + "media"
+	pCarrier          = bfNS + "carrier"
+	pSource           = bfNS + "source"
+	classIsbn         = bfNS + "Isbn"
+	pLabel            = rdfsNS + "label"
+	pPrefLabel        = skosNS + "prefLabel"
+	pBroader          = skosNS + "broader"
+	pValue            = rdfNS + "value"
+	primaryContr      = bflcNS + "PrimaryContribution"
 	// pTag is libcatalog's blank-free folksonomy-tag predicate
 	// (bibframe.PredTag): editorial-class graphs cannot carry the feed's
 	// labeled-blank-node tag shape, so approved community tags arrive as
@@ -118,6 +121,18 @@ type Instance struct {
 	Format      string       `json:"format,omitempty"`
 	ISBNs       []string     `json:"isbns,omitempty"`
 	ProviderIDs []ProviderID `json:"providerIds,omitempty"`
+	// Items are the Instance's physical holdings (tasks/051): call number,
+	// shelving location, barcode, note -- never circulation state, which
+	// stays live-only (ARCHITECTURE §5).
+	Items []Item `json:"items,omitempty"`
+}
+
+// Item is one holding of an Instance (the minimal bf:Item model, tasks/051).
+type Item struct {
+	CallNumber string `json:"callNumber,omitempty"`
+	Location   string `json:"location,omitempty"`
+	Barcode    string `json:"barcode,omitempty"`
+	Note       string `json:"note,omitempty"`
 }
 
 // ProviderID is one non-ISBN identifier with its bf:source scheme, so a client-side
@@ -279,18 +294,45 @@ func Redirects(catalogNQ []byte) (RedirectMap, error) {
 	}
 	ed := bibframe.EditorialGraph()
 	raw := map[string]string{}
+	gone := map[string]bool{}
 	for _, q := range ds.Quads {
-		if q.G == ed && q.P.Value == bibframe.PredMergedInto && q.S.IsIRI() && q.O.IsIRI() {
-			raw[fragID(q.S.Value, "Work")] = fragID(q.O.Value, "Work")
+		if q.G != ed || !q.S.IsIRI() {
+			continue
+		}
+		switch q.P.Value {
+		case bibframe.PredMergedInto:
+			if q.O.IsIRI() {
+				raw[fragID(q.S.Value, "Work")] = fragID(q.O.Value, "Work")
+			}
+		case bibframe.PredTombstoned:
+			// A tombstone with a successor redirects like a merge; one
+			// without leaves an empty-target entry the host serves as gone
+			// (tasks/051).
+			if q.O.IsIRI() {
+				raw[fragID(q.S.Value, "Work")] = fragID(q.O.Value, "Work")
+			} else {
+				gone[fragID(q.S.Value, "Work")] = true
+			}
 		}
 	}
 	rm := RedirectMap{Version: SchemaVersion, Redirects: []Redirect{}}
-	froms := make([]string, 0, len(raw))
+	froms := make([]string, 0, len(raw)+len(gone))
 	for from := range raw {
 		froms = append(froms, from)
 	}
+	for from := range gone {
+		if _, mapped := raw[from]; !mapped {
+			froms = append(froms, from)
+		}
+	}
 	sort.Strings(froms)
 	for _, from := range froms {
+		if gone[from] {
+			if _, mapped := raw[from]; !mapped {
+				rm.Redirects = append(rm.Redirects, Redirect{From: from, To: ""})
+				continue
+			}
+		}
 		if to := follow(raw, from); to != from {
 			rm.Redirects = append(rm.Redirects, Redirect{From: from, To: to})
 		}
@@ -347,6 +389,16 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 		// are the "#<id>Work" fragment IRIs (the identity.ScanGrain
 		// convention); relation stubs are blank or external nodes.
 		if !w.IsIRI() || !strings.HasPrefix(w.Value, "#") || !strings.HasSuffix(w.Value, "Work") {
+			continue
+		}
+		// The delete stance (tasks/051): a tombstoned Work leaves the
+		// projection (its redirect entry comes from Redirects); a suppressed
+		// one merely hides. Both statements are editorial, so they ride the
+		// merged view.
+		if len(p.view.Objects(w, bibframe.PredTombstoned)) > 0 {
+			continue
+		}
+		if lit, ok := p.view.Literal(w, bibframe.PredSuppressed); ok && lit == "true" {
 			continue
 		}
 		cat.Works = append(cat.Works, p.work(w))
@@ -705,9 +757,29 @@ func (p *projector) instances(w rdf.Term) []Instance {
 			return pids[a].Value < pids[b].Value
 		})
 		i.ISBNs, i.ProviderIDs = isbns, pids
+		i.Items = p.items(inst)
 		out = append(out, i)
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].ID < out[b].ID })
+	return out
+}
+
+// items projects an Instance's holdings (tasks/051), ordered by item node.
+func (p *projector) items(inst rdf.Term) []Item {
+	nodes := p.view.Objects(inst, pHasItem)
+	if len(nodes) == 0 {
+		return nil
+	}
+	sort.Slice(nodes, func(a, b int) bool { return nodes[a].Value < nodes[b].Value })
+	out := make([]Item, 0, len(nodes))
+	for _, node := range nodes {
+		var item Item
+		item.CallNumber, _ = p.view.Literal(node, pShelfMark)
+		item.Location, _ = p.view.Literal(node, pPhysicalLocation)
+		item.Barcode, _ = p.view.Literal(node, bibframe.PredBarcode)
+		item.Note, _ = p.view.Literal(node, bibframe.PredItemNote)
+		out = append(out, item)
+	}
 	return out
 }
 

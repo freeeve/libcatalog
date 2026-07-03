@@ -17,6 +17,7 @@ import Exports from "./screens/Exports.svelte";
 import CommandPalette from "./components/CommandPalette.svelte";
 import MarcPanel from "./components/MarcPanel.svelte";
 import CopyCat from "./screens/CopyCat.svelte";
+import Duplicates from "./screens/Duplicates.svelte";
 import VocabPicker from "./components/VocabPicker.svelte";
 import { invalidateAccess, loginLocal } from "./lib/auth";
 import { setConfig } from "./lib/config";
@@ -692,6 +693,62 @@ describe("a11y", () => {
     await tick();
     expect(host.textContent).toContain("would merge with an existing work");
     expect(host.textContent).toContain("open wabc123def456");
+    const results = await audit(host);
+    expect(results.violations).toEqual([]);
+  });
+
+  it("Duplicates with an expanded compare table has no axe violations", async () => {
+    setConfig({ apiBase: "", localAuth: true, provider: "test", schemes: ["lcsh"] });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValueOnce(json({ accessToken: jwtLike(), refreshToken: "r1", expiresIn: 900 }));
+    await loginLocal("staff@example.org", "pw");
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("/v1/duplicates"))
+        return Promise.resolve(
+          json({
+            groups: [
+              {
+                key: "muir tamsyngideon the nintheng",
+                works: [
+                  { workId: "wdupa0000001", title: "Gideon the Ninth" },
+                  { workId: "wdupb0000001", title: "Gideon the Ninth" },
+                ],
+              },
+            ],
+          }),
+        );
+      if (url.includes("/doc"))
+        return Promise.resolve(
+          json({
+            etag: "e1",
+            doc: {
+              workId: "w",
+              profileId: "work-monograph",
+              work: { id: "w", fields: { title: [{ v: "Gideon the Ninth", prov: "feed:marc", node: "_:t" }] } },
+              instances: [],
+              passthrough: [],
+            },
+          }),
+        );
+      return Promise.resolve(json({}));
+    });
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const app = mount(Duplicates, { target: host });
+    cleanup = () => {
+      unmount(app);
+      vi.unstubAllGlobals();
+      setConfig(null);
+      invalidateAccess();
+      localStorage.clear();
+    };
+    await tick();
+    const groupBtn = [...host.querySelectorAll("button")].find((b) => b.textContent?.includes("Gideon the Ninth"));
+    groupBtn?.click();
+    await tick();
+    expect(host.textContent).toContain("keep");
+    expect(host.textContent).toContain("Merge into");
     const results = await audit(host);
     expect(results.violations).toEqual([]);
   });
