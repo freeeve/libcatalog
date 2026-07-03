@@ -22,6 +22,7 @@ import (
 // without hardcoding it.
 func registerMARC(mux *http.ServeMux, bs blob.Store, queue *suggest.Service, verifier auth.TokenVerifier) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
+	docMapper := defaultMapper()
 
 	readGrain := func(w http.ResponseWriter, r *http.Request) ([]byte, string, string, bool) {
 		workID := r.PathValue("id")
@@ -52,6 +53,44 @@ func registerMARC(mux *http.ServeMux, bs blob.Store, queue *suggest.Service, ver
 			return
 		}
 		w.Header().Set("ETag", etag)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"workId": workID, "etag": etag, "records": docs, "knownLoss": bibframe.KnownLoss,
+		})
+	})))
+
+	// Live preview (tasks/070): the staged native ops applied to the current
+	// doc, then encoded as MARC -- nothing written. Empty ops previews the
+	// saved state, so the pane snaps back when edits are discarded.
+	mux.Handle("POST /v1/works/{id}/marc/preview", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Ops []editor.Op `json:"ops"`
+		}
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "bad request body")
+			return
+		}
+		if len(req.Ops) > 200 {
+			writeError(w, http.StatusBadRequest, "at most 200 ops")
+			return
+		}
+		grain, etag, workID, ok := readGrain(w, r)
+		if !ok {
+			return
+		}
+		updated := grain
+		if len(req.Ops) > 0 {
+			var err error
+			updated, err = editor.ApplyOps(docMapper, grain, workID, req.Ops)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+		}
+		docs, err := marcview.View(updated)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "marc materialization failed")
+			return
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"workId": workID, "etag": etag, "records": docs, "knownLoss": bibframe.KnownLoss,
 		})

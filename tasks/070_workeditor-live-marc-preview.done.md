@@ -29,3 +29,11 @@ second pane instead of squeezing more rows.
 - The pane is read-only and marks known-loss fields; the MARC tab's
   editing path is unchanged.
 - Narrow viewports behave exactly as today.
+
+## Outcome note
+
+A native work-title edit surfaces as MARC **240** (the Work's title in the
+BIBFRAME->MARC crosswalk); 245 stays the Instance's transcribed title, which
+the instance profile does not expose. The preview shows the change live
+either way -- the 245 wording above assumed the crosswalk mapped work title
+to 245, and it correctly does not.

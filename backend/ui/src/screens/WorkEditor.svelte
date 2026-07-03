@@ -12,10 +12,11 @@
   import ItemsPanel from "../components/ItemsPanel.svelte";
   import MacroBar from "../components/MacroBar.svelte";
   import MarcPanel from "../components/MarcPanel.svelte";
+  import MarcPreviewPane from "../components/MarcPreviewPane.svelte";
   import ProfileForm from "../components/ProfileForm.svelte";
   import SaveBar from "../components/SaveBar.svelte";
   import VisibilityPanel from "../components/VisibilityPanel.svelte";
-  import { splitWork, ApiError } from "../lib/api";
+  import { fetchItems, splitWork, ApiError } from "../lib/api";
   import { createEditorSession } from "../lib/editor";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
 
@@ -27,6 +28,9 @@
   const session = createEditorSession(workId);
 
   let tab = $state<"native" | "marc" | "history">("native");
+  // The live MARC pane (tasks/070): read-only, side by side on wide screens.
+  let marcPane = $state(false);
+  let itemCounts = $state<Record<string, number>>({});
   let splitPick = $state<Record<string, boolean>>({});
   let splitNotice = $state("");
   let splitError = $state("");
@@ -55,9 +59,18 @@
       "2": { description: "MARC tab", hidden: true, handler: () => (tab = "marc") },
       "3": { description: "History tab", hidden: true, handler: () => (tab = "history") },
       p: { description: "preview staged changes", legend: "preview", handler: () => void session.preview() },
+      m: { description: "toggle the live MARC preview pane", legend: "marc pane", handler: () => (marcPane = !marcPane) },
       "mod+s": { description: "save staged changes", legend: "save", handler: () => void session.save() },
     });
     void session.load();
+    fetchItems(workId).then(
+      (res) => {
+        const counts: Record<string, number> = {};
+        for (const [inst, list] of Object.entries(res.items ?? {})) counts[inst] = list.length;
+        itemCounts = counts;
+      },
+      () => {},
+    );
     return () => {
       unbind();
       popScope(SCOPE);
@@ -140,9 +153,17 @@
         <button class="tab" class:active={tab === "history"} aria-pressed={tab === "history"} onclick={() => (tab = "history")}>
           History
         </button>
+        {#if tab === "native"}
+          <span class="tab-spacer"></span>
+          <button class="tab" class:active={marcPane} aria-pressed={marcPane} onclick={() => (marcPane = !marcPane)}>
+            MARC preview
+          </button>
+        {/if}
       </div>
 
       {#if tab === "native"}
+        <div class="cols" class:with-pane={marcPane}>
+        <div class="native-col">
         <section aria-label="Work fields">
           <ProfileForm
             res={doc.work}
@@ -158,14 +179,21 @@
           <section aria-label="Instances">
             <h2 class="instances-head">Instances</h2>
             {#each doc.instances as inst (inst.id)}
-              <div class="instance">
-                <h3>
-                  {#if doc.instances.length > 1}
-                    <label class="split-pick"><input type="checkbox" bind:checked={splitPick[inst.id]} /> </label>
-                  {/if}
-                  <span class="inst-eyebrow">Instance</span>
-                  <code>{inst.id}</code>
-                </h3>
+              <details class="instance" open={doc.instances.length === 1}>
+                <summary>
+                  <h3>
+                    <span class="inst-eyebrow">Instance</span>
+                    <code>{inst.id}</code>
+                    <span class="muted inst-meta">
+                      {itemCounts[inst.id] ?? 0} item{(itemCounts[inst.id] ?? 0) === 1 ? "" : "s"}
+                    </span>
+                  </h3>
+                </summary>
+                {#if doc.instances.length > 1}
+                  <label class="split-pick">
+                    <input type="checkbox" bind:checked={splitPick[inst.id]} /> select for split
+                  </label>
+                {/if}
                 <ProfileForm
                   res={inst}
                   resource={inst.id}
@@ -175,7 +203,7 @@
                   onunstage={(op) => session.unstage(op)}
                 />
                 <ItemsPanel {workId} instanceId={inst.id} />
-              </div>
+              </details>
             {/each}
             {#if doc.instances.length > 1}
               <p class="split-bar">
@@ -211,6 +239,13 @@
           onsave={() => void session.save()}
           ondiscard={() => void session.discard()}
         />
+        </div>
+        {#if marcPane}
+          <aside class="marc-pane-col" aria-label="Live MARC preview">
+            <MarcPreviewPane {workId} ops={$session.ops} />
+          </aside>
+        {/if}
+        </div>
       {:else if tab === "marc"}
         <MarcPanel {workId} />
       {:else}
@@ -337,20 +372,56 @@
     border-radius: 6px;
     padding: 0.4rem 1rem 0.7rem;
     margin: 0.75rem 0;
-  }
-  .instance {
     background: var(--surface);
   }
-  .instance h3 {
-    font-size: 0.95rem;
-    margin: 0.5rem 0 0.25rem;
-    display: flex;
+  .instance summary {
+    cursor: pointer;
+    margin: 0.15rem 0;
+  }
+  .instance summary h3 {
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    font-size: 0.95rem;
+    margin: 0;
   }
-  .instance h3 code {
+  .instance summary code {
     font-size: 0.85rem;
     color: var(--ink-muted);
+  }
+  .inst-meta {
+    font-size: 0.8rem;
+  }
+  .split-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    margin: 0.25rem 0;
+  }
+  .tab-spacer {
+    flex: 1;
+  }
+  /* tasks/070: the live MARC pane sits beside the native form on wide
+     viewports and stacks below it on narrow ones. */
+  .cols.with-pane {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 1.4rem;
+    align-items: start;
+  }
+  .marc-pane-col {
+    position: sticky;
+    top: 3rem;
+  }
+  @media (max-width: 72rem) {
+    .cols.with-pane {
+      grid-template-columns: 1fr;
+    }
+    .marc-pane-col {
+      position: static;
+    }
   }
   .inst-eyebrow {
     font-size: 0.72rem;
