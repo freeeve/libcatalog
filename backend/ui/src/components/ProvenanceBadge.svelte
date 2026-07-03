@@ -33,18 +33,18 @@
   }
   .badge--feed,
   .badge--other {
-    background: #eceef1;
-    color: #444a52;
-    border-color: #d4d8dd;
+    background: #ecebe6;
+    color: #494f4b;
+    border-color: #d9d5cb;
   }
   .badge--editorial {
-    background: #e2f2e7;
-    color: #175a2e;
-    border-color: #b5dcc2;
+    background: #e4efe8;
+    color: #14523a;
+    border-color: #bcd6c6;
   }
   .badge--enrichment {
-    background: #e3edf9;
-    color: #1c4f8a;
-    border-color: #bcd3ef;
+    background: #e5edf5;
+    color: #1d4260;
+    border-color: #bdd2e4;
   }
 </style>

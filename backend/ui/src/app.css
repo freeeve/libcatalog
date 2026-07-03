@@ -1,18 +1,30 @@
-/* Hand-written base styles: system fonts, high-contrast palette, visible
-   focus. Screen-specific rules live in each component's <style>. */
+/* Hand-written base styles; screen-specific rules live in each component's
+   <style>. The identity is the public theme's "library-ish but modern"
+   register turned into a working tool: bone paper, iron-gall ink, and the
+   provenance inks as the signature -- every field value carries a left rail
+   in the color of whoever asserted it (curator green = editorial, graphite =
+   feed, archival blue = enrichment; stamp red is reserved for destructive
+   acts). Same palette as hugo/assets/lcat.css, so the catalog and the
+   cataloger's desk read as one system. All pairs AA on their backgrounds. */
 
 :root {
-  --bg: #ffffff;
-  --surface: #f4f5f7;
-  --ink: #1a1c1f;
-  --ink-muted: #50565e;
-  --rule: #d4d8dd;
-  --accent: #0b57a4;
+  --bg: #f7f6f2;         /* bone */
+  --surface: #ffffff;    /* index-card white: raised panels float on bone */
+  --surface-alt: #edeae2;
+  --ink: #1f2421;        /* iron-gall green-black */
+  --ink-muted: #5b615d;
+  --rule: #d9d5cb;
+  --accent: #1e6b4e;     /* curator green */
   --accent-ink: #ffffff;
-  --danger: #a4262c;
-  --ok: #1c6b37;
-  --info: #205ea6;
+  --danger: #a34224;     /* date-stamp red */
+  --ok: #1e6b4e;
+  --info: #27567b;       /* archival blue */
+  /* Provenance inks (the signature). */
+  --prov-editorial: #1e6b4e;
+  --prov-feed: #8b9089;
+  --prov-enrichment: #27567b;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --display: "Charter", "Iowan Old Style", "Palatino", Georgia, serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -54,7 +66,11 @@ main {
 }
 
 h1 {
-  font-size: 1.4rem;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  padding-bottom: 0.35rem;
+  border-bottom: 3px double var(--rule);
 }
 
 h2 {
@@ -99,4 +115,32 @@ input[type="password"] {
   border: 1px solid var(--rule);
   border-radius: 4px;
   padding: 0.45em 0.6em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* The provenance rail: every field value is edged in the ink of whoever
+   asserted it -- the DOM hook is the ProvenanceBadge kind class, so the rail
+   needs no extra markup. An overridden feed value keeps its rail but goes
+   dotted: shadowed, not erased. */
+.value {
+  border-left: 3px solid var(--rule);
+  padding-left: 0.6rem;
+}
+.value:has(.badge--editorial) { border-left-color: var(--prov-editorial); }
+.value:has(.badge--feed) { border-left-color: var(--prov-feed); }
+.value:has(.badge--enrichment) { border-left-color: var(--prov-enrichment); }
+.value.overridden { border-left-style: dotted; }
+.value.pending-added { border-left-color: var(--prov-editorial); border-left-style: dashed; }
+
+/* Field labels read like catalog-drawer labels (matches the public theme's
+   facet headings). */
+.fieldhead {
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-muted);
 }
