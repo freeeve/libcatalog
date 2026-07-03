@@ -1,10 +1,11 @@
 <script lang="ts">
   // Debounced search over /v1/works with keyboard-navigable results:
-  // ArrowUp/ArrowDown (or j/k) move the selection, Enter opens the work.
+  // RowList carries j/k/arrows and Enter-to-open; "/" refocuses the box.
   import { onMount } from "svelte";
   import { fetchWorks, ApiError } from "../lib/api";
   import { bindKeys, pushScope, popScope } from "../lib/keyboard";
   import { navigate } from "../lib/router";
+  import RowList from "../components/RowList.svelte";
   import type { WorkSummary } from "../lib/types";
 
   const SCOPE = "works";
@@ -17,16 +18,10 @@
   let error = $state("");
   let loading = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let listEl = $state<HTMLElement | null>(null);
 
   onMount(() => {
     pushScope(SCOPE);
     const unbind = bindKeys(SCOPE, {
-      j: { description: "next result", legend: "move", keyLabel: "j/k", handler: () => move(1) },
-      k: { description: "previous result", hidden: true, handler: () => move(-1) },
-      ArrowDown: { description: "next result", hidden: true, handler: () => move(1) },
-      ArrowUp: { description: "previous result", hidden: true, handler: () => move(-1) },
-      Enter: { description: "open selected work", legend: "open", handler: open },
       "/": { description: "focus the search box", legend: "search", handler: focusSearch },
     });
     void search("");
@@ -58,15 +53,8 @@
     }
   }
 
-  function move(delta: number): void {
-    if (works.length === 0) return;
-    selected = Math.min(works.length - 1, Math.max(0, selected + delta));
-    listEl?.querySelectorAll("li")[selected]?.scrollIntoView({ block: "nearest" });
-  }
-
-  function open(): void {
-    const w = works[selected];
-    if (w) navigate(`/works/${encodeURIComponent(w.WorkID)}`);
+  function open(w: WorkSummary): void {
+    navigate(`/works/${encodeURIComponent(w.WorkID)}`);
   }
 
   function focusSearch(): void {
@@ -87,22 +75,20 @@
     {/if}
   </p>
 
-  <ul class="results" bind:this={listEl} aria-label="Search results">
-    {#each works as w, i (w.WorkID)}
-      <li class:selected={i === selected}>
-        <a href={"#/works/" + encodeURIComponent(w.WorkID)} onfocus={() => (selected = i)}>
-          <span class="title">{w.Title || "(untitled)"}</span>
-          {#if w.Contributors?.length}
-            <span class="muted">{w.Contributors.join("; ")}</span>
-          {/if}
-          {#if w.Tags?.length}
-            <span class="tags">{w.Tags.join(", ")}</span>
-          {/if}
-          <span class="id">{w.WorkID}</span>
-        </a>
-      </li>
-    {/each}
-  </ul>
+  <RowList items={works} bind:selected getKey={(w) => w.WorkID} ariaLabel="Search results" scope={SCOPE} itemName="result" onactivate={open}>
+    {#snippet row(w: WorkSummary)}
+      <a class="row-link" href={"#/works/" + encodeURIComponent(w.WorkID)}>
+        <span class="title">{w.Title || "(untitled)"}</span>
+        {#if w.Contributors?.length}
+          <span class="muted">{w.Contributors.join("; ")}</span>
+        {/if}
+        {#if w.Tags?.length}
+          <span class="tags">{w.Tags.join(", ")}</span>
+        {/if}
+        <span class="id">{w.WorkID}</span>
+      </a>
+    {/snippet}
+  </RowList>
 </main>
 
 <style>
@@ -111,21 +97,7 @@
     max-width: 28rem;
     font-size: 1rem;
   }
-  .results {
-    list-style: none;
-    padding: 0;
-    margin: 0.5rem 0;
-  }
-  .results li {
-    border: 1px solid transparent;
-    border-bottom-color: var(--rule);
-  }
-  .results li.selected {
-    border-color: var(--accent);
-    border-radius: 4px;
-    background: var(--surface);
-  }
-  .results a {
+  .row-link {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 0.1rem 0.9rem;

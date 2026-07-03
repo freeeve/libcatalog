@@ -1,12 +1,14 @@
 <script lang="ts">
   // Command palette (Ctrl/Cmd+K, tasks/047): one fuzzy box over navigation
   // actions, "run macro" shortcuts, and jump-to-work (live search once the
-  // query stops matching only actions). Focus is trapped while open; Escape
-  // closes; Enter runs the highlighted entry.
+  // query stops matching only actions). Modal owns the trap/Escape; the
+  // input drives the RowList highlight.
   import { onMount } from "svelte";
   import { fetchMacros, fetchWorks } from "../lib/api";
   import { popScope, pushScope } from "../lib/keyboard";
   import { navigate } from "../lib/router";
+  import Modal from "./Modal.svelte";
+  import RowList from "./RowList.svelte";
   import type { Macro, WorkSummary } from "../lib/types";
 
   let { onclose }: { onclose: () => void } = $props();
@@ -38,8 +40,7 @@
   let macros = $state<Macro[]>([]);
   let works = $state<WorkSummary[]>([]);
   let highlight = $state(0);
-  let panel = $state<HTMLElement | null>(null);
-  let inputEl = $state<HTMLInputElement | null>(null);
+  let list = $state<{ move: (delta: number) => void } | null>(null);
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const entries = $derived.by(() => {
@@ -71,9 +72,7 @@
   });
 
   onMount(() => {
-    const opener = document.activeElement as HTMLElement | null;
     pushScope(SCOPE);
-    inputEl?.focus();
     fetchMacros().then(
       (r) => (macros = r.macros ?? []),
       () => {},
@@ -81,7 +80,6 @@
     return () => {
       popScope(SCOPE);
       clearTimeout(timer);
-      opener?.focus?.();
     };
   });
 
@@ -111,108 +109,59 @@
   function onInputKeydown(ev: KeyboardEvent): void {
     if (ev.key === "ArrowDown") {
       ev.preventDefault();
-      move(1);
+      list?.move(1);
     } else if (ev.key === "ArrowUp") {
       ev.preventDefault();
-      move(-1);
+      list?.move(-1);
     } else if (ev.key === "Enter") {
       ev.preventDefault();
       const e = entries[highlight];
       if (e) pick(e);
     }
   }
-
-  function move(delta: number): void {
-    if (entries.length === 0) return;
-    highlight = Math.min(entries.length - 1, Math.max(0, highlight + delta));
-    document.getElementById(`cp-opt-${highlight}`)?.scrollIntoView({ block: "nearest" });
-  }
-
-  function onPanelKeydown(ev: KeyboardEvent): void {
-    if (ev.key === "Escape") {
-      ev.stopPropagation();
-      onclose();
-      return;
-    }
-    if (ev.key !== "Tab" || !panel) return;
-    const focusables = panel.querySelectorAll<HTMLElement>('button, input, [tabindex]:not([tabindex="-1"])');
-    if (focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (ev.shiftKey && document.activeElement === first) {
-      ev.preventDefault();
-      last.focus();
-    } else if (!ev.shiftKey && document.activeElement === last) {
-      ev.preventDefault();
-      first.focus();
-    }
-  }
 </script>
 
-<div class="scrim">
-  <div class="panel" role="dialog" aria-modal="true" aria-label="Command palette" tabindex="-1" bind:this={panel} onkeydown={onPanelKeydown}>
-    <input
-      id="cp-q"
-      type="search"
-      bind:this={inputEl}
-      bind:value={q}
-      oninput={onInput}
-      onkeydown={onInputKeydown}
-      autocomplete="off"
-      placeholder="Jump to a screen, run a macro, or find a work…"
-      aria-label="Command"
-    />
-    <ul class="options" aria-label="Commands">
-      {#each entries as e, i (e.id)}
-        <li id={"cp-opt-" + i} class:highlight={i === highlight}>
-          <button class="opt" onclick={() => pick(e)} onfocus={() => (highlight = i)}>
-            <span class="opt-label">{e.label}</span>
-            {#if e.hint}<span class="opt-hint">{e.hint}</span>{/if}
-          </button>
-        </li>
-      {:else}
-        <li class="muted empty">No matching commands.</li>
-      {/each}
-    </ul>
-    <p class="muted foot">↑↓ to highlight · Enter to run · Esc to close</p>
+<Modal ariaLabel="Command palette" {onclose} width="38rem" placement="top">
+  <input
+    id="cp-q"
+    type="search"
+    data-autofocus
+    bind:value={q}
+    oninput={onInput}
+    onkeydown={onInputKeydown}
+    autocomplete="off"
+    placeholder="Jump to a screen, run a macro, or find a work…"
+    aria-label="Command"
+  />
+  <div class="options">
+    <RowList
+      bind:this={list}
+      items={entries}
+      bind:selected={highlight}
+      getKey={(e) => e.id}
+      ariaLabel="Commands"
+      empty="No matching commands."
+    >
+      {#snippet row(e: Entry)}
+        <button class="opt" onclick={() => pick(e)}>
+          <span class="opt-label">{e.label}</span>
+          {#if e.hint}<span class="opt-hint">{e.hint}</span>{/if}
+        </button>
+      {/snippet}
+    </RowList>
   </div>
-</div>
+  <p class="muted foot">↑↓ to highlight · Enter to run · Esc to close</p>
+</Modal>
 
 <style>
-  .scrim {
-    position: fixed;
-    inset: 0;
-    background: rgba(20, 22, 25, 0.55);
-    display: grid;
-    place-items: start center;
-    padding-top: 12vh;
-    z-index: 50;
-  }
-  .panel {
-    background: var(--bg);
-    border: 1px solid var(--rule);
-    border-radius: 8px;
-    padding: 0.8rem 1rem;
-    width: min(38rem, 94vw);
-  }
   #cp-q {
     width: 100%;
     font-size: 1.05rem;
   }
   .options {
-    list-style: none;
-    margin: 0.5rem 0 0;
-    padding: 0;
+    margin-top: 0.5rem;
     max-height: 20rem;
     overflow-y: auto;
-  }
-  .options li {
-    border: 1px solid transparent;
-  }
-  .options li.highlight {
-    border-color: var(--accent);
-    border-radius: 4px;
-    background: var(--surface);
   }
   .opt {
     display: flex;
@@ -233,9 +182,6 @@
     font-family: var(--mono);
     font-size: 0.72rem;
     color: var(--ink-muted);
-  }
-  .empty {
-    padding: 0.5rem;
   }
   .foot {
     margin: 0.5rem 0 0;

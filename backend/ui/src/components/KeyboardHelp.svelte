@@ -3,10 +3,10 @@
   // global). Mounted once by App; keyboard.ts calls the presenter to open it.
   import { onMount } from "svelte";
   import { formatKey, setHelpPresenter, type Binding } from "../lib/keyboard";
+  import Modal from "./Modal.svelte";
 
   let open = $state(false);
   let active = $state<Binding[]>([]);
-  let panel = $state<HTMLElement | null>(null);
 
   onMount(() => {
     setHelpPresenter((bindings) => {
@@ -16,66 +16,36 @@
     return () => setHelpPresenter(null);
   });
 
-  $effect(() => {
-    if (open) panel?.focus();
-  });
-
   function close(): void {
     open = false;
   }
-
-  function onKeydown(ev: KeyboardEvent): void {
-    if (ev.key === "Escape") close();
-  }
 </script>
 
-<svelte:window onkeydown={open ? onKeydown : undefined} />
-
 {#if open}
-  <div class="scrim">
-    <div class="panel" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" tabindex="-1" bind:this={panel}>
-      <h2>Keyboard shortcuts</h2>
-      {#if active.length === 0}
-        <p class="muted">No shortcuts on this screen.</p>
-      {:else}
-        <dl>
-          {#each active as b (b.key)}
-            <div class="row">
-              <dt><kbd>{formatKey(b)}</kbd></dt>
-              <dd>{b.description}</dd>
-            </div>
-          {/each}
+  <Modal ariaLabel="Keyboard shortcuts" onclose={close} width="26rem">
+    <h2>Keyboard shortcuts</h2>
+    {#if active.length === 0}
+      <p class="muted">No shortcuts on this screen.</p>
+    {:else}
+      <dl>
+        {#each active as b (b.key)}
           <div class="row">
-            <dt><kbd>?</kbd></dt>
-            <dd>show this help</dd>
+            <dt><kbd>{formatKey(b)}</kbd></dt>
+            <dd>{b.description}</dd>
           </div>
-        </dl>
-      {/if}
-      <button class="button button--quiet" onclick={close}>Close</button>
-    </div>
-  </div>
+        {/each}
+        <div class="row">
+          <dt><kbd>?</kbd></dt>
+          <dd>show this help</dd>
+        </div>
+      </dl>
+    {/if}
+    <button class="button button--quiet" onclick={close}>Close</button>
+  </Modal>
 {/if}
 
 <style>
-  .scrim {
-    position: fixed;
-    inset: 0;
-    background: rgba(20, 22, 25, 0.55);
-    display: grid;
-    place-items: center;
-    z-index: 50;
-  }
-  .panel {
-    background: var(--bg);
-    border: 1px solid var(--rule);
-    border-radius: 8px;
-    padding: 1.25rem 1.5rem;
-    min-width: 20rem;
-    max-width: 90vw;
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-  .panel h2 {
+  h2 {
     margin-top: 0;
   }
   dl {

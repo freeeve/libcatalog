@@ -213,6 +213,26 @@ input[type="radio"] {
 .value.overridden { border-left-style: dotted; }
 .value.pending-added { border-left-color: var(--prov-editorial); border-left-style: dashed; }
 
+/* The shared keyboard list (RowList): hairline separators and the inset
+   accent rail on the selected row -- the "rod" that pairs with the kbd
+   legend rail. Unscoped so every list matches; row content and its padding
+   live in each screen's snippet. */
+.rowlist {
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 0;
+}
+.rowlist > li {
+  border-bottom: 1px solid var(--rule);
+}
+.rowlist > li.selected {
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.rowlist-empty {
+  padding: 0.5rem 0.6rem;
+}
+
 /* Field labels read like catalog-drawer labels (matches the public theme's
    facet headings). */
 .fieldhead {

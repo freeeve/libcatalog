@@ -15,6 +15,7 @@
     resolveBatch,
     runBatch,
   } from "../lib/api";
+  import Modal from "../components/Modal.svelte";
   import type { BatchRunResult, BatchTarget, Macro, Op, Profile, SavedQuery, Selection } from "../lib/types";
 
   // initialMacro preselects a macro (deep link #/batch?macro=<id>).
@@ -152,9 +153,18 @@
     return "#/exports?" + p.toString();
   }
 
-  async function saveQuery(): Promise<void> {
-    const label = window.prompt("Name this search:", query);
+  let namingQuery = $state(false);
+  let queryLabel = $state("");
+
+  function saveQuery(): void {
+    queryLabel = query;
+    namingQuery = true;
+  }
+
+  async function confirmSaveQuery(): Promise<void> {
+    const label = queryLabel.trim();
     if (!label) return;
+    namingQuery = false;
     try {
       await createSavedQuery(label, query);
       await loadQueries();
@@ -320,7 +330,35 @@
   </section>
 </main>
 
+{#if namingQuery}
+  <Modal ariaLabel="Save this search" onclose={() => (namingQuery = false)} width="26rem">
+    <form
+      onsubmit={(ev) => {
+        ev.preventDefault();
+        void confirmSaveQuery();
+      }}
+    >
+      <label for="sq-label">Name this search</label>
+      <input id="sq-label" type="text" data-autofocus bind:value={queryLabel} autocomplete="off" />
+      <p class="sq-actions">
+        <button type="button" class="button button--quiet" onclick={() => (namingQuery = false)}>Cancel</button>
+        <button type="submit" class="button" disabled={!queryLabel.trim()}>Save query</button>
+      </p>
+    </form>
+  </Modal>
+{/if}
+
 <style>
+  #sq-label {
+    width: 100%;
+    margin-top: 0.3rem;
+  }
+  .sq-actions {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    margin: 0.9rem 0 0;
+  }
   h2 {
     font-size: 1rem;
     margin: 1.2rem 0 0.5rem;

@@ -14,6 +14,7 @@
   import { sessionStore } from "../lib/stores";
   import { bestLabel } from "../lib/vocab";
   import PublishBar from "../components/PublishBar.svelte";
+  import RowList from "../components/RowList.svelte";
   import VocabPicker from "../components/VocabPicker.svelte";
   import type { Decision, Suggestion, Term } from "../lib/types";
 
@@ -37,7 +38,6 @@
   let error = $state("");
   let notice = $state("");
   let pickerFor = $state<Suggestion | null>(null);
-  let listEl = $state<HTMLElement | null>(null);
 
   const librarian = $derived(canPublish($sessionStore));
   const approveCount = $derived($decisions.filter((d) => d.approve).length);
@@ -46,10 +46,6 @@
   onMount(() => {
     pushScope(SCOPE);
     const unbind = bindKeys(SCOPE, {
-      j: { description: "next suggestion", legend: "move", keyLabel: "j/k", handler: () => move(1) },
-      k: { description: "previous suggestion", hidden: true, handler: () => move(-1) },
-      ArrowDown: { description: "next suggestion", hidden: true, handler: () => move(1) },
-      ArrowUp: { description: "previous suggestion", hidden: true, handler: () => move(-1) },
       a: { description: "stage approve for the selected row", legend: "approve", handler: () => act("approve") },
       r: { description: "stage reject for the selected row", legend: "reject", handler: () => act("reject") },
       t: { description: "stage reject + tombstone for the selected row", legend: "tombstone", handler: () => act("tombstone") },
@@ -88,12 +84,6 @@
   function refilter(): void {
     cursor = "";
     void load(true);
-  }
-
-  function move(delta: number): void {
-    if (items.length === 0) return;
-    selected = Math.min(items.length - 1, Math.max(0, selected + delta));
-    listEl?.querySelectorAll("li")[selected]?.scrollIntoView({ block: "nearest" });
   }
 
   type Action = "approve" | "reject" | "tombstone" | "substitute";
@@ -245,10 +235,18 @@
   </p>
   {#if notice}<p class="notice" role="status">{notice}</p>{/if}
 
-  <ul class="rows" bind:this={listEl} aria-label="Suggestions">
-    {#each items as s, i (s.workId + " " + s.term.scheme + " " + s.term.id + " " + s.type)}
+  <RowList
+    items={items}
+    bind:selected
+    getKey={(s) => s.workId + " " + s.term.scheme + " " + s.term.id + " " + s.type}
+    ariaLabel="Suggestions"
+    scope={SCOPE}
+    itemName="suggestion"
+    empty={!loading && !error ? "Nothing in the queue for these filters." : undefined}
+  >
+    {#snippet row(s: Suggestion)}
       {@const staged = stagedFor($decisions, s)}
-      <li class:selected={i === selected} onfocusin={() => (selected = i)}>
+      <div class="qrow">
         <div class="what">
           <a class="work" href={"#/works/" + encodeURIComponent(s.workId)}>{s.workTitle || s.workId}</a>
           <span class="chip chip--{s.type === 'ADD' ? 'add' : 'remove'}">{s.type}</span>
@@ -278,13 +276,9 @@
             <button class="button button--quiet" onclick={() => folk("blockFolk", s)}>Block folk</button>
           {/if}
         </div>
-      </li>
-    {:else}
-      {#if !loading && !error}
-        <li class="empty muted">Nothing in the queue for these filters.</li>
-      {/if}
-    {/each}
-  </ul>
+      </div>
+    {/snippet}
+  </RowList>
 
   {#if cursor}
     <p><button class="button button--quiet" onclick={() => void load(false)} disabled={loading}>Load more</button></p>
@@ -330,24 +324,8 @@
     color: var(--ok);
     font-weight: 600;
   }
-  .rows {
-    list-style: none;
-    margin: 0.25rem 0;
-    padding: 0;
-  }
-  .rows li {
-    border: 1px solid transparent;
-    border-bottom-color: var(--rule);
+  .qrow {
     padding: 0.5rem 0.6rem;
-  }
-  .rows li.selected {
-    border-color: var(--accent);
-    border-radius: 4px;
-    background: var(--surface);
-  }
-  .rows li.empty {
-    border: 0;
-    padding: 0.75rem 0;
   }
   .what {
     display: flex;

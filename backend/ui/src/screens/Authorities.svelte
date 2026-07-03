@@ -8,6 +8,7 @@
   import { bindKeys, pushScope, popScope } from "../lib/keyboard";
   import { navigate } from "../lib/router";
   import { bestLabel } from "../lib/vocab";
+  import RowList from "../components/RowList.svelte";
   import type { Term } from "../lib/types";
 
   const SCOPE = "authorities";
@@ -20,7 +21,6 @@
   let loading = $state(false);
   let creating = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let listEl = $state<HTMLElement | null>(null);
 
   // The create affordance shows for a non-empty query with no exact label hit.
   const canCreate = $derived(
@@ -30,11 +30,6 @@
   onMount(() => {
     pushScope(SCOPE);
     const unbind = bindKeys(SCOPE, {
-      j: { description: "next term", legend: "move", keyLabel: "j/k", handler: () => move(1) },
-      k: { description: "previous term", hidden: true, handler: () => move(-1) },
-      ArrowDown: { description: "next term", hidden: true, handler: () => move(1) },
-      ArrowUp: { description: "previous term", hidden: true, handler: () => move(-1) },
-      Enter: { description: "open selected term", legend: "open", handler: open },
       n: { description: "create the typed heading", legend: "new heading", handler: () => void create() },
       "/": { description: "focus the search box", legend: "search", handler: focusSearch },
     });
@@ -81,15 +76,8 @@
     }
   }
 
-  function move(delta: number): void {
-    if (terms.length === 0) return;
-    selected = Math.min(terms.length - 1, Math.max(0, selected + delta));
-    listEl?.querySelectorAll("li")[selected]?.scrollIntoView({ block: "nearest" });
-  }
-
-  function open(): void {
-    const t = terms[selected];
-    if (t) navigate(`/authorities/${encodeURIComponent(localId(t))}`);
+  function open(t: Term): void {
+    navigate(`/authorities/${encodeURIComponent(localId(t))}`);
   }
 
   /** The minted id is the URI's trailing segment. */
@@ -127,22 +115,20 @@
     </p>
   {/if}
 
-  <ul class="results" bind:this={listEl} aria-label="Local authority terms">
-    {#each terms as t, i (t.id)}
-      <li class:selected={i === selected}>
-        <a href={"#/authorities/" + encodeURIComponent(localId(t))} onfocus={() => (selected = i)}>
-          <span class="label">
-            {bestLabel(t)}
-            {#if t.mergedInto}<span class="retired">merged</span>{/if}
-          </span>
-          {#if t.altLabels && Object.values(t.altLabels).flat().length > 0}
-            <span class="muted">UF: {Object.values(t.altLabels).flat().join("; ")}</span>
-          {/if}
-          <span class="id">{t.id}</span>
-        </a>
-      </li>
-    {/each}
-  </ul>
+  <RowList items={terms} bind:selected getKey={(t) => t.id} ariaLabel="Local authority terms" scope={SCOPE} itemName="term" onactivate={open}>
+    {#snippet row(t: Term)}
+      <a class="row-link" href={"#/authorities/" + encodeURIComponent(localId(t))}>
+        <span class="label">
+          {bestLabel(t)}
+          {#if t.mergedInto}<span class="retired">merged</span>{/if}
+        </span>
+        {#if t.altLabels && Object.values(t.altLabels).flat().length > 0}
+          <span class="muted">UF: {Object.values(t.altLabels).flat().join("; ")}</span>
+        {/if}
+        <span class="id">{t.id}</span>
+      </a>
+    {/snippet}
+  </RowList>
 </main>
 
 <style>
@@ -154,21 +140,7 @@
   .kbd-hint {
     font-size: 0.85rem;
   }
-  .results {
-    list-style: none;
-    padding: 0;
-    margin: 0.5rem 0;
-  }
-  .results li {
-    border: 1px solid transparent;
-    border-bottom-color: var(--rule);
-  }
-  .results li.selected {
-    border-color: var(--accent);
-    border-radius: 4px;
-    background: var(--surface);
-  }
-  .results a {
+  .row-link {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 0.1rem 0.9rem;

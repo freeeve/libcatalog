@@ -147,7 +147,7 @@
   }
   .menu li.highlight {
     background: var(--surface);
-    border-radius: 4px;
+    box-shadow: inset 3px 0 0 var(--accent);
   }
   .opt {
     display: flex;
