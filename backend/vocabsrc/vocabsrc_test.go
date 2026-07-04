@@ -317,6 +317,15 @@ func TestInstallUpload(t *testing.T) {
 	if _, err := s.InstallUpload(ctx, "nope", strings.NewReader(zinesNT)); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("unknown source err = %v", err)
 	}
+	// Wrong formats are named outright: zip archives and XML exports.
+	_, err = s.InstallUpload(ctx, "lcgft", strings.NewReader("PK\x03\x04zipbytes"))
+	if !errors.Is(err, ErrValidation) || !strings.Contains(err.Error(), "zip archive") {
+		t.Fatalf("zip upload err = %v", err)
+	}
+	_, err = s.InstallUpload(ctx, "lcgft", strings.NewReader(`<?xml version="1.0"?><rdf:RDF></rdf:RDF>`))
+	if !errors.Is(err, ErrValidation) || !strings.Contains(err.Error(), "XML") {
+		t.Fatalf("xml upload err = %v", err)
+	}
 }
 
 func TestDownloadFailureLandsInJob(t *testing.T) {

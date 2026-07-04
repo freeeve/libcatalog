@@ -3,12 +3,17 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/vocabsrc"
 )
+
+// uploadCap bounds a hand-uploaded dump. Gzipped N-Triples run ~10x smaller,
+// so even the multi-GB national files fit compressed.
+const uploadCap = 512 << 20
 
 // registerVocabSources mounts the authority-source surface (tasks/067): the
 // click-to-download vocabulary list (librarian), registry edits and download/
@@ -71,7 +76,13 @@ func registerVocabSources(mux *http.ServeMux, svc *vocabsrc.Service, verifier au
 	// N-Triples/N-Quads (optionally gzipped, sniffed) -- the escape hatch
 	// when a publisher's download URL is unreachable. Installs synchronously.
 	mux.Handle("PUT /v1/vocabsources/{name}/snapshot", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		terms, err := svc.InstallUpload(r.Context(), r.PathValue("name"), http.MaxBytesReader(w, r.Body, 512<<20))
+		terms, err := svc.InstallUpload(r.Context(), r.PathValue("name"), http.MaxBytesReader(w, r.Body, uploadCap))
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			writeError(w, http.StatusRequestEntityTooLarge,
+				fmt.Sprintf("the dump exceeds the %dMB upload cap -- gzip it (.nt.gz/.nq.gz install fine, ~10x smaller)", uploadCap>>20))
+			return
+		}
 		if err != nil {
 			writeVocabSrcError(w, err)
 			return

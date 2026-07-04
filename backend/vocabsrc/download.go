@@ -233,10 +233,14 @@ func (s *Service) InstallUpload(ctx context.Context, sourceName string, r io.Rea
 
 // installFrom converts a dump stream, writes the snapshot and its sidecar,
 // and swaps the index -- the shared back half of download and upload.
+// Conversion failures are the dump's fault, so they surface as validation
+// errors with the underlying reason rather than a generic 500.
 func (s *Service) installFrom(ctx context.Context, src Source, r io.Reader, provenance string) (int, error) {
 	converted, terms, err := Convert(r, src.Scheme)
 	if err != nil {
-		return 0, err
+		// Double-wrap: validation for the status code, the original error
+		// kept typed so callers can tell an oversized body from bad bytes.
+		return 0, fmt.Errorf("%w: %s: %w", ErrValidation, provenance, err)
 	}
 	if terms == 0 {
 		return 0, fmt.Errorf("%w: %s yielded no concepts -- not a SKOS N-Triples/N-Quads dump?", ErrValidation, provenance)
@@ -301,17 +305,29 @@ const skosPrefLabel = "http://www.w3.org/2004/02/skos/core#prefLabel"
 // authority-tree N-Quads under the authority:<scheme> graph, keeping only the
 // predicates the index reads. Lines are independent in N-Quads, so the input
 // parses in bounded chunks; malformed lines are skipped by the lenient
-// parser. Returns the converted bytes and the distinct prefLabel-bearing
-// concept count.
+// parser. Common wrong-format uploads (zip archives, XML exports) are named
+// outright -- publishers like OCLC FAST distribute both. Returns the
+// converted bytes and the distinct prefLabel-bearing concept count.
 func Convert(r io.Reader, scheme string) ([]byte, int, error) {
 	br := bufio.NewReaderSize(r, 1<<20)
 	if magic, err := br.Peek(2); err == nil && magic[0] == 0x1f && magic[1] == 0x8b {
 		gz, err := gzip.NewReader(br)
 		if err != nil {
-			return nil, 0, fmt.Errorf("vocabsrc: gunzip: %w", err)
+			return nil, 0, fmt.Errorf("gunzip: %w", err)
 		}
 		defer gz.Close()
 		br = bufio.NewReaderSize(gz, 1<<20)
+	}
+	if magic, err := br.Peek(64); err == nil || len(magic) > 4 {
+		head := bytes.TrimLeft(magic, " \t\r\n")
+		switch {
+		case bytes.HasPrefix(magic, []byte("PK\x03\x04")):
+			return nil, 0, fmt.Errorf("this is a zip archive -- extract the .nt/.nq file and upload it (plain or gzipped)")
+		// N-Triples subjects start "<http…", so only unmistakable XML
+		// openings count.
+		case bytes.HasPrefix(head, []byte("<?xml")), bytes.HasPrefix(head, []byte("<!DOCTYPE")), bytes.HasPrefix(head, []byte("<rdf")):
+			return nil, 0, fmt.Errorf("this looks like XML (MARCXML/RDF-XML?) -- the converter reads N-Triples/N-Quads only")
+		}
 	}
 	graph := bibframe.AuthorityGraph(scheme)
 	var enc rdf.Encoder
