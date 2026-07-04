@@ -219,6 +219,11 @@ export function canPublish(s: Session | null): boolean {
   return !!s && s.roles.some((r) => r === "librarian" || r === "admin");
 }
 
+/** Admins manage users, configuration, and the editing profiles. */
+export function canAdmin(s: Session | null): boolean {
+  return !!s && s.roles.some((r) => r === "admin");
+}
+
 function clearSession(): void {
   accessToken = "";
   expiresAt = 0;

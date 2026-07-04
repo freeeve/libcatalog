@@ -11,6 +11,7 @@ import (
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/editor"
 	"github.com/freeeve/libcatalog/backend/marcview"
+	"github.com/freeeve/libcatalog/backend/profilesvc"
 	"github.com/freeeve/libcatalog/backend/suggest"
 )
 
@@ -20,9 +21,8 @@ import (
 // record back as an editorial diff under If-Match, with dryRun returning the
 // exact quad delta. The fidelity table rides along so the SPA can warn
 // without hardcoding it.
-func registerMARC(mux *http.ServeMux, bs blob.Store, queue *suggest.Service, verifier auth.TokenVerifier) {
+func registerMARC(mux *http.ServeMux, bs blob.Store, queue *suggest.Service, prof *profilesvc.Service, verifier auth.TokenVerifier) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
-	docMapper := defaultMapper()
 
 	readGrain := func(w http.ResponseWriter, r *http.Request) ([]byte, string, string, bool) {
 		workID := r.PathValue("id")
@@ -80,7 +80,7 @@ func registerMARC(mux *http.ServeMux, bs blob.Store, queue *suggest.Service, ver
 		updated := grain
 		if len(req.Ops) > 0 {
 			var err error
-			updated, err = editor.ApplyOps(docMapper, grain, workID, req.Ops)
+			updated, err = editor.ApplyOps(prof.Mapper(), grain, workID, req.Ops)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err.Error())
 				return

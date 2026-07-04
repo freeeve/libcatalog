@@ -256,15 +256,26 @@ func LoadDir(base Set, dir string) (Set, error) {
 	return set, nil
 }
 
-func (s Set) add(source string, data []byte) error {
+// Parse unmarshals and validates one profile document. It is the single
+// validator shared by the embedded loader, LoadDir, and the runtime editing
+// service, so every entry point applies the same "framework test".
+func Parse(data []byte) (*Profile, error) {
 	var p Profile
 	if err := json.Unmarshal(data, &p); err != nil {
-		return fmt.Errorf("profiles: %s: %w", source, err)
+		return nil, err
 	}
 	if err := p.Validate(); err != nil {
-		return fmt.Errorf("%s: %w", source, err)
+		return nil, err
 	}
-	s[p.ID] = &p
+	return &p, nil
+}
+
+func (s Set) add(source string, data []byte) error {
+	p, err := Parse(data)
+	if err != nil {
+		return fmt.Errorf("profiles: %s: %w", source, err)
+	}
+	s[p.ID] = p
 	return nil
 }
 

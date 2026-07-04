@@ -11,7 +11,7 @@ import (
 
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/authoritiesvc"
-	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcatalog/backend/profilesvc"
 	"github.com/freeeve/libcatalog/backend/vocab"
 )
 
@@ -25,14 +25,14 @@ type authorityView struct {
 // registerAuthorities mounts the librarian authorities surface (tasks/046):
 // local-term CRUD with ETag optimistic locking, the profile the editor form
 // renders from, merge, and the explicit index reload.
-func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, verifier auth.TokenVerifier) {
+func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, prof *profilesvc.Service, verifier auth.TokenVerifier) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 
-	// The editing form's field definitions -- the same profile mechanism
-	// records use (deployment overrides arrive via profiles.LoadDir).
-	authorityProfile := defaultAuthorityProfile()
+	// The editing form's field definitions -- the same live profile set the
+	// record editor maps through, so a runtime edit to authority-topic shows
+	// here without a restart.
 	mux.Handle("GET /v1/authorities/profile", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, authorityProfile)
+		writeJSON(w, http.StatusOK, prof.Set()["authority-topic"])
 	})))
 
 	// Listing and label search over the local scheme (imported schemes are
@@ -179,14 +179,4 @@ func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, verifie
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"schemes": svc.Vocab.Schemes()})
 	})))
-}
-
-// defaultAuthorityProfile loads the shipped authority-topic profile (embedded
-// and validated at build, so failure is impossible at runtime).
-func defaultAuthorityProfile() *profiles.Profile {
-	set, err := profiles.LoadDefaults()
-	if err != nil {
-		panic(err)
-	}
-	return set["authority-topic"]
 }

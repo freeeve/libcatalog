@@ -39,6 +39,7 @@ import type {
   Op,
   OpsResult,
   Profile,
+  ProfileSummary,
   Promotion,
   PublishResponse,
   QueuePage,
@@ -467,9 +468,26 @@ export function runBatch(req: {
   return call("POST", "/v1/batch/ops", req);
 }
 
-/** The shipped editing profiles, for the batch op builder (librarian). */
-export function fetchProfiles(): Promise<{ profiles: Record<string, Profile> }> {
+/** The live editing profiles, for the batch op builder (librarian). Each
+ *  carries an `overridden` flag for the profile admin surface. */
+export function fetchProfiles(): Promise<{ profiles: Record<string, ProfileSummary> }> {
   return call("GET", "/v1/profiles");
+}
+
+/** One editing profile with its override etag ("" for a shipped default). */
+export function fetchProfile(id: string): Promise<{ profile: Profile; etag: string; isDefault: boolean }> {
+  return call("GET", `/v1/profiles/${encodeURIComponent(id)}`);
+}
+
+/** Saves a profile override (admin); a blank etag creates the first override,
+ *  a non-blank one guards against a concurrent edit. */
+export function putProfile(id: string, profile: unknown, etag: string): Promise<{ id: string; etag: string }> {
+  return call("PUT", `/v1/profiles/${encodeURIComponent(id)}`, profile, etag ? { "If-Match": etag } : undefined);
+}
+
+/** Reverts a profile to its shipped default (admin). */
+export function deleteProfileOverride(id: string): Promise<void> {
+  return call("DELETE", `/v1/profiles/${encodeURIComponent(id)}`);
 }
 
 /** The caller's macros plus every shared macro (librarian). */

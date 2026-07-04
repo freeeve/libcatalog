@@ -4,7 +4,7 @@
   // land on #/login.
   import { onMount } from "svelte";
   import { loadConfig } from "./lib/config";
-  import { getToken, handleOidcCallback, logout, session } from "./lib/auth";
+  import { canAdmin, getToken, handleOidcCallback, logout, session } from "./lib/auth";
   import { initTheme, toggleTheme, type Theme } from "./lib/theme";
   import { resolve, navigate, type RouteDef } from "./lib/router";
   import { configStore, sessionStore } from "./lib/stores";
@@ -28,6 +28,7 @@
   import NewRecord from "./screens/NewRecord.svelte";
   import Duplicates from "./screens/Duplicates.svelte";
   import Withdrawals from "./screens/Withdrawals.svelte";
+  import Profiles from "./screens/Profiles.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
 
   const routes: RouteDef[] = [
@@ -48,6 +49,7 @@
     { name: "withdrawals", pattern: "/withdrawals" },
     { name: "queue", pattern: "/queue" },
     { name: "promotions", pattern: "/promotions" },
+    { name: "profiles", pattern: "/profiles" },
   ];
 
   let route = $state(resolve(routes, location.hash));
@@ -149,6 +151,9 @@
       <a href="#/duplicates" class:current={route.name === "duplicates"}>Duplicates</a>
       <a href="#/withdrawals" class:current={route.name === "withdrawals"}>Withdrawals</a>
       <a href="#/queue" class:current={route.name === "queue"}>Queue</a>
+      {#if canAdmin($sessionStore)}
+        <a href="#/profiles" class:current={route.name === "profiles"}>Profiles</a>
+      {/if}
     </nav>
     <span class="side">
       <span class="who">{$sessionStore.email}</span>
@@ -202,6 +207,8 @@
     <Queue />
   {:else if route.name === "promotions"}
     <Promotions />
+  {:else if route.name === "profiles"}
+    <Profiles />
   {:else}
     <Dashboard session={$sessionStore} />
   {/if}

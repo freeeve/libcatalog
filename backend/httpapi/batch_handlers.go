@@ -8,7 +8,6 @@ import (
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/batch"
 	"github.com/freeeve/libcatalog/backend/editor"
-	"github.com/freeeve/libcatalog/backend/profiles"
 )
 
 // resolvePreviewLimit caps the work list carried in a resolve preview; the
@@ -21,13 +20,6 @@ const resolvePreviewLimit = 50
 // the rest of the editing surface.
 func registerBatch(mux *http.ServeMux, svc *batch.Service, verifier auth.TokenVerifier) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
-
-	// The op builder's field definitions: the shipped profiles plus any the
-	// deployment layered on (same set the record editor maps through).
-	profileSet := defaultProfiles()
-	mux.Handle("GET /v1/profiles", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"profiles": profileSet})
-	})))
 
 	mux.Handle("POST /v1/batch/resolve", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
@@ -227,14 +219,4 @@ func writeBatchError(w http.ResponseWriter, err error) bool {
 		writeError(w, http.StatusInternalServerError, "batch operation failed")
 	}
 	return true
-}
-
-// defaultProfiles loads the shipped profile set (embedded, validated at
-// build).
-func defaultProfiles() profiles.Set {
-	set, err := profiles.LoadDefaults()
-	if err != nil {
-		panic(err)
-	}
-	return set
 }

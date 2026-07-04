@@ -14,7 +14,7 @@ import (
 
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/editor"
-	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcatalog/backend/profilesvc"
 	"github.com/freeeve/libcatalog/backend/store"
 	"github.com/freeeve/libcatalog/backend/suggest"
 )
@@ -37,7 +37,7 @@ type WorkSaveHook interface {
 // registerRecords mounts the librarian record-editing surface: grain
 // read/write with ETag optimistic locking, dry-run validation, drafts,
 // merge/split, and quad-level batch edits.
-func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *suggest.Service, verifier auth.TokenVerifier, hook WorkSaveHook) {
+func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *suggest.Service, prof *profilesvc.Service, verifier auth.TokenVerifier, hook WorkSaveHook) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 
 	readGrain := func(w http.ResponseWriter, r *http.Request) ([]byte, string, string, bool) {
@@ -67,15 +67,14 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *s
 		writeJSON(w, http.StatusOK, grainView{WorkID: workID, ETag: etag, NQuads: string(grain)})
 	})))
 
-	// The typed editing document: the grain materialized through the default
-	// profiles (deployment profile selection arrives with the write path).
-	docMapper := defaultMapper()
+	// The typed editing document: the grain materialized through the live
+	// profile set, so a runtime profile edit shows in the editor at once.
 	mux.Handle("GET /v1/works/{id}/doc", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		grain, etag, workID, ok := readGrain(w, r)
 		if !ok {
 			return
 		}
-		doc, err := docMapper.ToDoc(grain, workID)
+		doc, err := prof.Mapper().ToDoc(grain, workID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "doc mapping failed")
 			return
@@ -176,7 +175,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *s
 			writeJSON(w, http.StatusPreconditionFailed, grainView{WorkID: workID, ETag: etag, NQuads: string(grain)})
 			return
 		}
-		updated, err := editor.ApplyOps(docMapper, grain, workID, req.Ops)
+		updated, err := editor.ApplyOps(prof.Mapper(), grain, workID, req.Ops)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
@@ -393,16 +392,6 @@ func mutateWorkGrain(r *http.Request, bs blob.Store, workID string, mutate func(
 		return newTag, nil
 	}
 	return "", errors.New("write kept conflicting")
-}
-
-// defaultMapper builds the read mapper over the shipped profiles (they are
-// embedded and validate at build, so failure is impossible at runtime).
-func defaultMapper() *editor.Mapper {
-	set, err := profiles.LoadDefaults()
-	if err != nil {
-		panic(err)
-	}
-	return &editor.Mapper{WorkProfile: set["work-monograph"], InstanceProfile: set["instance-ebook"]}
 }
 
 func batchNote(results any) string {

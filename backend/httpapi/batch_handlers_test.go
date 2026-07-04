@@ -13,9 +13,20 @@ import (
 
 	"github.com/freeeve/libcatalog/backend/auth"
 	"github.com/freeeve/libcatalog/backend/batch"
+	"github.com/freeeve/libcatalog/backend/editor"
 	"github.com/freeeve/libcatalog/backend/export"
+	"github.com/freeeve/libcatalog/backend/profiles"
 	"github.com/freeeve/libcatalog/backend/store"
 )
+
+// testMapper builds an op mapper from the shipped defaults for batch tests.
+func testMapper() *editor.Mapper {
+	set, err := profiles.LoadDefaults()
+	if err != nil {
+		panic(err)
+	}
+	return &editor.Mapper{WorkProfile: set["work-monograph"], InstanceProfile: set["instance-ebook"]}
+}
 
 // newBatchAPI wires the handler with the batch service over three seeded
 // works (two "Ninth" novels, one bystander).
@@ -29,7 +40,7 @@ func newBatchAPI(t *testing.T) (http.Handler, blob.Store) {
 	} {
 		seedBatchWork(t, bs, id, title)
 	}
-	svc := &batch.Service{Blob: bs, DB: store.NewMem(), Mapper: defaultMapper()}
+	svc := &batch.Service{Blob: bs, DB: store.NewMem(), Mapper: testMapper()}
 	verifier := staffVerifier{
 		"lib-token":   {Email: "lib@example.org", Roles: []auth.Role{auth.RoleLibrarian}},
 		"lib2-token":  {Email: "lib2@example.org", Roles: []auth.Role{auth.RoleLibrarian}},
@@ -209,7 +220,7 @@ func TestExportBatchSelection(t *testing.T) {
 		seedBatchWork(t, bs, id, title)
 	}
 	db := store.NewMem()
-	batchSvc := &batch.Service{Blob: bs, DB: db, Mapper: defaultMapper()}
+	batchSvc := &batch.Service{Blob: bs, DB: db, Mapper: testMapper()}
 	exports, err := export.New(store.NewMem(), bs, "overdrive", []byte("0123456789abcdef"))
 	if err != nil {
 		t.Fatal(err)

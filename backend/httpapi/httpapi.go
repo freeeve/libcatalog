@@ -17,6 +17,7 @@ import (
 	"github.com/freeeve/libcatalog/backend/copycat"
 	"github.com/freeeve/libcatalog/backend/enrich"
 	"github.com/freeeve/libcatalog/backend/export"
+	"github.com/freeeve/libcatalog/backend/profilesvc"
 	"github.com/freeeve/libcatalog/backend/publish"
 	"github.com/freeeve/libcatalog/backend/store"
 	"github.com/freeeve/libcatalog/backend/suggest"
@@ -56,6 +57,10 @@ type Deps struct {
 	// Batch, when set, mounts batch operations, macros, and saved queries
 	// (tasks/047).
 	Batch *batch.Service
+	// Profiles is the live editing-profile set the record/batch/authority
+	// surfaces map through. New synthesizes a defaults-only, read-only
+	// service when this is nil, so the field is optional for tests.
+	Profiles *profilesvc.Service
 	// Copycat, when set, mounts external search and staged imports
 	// (tasks/050).
 	Copycat *copycat.Service
@@ -95,6 +100,13 @@ type GraphPublisher interface {
 func New(deps Deps) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/healthz", handleHealthz)
+	// A defaults-only, read-only profile set stands in when no service is
+	// wired (tests, or a deployment without a blob store), so the record,
+	// batch, and authority handlers always have a profile source.
+	if deps.Profiles == nil {
+		deps.Profiles = profilesvc.New(nil, "", deps.Logger)
+		_ = deps.Profiles.Load(context.Background())
+	}
 	if deps.AuthExchange != nil {
 		mux.Handle("POST /v1/auth/exchange", deps.AuthExchange)
 	}
@@ -117,14 +129,17 @@ func New(deps Deps) http.Handler {
 		hook = deps.Authorities
 	}
 	if deps.Blob != nil && deps.DB != nil && deps.Verifier != nil {
-		registerRecords(mux, deps.Blob, deps.DB, deps.Suggest, deps.Verifier, hook)
-		registerMARC(mux, deps.Blob, deps.Suggest, deps.Verifier)
+		registerRecords(mux, deps.Blob, deps.DB, deps.Suggest, deps.Profiles, deps.Verifier, hook)
+		registerMARC(mux, deps.Blob, deps.Suggest, deps.Profiles, deps.Verifier)
 		registerMaintenance(mux, deps.Blob, deps.Suggest, deps.Verifier)
 		wl := registerWorksList(mux, deps.Blob, deps.Verifier)
 		registerTags(mux, wl, deps.Verifier)
 	}
 	if deps.Authorities != nil && deps.Verifier != nil {
-		registerAuthorities(mux, deps.Authorities, deps.Verifier)
+		registerAuthorities(mux, deps.Authorities, deps.Profiles, deps.Verifier)
+	}
+	if deps.Verifier != nil {
+		registerProfiles(mux, deps.Profiles, deps.Suggest, deps.Verifier)
 	}
 	if deps.Batch != nil && deps.Verifier != nil {
 		registerBatch(mux, deps.Batch, deps.Verifier)

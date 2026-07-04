@@ -5,7 +5,7 @@
   // sequences use). Each stat tile is a link; a tile whose endpoint fails
   // or sits above the viewer's role simply stays away.
   import { onMount } from "svelte";
-  import { canModerate, canPublish, type Session } from "../lib/auth";
+  import { canAdmin, canModerate, canPublish, type Session } from "../lib/auth";
   import {
     fetchCopycatBatches,
     fetchDuplicates,
@@ -243,6 +243,14 @@
           <a href="#/promotions">
             <h2>Tag promotions</h2>
             <p class="muted">Fold community tags into controlled vocabulary.</p>
+          </a>
+        </li>
+      {/if}
+      {#if canAdmin(session)}
+        <li>
+          <a href="#/profiles">
+            <h2>Editing profiles</h2>
+            <p class="muted">Edit the field definitions the editor renders from.</p>
           </a>
         </li>
       {/if}

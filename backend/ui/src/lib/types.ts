@@ -236,6 +236,12 @@ export interface Profile {
   fields: ProfileField[];
 }
 
+/** GET /v1/profiles list entry: a profile plus whether a runtime override
+ *  currently shadows the shipped default. */
+export interface ProfileSummary extends Profile {
+  overridden?: boolean;
+}
+
 /** profiles.ValueSource -- how a field's values are entered and validated. */
 export interface ProfileValueSource {
   kind: "literal" | "langLiteral" | "date" | "enum" | "vocab" | "authority" | "entity";

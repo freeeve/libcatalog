@@ -28,11 +28,11 @@ import (
 	"github.com/freeeve/libcatalog/backend/batch"
 	"github.com/freeeve/libcatalog/backend/config"
 	"github.com/freeeve/libcatalog/backend/copycat"
-	"github.com/freeeve/libcatalog/backend/editor"
 	"github.com/freeeve/libcatalog/backend/enrich"
 	"github.com/freeeve/libcatalog/backend/export"
 	"github.com/freeeve/libcatalog/backend/httpapi"
 	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcatalog/backend/profilesvc"
 	"github.com/freeeve/libcatalog/backend/publish"
 	"github.com/freeeve/libcatalog/backend/store"
 	"github.com/freeeve/libcatalog/backend/suggest"
@@ -179,6 +179,13 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 		}
 	}
 	if deps.Blob != nil {
+		// The live editing-profile set: shipped defaults overlaid with the
+		// deployment's blob-persisted overrides, editable at runtime.
+		profSvc := profilesvc.New(deps.Blob, "", logger)
+		if err := profSvc.Load(ctx); err != nil {
+			return httpapi.Deps{}, fmt.Errorf("load profiles: %w", err)
+		}
+		deps.Profiles = profSvc
 		deps.Authorities = &authoritiesvc.Service{
 			Blob: deps.Blob, Vocab: deps.Vocab, Queue: deps.Suggest,
 			Trigger: notifier, AuthoritiesPrefix: cfg.AuthoritiesPrefix,
@@ -188,7 +195,7 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 			deps.Authorities.SchemesFn = deps.VocabSources.Schemes
 		}
 		deps.Batch = &batch.Service{
-			Blob: deps.Blob, DB: db, Mapper: defaultBatchMapper(),
+			Blob: deps.Blob, DB: db, MapperFn: profSvc.Mapper,
 			Queue: deps.Suggest, Trigger: notifier,
 		}
 		deps.Copycat = &copycat.Service{
@@ -320,16 +327,6 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 		}()
 	}
 	return deps, nil
-}
-
-// defaultBatchMapper builds the batch op mapper over the shipped profiles
-// (embedded and validated at build, so failure is impossible at runtime).
-func defaultBatchMapper() *editor.Mapper {
-	set, err := profiles.LoadDefaults()
-	if err != nil {
-		panic(err)
-	}
-	return &editor.Mapper{WorkProfile: set["work-monograph"], InstanceProfile: set["instance-ebook"]}
 }
 
 // signingKey decodes the configured Ed25519 key (seed or full private key,

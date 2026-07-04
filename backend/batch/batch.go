@@ -90,9 +90,13 @@ type RunResult struct {
 
 // Service resolves selections and executes op batches over the grain tree.
 type Service struct {
-	Blob   blob.Store
-	DB     store.Store
-	Mapper *editor.Mapper
+	Blob blob.Store
+	DB   store.Store
+	// Mapper is the static op mapper. MapperFn, when set, supersedes it so
+	// runtime profile edits are picked up per run; leave Mapper for the
+	// fixed-profile case (tests).
+	Mapper   *editor.Mapper
+	MapperFn func() *editor.Mapper
 	// Queue, when set, receives one audit entry per execute run.
 	Queue *suggest.Service
 	// Trigger, when set, gets one grains-changed event per execute run.
@@ -227,6 +231,15 @@ func (s *Service) Run(ctx context.Context, sel Selection, ops []editor.Op, dryRu
 }
 
 // runOne applies the ops to a single work. Dry runs diff without writing;
+// mapper resolves the op mapper for a run: the live provider when set (so
+// runtime profile edits apply), else the static Mapper.
+func (s *Service) mapper() *editor.Mapper {
+	if s.MapperFn != nil {
+		return s.MapperFn()
+	}
+	return s.Mapper
+}
+
 // executes CAS-write and still carry the applied diff for the report.
 func (s *Service) runOne(ctx context.Context, t Target, ops []editor.Op, dryRun bool) ItemResult {
 	item := ItemResult{WorkID: t.WorkID}
@@ -236,7 +249,7 @@ func (s *Service) runOne(ctx context.Context, t Target, ops []editor.Op, dryRun 
 			item.Error = readError(err)
 			return item
 		}
-		updated, err := editor.ApplyOps(s.Mapper, grain, t.WorkID, ops)
+		updated, err := editor.ApplyOps(s.mapper(), grain, t.WorkID, ops)
 		if err != nil {
 			item.Error = err.Error()
 			return item
@@ -250,7 +263,7 @@ func (s *Service) runOne(ctx context.Context, t Target, ops []editor.Op, dryRun 
 		if len(old) == 0 {
 			return nil, errors.New("no such work")
 		}
-		updated, err := editor.ApplyOps(s.Mapper, old, t.WorkID, ops)
+		updated, err := editor.ApplyOps(s.mapper(), old, t.WorkID, ops)
 		if err != nil {
 			return nil, err
 		}
