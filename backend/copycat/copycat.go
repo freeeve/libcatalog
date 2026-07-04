@@ -336,8 +336,9 @@ func protocolSearch(ctx context.Context, t Target, terms []FieldTerm, limit int)
 	return nil, fmt.Errorf("%w: unknown protocol %q", ErrValidation, t.Protocol)
 }
 
-// sruQuery assembles the ANDed CQL query. The dc context set libcodex maps
-// has no LCCN index, so lccn passes through as the Bath profile's bath.lccn.
+// sruQuery assembles the ANDed CQL query. Dublin Core defines no identifier
+// indexes, so isbn/issn/lccn go out as the Bath profile's bath.* access
+// points -- LOC's SRU server rejects dc.isbn/dc.issn with "Unsupported index".
 func sruQuery(terms []FieldTerm) sru.Query {
 	q := sru.Term(sruIndex(terms[0].Index), terms[0].Term)
 	for _, ft := range terms[1:] {
@@ -347,8 +348,9 @@ func sruQuery(terms []FieldTerm) sru.Query {
 }
 
 func sruIndex(index string) string {
-	if index == "lccn" {
-		return "bath.lccn"
+	switch index {
+	case "isbn", "issn", "lccn":
+		return "bath." + index
 	}
 	return index
 }

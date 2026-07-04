@@ -3,7 +3,7 @@ package copycat
 import "testing"
 
 // TestSRUQuery pins the CQL the fielded search sends: dc-set indexes, AND
-// composition, and the Bath-profile pass-through for LCCN.
+// composition, and the Bath-profile identifier indexes (isbn/issn/lccn).
 func TestSRUQuery(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -11,7 +11,8 @@ func TestSRUQuery(t *testing.T) {
 		want  string
 	}{
 		{"any", []FieldTerm{{Index: "any", Term: "dutch house"}}, `"dutch house"`},
-		{"isbn", []FieldTerm{{Index: "isbn", Term: "9780062963673"}}, `dc.isbn = "9780062963673"`},
+		{"isbn-bath", []FieldTerm{{Index: "isbn", Term: "9780062963673"}}, `bath.isbn = "9780062963673"`},
+		{"issn-bath", []FieldTerm{{Index: "issn", Term: "0028-0836"}}, `bath.issn = "0028-0836"`},
 		{"lccn-bath", []FieldTerm{{Index: "lccn", Term: "2019005498"}}, `bath.lccn = "2019005498"`},
 		{
 			"anded",
