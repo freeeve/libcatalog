@@ -34,6 +34,16 @@
     CopycatTarget,
   } from "../lib/types";
 
+  /** Well-known open targets an admin can add in one click: the big free
+   *  copy-cataloging sources speak Z39.50/SRU anonymously (subscription
+   *  targets like OCLC need credentials, which targets don't carry yet). */
+  const SUGGESTED_TARGETS: (CopycatTarget & { blurb: string })[] = [
+    { name: "loc", url: "lx2.loc.gov:210/LCDB", protocol: "z3950", blurb: "Library of Congress (Z39.50, anonymous)" },
+    { name: "loc-sru", url: "http://lx2.loc.gov:210/LCDB", protocol: "sru", blurb: "Library of Congress (SRU)" },
+    { name: "k10plus", url: "https://sru.k10plus.de/opac-de-627", protocol: "sru", blurb: "K10plus German union catalogue (SRU)" },
+    { name: "indexdata-test", url: "z3950.indexdata.com:210/marc", protocol: "z3950", blurb: "Index Data public test server (tiny sample set)" },
+  ];
+
   /** The fielded access points shared by both protocols (tasks/074). */
   const FIELD_INDEXES = [
     { index: "title", label: "Title" },
@@ -156,6 +166,19 @@
     try {
       await putCopycatTarget($state.snapshot(newTarget));
       newTarget = { name: "", url: "", protocol: "sru" };
+      await loadTargets();
+    } catch (e) {
+      error = e instanceof ApiError ? e.message : "saving the target failed";
+    }
+  }
+
+  /** Suggested targets not yet configured (matched by name). */
+  const suggestions = $derived(SUGGESTED_TARGETS.filter((s) => !targets.some((t) => t.name === s.name)));
+
+  async function addSuggested(s: CopycatTarget): Promise<void> {
+    error = "";
+    try {
+      await putCopycatTarget({ name: s.name, url: s.url, protocol: s.protocol });
       await loadTargets();
     } catch (e) {
       error = e instanceof ApiError ? e.message : "saving the target failed";
@@ -310,6 +333,16 @@
         </select>
         <button class="button" onclick={() => void addTarget()}>Add target</button>
       </div>
+      {#if suggestions.length > 0}
+        <div class="suggested">
+          <span class="muted">Suggested (open, no credentials needed):</span>
+          {#each suggestions as s (s.name)}
+            <button class="button button--quiet mini" title={s.url + " (" + s.protocol + ")"} onclick={() => void addSuggested(s)}>
+              + {s.blurb}
+            </button>
+          {/each}
+        </div>
+      {/if}
     {/if}
   </details>
 
@@ -473,6 +506,14 @@
   }
   .upload-btn {
     cursor: pointer;
+  }
+  .suggested {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 0.3rem 0 0.1rem;
+    font-size: 0.82rem;
   }
   .fielded {
     display: grid;
