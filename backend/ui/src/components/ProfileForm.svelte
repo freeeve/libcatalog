@@ -100,7 +100,9 @@
   let expanded = $state<string | null>(null); // `${path}|${uri}`
   const attempted = new Set<string>();
 
-  // Resolve every vocab-field URI once; unresolved URIs stay raw.
+  // Resolve every vocab-field URI once -- stored values and staged adds
+  // alike (a subject staged from the lookup or a restored draft arrives as
+  // a bare URI); unresolved URIs stay raw.
   $effect(() => {
     const missing: string[] = [];
     for (const spec of specs) {
@@ -109,6 +111,12 @@
         if (fv.iri && !attempted.has(fv.v)) {
           attempted.add(fv.v);
           missing.push(fv.v);
+        }
+      }
+      for (const p of pendingAdds(spec.path)) {
+        if (p.value.iri && !attempted.has(p.value.v)) {
+          attempted.add(p.value.v);
+          missing.push(p.value.v);
         }
       }
     }
@@ -295,15 +303,19 @@
               {@const rt = iriTerm(p.value.v)!}
               <span class="v" title={p.value.v}>{rt.label}</span>
               <span class="rdacode" title={p.value.v}>{rt.code}</span>
-            {:else if p.value.iri && !pickedLabels[p.value.v] && !resolved[p.value.v]}
+            {:else if p.value.iri && resolved[p.value.v]}
+              {@const t = resolved[p.value.v]}
+              <span class="v" title={p.value.v}>{bestLabel(t)}</span>
+              <span class="chip-scheme">{t.scheme}</span>
+            {:else if p.value.iri && pickedLabels[p.value.v]}
+              <span class="v" title={p.value.v}>{pickedLabels[p.value.v]}</span>
+            {:else if p.value.iri}
               {@const ip = iriParts(p.value.v)}
               <span class="v iri" title={p.value.v}>
                 {#if ip.host}<span class="iri-host">{ip.host}</span>{/if}{ip.tail}
               </span>
             {:else}
-              <span class="v" class:iri={p.value.iri && !pickedLabels[p.value.v] && !resolved[p.value.v]} title={p.value.iri ? p.value.v : undefined}>
-                {pickedLabels[p.value.v] ?? (resolved[p.value.v] ? bestLabel(resolved[p.value.v]) : p.value.v)}
-              </span>
+              <span class="v">{p.value.v}</span>
             {/if}
             {#if p.value.lang}<span class="lang">@{p.value.lang}</span>{/if}
             <span class="pend-note">adds on save</span>
