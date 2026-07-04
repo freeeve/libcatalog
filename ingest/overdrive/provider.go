@@ -51,6 +51,14 @@ func (p Provider) Records(_ context.Context) ([]ingest.Record, error) {
 	}
 	recs := make([]ingest.Record, len(items))
 	for i, it := range items {
+		// Thunder titles carry HTML character references and markup (e.g.
+		// "LEGO&#174; Creations", "Qing&#8212;Min Ning"); normalize the transcribed
+		// text at the source so both the BIBFRAME titles and the identity
+		// clustering key see clean values (tasks/081). Subjects and creators are
+		// headings and stay untouched.
+		it.Title = ingest.CleanText(it.Title)
+		it.Subtitle = ingest.CleanText(it.Subtitle)
+		it.Series = ingest.CleanText(it.Series)
 		recs[i] = it
 	}
 	return recs, nil

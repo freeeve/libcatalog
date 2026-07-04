@@ -10,10 +10,7 @@ package marc
 import (
 	"context"
 	"fmt"
-	"html"
 	"os"
-	"regexp"
-	"strings"
 
 	"github.com/freeeve/libcatalog/bibframe"
 	"github.com/freeeve/libcatalog/identity"
@@ -88,47 +85,47 @@ func FromCodexRecords(recs []*codex.Record) []ingest.Record {
 
 // cleanFreeText normalizes the crosswalk's free-text carriers before grains
 // are built: vendor MARC (OverDrive Marc Express among them) embeds HTML
-// character references and markup in 520/505/5xx prose (&#8212;, <b>...),
-// which would otherwise bake into bf:summary literals verbatim. Identifier
-// and heading fields stay untouched; the verbatim sidecar preserves the
-// original field bytes for fidelity.
+// character references and markup in 520/505/5xx prose (&#8212;, <b>...) and
+// in transcribed titles (245/246), which would otherwise bake into bf:summary
+// and bf:title literals verbatim (tasks/081, tasks/089). Identifier and heading
+// fields stay untouched; the verbatim sidecar preserves the original field
+// bytes for fidelity.
 func cleanFreeText(bib *codexbf.BIBFRAME) {
+	cleanTitles(bib.Work.Titles)
+	cleanTitles(bib.Instance.Titles)
+	cleanVariantTitles(bib.Work.VariantTitles)
+	cleanVariantTitles(bib.Instance.VariantTitles)
+	bib.Instance.ResponsibilityStatement = ingest.CleanText(bib.Instance.ResponsibilityStatement)
 	for i, s := range bib.Work.Summary {
-		bib.Work.Summary[i] = cleanText(s)
+		bib.Work.Summary[i] = ingest.CleanText(s)
 	}
 	for i, s := range bib.Work.TableOfContents {
-		bib.Work.TableOfContents[i] = cleanText(s)
+		bib.Work.TableOfContents[i] = ingest.CleanText(s)
 	}
 	for i := range bib.Work.Notes {
-		bib.Work.Notes[i].Label = cleanText(bib.Work.Notes[i].Label)
+		bib.Work.Notes[i].Label = ingest.CleanText(bib.Work.Notes[i].Label)
 	}
 	for i := range bib.Instance.Notes {
-		bib.Instance.Notes[i].Label = cleanText(bib.Instance.Notes[i].Label)
+		bib.Instance.Notes[i].Label = ingest.CleanText(bib.Instance.Notes[i].Label)
 	}
 }
 
-// htmlTag matches an opening or closing markup tag; a bare "<" followed by a
-// non-letter (prose like "a < b") never matches.
-var htmlTag = regexp.MustCompile(`</?[a-zA-Z][^>]*>`)
+// cleanTitles normalizes the transcribed parts of each title in place.
+func cleanTitles(ts []codexbf.Title) {
+	for i := range ts {
+		ts[i].MainTitle = ingest.CleanText(ts[i].MainTitle)
+		ts[i].Subtitle = ingest.CleanText(ts[i].Subtitle)
+		ts[i].PartName = ingest.CleanText(ts[i].PartName)
+	}
+}
 
-// cleanText resolves HTML character references, drops markup tags, and
-// collapses the whitespace runs stripping leaves. Text carrying neither "&"
-// nor "<" passes through untouched. References decode to a fixpoint
-// (bounded): vendor feeds double-escape (&amp;#8212;), and one pass would
-// just peel a layer.
-func cleanText(s string) string {
-	if !strings.ContainsAny(s, "&<") {
-		return s
+// cleanVariantTitles normalizes 246 variant/parallel titles in place.
+func cleanVariantTitles(ts []codexbf.VariantTitle) {
+	for i := range ts {
+		ts[i].MainTitle = ingest.CleanText(ts[i].MainTitle)
+		ts[i].Subtitle = ingest.CleanText(ts[i].Subtitle)
+		ts[i].PartName = ingest.CleanText(ts[i].PartName)
 	}
-	for range 3 {
-		u := html.UnescapeString(s)
-		if u == s {
-			break
-		}
-		s = u
-	}
-	s = htmlTag.ReplaceAllString(s, " ")
-	return strings.Join(strings.Fields(s), " ")
 }
 
 // Identity derives the resolution keys for one parsed MARC record -- what

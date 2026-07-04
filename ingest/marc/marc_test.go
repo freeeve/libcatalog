@@ -71,7 +71,7 @@ func readNQuads(t *testing.T, dir string) string {
 // references decode and markup strips from 520/505/5xx prose, while text
 // without markup (including "<" as prose) passes through byte-identical.
 func TestCleanFreeText(t *testing.T) {
-	rec := bookRecord("c1", "9780000000001", "Shakespeare, William", "Hamlet")
+	rec := bookRecord("c1", "9780000000001", "Shakespeare, William", "Hamlet &#8212; Prince of Denmark")
 	rec.AddField(codex.NewDataField("520", ' ', ' ',
 		codex.NewSubfield('a', "at the hand of his uncle Claudius &#8212; but <b>Hamlet&#39;s</b> spiral<br/> into grief")))
 	rec.AddField(codex.NewDataField("505", '0', ' ',
@@ -83,6 +83,13 @@ func TestCleanFreeText(t *testing.T) {
 		t.Fatalf("records = %d", len(out))
 	}
 	work, inst := out[0].Work(), out[0].Instance()
+	// Transcribed titles decode entities and strip markup (tasks/081).
+	if got, want := work.Titles[0].MainTitle, "Hamlet — Prince of Denmark"; got != want {
+		t.Errorf("work title = %q, want %q", got, want)
+	}
+	if got, want := inst.Titles[0].MainTitle, "Hamlet — Prince of Denmark"; got != want {
+		t.Errorf("instance title = %q, want %q", got, want)
+	}
 	if got, want := work.Summary[0], "at the hand of his uncle Claudius — but Hamlet's spiral into grief"; got != want {
 		t.Errorf("summary = %q, want %q", got, want)
 	}
@@ -92,12 +99,15 @@ func TestCleanFreeText(t *testing.T) {
 	if got, want := inst.Notes[0].Label, `Includes "annotations"`; got != want {
 		t.Errorf("note = %q, want %q", got, want)
 	}
-	if got, want := cleanText("plain prose, 2 < 3, no markup"), "plain prose, 2 < 3, no markup"; got != want {
+	if got, want := ingest.CleanText("plain prose, 2 < 3, no markup"), "plain prose, 2 < 3, no markup"; got != want {
 		t.Errorf("prose = %q, want %q", got, want)
 	}
-	// Double-escaped vendor text decodes to a fixpoint.
-	if got, want := cleanText("friendship&amp;#8212;a Newbery Honor Book!"), "friendship—a Newbery Honor Book!"; got != want {
+	// Double-escaped vendor text decodes to a fixpoint; registered-trademark ref decodes.
+	if got, want := ingest.CleanText("friendship&amp;#8212;a Newbery Honor Book!"), "friendship—a Newbery Honor Book!"; got != want {
 		t.Errorf("double-escaped = %q, want %q", got, want)
+	}
+	if got, want := ingest.CleanText("LEGO&#174; Creations"), "LEGO® Creations"; got != want {
+		t.Errorf("trademark = %q, want %q", got, want)
 	}
 }
 
