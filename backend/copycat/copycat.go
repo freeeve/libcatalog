@@ -187,9 +187,38 @@ func mintID() string {
 }
 
 func targetKey(name string) store.Key { return store.Key{PK: "COPYCAT", SK: "T#" + name} }
+func seededKey() store.Key            { return store.Key{PK: "COPYCAT", SK: "SEEDED"} }
 func batchKey(id string) store.Key    { return store.Key{PK: "COPYCAT", SK: "B#" + id} }
 func recordKey(batchID string, i int) store.Key {
 	return store.Key{PK: "CCREC#" + batchID, SK: fmt.Sprintf("R#%06d", i)}
+}
+
+// DefaultTarget is the search source seeded on a store that has never had
+// targets: the Library of Congress SRU endpoint -- open, anonymous, and
+// speaking the Bath-profile indexes the fielded search uses (tasks/074).
+var DefaultTarget = Target{Name: "loc-sru", URL: "http://lx2.loc.gov:210/LCDB", Protocol: ProtocolSRU}
+
+// SeedDefaultTarget installs DefaultTarget so a fresh deployment's subject
+// lookup and copy cataloging work without configuration. It runs once ever
+// per store (a marker record remembers the seeding), so an admin who
+// deletes every target stays at zero across restarts.
+func (s *Service) SeedDefaultTarget(ctx context.Context) error {
+	if _, err := s.DB.Get(ctx, seededKey()); err == nil {
+		return nil
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
+	targets, err := s.Targets(ctx)
+	if err != nil {
+		return err
+	}
+	if _, err := s.DB.Put(ctx, store.Record{Key: seededKey(), Data: []byte(`{}`)}, store.CondNone); err != nil {
+		return err
+	}
+	if len(targets) > 0 {
+		return nil
+	}
+	return s.PutTarget(ctx, DefaultTarget)
 }
 
 // PutTarget creates or replaces a search target.

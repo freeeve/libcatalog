@@ -11,6 +11,7 @@
   import TagInput from "./TagInput.svelte";
   import VocabPicker from "./VocabPicker.svelte";
   import { resolveTermURIs } from "../lib/api";
+  import { bisacTerm, type BisacTerm } from "../lib/bisac";
   import { valueKey } from "../lib/ops";
   import { LANGUAGES, LANG_TAGS, languageTerm } from "../lib/languages";
   import { CARRIER_TYPES, CONTENT_TYPES, MEDIA_TYPES, rdaTerm, type RdaTerm } from "../lib/rdaterms";
@@ -32,6 +33,9 @@
      *  disclosure (tasks/083) -- present, but not competing with the
      *  primary worksheet. */
     section?: "more";
+    /** Decodes a stored literal into a heading + code (BISAC), so coded
+     *  values read like subjects with the raw code demoted. */
+    decode?: (v: string) => BisacTerm | undefined;
   }
 
   /** Closed-list terms as searchable-picker entries. */
@@ -54,7 +58,7 @@
     { path: "tags", label: "Tags", kind: "tag" },
     { path: "genreForm", label: "Genre / form", kind: "readonly", section: "more" },
     { path: "content", label: "Content type", kind: "iri", options: termOptions(CONTENT_TYPES), section: "more" },
-    { path: "classification", label: "Classification", kind: "readonly", section: "more" },
+    { path: "classification", label: "Classification", kind: "readonly", section: "more", decode: bisacTerm },
   ];
   const INSTANCE_FIELDS: FieldSpec[] = [
     { path: "isbn", label: "Identifiers", kind: "literal", hint: "9780000000000" },
@@ -301,6 +305,10 @@
                 {#if p.host}<span class="iri-host">{p.host}</span>{/if}{p.tail}
               </span>
               {#if spec.kind === "vocab"}<span class="unres muted">not in local index</span>{/if}
+            {:else if spec.decode?.(fv.v)}
+              {@const dt = spec.decode(fv.v)!}
+              <span class="v" title={fv.v}>{dt.label}</span>
+              {#if !dt.exact}<span class="rdacode" title={fv.v}>{dt.code}</span>{/if}
             {:else}
               <span class="v">{fv.v}</span>
             {/if}

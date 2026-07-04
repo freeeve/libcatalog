@@ -194,6 +194,9 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 		deps.Copycat = &copycat.Service{
 			Blob: deps.Blob, DB: db, Queue: deps.Suggest, Trigger: notifier,
 		}
+		if err := deps.Copycat.SeedDefaultTarget(ctx); err != nil {
+			logger.Warn("seed default copycat target", "err", err)
+		}
 	}
 	verifiers := map[string]auth.TokenVerifier{}
 	if cfg.LocalAuth {

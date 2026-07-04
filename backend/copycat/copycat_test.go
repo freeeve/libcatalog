@@ -43,6 +43,41 @@ func newService(t *testing.T) (*copycat.Service, blob.Store, *fakeNotifier) {
 	return svc, svc.Blob, notifier
 }
 
+// TestSeedDefaultTarget proves a virgin store gets the LOC SRU target once
+// ever: re-seeding after an admin deletes everything stays at zero, and a
+// store that already has targets is never touched.
+func TestSeedDefaultTarget(t *testing.T) {
+	svc, _, _ := newService(t)
+	ctx := t.Context()
+	if err := svc.SeedDefaultTarget(ctx); err != nil {
+		t.Fatal(err)
+	}
+	targets, err := svc.Targets(ctx)
+	if err != nil || len(targets) != 1 || targets[0] != copycat.DefaultTarget {
+		t.Fatalf("seeded targets = %+v, %v", targets, err)
+	}
+	if err := svc.DeleteTarget(ctx, copycat.DefaultTarget.Name); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SeedDefaultTarget(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if targets, _ = svc.Targets(ctx); len(targets) != 0 {
+		t.Fatalf("re-seed after delete = %+v", targets)
+	}
+
+	svc2, _, _ := newService(t)
+	if err := svc2.PutTarget(ctx, copycat.Target{Name: "mine", URL: "http://example.org/sru", Protocol: "sru"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc2.SeedDefaultTarget(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if targets, _ = svc2.Targets(ctx); len(targets) != 1 || targets[0].Name != "mine" {
+		t.Fatalf("seed over existing = %+v", targets)
+	}
+}
+
 func TestTargetsCRUD(t *testing.T) {
 	svc, _, _ := newService(t)
 	ctx := t.Context()
