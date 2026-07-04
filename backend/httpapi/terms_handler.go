@@ -83,10 +83,16 @@ func registerTerms(mux *http.ServeMux, ix *vocab.Index, folk *suggest.Service) {
 			writeJSON(w, http.StatusOK, map[string]any{"terms": terms})
 			return
 		}
-		terms := ix.Search(scheme, q, limit)
-		if terms == nil {
-			terms = []*vocab.Term{}
+		// Each hit carries its broader-chain path (tasks/079) so the picker
+		// can show where a term sits without extra lookups.
+		type termHit struct {
+			*vocab.Term
+			Path []vocab.TermRef `json:"path,omitempty"`
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"terms": terms})
+		hits := []termHit{}
+		for _, t := range ix.Search(scheme, q, limit) {
+			hits = append(hits, termHit{Term: t, Path: ix.Path(scheme, t.ID)})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"terms": hits})
 	})
 }

@@ -349,6 +349,51 @@ func (ix *Index) Search(scheme, q string, limit int) []*Term {
 	return out
 }
 
+// Path returns the term's ancestor chain as TermRefs ordered root → … →
+// direct parent (the term itself is excluded), following skos:broader.
+// A polyhierarchical term takes the shortest chain to a root, ties broken
+// by URI order; cycles and broader URIs missing from the scheme terminate
+// the walk. A root term (or unknown term) yields nil.
+func (ix *Index) Path(scheme, id string) []TermRef {
+	byURI := ix.load().schemes[scheme]
+	if byURI == nil || byURI[id] == nil {
+		return nil
+	}
+	// BFS upward over broader edges: the first dequeued node with no
+	// resolvable parent lies on a shortest chain. Broader lists are sorted
+	// at load, so equal-length chains resolve to the smallest URIs.
+	prev := map[string]string{id: ""}
+	queue := []string{id}
+	root := ""
+	for len(queue) > 0 && root == "" {
+		cur := queue[0]
+		queue = queue[1:]
+		parents := 0
+		for _, b := range byURI[cur].Broader {
+			if byURI[b] == nil {
+				continue
+			}
+			parents++
+			if _, seen := prev[b]; !seen {
+				prev[b] = cur
+				queue = append(queue, b)
+			}
+		}
+		if parents == 0 {
+			root = cur
+		}
+	}
+	if root == "" || root == id {
+		return nil
+	}
+	var path []TermRef
+	for cur := root; cur != id; cur = prev[cur] {
+		t := byURI[cur]
+		path = append(path, TermRef{Scheme: scheme, ID: cur, Label: t.Label("en")})
+	}
+	return path
+}
+
 // LabelMatch is one exact-label hit: the term plus whether the match came
 // through an alt (used-for) label rather than a preferred label.
 type LabelMatch struct {

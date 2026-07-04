@@ -199,6 +199,78 @@ func TestReloadAndMergedTerms(t *testing.T) {
 	}
 }
 
+// TestPath drives the tasks/079 breadcrumb walk: shortest broader chain,
+// root → parent order, polyhierarchy tie-breaks, and cycle/dangling safety.
+func TestPath(t *testing.T) {
+	nq := func(s, p, o string) string {
+		if strings.HasPrefix(o, "http") {
+			return "<" + s + "> <" + p + "> <" + o + "> <authority:t> .\n"
+		}
+		return "<" + s + "> <" + p + "> \"" + o + "\"@en <authority:t> .\n"
+	}
+	const pref = "http://www.w3.org/2004/02/skos/core#prefLabel"
+	const broad = "http://www.w3.org/2004/02/skos/core#broader"
+	// root ← mid ← leaf, plus leaf ← alt (alt is itself a root): the chain
+	// through alt is shorter. deep chains only through mid.
+	data := nq("http://t/root", pref, "Root") +
+		nq("http://t/mid", pref, "Mid") + nq("http://t/mid", broad, "http://t/root") +
+		nq("http://t/alt", pref, "Alt") +
+		nq("http://t/leaf", pref, "Leaf") +
+		nq("http://t/leaf", broad, "http://t/mid") +
+		nq("http://t/leaf", broad, "http://t/alt") +
+		// Two equal-length chains: parents sort pa < pb, pa must win.
+		nq("http://t/pa", pref, "PA") + nq("http://t/pb", pref, "PB") +
+		nq("http://t/tie", pref, "Tie") +
+		nq("http://t/tie", broad, "http://t/pb") +
+		nq("http://t/tie", broad, "http://t/pa") +
+		// A two-node cycle with no root above it.
+		nq("http://t/c1", pref, "C1") + nq("http://t/c1", broad, "http://t/c2") +
+		nq("http://t/c2", pref, "C2") + nq("http://t/c2", broad, "http://t/c1") +
+		// A term whose only parent is not in the vocabulary.
+		nq("http://t/dangling", pref, "Dangling") +
+		nq("http://t/dangling", broad, "http://elsewhere/gone")
+	st := blob.NewMem()
+	if _, err := st.Put(t.Context(), "a/t.nq", []byte(data), blob.PutOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	ix, err := Load(t.Context(), st, "a/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	labels := func(path []TermRef) string {
+		parts := make([]string, len(path))
+		for i, p := range path {
+			parts[i] = p.Label
+		}
+		return strings.Join(parts, " > ")
+	}
+	// Shortest chain wins polyhierarchy: leaf goes through alt, not root/mid.
+	if got := labels(ix.Path("t", "http://t/leaf")); got != "Alt" {
+		t.Fatalf("leaf path = %q", got)
+	}
+	if got := labels(ix.Path("t", "http://t/mid")); got != "Root" {
+		t.Fatalf("mid path = %q", got)
+	}
+	// Equal-length chains break ties by URI order.
+	if got := labels(ix.Path("t", "http://t/tie")); got != "PA" {
+		t.Fatalf("tie path = %q", got)
+	}
+	// Roots, cycles, dangling parents, and unknown terms all yield nil.
+	for _, id := range []string{"http://t/root", "http://t/c1", "http://t/dangling", "http://t/nope"} {
+		if got := ix.Path("t", id); got != nil {
+			t.Fatalf("Path(%s) = %v, want nil", id, got)
+		}
+	}
+	if got := ix.Path("nope", "http://t/leaf"); got != nil {
+		t.Fatalf("unknown scheme path = %v", got)
+	}
+	// TermRefs carry scheme and URI for the UI to link through.
+	path := ix.Path("t", "http://t/mid")
+	if len(path) != 1 || path[0].Scheme != "t" || path[0].ID != "http://t/root" {
+		t.Fatalf("path refs = %+v", path)
+	}
+}
+
 func TestNormalizeFolk(t *testing.T) {
 	good := map[string]string{
 		"Cozy Fantasy":      "cozy fantasy",

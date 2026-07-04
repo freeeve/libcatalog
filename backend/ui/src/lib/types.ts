@@ -164,6 +164,8 @@ export interface Term {
   exactMatch?: string[];
   closeMatch?: string[];
   mergedInto?: string; // set = retired: merged into the referenced term
+  /** Ancestor chain root → … → parent (search hits only, tasks/079). */
+  path?: TermRef[];
 }
 
 /** bibframe.AuthorityTerm -- one local authority description (tasks/046). */

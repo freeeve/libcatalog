@@ -198,7 +198,11 @@
           {#snippet row(t: Term)}
             <button class="opt" onclick={() => pick(t)}>
               <span class="opt-label">{bestLabel(t)}</span>
-              <span class="opt-id">{t.id}</span>
+              {#if t.path?.length}
+                <span class="opt-path">{t.path.map((p) => p.label).join(" › ")}</span>
+              {:else}
+                <span class="opt-id">{t.id}</span>
+              {/if}
             </button>
           {/snippet}
         </RowList>
@@ -206,7 +210,11 @@
 
       {#if current}
         <aside class="details" aria-label="Term details">
-          <h3>{bestLabel(current)}</h3>
+          <h3>
+            {#if current.path?.length}
+              <span class="path">{current.path.map((p) => p.label).join(" › ") + " › "}</span>
+            {/if}{bestLabel(current)}
+          </h3>
           <p class="opt-id">{current.id}</p>
           {#if bestDefinition(current)}
             <p class="def">{bestDefinition(current)}</p>
@@ -324,6 +332,16 @@
     color: var(--ink-muted);
     word-break: break-all;
     margin: 0.1rem 0;
+  }
+  .opt-path {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+    margin: 0.1rem 0;
+  }
+  .path {
+    font-weight: 400;
+    color: var(--ink-muted);
   }
   .details {
     border: 1px solid var(--rule);
