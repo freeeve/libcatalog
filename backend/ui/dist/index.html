@@ -1,14 +1,34 @@
 <!doctype html>
+<!-- lcat-ui-placeholder: this file is the committed placeholder. `npm run build`
+     in backend/ui overwrites dist/ with the real SPA, which go:embed compiles
+     in. A bare `go build` embeds THIS page instead of a dead app shell. -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
-    <title>libcatalog</title>
-    <script type="module" crossorigin src="/assets/index-CQMg0ylv.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CURNOmiX.css">
+    <title>libcatalog -- UI not built</title>
+    <style>
+      body { font: 15px/1.6 system-ui, sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1.5rem; color: #1a1c1f; }
+      h1 { font-size: 1.3rem; }
+      code { background: #f0f1f3; padding: 0.1em 0.35em; border-radius: 4px; }
+      pre { background: #f0f1f3; padding: 0.8rem 1rem; border-radius: 8px; overflow-x: auto; }
+      .muted { color: #5a5f66; }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <h1>libcatalog API is running — the SPA was not built into this binary</h1>
+    <p>
+      The committed <code>backend/ui/dist/</code> is a placeholder. The cataloging
+      web app is a Svelte SPA that must be built <em>before</em> compiling
+      <code>lcatd</code>, so <code>go:embed</code> can pick it up:
+    </p>
+    <pre>cd backend/ui &amp;&amp; npm ci &amp;&amp; npm run build
+cd .. &amp;&amp; go build ./cmd/lcatd</pre>
+    <p class="muted">
+      The JSON API works regardless of this page:
+      <code>/config</code>, <code>/v1/healthz</code>, and the <code>/v1/…</code>
+      routes. The release container image builds the SPA automatically.
+    </p>
   </body>
 </html>

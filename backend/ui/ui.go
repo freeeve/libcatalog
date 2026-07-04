@@ -7,6 +7,7 @@
 package ui
 
 import (
+	"bytes"
 	"embed"
 	"io/fs"
 	"net/http"
@@ -15,6 +16,21 @@ import (
 
 //go:embed all:dist
 var dist embed.FS
+
+// placeholderMarker identifies the committed placeholder index.html; the real
+// Vite build does not contain it. See IsPlaceholder.
+var placeholderMarker = []byte("lcat-ui-placeholder")
+
+// IsPlaceholder reports whether the embedded SPA is the committed placeholder
+// (no build was run before `go build`). Callers log a warning: the API works,
+// but the browser UI shows a build notice rather than the app.
+func IsPlaceholder() bool {
+	data, err := dist.ReadFile("dist/index.html")
+	if err != nil {
+		return true
+	}
+	return bytes.Contains(data, placeholderMarker)
+}
 
 // Handler serves the embedded SPA with history-API fallback: unknown
 // non-asset paths get index.html so client-side routes deep-link.

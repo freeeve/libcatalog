@@ -281,6 +281,9 @@ func buildDeps(ctx context.Context, cfg config.Config, logger *slog.Logger) (htt
 		deps.Verifier = auth.NewMulti(verifiers)
 	}
 	deps.UI = ui.Handler()
+	if ui.IsPlaceholder() {
+		logger.Warn("cataloging SPA not built into this binary; the browser UI shows a build notice (run 'npm run build' in backend/ui before 'go build'). The JSON API is unaffected.")
+	}
 	clientCfg := map[string]any{
 		"apiBase":   "", // same-origin
 		"localAuth": cfg.LocalAuth,

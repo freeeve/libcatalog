@@ -53,7 +53,19 @@ Non-secret configuration (issuers, role maps, provider) goes in the
 
 `deploy/docker/compose.yaml` boots lcatd beside MinIO and DynamoDB-local --
 the self-contained integration stack. The image is distroless static
-(`deploy/docker/Dockerfile`, built from the repo root).
+(`deploy/docker/Dockerfile`, built from the repo root). The Dockerfile builds
+the Svelte SPA in a `node` stage and embeds it before the Go build, so the image
+serves a working browser UI.
+
+**Building lcatd by hand:** the SPA is embedded via `go:embed backend/ui/dist`,
+and the committed `dist/` is only a placeholder. A bare `go build ./cmd/lcatd`
+therefore serves an API with a "UI not built" notice at `/` (and logs a warning
+at startup). To embed the real app, build it first:
+
+```sh
+cd backend/ui && npm ci && npm run build
+cd .. && go build ./cmd/lcatd
+```
 
 Kubernetes notes: the API is stateless (all state lives in the document
 store and grain store), `GET /v1/healthz` serves liveness/readiness, SIGTERM
