@@ -21,7 +21,6 @@ import (
 	"time"
 
 	codex "github.com/freeeve/libcodex"
-	"github.com/freeeve/libcodex/marcxml"
 	"github.com/freeeve/libcodex/sru"
 	"github.com/freeeve/libcodex/z3950"
 
@@ -390,33 +389,14 @@ func protocolSearch(ctx context.Context, t Target, terms []FieldTerm, limit int)
 	return nil, fmt.Errorf("%w: unknown protocol %q", ErrValidation, t.Protocol)
 }
 
-// sruSearch runs one searchRetrieve page (the search cap fits in a page) and
-// decodes every returned payload as MARCXML directly, regardless of the
-// server's recordSchema label -- DNB stamps its MARC21 slim records
-// "MARC21-xml", which the libcodex Reader's schema gate would skip
-// (libcodex tasks/085). A payload that is not MARCXML fails the decode and
-// surfaces as this target's error; partial results beat none, so a bad
-// record after good ones just ends the list.
+// sruSearch streams up to limit records through the libcodex SRU Reader with
+// the target's dialect applied (protocol version, recordSchema, index map).
 func sruSearch(ctx context.Context, t Target, terms []FieldTerm, limit int) ([]*codex.Record, error) {
 	c := sru.NewClient(t.URL)
 	c.Version = t.Version
 	c.Schema = t.Schema
-	resp, err := c.SearchRetrieve(ctx, sru.Request{Query: sruQuery(t, terms).String(), MaxRecords: limit})
-	if err != nil {
-		return nil, err
-	}
-	var out []*codex.Record
-	for _, rec := range resp.Records {
-		dec, err := marcxml.Decode(rec.Data)
-		if err != nil {
-			if len(out) > 0 {
-				break
-			}
-			return nil, fmt.Errorf("copycat: target %s: decode record: %w", t.Name, err)
-		}
-		out = append(out, dec)
-	}
-	return out, nil
+	rd := c.NewReader(ctx, sruQuery(t, terms).String())
+	return readUpTo(rd.Read, limit)
 }
 
 // sruQuery assembles the ANDed CQL query. Dublin Core defines no identifier
