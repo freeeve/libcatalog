@@ -92,13 +92,17 @@ func TestPutSourceOverridesAndValidates(t *testing.T) {
 		{Name: "", Scheme: "x", SnapshotURL: "https://x"},
 		{Name: "a/b", Scheme: "x", SnapshotURL: "https://x"},
 		{Name: "x", Scheme: "", SnapshotURL: "https://x"},
-		{Name: "x", Scheme: "x"},
 		{Name: "x", Scheme: "x", SuggestURL: "https://x", SuggestFlavor: "nope"},
 		{Name: "x", Scheme: "x", SnapshotURL: "ftp://x"},
 	} {
 		if err := s.PutSource(ctx, bad); !errors.Is(err, ErrValidation) {
 			t.Errorf("want ErrValidation for %+v, got %v", bad, err)
 		}
+	}
+	// Neither suggest nor snapshot is fine: such a source installs by
+	// hand-uploaded dump.
+	if err := s.PutSource(ctx, Source{Name: "uploadonly", Scheme: "x"}); err != nil {
+		t.Fatalf("upload-only source refused: %v", err)
 	}
 }
 
@@ -276,6 +280,39 @@ func TestDownloadInstallRemoveLifecycle(t *testing.T) {
 	}
 	if err := s.RemoveSnapshot(ctx, "lcgft"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("double remove: %v", err)
+	}
+}
+
+// TestInstallUpload is the hand-supplied dump path: same converter and index
+// swap as a download, no snapshot URL required, provenance recorded as
+// "upload"; junk and unknown sources are refused.
+func TestInstallUpload(t *testing.T) {
+	s := newService(t)
+	ctx := t.Context()
+	ix, err := vocab.Load(ctx, s.Blob, s.AuthoritiesPrefix, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Index = ix
+	if err := s.PutSource(ctx, Source{Name: "lcgft", Scheme: "lcgft"}); err != nil {
+		t.Fatal(err)
+	}
+	terms, err := s.InstallUpload(ctx, "lcgft", strings.NewReader(zinesNT))
+	if err != nil || terms != 2 {
+		t.Fatalf("InstallUpload: terms=%d err=%v", terms, err)
+	}
+	if hits := ix.Search("lcgft", "zin", 5); len(hits) != 1 {
+		t.Fatalf("search after upload: %+v", hits)
+	}
+	installed, err := s.Installed(ctx)
+	if err != nil || len(installed) != 1 || installed[0].SnapshotURL != "upload" || installed[0].Terms != 2 {
+		t.Fatalf("installed = %+v err=%v", installed, err)
+	}
+	if _, err := s.InstallUpload(ctx, "lcgft", strings.NewReader("not rdf\n")); !errors.Is(err, ErrValidation) {
+		t.Fatalf("junk upload err = %v", err)
+	}
+	if _, err := s.InstallUpload(ctx, "nope", strings.NewReader(zinesNT)); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("unknown source err = %v", err)
 	}
 }
 

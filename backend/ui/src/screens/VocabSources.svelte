@@ -15,6 +15,7 @@
     fetchVocabSources,
     putVocabSource,
     removeVocabSnapshot,
+    uploadVocabSnapshot,
   } from "../lib/api";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { sessionStore } from "../lib/stores";
@@ -141,6 +142,27 @@
     return s.job?.status === "QUEUED" || s.job?.status === "RUNNING";
   }
 
+  /** Installs a hand-picked local dump file for the source -- the escape
+   *  hatch when the publisher's site is down or the source has no URL. */
+  async function upload(s: VocabSourceView, ev: Event): Promise<void> {
+    const input = ev.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    busy = s.name;
+    error = "";
+    status = "";
+    try {
+      const res = await uploadVocabSnapshot(s.name, file);
+      status = `${s.name}: ${res.terms.toLocaleString()} terms installed from ${file.name}`;
+      await refresh();
+    } catch (e) {
+      error = e instanceof ApiError ? e.message : "the upload failed";
+    } finally {
+      busy = "";
+      input.value = "";
+    }
+  }
+
   /** Registers a drop-in source (or a same-named override of a builtin). */
   async function register(src: VocabSource): Promise<void> {
     error = "";
@@ -238,6 +260,11 @@
                 <button class="button button--quiet" onclick={() => void remove(s)} disabled={busy === s.name || working(s)}>
                   Remove
                 </button>
+              {/if}
+              {#if isAdmin}
+                <label class="button button--quiet upload-btn" title="Install a local SKOS dump (.nt/.nq, optionally gzipped)">
+                  Upload… <input type="file" accept=".nt,.nq,.gz,.nt.gz,.nq.gz" onchange={(ev) => void upload(s, ev)} hidden disabled={busy === s.name || working(s)} />
+                </label>
               {/if}
               {#if isAdmin && !s.builtin}
                 <button class="button button--quiet" onclick={() => void unregister(s)} disabled={busy === s.name || working(s)}
@@ -388,6 +415,9 @@
   .srcbtn {
     font-size: 0.8rem;
     padding: 0.1em 0.7em;
+  }
+  .upload-btn {
+    cursor: pointer;
   }
   .srcform {
     display: flex;

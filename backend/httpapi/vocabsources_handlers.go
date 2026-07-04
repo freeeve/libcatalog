@@ -67,6 +67,18 @@ func registerVocabSources(mux *http.ServeMux, svc *vocabsrc.Service, verifier au
 		writeJSON(w, http.StatusOK, map[string]bool{"removed": true})
 	})))
 
+	// Upload a dump by hand (tasks/067 follow-up): the body is the raw SKOS
+	// N-Triples/N-Quads (optionally gzipped, sniffed) -- the escape hatch
+	// when a publisher's download URL is unreachable. Installs synchronously.
+	mux.Handle("PUT /v1/vocabsources/{name}/snapshot", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		terms, err := svc.InstallUpload(r.Context(), r.PathValue("name"), http.MaxBytesReader(w, r.Body, 512<<20))
+		if err != nil {
+			writeVocabSrcError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"installed": true, "terms": terms})
+	})))
+
 	// Cache a live pick (tasks/072): the picked term's label and exactMatch
 	// siblings land in the local index so the subject resolves forever.
 	mux.Handle("POST /v1/vocabcache", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

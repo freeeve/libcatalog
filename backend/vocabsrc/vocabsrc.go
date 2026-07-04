@@ -228,9 +228,8 @@ func validateSource(src Source) error {
 	if src.Scheme == "" {
 		return fmt.Errorf("%w: a source needs a scheme", ErrValidation)
 	}
-	if !src.CanSuggest() && !src.CanSnapshot() {
-		return fmt.Errorf("%w: a source needs a suggest endpoint or a snapshot url", ErrValidation)
-	}
+	// A source with neither a suggest endpoint nor a snapshot URL is still
+	// registrable: it installs by hand-uploaded dump (InstallUpload).
 	if src.SuggestURL != "" {
 		switch src.SuggestFlavor {
 		case FlavorSuggest2, FlavorWikidata, FlavorVIAF:

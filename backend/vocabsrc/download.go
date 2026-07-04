@@ -215,19 +215,38 @@ func (s *Service) install(ctx context.Context, job Job) (int, error) {
 		return 0, err
 	}
 	defer body.Close()
-	converted, terms, err := Convert(body, src.Scheme)
+	return s.installFrom(ctx, src, body, src.SnapshotURL)
+}
+
+// InstallUpload installs a hand-supplied dump for a registered source -- the
+// escape hatch when the publisher's download URL is unreachable (or the
+// source has none). Same converter, snapshot layout, and index swap as a
+// download; the sidecar records "upload" as the provenance. Synchronous:
+// the caller holds the bytes, no worker round-trip.
+func (s *Service) InstallUpload(ctx context.Context, sourceName string, r io.Reader) (int, error) {
+	src, err := s.GetSource(ctx, sourceName)
+	if err != nil {
+		return 0, err
+	}
+	return s.installFrom(ctx, src, r, "upload")
+}
+
+// installFrom converts a dump stream, writes the snapshot and its sidecar,
+// and swaps the index -- the shared back half of download and upload.
+func (s *Service) installFrom(ctx context.Context, src Source, r io.Reader, provenance string) (int, error) {
+	converted, terms, err := Convert(r, src.Scheme)
 	if err != nil {
 		return 0, err
 	}
 	if terms == 0 {
-		return 0, fmt.Errorf("vocabsrc: %s yielded no concepts -- not a SKOS N-Triples/N-Quads dump?", src.SnapshotURL)
+		return 0, fmt.Errorf("%w: %s yielded no concepts -- not a SKOS N-Triples/N-Quads dump?", ErrValidation, provenance)
 	}
 	if _, err := s.Blob.Put(ctx, s.snapshotPath(src.Name), converted, blob.PutOptions{ContentType: "application/n-quads"}); err != nil {
 		return 0, err
 	}
 	info := InstallInfo{
 		Source: src.Name, Scheme: src.Scheme, Terms: terms,
-		InstalledAt: s.clock().UTC(), SnapshotURL: src.SnapshotURL,
+		InstalledAt: s.clock().UTC(), SnapshotURL: provenance,
 	}
 	meta, err := json.Marshal(info)
 	if err != nil {

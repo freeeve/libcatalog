@@ -578,6 +578,31 @@ export function putVocabSource(src: VocabSource): Promise<VocabSource> {
   return call("POST", "/v1/vocabsources", src);
 }
 
+/** Installs a hand-supplied SKOS dump (N-Triples/N-Quads, optionally
+ *  gzipped) for a registered source -- the escape hatch when the
+ *  publisher's download URL is unreachable (admin). Synchronous. */
+export async function uploadVocabSnapshot(name: string, dump: Blob): Promise<{ installed: boolean; terms: number }> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const token = await getToken();
+    if (!token) throw new ApiError(401, "not signed in");
+    const res = await fetch(apiBase() + `/v1/vocabsources/${encodeURIComponent(name)}/snapshot`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/octet-stream" },
+      body: dump,
+    });
+    if (res.status === 401 && attempt === 0) {
+      invalidateAccess();
+      continue;
+    }
+    if (!res.ok) {
+      const detail = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new ApiError(res.status, detail.error || res.statusText);
+    }
+    return (await res.json()) as { installed: boolean; terms: number };
+  }
+  throw new ApiError(401, "authentication failed");
+}
+
 /** Deletes a registered source; a same-named builtin's shipped definition
  *  returns (admin). */
 export function deleteVocabSource(name: string): Promise<{ deleted: boolean }> {
