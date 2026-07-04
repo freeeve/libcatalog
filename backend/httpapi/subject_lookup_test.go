@@ -18,6 +18,8 @@ import (
 )
 
 const lookupVocabNT = `<https://homosaurus.org/v4/homoit1> <http://www.w3.org/2004/02/skos/core#prefLabel> "Gay men"@en <authority:homosaurus> .
+<http://www.wikidata.org/entity/Q322481> <http://www.w3.org/2004/02/skos/core#prefLabel> "revenge"@en <authority:wikidata> .
+<http://www.wikidata.org/entity/Q322481> <http://www.w3.org/2004/02/skos/core#exactMatch> <https://d-nb.info/gnd/4048394-2> <authority:wikidata> .
 `
 
 // marcWithSubjects fabricates one external hit carrying 650s and a 655.
@@ -28,6 +30,12 @@ func marcWithSubjects() *codex.Record {
 	rec.AddField(codex.NewDataField("650", ' ', '0', codex.NewSubfield('a', "Gay men.")))
 	rec.AddField(codex.NewDataField("650", ' ', '2', codex.NewSubfield('a', "Sexual Behavior")))
 	rec.AddField(codex.NewDataField("655", ' ', '7', codex.NewSubfield('a', "Essays."), codex.NewSubfield('2', "lcgft")))
+	// A German GND heading whose $0 identifier crosswalks to the English
+	// wikidata term (the label alone never would).
+	rec.AddField(codex.NewDataField("650", ' ', '7',
+		codex.NewSubfield('a', "Rache"),
+		codex.NewSubfield('0', "(DE-588)4048394-2"),
+		codex.NewSubfield('2', "gnd")))
 	// Already-carried tag on the work: must not come back.
 	rec.AddField(codex.NewDataField("650", ' ', '0', codex.NewSubfield('a', "Nonfiction.")))
 	return rec
@@ -89,6 +97,13 @@ func TestSubjectLookupByISBN(t *testing.T) {
 	// Subdivided heading survives with the double-dash join.
 	if _, ok := byHeading["Gay men--History"]; !ok {
 		t.Fatalf("subdivided heading missing: %v", byHeading)
+	}
+	// The GND heading reconciles through its $0 identifier to the
+	// English-labeled wikidata term, despite the German label.
+	rache, ok := byHeading["Rache"]
+	if !ok || rache.Term == nil || rache.Term.Scheme != "wikidata" || rache.Term.Label != "revenge" ||
+		rache.Source != "gnd" || len(rache.IDs) != 1 || rache.IDs[0] != "https://d-nb.info/gnd/4048394-2" {
+		t.Fatalf("gnd candidate = %+v (ok=%v)", rache, ok)
 	}
 	// MeSH and $2 sources carry through; unreconciled headings have no term.
 	if c := byHeading["Sexual Behavior"]; c.Source != "mesh" || c.Term != nil {

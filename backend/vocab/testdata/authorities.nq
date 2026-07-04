@@ -5,6 +5,8 @@
 <https://homosaurus.org/v4/homoit0001235> <http://www.w3.org/2004/02/skos/core#altLabel> "Trans people"@en <authority:homosaurus> .
 <https://homosaurus.org/v4/homoit0001235> <http://www.w3.org/2004/02/skos/core#definition> "People whose gender identity differs from their sex assigned at birth."@en <authority:homosaurus> .
 <https://homosaurus.org/v4/homoit0001235> <http://www.w3.org/2004/02/skos/core#broader> <https://homosaurus.org/v4/homoit0000508> <authority:homosaurus> .
+<https://homosaurus.org/v4/homoit0001235> <http://www.w3.org/2004/02/skos/core#exactMatch> <https://d-nb.info/gnd/4121991-6> <authority:homosaurus> .
+<http://id.loc.gov/authorities/subjects/sh85118553> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://www.wikidata.org/entity/Q24925> <authority:lcsh> .
 <https://homosaurus.org/v4/homoit0000508> <http://www.w3.org/2004/02/skos/core#narrower> <https://homosaurus.org/v4/homoit0001235> <authority:homosaurus> .
 <https://homosaurus.org/v4/homoit0001369> <http://www.w3.org/2004/02/skos/core#prefLabel> "Queer science fiction"@en <authority:homosaurus> .
 <https://homosaurus.org/v4/homoit0001369> <http://www.w3.org/2004/02/skos/core#related> <https://homosaurus.org/v4/homoit0001235> <authority:homosaurus> .

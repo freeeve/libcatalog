@@ -82,6 +82,10 @@ type snapshot struct {
 	// search holds, per scheme, entries sorted by normalized label for
 	// prefix search across pref and alt labels in every language.
 	search map[string][]searchEntry
+	// match maps canonicalized identifier URIs (term IDs plus their
+	// skos:exactMatch/closeMatch siblings) to live terms, for
+	// identifier-based reconciliation across schemes.
+	match map[string]*Term
 }
 
 type searchEntry struct {
@@ -229,9 +233,14 @@ func (s *snapshot) term(scheme, uri string) *Term {
 	return t
 }
 
-// finish sorts relation lists and builds the per-scheme search slices.
-// Retired (merged) terms stay resolvable but get no search entries.
+// finish sorts relation lists and builds the per-scheme search slices and
+// the identifier match map. Retired (merged) terms stay resolvable but get
+// no search or match entries.
 func (s *snapshot) finish() {
+	s.match = map[string]*Term{}
+	s.buildMatch(func(t *Term) []string { return []string{t.ID} })
+	s.buildMatch(func(t *Term) []string { return t.ExactMatch })
+	s.buildMatch(func(t *Term) []string { return t.CloseMatch })
 	for scheme, byURI := range s.schemes {
 		var entries []searchEntry
 		for uri, t := range byURI {
@@ -267,6 +276,58 @@ func (s *snapshot) finish() {
 		})
 		s.search[scheme] = entries
 	}
+}
+
+// buildMatch registers one identifier tier of every live term into the match
+// map. Tiers run strongest first (own ID, then exactMatch, then closeMatch)
+// and never overwrite an earlier tier; within a tier, collisions resolve to
+// the lexicographically smallest scheme then URI for determinism.
+func (s *snapshot) buildMatch(ids func(*Term) []string) {
+	tier := map[string]*Term{}
+	for _, byURI := range s.schemes {
+		for _, t := range byURI {
+			if t.MergedInto != "" {
+				continue
+			}
+			for _, id := range ids(t) {
+				key := canonIdentifier(id)
+				if key == "" {
+					continue
+				}
+				if prev, ok := tier[key]; !ok || t.Scheme < prev.Scheme || (t.Scheme == prev.Scheme && t.ID < prev.ID) {
+					tier[key] = t
+				}
+			}
+		}
+	}
+	for key, t := range tier {
+		if _, ok := s.match[key]; !ok {
+			s.match[key] = t
+		}
+	}
+}
+
+// canonIdentifier folds an identifier URI to its match key: scheme prefix
+// and trailing slash dropped, so http://d-nb.info/gnd/X and
+// https://d-nb.info/gnd/X/ reconcile to the same term.
+func canonIdentifier(uri string) string {
+	uri = strings.TrimSpace(uri)
+	uri = strings.TrimPrefix(uri, "https://")
+	uri = strings.TrimPrefix(uri, "http://")
+	return strings.TrimSuffix(uri, "/")
+}
+
+// MatchIdentifier returns the live term a canonicalized identifier URI
+// resolves to: the term's own URI first, then its skos:exactMatch and
+// closeMatch siblings -- the identifier-based reconciliation gate for
+// external headings that carry $0 (tasks/088).
+func (ix *Index) MatchIdentifier(uri string) (*Term, bool) {
+	key := canonIdentifier(uri)
+	if key == "" {
+		return nil, false
+	}
+	t, ok := ix.load().match[key]
+	return t, ok
 }
 
 // Schemes lists the loaded vocabulary keys, sorted.

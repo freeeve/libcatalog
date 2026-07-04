@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"maps"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 
@@ -19,13 +20,15 @@ import (
 )
 
 // subjectCandidate is one external heading a cataloger can pull in: the
-// heading text, its MARC tag and source vocabulary, how many target records
-// carried it, and -- when it whole-heading-matches a loaded vocabulary --
-// the controlled term to add instead of a tag.
+// heading text, its MARC tag and source vocabulary, the $0 identifier URIs
+// it carried, how many target records carried it, and -- when an identifier
+// or the whole heading matches a loaded vocabulary -- the controlled term
+// to add instead of a tag.
 type subjectCandidate struct {
 	Heading string         `json:"heading"`
 	Tag     string         `json:"tag"`
 	Source  string         `json:"source,omitempty"`
+	IDs     []string       `json:"ids,omitempty"`
 	Count   int            `json:"count"`
 	Targets []string       `json:"targets"`
 	Term    *vocab.TermRef `json:"term,omitempty"`
@@ -104,7 +107,10 @@ func registerSubjectLookup(mux *http.ServeMux, cc *copycat.Service, bs blob.Stor
 				continue
 			}
 			if ix != nil {
-				c.Term = reconcileHeading(ix, c.Heading)
+				c.Term = reconcileIdentifiers(ix, c.IDs)
+				if c.Term == nil {
+					c.Term = reconcileHeading(ix, c.Heading)
+				}
 				if c.Term != nil && existingSubjects[c.Term.ID] {
 					continue
 				}
@@ -171,7 +177,7 @@ func collectSubjects(byKey map[string]*subjectCandidate, target string, rec marc
 		if !subjectTags[f.Tag] {
 			continue
 		}
-		heading, source := headingOf(f)
+		heading, source, ids := headingOf(f)
 		if heading == "" {
 			continue
 		}
@@ -180,6 +186,11 @@ func collectSubjects(byKey map[string]*subjectCandidate, target string, rec marc
 		if c == nil {
 			c = &subjectCandidate{Heading: heading, Tag: f.Tag, Source: source}
 			byKey[key] = c
+		}
+		for _, id := range ids {
+			if !slices.Contains(c.IDs, id) {
+				c.IDs = append(c.IDs, id)
+			}
 		}
 		c.Count++
 		found := false
@@ -196,10 +207,12 @@ func collectSubjects(byKey map[string]*subjectCandidate, target string, rec marc
 
 // headingOf joins a 6XX field into a display heading: name/title subfields
 // space-joined, subdivisions ($v$x$y$z) double-dash-joined, trailing
-// punctuation trimmed. Returns the heading and its source vocabulary.
-func headingOf(f marcview.Field) (string, string) {
+// punctuation trimmed. Returns the heading, its source vocabulary, and the
+// resolvable identifier URIs its $0 subfields carry.
+func headingOf(f marcview.Field) (string, string, []string) {
 	var main []string
 	var subs []string
+	var ids []string
 	source := ind2Sources[f.Ind2]
 	for _, sf := range f.Subfields {
 		switch sf.Code {
@@ -207,6 +220,10 @@ func headingOf(f marcview.Field) (string, string) {
 			main = append(main, strings.TrimSpace(sf.Value))
 		case "v", "x", "y", "z":
 			subs = append(subs, strings.TrimSpace(sf.Value))
+		case "0":
+			if id := subjectIDURI(sf.Value); id != "" && !slices.Contains(ids, id) {
+				ids = append(ids, id)
+			}
 		case "2":
 			if source == "" {
 				source = sf.Value
@@ -217,7 +234,35 @@ func headingOf(f marcview.Field) (string, string) {
 	if len(subs) > 0 {
 		heading += "--" + strings.Join(subs, "--")
 	}
-	return strings.TrimRight(strings.TrimSpace(heading), ".,"), source
+	return strings.TrimRight(strings.TrimSpace(heading), ".,"), source, ids
+}
+
+// subjectIDURI folds a 6XX $0 value into a resolvable identifier URI: full
+// http(s) URIs pass through, the "(DE-588)X" GND parenthetical form becomes
+// its d-nb.info URI. Other control numbers (local PPNs, bare LCCNs) return
+// "" -- nothing loadable claims them.
+func subjectIDURI(v string) string {
+	v = strings.TrimSpace(v)
+	if strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://") {
+		return v
+	}
+	if id, ok := strings.CutPrefix(v, "(DE-588)"); ok && id != "" {
+		return "https://d-nb.info/gnd/" + strings.TrimSpace(id)
+	}
+	return ""
+}
+
+// reconcileIdentifiers resolves the first $0 identifier any loaded term
+// claims as its own URI or a skos exact/close match sibling. Identifier
+// matches outrank label matches: they survive the language gap (a German
+// GND heading still lands on the English-labeled term).
+func reconcileIdentifiers(ix *vocab.Index, ids []string) *vocab.TermRef {
+	for _, id := range ids {
+		if t, ok := ix.MatchIdentifier(id); ok {
+			return &vocab.TermRef{Scheme: t.Scheme, ID: t.ID, Label: t.Label("en")}
+		}
+	}
+	return nil
 }
 
 func normHeading(s string) string {

@@ -137,6 +137,33 @@ func TestMatchLabel(t *testing.T) {
 	}
 }
 
+// TestMatchIdentifier pins the identifier reconciliation gate: own URIs,
+// exactMatch and closeMatch siblings all resolve, http/https and trailing
+// slashes fold, and unknown identifiers fail closed.
+func TestMatchIdentifier(t *testing.T) {
+	ix := loadFixture(t, nil)
+	trans, ok := ix.MatchIdentifier("https://homosaurus.org/v4/homoit0001235")
+	if !ok || trans.Labels["en"] != "Transgender people" {
+		t.Fatalf("own-URI match = %+v (ok=%v)", trans, ok)
+	}
+	if got, ok := ix.MatchIdentifier("http://homosaurus.org/v4/homoit0001235"); !ok || got != trans {
+		t.Fatalf("http-folded own URI = %+v (ok=%v)", got, ok)
+	}
+	if got, ok := ix.MatchIdentifier("http://d-nb.info/gnd/4121991-6/"); !ok || got != trans {
+		t.Fatalf("gnd exactMatch = %+v (ok=%v)", got, ok)
+	}
+	sf, ok := ix.MatchIdentifier("https://www.wikidata.org/entity/Q24925")
+	if !ok || sf.ID != "http://id.loc.gov/authorities/subjects/sh85118553" {
+		t.Fatalf("wikidata closeMatch = %+v (ok=%v)", sf, ok)
+	}
+	if _, ok := ix.MatchIdentifier("https://d-nb.info/gnd/0000000-0"); ok {
+		t.Fatal("unknown identifier resolved")
+	}
+	if _, ok := ix.MatchIdentifier("  "); ok {
+		t.Fatal("blank identifier resolved")
+	}
+}
+
 func TestReloadAndMergedTerms(t *testing.T) {
 	data, err := os.ReadFile("testdata/authorities.nq")
 	if err != nil {
@@ -171,6 +198,9 @@ func TestReloadAndMergedTerms(t *testing.T) {
 	if hits := ix.Search("local", "cozy", 5); len(hits) != 1 {
 		t.Fatalf("local search = %v", hits)
 	}
+	if got, ok := ix.MatchIdentifier("https://id.loc.gov/authorities/subjects/sh1"); !ok || got.ID != "https://example.org/local/a1" {
+		t.Fatalf("exactMatch identifier after reload = %+v (ok=%v)", got, ok)
+	}
 	if all := ix.Terms("local"); len(all) != 1 || all[0].ID != "https://example.org/local/a1" {
 		t.Fatalf("Terms = %+v", all)
 	}
@@ -193,6 +223,9 @@ func TestReloadAndMergedTerms(t *testing.T) {
 	}
 	if hits := ix.MatchLabel("local", "cozy fantasy"); hits != nil {
 		t.Fatalf("retired term still matchable = %v", hits)
+	}
+	if got, ok := ix.MatchIdentifier("https://id.loc.gov/authorities/subjects/sh1"); ok {
+		t.Fatalf("retired term still identifier-matchable = %+v", got)
 	}
 	if all := ix.Terms("local"); len(all) != 1 {
 		t.Fatalf("retired term missing from Terms = %+v", all)
