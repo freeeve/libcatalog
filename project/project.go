@@ -571,6 +571,16 @@ func (p *projector) contributors(w rdf.Term) []Contributor {
 // subject: its authority URI plus labels resolved from the graph (buildLabelIndex).
 // A labeled blank node is an uncontrolled feed tag: its label string. Subjects are
 // deduped by URI and sorted by URI; tags are deduped and sorted.
+//
+// Consequence for authority-less feeds: a Work whose bf:subject objects are all
+// labeled blank nodes contributes zero controlled subjects, so a corpus built
+// purely from such a feed projects an empty subject facet -- its topical terms
+// live in the tag dimension instead. Both OverDrive routes are authority-less
+// this way: Thunder JSON subjects are uncontrolled label strings, and OverDrive
+// MARC-Express 6XX carry no $0 authority URI (only $2 source vocabularies, chiefly
+// bisacsh, which the crosswalk models as classification, not a subject). This is
+// vendor data, not a crosswalk or projection defect; controlled subject facets
+// require authority-linked source records (e.g. LCSH 650 $0).
 func (p *projector) subjectsAndTags(w rdf.Term) ([]Subject, []string) {
 	subj := map[string]Subject{}
 	tags := map[string]bool{}

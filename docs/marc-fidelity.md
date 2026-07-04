@@ -92,6 +92,20 @@ OverDrive ingests directly, and MARC is only the existing-ILS onboarding ramp
 subject classification. (With the tasks/049 sidecar, even the MARC ramp now carries
 them verbatim -- the direct provider remains preferable because it *models* them.)
 
+## Uncontrolled subjects → tags (empty subject facet is expected)
+
+OverDrive MARC-Express 6XX subject fields carry **no `$0` authority URI** -- only
+`$2` source vocabularies (chiefly `bisacsh`, which the crosswalk models as
+classification). With no authority URI, the crosswalk emits each topical heading as
+a labeled `bf:Topic` blank node (correct BIBFRAME for an uncontrolled term). The
+projector then routes any authority-less `bf:subject` into the **tag** dimension,
+not the controlled **subject** facet (`project.subjectsAndTags`). So a corpus built
+purely from OverDrive -- via either the MARC-Express ramp or the direct Thunder-JSON
+provider, both authority-less -- projects an **empty subject facet**; its topical
+terms are present as tags. This is vendor data, not a crosswalk or projection defect:
+controlled subject facets require authority-linked source records (e.g. an LCSH `650`
+with `$0 http://id.loc.gov/authorities/subjects/sh…`).
+
 ## MODS / schema.org
 
 ROADMAP Phase 0 also lists MODS and schema.org export. These are **export-only** in
