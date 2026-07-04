@@ -163,6 +163,40 @@ func TestStructuredFieldsClaimed(t *testing.T) {
 	}
 }
 
+// TestAnnotationResolved proves a field's annotation chain (the heading's
+// bf:source label, MARC $2) rides along on each value, display-only.
+func TestAnnotationResolved(t *testing.T) {
+	m := newMapper(t)
+	var found bool
+	for workID, grain := range realGrains(t) {
+		doc, err := m.ToDoc(grain, workID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, v := range doc.Work.Fields["subjectLabels"] {
+			if v.Annotation == "OverDrive" {
+				found = true
+			}
+		}
+		// Display-only: the annotation's quads stay in passthrough and the
+		// round trip stays byte-identical (TestGoldenRoundTrip); here just
+		// confirm the source label is still a passthrough statement.
+		if found {
+			var inPassthrough bool
+			for _, line := range doc.Passthrough {
+				if strings.Contains(line, `"OverDrive"`) {
+					inPassthrough = true
+				}
+			}
+			if !inPassthrough {
+				t.Fatal("annotation source quads were claimed out of passthrough")
+			}
+			return
+		}
+	}
+	t.Fatal("no subject heading carried the OverDrive source annotation")
+}
+
 // TestEditedValueLandsOnNode proves a doc edit renders back onto the right
 // node: changing a title changes exactly that literal in the grain.
 func TestEditedValueLandsOnNode(t *testing.T) {

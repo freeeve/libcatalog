@@ -83,9 +83,14 @@ type Field struct {
 	// ReadOnly renders the field's values (with provenance) but rejects
 	// ops against it -- for values living inside typed blank structures
 	// the op layer cannot rebuild yet (e.g. contributions).
-	ReadOnly bool   `json:"readOnly,omitempty"`
-	Default  string `json:"default,omitempty"`
-	Hidden   bool   `json:"hidden,omitempty"`
+	ReadOnly bool `json:"readOnly,omitempty"`
+	// Annotation is a predicate chain resolved from each value's structure
+	// node into a display-only qualifier (e.g. a heading's bf:source label,
+	// MARC's $2). Chained fields only; the annotation's quads stay in
+	// passthrough, so it never affects the doc round trip.
+	Annotation []string `json:"annotation,omitempty"`
+	Default    string   `json:"default,omitempty"`
+	Hidden     bool     `json:"hidden,omitempty"`
 	// MarcHint names the roughly-equivalent MARC field for copy catalogers.
 	MarcHint string `json:"marcHint,omitempty"`
 }
@@ -141,6 +146,19 @@ func (p *Profile) Validate() error {
 		for _, pred := range f.Predicates {
 			if !knownPredicate(pred) {
 				return fmt.Errorf("profiles: %s/%s: predicate %s outside known vocabularies", p.ID, f.Path, pred)
+			}
+		}
+		if len(f.Annotation) > 0 {
+			if len(f.Predicates) < 2 {
+				return fmt.Errorf("profiles: %s/%s: annotation requires a chained field (the value needs a structure node)", p.ID, f.Path)
+			}
+			if len(f.Annotation) > 2 {
+				return fmt.Errorf("profiles: %s/%s: annotation chains must be 1 or 2 long", p.ID, f.Path)
+			}
+			for _, pred := range f.Annotation {
+				if !knownPredicate(pred) {
+					return fmt.Errorf("profiles: %s/%s: annotation predicate %s outside known vocabularies", p.ID, f.Path, pred)
+				}
 			}
 		}
 		if !slices.Contains(validKinds, f.ValueSource.Kind) {

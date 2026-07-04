@@ -59,6 +59,7 @@
       "help": "Vendor/uncontrolled headings on subject nodes; reconcile to controlled terms via the lookup",
       "valueSource": {"kind": "literal"},
       "readOnly": true,
+      "annotation": ["http://id.loc.gov/ontologies/bibframe/source", "http://www.w3.org/2000/01/rdf-schema#label"],
       "marcHint": "650"
     },
     {
@@ -90,6 +91,7 @@
       "label": "Classification",
       "valueSource": {"kind": "literal"},
       "readOnly": true,
+      "annotation": ["http://id.loc.gov/ontologies/bibframe/source", "http://www.w3.org/2000/01/rdf-schema#label"],
       "marcHint": "072/084"
     }
   ]

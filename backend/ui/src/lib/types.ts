@@ -44,6 +44,9 @@ export interface FieldValue {
   iri?: boolean;
   prov: string;
   overridden?: boolean;
+  /** Display-only qualifier from the value's structure node (e.g. a
+   *  heading's bf:source label -- MARC's $2). */
+  annotation?: string;
   node: string;
 }
 

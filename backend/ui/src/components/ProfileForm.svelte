@@ -307,6 +307,9 @@
             {#if spec.kind === "literal" && idKinds[fv.v]}
               <span class="idkind">{ID_KIND_LABELS[idKinds[fv.v]] ?? idKinds[fv.v]}</span>
             {/if}
+            {#if fv.annotation}
+              <span class="chip-scheme" title={"heading source: " + fv.annotation}>{fv.annotation}</span>
+            {/if}
             {#if fv.lang}<span class="lang">@{fv.lang}</span>{/if}
             <ProvenanceBadge prov={fv.prov} />
             {#if fv.overridden}<span class="ov-note">overridden</span>{/if}

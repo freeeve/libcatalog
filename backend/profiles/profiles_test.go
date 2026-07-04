@@ -101,6 +101,13 @@ func TestValidateRejects(t *testing.T) {
 			p.Fields = append(p.Fields, p.Fields[0])
 		},
 		"bad resource type": func(p *Profile) { p.ResourceType = "shelf" },
+		"annotation on direct field": func(p *Profile) {
+			p.Fields[0].Annotation = []string{"http://id.loc.gov/ontologies/bibframe/source"}
+		},
+		"annotation outside known vocabularies": func(p *Profile) {
+			p.Fields[0].Predicates = append(p.Fields[0].Predicates, "http://www.w3.org/2000/01/rdf-schema#label")
+			p.Fields[0].Annotation = []string{"http://evil.example/x"}
+		},
 	}
 	for name, mutate := range cases {
 		p := valid()

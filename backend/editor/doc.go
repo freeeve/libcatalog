@@ -29,6 +29,10 @@ type FieldValue struct {
 	// Overridden marks feed values shadowed by an lcat:overrides marker
 	// (tasks/042).
 	Overridden bool `json:"overridden,omitempty"`
+	// Annotation is the field's display-only qualifier resolved from the
+	// value's structure node (e.g. a heading's bf:source label). Its quads
+	// stay in passthrough; ToGrain ignores it.
+	Annotation string `json:"annotation,omitempty"`
 	// Node is the value's subject term in N-Quads syntax -- the resource
 	// node for direct fields, the intermediate node for chained fields.
 	// Reconstruction metadata; clients treat it as opaque.
@@ -186,7 +190,15 @@ func claimFields(ds *rdf.Dataset, claimed []bool, node rdf.Term, profile *profil
 			}
 			leaf := field.Predicates[len(field.Predicates)-1]
 			for _, mid := range mids {
-				values = append(values, claimDirect(ds, claimed, mid, leaf, overrides, headOverridden)...)
+				vals := claimDirect(ds, claimed, mid, leaf, overrides, headOverridden)
+				if len(field.Annotation) > 0 {
+					if note := annotationLabel(ds, mid, field.Annotation); note != "" {
+						for i := range vals {
+							vals[i].Annotation = note
+						}
+					}
+				}
+				values = append(values, vals...)
 			}
 		}
 		if len(values) > 0 {
@@ -226,6 +238,34 @@ func claimDirect(ds *rdf.Dataset, claimed []bool, subject rdf.Term, predicate st
 		})
 	}
 	return out
+}
+
+// annotationLabel resolves a field's display annotation from one value's
+// structure node: the distinct literals at the end of the annotation chain,
+// sorted and joined. Nothing is claimed -- the annotation's quads stay in
+// passthrough.
+func annotationLabel(ds *rdf.Dataset, node rdf.Term, chain []string) string {
+	terms := []rdf.Term{node}
+	for _, pred := range chain[:len(chain)-1] {
+		var next []rdf.Term
+		for _, t := range terms {
+			next = append(next, objectsAll(ds, t, pred)...)
+		}
+		terms = next
+	}
+	leaf := chain[len(chain)-1]
+	seen := map[string]bool{}
+	var labels []string
+	for _, t := range terms {
+		for _, o := range objectsAll(ds, t, leaf) {
+			if o.IsLiteral() && o.Value != "" && !seen[o.Value] {
+				seen[o.Value] = true
+				labels = append(labels, o.Value)
+			}
+		}
+	}
+	sort.Strings(labels)
+	return strings.Join(labels, ", ")
 }
 
 // objectsAll returns the objects of (subject, predicate) across every graph.
