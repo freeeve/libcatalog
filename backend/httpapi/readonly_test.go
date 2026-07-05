@@ -31,6 +31,10 @@ func TestReadOnlyGuard(t *testing.T) {
 		{"POST", "/v1/works/w123/ops", http.StatusOK, true},
 		{"POST", "/v1/works/w123/marc", http.StatusOK, true},
 		{"POST", "/v1/batch/ops", http.StatusOK, true},
+		// Other non-persisting editor reads pass.
+		{"POST", "/v1/works/w123/marc/preview", http.StatusOK, true},
+		{"POST", "/v1/works/w123/validate", http.StatusOK, true},
+		{"POST", "/v1/works/w123/subjects/lookup", http.StatusOK, true},
 		// Editorial / config writes are rejected.
 		{"PUT", "/v1/works/w123", http.StatusForbidden, false},
 		{"POST", "/v1/review", http.StatusForbidden, false},

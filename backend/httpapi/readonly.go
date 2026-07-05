@@ -48,7 +48,14 @@ func readOnlyAllowed(path string) bool {
 	case "/v1/copycat/search", "/v1/batch/resolve":
 		return true
 	}
-	// Dry-run-capable editor endpoints: /v1/works/{id}/ops, /v1/works/{id}/marc,
-	// /v1/batch/ops. The execute path is blocked at the blob store.
-	return strings.HasSuffix(path, "/ops") || strings.HasSuffix(path, "/marc")
+	// Non-persisting POSTs the editor makes: dry-run-capable ops/marc (the
+	// execute path is blocked at the blob store), the MARC preview, record
+	// validation, and subject reconciliation against external targets. None of
+	// these write.
+	for _, suffix := range []string{"/ops", "/marc", "/marc/preview", "/validate", "/subjects/lookup"} {
+		if strings.HasSuffix(path, suffix) {
+			return true
+		}
+	}
+	return false
 }
