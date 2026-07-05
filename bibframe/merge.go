@@ -52,6 +52,10 @@ func ScanMerges(nq []byte) ([]identity.Merge, error) {
 	return datasetMerges(ds), nil
 }
 
+// ScanMergesDataset is ScanMerges for callers that already hold the parsed
+// dataset (the work index scans everything off one parse).
+func ScanMergesDataset(ds *rdf.Dataset) []identity.Merge { return datasetMerges(ds) }
+
 // datasetMerges extracts the editorial-graph lcat:mergedInto pairs from a parsed
 // dataset.
 func datasetMerges(ds *rdf.Dataset) []identity.Merge {

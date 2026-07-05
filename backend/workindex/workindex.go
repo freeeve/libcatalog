@@ -42,6 +42,7 @@ type Ref struct {
 type grainEntry struct {
 	etag      string
 	identity  identity.GrainIdentity
+	merges    []identity.Merge
 	barcodes  []string
 	summaries []ingest.WorkSummary
 }
@@ -81,6 +82,39 @@ func (ix *Index) Refresh(ctx context.Context) error {
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
 	return ix.refreshLocked(ctx)
+}
+
+// RefreshNow reconciles against a fresh listing regardless of the TTL -- for
+// callers about to make corpus-accuracy-sensitive decisions (a copycat
+// commit's re-match, tasks/107). Still an ETag diff: only changed grains are
+// re-read.
+func (ix *Index) RefreshNow(ctx context.Context) error {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	ix.at = time.Time{}
+	return ix.refreshLocked(ctx)
+}
+
+// Update re-reads the given grain paths and applies their current state --
+// how a bulk writer that lands many grains at once (copycat commit/revert)
+// keeps the index exact without waiting out the TTL. A path that no longer
+// exists is dropped from the index.
+func (ix *Index) Update(ctx context.Context, paths ...string) error {
+	for _, p := range paths {
+		grain, etag, err := ix.bs.Get(ctx, p)
+		if errors.Is(err, blob.ErrNotFound) {
+			ix.mu.Lock()
+			delete(ix.grains, p)
+			ix.dirty = true
+			ix.mu.Unlock()
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		ix.Apply(p, etag, grain)
+	}
+	return nil
 }
 
 // Apply records a grain the caller just wrote (or re-read), keeping the index
@@ -165,6 +199,46 @@ func (ix *Index) DuplicateGroups(ctx context.Context) (map[string][]string, erro
 		groups[key] = ids
 	}
 	return groups, nil
+}
+
+// SeedResolver seeds r with every committed work/instance identity and merge
+// marker in the corpus, in grain path order -- what copycat's match pass
+// needs from LoadPriorStore, without the per-request corpus read (tasks/107).
+func (ix *Index) SeedResolver(ctx context.Context, r *identity.Resolver) error {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	if err := ix.freshenLocked(ctx); err != nil {
+		return err
+	}
+	paths := make([]string, 0, len(ix.grains))
+	for p := range ix.grains {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	for _, p := range paths {
+		identity.SeedResolver(r, []identity.GrainIdentity{ix.grains[p].identity})
+	}
+	for _, p := range paths {
+		for _, m := range ix.grains[p].merges {
+			r.SeedMerge(m.From, m.To)
+		}
+	}
+	return nil
+}
+
+// GrainPaths returns the set of grain paths the index currently covers. The
+// map is a copy the caller may keep.
+func (ix *Index) GrainPaths(ctx context.Context) (map[string]bool, error) {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	if err := ix.refreshLocked(ctx); err != nil {
+		return nil, err
+	}
+	out := make(map[string]bool, len(ix.grains))
+	for p := range ix.grains {
+		out[p] = true
+	}
+	return out, nil
 }
 
 // Barcodes returns every barcode in the corpus. The map is a copy the caller
@@ -294,6 +368,7 @@ func scanEntry(etag string, grain []byte) (*grainEntry, error) {
 	entry := &grainEntry{
 		etag:      etag,
 		identity:  identity.ScanDataset(ds),
+		merges:    bibframe.ScanMergesDataset(ds),
 		summaries: ingest.SummarizeDataset(ds),
 	}
 	for _, q := range ds.Quads {

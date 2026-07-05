@@ -3,8 +3,11 @@ package copycat_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"iter"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	codex "github.com/freeeve/libcodex"
@@ -16,6 +19,7 @@ import (
 	"github.com/freeeve/libcatalog/backend/copycat"
 	"github.com/freeeve/libcatalog/backend/store"
 	"github.com/freeeve/libcatalog/backend/trigger"
+	"github.com/freeeve/libcatalog/backend/workindex"
 )
 
 type fakeNotifier struct{ events []trigger.Event }
@@ -34,12 +38,16 @@ func sampleMRC(t *testing.T) []byte {
 	return data
 }
 
+// newService builds a copycat service wired the way appdeps does: with the
+// shared work index over the same store, so the suite exercises the indexed
+// match path (tasks/107). Fallback-specific tests zero the Index field.
 func newService(t *testing.T) (*copycat.Service, blob.Store, *fakeNotifier) {
 	t.Helper()
 	notifier := &fakeNotifier{}
 	svc := &copycat.Service{
 		Blob: blob.NewMem(), DB: store.NewMem(), Trigger: notifier,
 	}
+	svc.Index = workindex.New(svc.Blob, "data/works/")
 	return svc, svc.Blob, notifier
 }
 
@@ -347,5 +355,72 @@ func TestPoliciesAndDecisions(t *testing.T) {
 	}
 	if _, _, err := svc.GetBatch(ctx, "missing"); !errors.Is(err, copycat.ErrNotFound) {
 		t.Fatalf("missing batch err = %v", err)
+	}
+}
+
+// countingStore wraps a Store and counts Get calls, so tests can assert the
+// indexed match path stops re-reading the corpus per Stage (tasks/107).
+type countingStore struct {
+	blob.Store
+	gets atomic.Int64
+}
+
+func (c *countingStore) Get(ctx context.Context, path string) ([]byte, string, error) {
+	c.gets.Add(1)
+	return c.Store.Get(ctx, path)
+}
+
+func (c *countingStore) List(ctx context.Context, prefix string) iter.Seq2[blob.Entry, error] {
+	return c.Store.List(ctx, prefix)
+}
+
+// TestIndexedMatchEqualsFallbackAndSkipsCorpusReads proves the shared-index
+// match pass returns the same banner as the LoadPriorStore fallback and that
+// a warm re-stage costs zero grain Gets.
+func TestIndexedMatchEqualsFallbackAndSkipsCorpusReads(t *testing.T) {
+	svc, bs, _ := newService(t)
+	ctx := t.Context()
+	mrc := sampleMRC(t)
+	seeded, _, err := svc.StageMARC(ctx, "seed", mrc, "lib@example.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Commit(ctx, seeded.ID, "lib@example.org"); err != nil {
+		t.Fatal(err)
+	}
+
+	// The same corpus through the LoadPriorStore fallback (no index).
+	fallback := &copycat.Service{Blob: bs, DB: store.NewMem(), Trigger: &fakeNotifier{}}
+	_, viaScan, err := fallback.StageMARC(ctx, "again", mrc, "lib@example.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The indexed path over a counting wrapper: warm once, then a re-stage
+	// must not read any grain.
+	cs := &countingStore{Store: bs}
+	indexed := &copycat.Service{
+		Blob: cs, DB: store.NewMem(), Trigger: &fakeNotifier{},
+		Index: workindex.New(cs, "data/works/"),
+	}
+	if err := indexed.Index.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	cs.gets.Store(0)
+	_, viaIndex, err := indexed.StageMARC(ctx, "again", mrc, "lib@example.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cs.gets.Load(); got != 0 {
+		t.Fatalf("warm indexed stage read %d grains, want 0", got)
+	}
+	if len(viaIndex) != len(viaScan) {
+		t.Fatalf("record counts diverge: %d vs %d", len(viaIndex), len(viaScan))
+	}
+	for i := range viaIndex {
+		got, want := fmt.Sprintf("%+v", viaIndex[i].Match), fmt.Sprintf("%+v", viaScan[i].Match)
+		if got != want {
+			t.Fatalf("record %d match diverges: index %s, fallback %s", i, got, want)
+		}
 	}
 }

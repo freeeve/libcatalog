@@ -61,15 +61,25 @@ func grainHash(b []byte) string {
 // preCommitSnapshot captures the state the revert path needs before the
 // pipeline runs: the set of existing grain paths (so created grains are
 // recognizable afterwards) and the bytes of every matched work grain (the
-// overlay candidates).
+// overlay candidates). The path set comes from the shared index when one is
+// wired (Commit force-refreshed it moments earlier) instead of a fresh
+// corpus listing.
 func (s *Service) preCommitSnapshot(ctx context.Context, fresh []StagedRecord) (map[string]bool, map[string][]byte, error) {
-	existed := map[string]bool{}
-	for entry, err := range s.Blob.List(ctx, s.Prefix+"data/works/") {
-		if err != nil {
+	var existed map[string]bool
+	if ix := s.sharedIndex(); ix != nil {
+		var err error
+		if existed, err = ix.GrainPaths(ctx); err != nil {
 			return nil, nil, err
 		}
-		if strings.HasSuffix(entry.Path, ".nq") {
-			existed[entry.Path] = true
+	} else {
+		existed = map[string]bool{}
+		for entry, err := range s.Blob.List(ctx, s.Prefix+"data/works/") {
+			if err != nil {
+				return nil, nil, err
+			}
+			if strings.HasSuffix(entry.Path, ".nq") {
+				existed[entry.Path] = true
+			}
 		}
 	}
 	priors := map[string][]byte{}
@@ -185,6 +195,11 @@ func (s *Service) Revert(ctx context.Context, id, actor string) (RevertResult, e
 		}
 		result.Reverted++
 		changed = append(changed, rr.Path)
+	}
+	if ix := s.sharedIndex(); ix != nil && len(changed) > 0 {
+		if err := ix.Update(ctx, changed...); err != nil {
+			return result, err
+		}
 	}
 	b.Status = StatusReverted
 	b.Reverted = result.Reverted

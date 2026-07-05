@@ -198,6 +198,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		}
 		deps.Copycat = &copycat.Service{
 			Blob: deps.Blob, DB: db, Queue: deps.Suggest, Trigger: notifier,
+			Index: deps.WorkIndex,
 		}
 		if err := deps.Copycat.SeedDefaultTargets(ctx); err != nil {
 			logger.Warn("seed default copycat targets", "err", err)

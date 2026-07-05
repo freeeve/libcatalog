@@ -34,6 +34,7 @@ import (
 	"github.com/freeeve/libcatalog/backend/store"
 	"github.com/freeeve/libcatalog/backend/suggest"
 	"github.com/freeeve/libcatalog/backend/trigger"
+	"github.com/freeeve/libcatalog/backend/workindex"
 )
 
 // Protocols a target can speak.
@@ -181,6 +182,10 @@ type Service struct {
 	Feed string
 	// Search overrides the protocol clients (tests); nil = protocolSearch.
 	Search SearchFunc
+	// Index, when set (and Prefix is ""), is the shared work index match
+	// passes seed from instead of loading the whole prior grain store per
+	// Stage/Commit (tasks/107); nil falls back to LoadPriorStore.
+	Index *workindex.Index
 }
 
 func (s *Service) feed() string {
@@ -188,6 +193,16 @@ func (s *Service) feed() string {
 		return "copycat"
 	}
 	return s.Feed
+}
+
+// sharedIndex returns the work index when it actually covers this service's
+// grain tree: the index is built on repo-layout paths, so a prefixed
+// deployment falls back to its own loads.
+func (s *Service) sharedIndex() *workindex.Index {
+	if s.Prefix != "" {
+		return nil
+	}
+	return s.Index
 }
 
 func mintID() string {
@@ -458,17 +473,24 @@ func readUpTo(read func() (*codex.Record, error), limit int) ([]*codex.Record, e
 }
 
 // matchRecords dry-runs the identity resolver over the docs against the
-// current corpus: a throwaway resolver seeded from the grain tree, so
-// staging never mutates anything.
+// current corpus: a throwaway resolver seeded from the shared work index
+// (or, without one, a full grain-tree load), so staging never mutates
+// anything.
 func (s *Service) matchRecords(ctx context.Context, docs []marcview.RecordDoc) ([]StagedRecord, error) {
-	prior, _, err := bibframe.LoadPriorStore(ctx, s.Blob, s.Prefix+"data/works/", s.feed())
-	if err != nil {
-		return nil, err
-	}
 	r := identity.NewResolver()
-	identity.SeedResolver(r, prior.Grains)
-	for _, m := range prior.Merges {
-		r.SeedMerge(m.From, m.To)
+	if ix := s.sharedIndex(); ix != nil {
+		if err := ix.SeedResolver(ctx, r); err != nil {
+			return nil, err
+		}
+	} else {
+		prior, _, err := bibframe.LoadPriorStore(ctx, s.Blob, s.Prefix+"data/works/", s.feed())
+		if err != nil {
+			return nil, err
+		}
+		identity.SeedResolver(r, prior.Grains)
+		for _, m := range prior.Merges {
+			r.SeedMerge(m.From, m.To)
+		}
 	}
 	staged := make([]StagedRecord, 0, len(docs))
 	for i, doc := range docs {
@@ -642,10 +664,18 @@ func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
 	if err != nil {
 		return Batch{}, err
 	}
-	// Re-match against the corpus as it is now (staging may be stale).
+	// Re-match against the corpus as it is now (staging may be stale). A
+	// commit's match accuracy decides the overlay policy, so the shared
+	// index is forced past its TTL first -- still an ETag diff, not a
+	// corpus read.
 	docs := make([]marcview.RecordDoc, len(records))
 	for i, sr := range records {
 		docs[i] = sr.Record
+	}
+	if ix := s.sharedIndex(); ix != nil {
+		if err := ix.RefreshNow(ctx); err != nil {
+			return Batch{}, err
+		}
 	}
 	fresh, err := s.matchRecords(ctx, docs)
 	if err != nil {
@@ -685,6 +715,13 @@ func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
 			return Batch{}, err
 		}
 		changed = paths
+		// Push the landed grains into the shared index so the editor's
+		// duplicate and barcode checks see them without waiting out the TTL.
+		if ix := s.sharedIndex(); ix != nil {
+			if err := ix.Update(ctx, changed...); err != nil {
+				return Batch{}, err
+			}
+		}
 	}
 	if err := s.writeRevertSet(ctx, b.ID, changed, existed, priors); err != nil {
 		return Batch{}, err
