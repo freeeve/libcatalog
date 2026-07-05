@@ -13,6 +13,7 @@ import {
   postOps,
   updateDraft,
 } from "./api";
+import { isSandbox } from "./config";
 import { createOpsStore } from "./ops";
 import type { Diff, Draft, DuplicateMatch, Op, WorkDoc } from "./types";
 
@@ -93,8 +94,13 @@ export function createEditorSession(workId: string): EditorSession {
   ops.subscribe((list) => patch({ ops: list }));
 
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // Sandbox demo: edits "saved" this session are folded into this list and
+  // replayed as a dry run so the rendered doc stays cumulative -- never
+  // persisted, wiped when the screen remounts (a page refresh).
+  let sandboxOps: Op[] = [];
 
   function scheduleAutosave(): void {
+    if (isSandbox()) return; // drafts don't persist in the demo
     clearTimeout(timer);
     timer = setTimeout(() => void autosave(), AUTOSAVE_MS);
   }
@@ -167,9 +173,36 @@ export function createEditorSession(workId: string): EditorSession {
     }
   }
 
+  // sandboxSave renders the staged edits as if committed -- it dry-runs the full
+  // accumulated set and swaps in the materialized doc -- but never writes. A
+  // page refresh remounts a fresh session and the record is pristine again.
+  async function sandboxSave(staged: Op[]): Promise<boolean> {
+    patch({ busy: true, opError: "", notice: "" });
+    const all = [...sandboxOps, ...staged];
+    try {
+      const res = await postOps(workId, all, { dryRun: true });
+      sandboxOps = all;
+      ops.clear();
+      clearTimeout(timer);
+      patch({
+        busy: false,
+        doc: res.doc ?? state.doc,
+        diff: null,
+        draftId: "",
+        duplicate: res.duplicate ?? null,
+        notice: `Rendered ${staged.length} edit${staged.length === 1 ? "" : "s"} in the demo -- not saved. Refresh to reset.`,
+      });
+      return true;
+    } catch (e) {
+      patch({ busy: false, opError: e instanceof ApiError ? e.message : "preview failed" });
+      return false;
+    }
+  }
+
   async function save(): Promise<boolean> {
     const staged = ops.payload();
     if (staged.length === 0 || state.busy) return false;
+    if (isSandbox()) return sandboxSave(staged);
     patch({ busy: true, opError: "", notice: "" });
     try {
       const res = await postOps(workId, staged, { ifMatch: state.etag });
@@ -221,6 +254,16 @@ export function createEditorSession(workId: string): EditorSession {
     const draftId = state.draftId;
     patch({ diff: null, opError: "", conflict: false, draftId: "" });
     if (draftId) await deleteDraft(draftId).catch(() => undefined);
+    // Sandbox: also drop the demo-committed edits and re-show the pristine doc.
+    if (isSandbox() && sandboxOps.length) {
+      sandboxOps = [];
+      try {
+        const fresh = await fetchWorkDoc(workId);
+        patch({ doc: fresh.doc, etag: fresh.etag });
+      } catch {
+        // Best effort; the next refresh resets anyway.
+      }
+    }
   }
 
   function resumeDraft(): void {

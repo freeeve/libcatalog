@@ -1,7 +1,7 @@
 <script lang="ts">
   // Sticky action bar over the staged op list: count, the dry-run preview,
   // the If-Match save, and discard (PublishBar's editing sibling).
-  import { isReadOnly } from "../lib/config";
+  import { isReadOnly, isSandbox } from "../lib/config";
   let {
     count,
     busy,
@@ -17,7 +17,9 @@
   } = $props();
 
   // In the read-only demo, saving is disabled but Preview still shows the diff.
+  // In the sandbox demo, Save is shown but renders the edit without persisting.
   const readOnly = isReadOnly();
+  const sandbox = isSandbox();
 </script>
 
 {#if count > 0}
@@ -26,7 +28,9 @@
     <span class="spacer"></span>
     <button class="button button--quiet" onclick={ondiscard} disabled={busy}>Discard</button>
     <button class="button button--quiet" onclick={onpreview} disabled={busy}>Preview changes</button>
-    {#if !readOnly}
+    {#if sandbox}
+      <button class="button" onclick={onsave} disabled={busy} title="Renders the edit in the demo; not saved">Save (demo)</button>
+    {:else if !readOnly}
       <button class="button" onclick={onsave} disabled={busy}>Save</button>
     {/if}
   </div>

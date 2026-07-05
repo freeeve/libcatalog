@@ -170,7 +170,11 @@
   </header>
   {#if $configStore.readOnly}
     <div class="readonly-banner" role="status">
-      Read-only demo — explore freely; edits and publishes are previewed but not saved.
+      {#if $configStore.sandbox}
+        Sandbox demo — edit freely; your changes render but are never saved (refresh to reset).
+      {:else}
+        Read-only demo — explore freely; edits and publishes are previewed but not saved.
+      {/if}
     </div>
   {/if}
   {#if route.name === "work"}

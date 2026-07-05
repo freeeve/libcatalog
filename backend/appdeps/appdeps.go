@@ -238,6 +238,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		"localAuth": cfg.LocalAuth,
 		"provider":  cfg.Provider,
 		"readOnly":  cfg.ReadOnly,
+		"sandbox":   cfg.Sandbox,
 	}
 	if cfg.OIDCIssuer != "" {
 		clientCfg["oidc"] = map[string]string{"issuer": cfg.OIDCIssuer, "clientId": cfg.OIDCClientID}

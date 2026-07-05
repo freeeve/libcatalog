@@ -41,3 +41,9 @@ export function apiBase(): string {
 export function isReadOnly(): boolean {
   return !!getConfig().readOnly;
 }
+
+/** Sandbox demo: edits render as if saved (from the dry-run) but never persist;
+ *  a refresh resets. Implies read-only. */
+export function isSandbox(): boolean {
+  return !!getConfig().sandbox;
+}

@@ -12,6 +12,9 @@ export interface ClientConfig {
   /** Demo mode: the backend rejects edits, so the UI hides write affordances
    *  and shows a banner. */
   readOnly?: boolean;
+  /** Sandbox demo: read-only, but the editor shows Save and renders edits as
+   *  if committed (wiped on refresh). */
+  sandbox?: boolean;
 }
 
 /** One row from GET /v1/works (ingest.WorkSummary, untagged Go fields). */
@@ -110,6 +113,9 @@ export interface OpsResult {
   diff: Diff;
   /** Non-blocking warning: the doc now clusters with an existing work. */
   duplicate?: DuplicateMatch;
+  /** Dry-run only: the materialized post-edit doc, so a demo "save" can render
+   *  the result without persisting. */
+  doc?: WorkDoc;
 }
 
 /** The 412 body: the fresh record state for a deliberate client rebase. */

@@ -183,6 +183,12 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, db store.Store, queue *s
 		diff := editor.DiffLines(grain, updated)
 		if req.DryRun {
 			resp := map[string]any{"etag": etag, "diff": diff}
+			// The materialized post-edit doc lets a client render the result
+			// without persisting -- the read-only/sandbox demo's "save" that
+			// shows the change but never writes.
+			if doc, derr := prof.Mapper().ToDoc(updated, workID); derr == nil {
+				resp["doc"] = doc
+			}
 			if dup := findDuplicate(r.Context(), bs, workID, updated); dup != nil {
 				resp["duplicate"] = dup
 			}

@@ -37,6 +37,10 @@ type Config struct {
 	// playground can be explored without persisting. Auth, reads, search, and
 	// dry-run previews still work.
 	ReadOnly bool
+	// Sandbox is read-only plus a client hint: the editor shows Save and
+	// renders edits as if committed (from the dry-run's materialized doc),
+	// wiped on refresh. It implies ReadOnly (nothing ever persists).
+	Sandbox bool
 
 	// LocalAuth enables built-in user management.
 	LocalAuth bool
@@ -109,6 +113,7 @@ func FromEnv() (Config, error) {
 		DynamoTable:       os.Getenv("LCATD_DYNAMO_TABLE"),
 		AWSEndpoint:       os.Getenv("LCATD_AWS_ENDPOINT"),
 		ReadOnly:          os.Getenv("LCATD_READ_ONLY") == "1" || os.Getenv("LCATD_READ_ONLY") == "true",
+		Sandbox:           os.Getenv("LCATD_SANDBOX") == "1" || os.Getenv("LCATD_SANDBOX") == "true",
 		LocalAuth:         os.Getenv("LCATD_LOCAL_AUTH") == "1" || os.Getenv("LCATD_LOCAL_AUTH") == "true",
 		LocalIssuer:       envOr("LCATD_LOCAL_ISSUER", "lcatd-local"),
 		LocalSigningKey:   os.Getenv("LCATD_LOCAL_SIGNING_KEY"),
@@ -126,6 +131,9 @@ func FromEnv() (Config, error) {
 		RebuildDir:        os.Getenv("LCATD_REBUILD_DIR"),
 		Provider:          envOr("LCATD_PROVIDER", "overdrive"),
 		EnrichLocsh:       os.Getenv("LCATD_ENRICH_LOCSH"),
+	}
+	if cfg.Sandbox {
+		cfg.ReadOnly = true // sandbox never persists
 	}
 	if cfg.EnrichLocsh != "" && cfg.EnrichLocsh != "queue" && cfg.EnrichLocsh != "direct" {
 		return Config{}, fmt.Errorf("config: LCATD_ENRICH_LOCSH must be queue or direct")
