@@ -5,8 +5,10 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -232,5 +234,63 @@ func TestJobVisibility(t *testing.T) {
 	}
 	if _, err := svc.Create(t.Context(), "x", FormatMARC, Selection{All: true, WorkIDs: []string{"w1"}}); err == nil {
 		t.Fatal("conflicting selection accepted")
+	}
+}
+
+// seedLargeStore writes n synthetic work grains sized to make output-scale
+// buffering visible against the per-grain working set.
+func seedLargeStore(t *testing.T, n int) blob.Store {
+	t.Helper()
+	bs := blob.NewMem()
+	for i := range n {
+		id := fmt.Sprintf("wmem%06d", i)
+		grain := fmt.Appendf(nil, `<#%[1]sWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:marc> .
+<#%[1]sWork> <http://id.loc.gov/ontologies/bibframe/title> _:t <feed:marc> .
+_:t <http://id.loc.gov/ontologies/bibframe/mainTitle> "Synthetic Work %[2]d with a title long enough to bulk each grain up toward a realistic size for the memory bound" <feed:marc> .
+<#%[1]siInstance> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Instance> <feed:marc> .
+<#%[1]siInstance> <http://id.loc.gov/ontologies/bibframe/instanceOf> <#%[1]sWork> <feed:marc> .
+`, id, i)
+		if _, err := bs.Put(t.Context(), bibframe.GrainPath(id), grain, blob.PutOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return bs
+}
+
+type discardCounter struct{ n int64 }
+
+func (w *discardCounter) Write(p []byte) (int, error) {
+	w.n += int64(len(p))
+	return len(p), nil
+}
+
+// TestEmitCSVStreamsWithBoundedMemory pins the tasks/108 acceptance on the
+// worst emitter: CSV used to hold the merged corpus, the projected Catalog,
+// and the CSV buffer at once; per-grain projection must keep heap growth
+// well under the input/output scale.
+func TestEmitCSVStreamsWithBoundedMemory(t *testing.T) {
+	const n = 20_000
+	bs := seedLargeStore(t, n)
+	svc := newService(t, bs)
+	paths, err := svc.selectionPaths(t.Context(), Selection{All: true})
+	if err != nil || len(paths) != n {
+		t.Fatalf("paths = %d, %v", len(paths), err)
+	}
+	runtime.GC()
+	var before runtime.MemStats
+	runtime.ReadMemStats(&before)
+	out := &discardCounter{}
+	count, err := svc.emitCSV(t.Context(), out, paths)
+	if err != nil || count != n {
+		t.Fatalf("emitCSV = %d rows, %v", count, err)
+	}
+	runtime.GC()
+	var after runtime.MemStats
+	runtime.ReadMemStats(&after)
+	// ~12MB of grains stream through; the old path held roughly the merged
+	// corpus + Catalog + CSV at peak. Per-grain projection should retain
+	// nearly nothing after GC.
+	if grew := int64(after.HeapAlloc) - int64(before.HeapAlloc); grew > 4<<20 {
+		t.Fatalf("heap grew %d bytes across a %d-byte export -- emitter is buffering output-scale state", grew, out.n)
 	}
 }
