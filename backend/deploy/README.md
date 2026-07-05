@@ -56,6 +56,20 @@ Deploy the zip as a `provided.al2023` (arm64) function with a Function URL and:
 Background workers are skipped in read-only mode, so the freeze-between-
 invocations model is fine.
 
+**A richer demo:**
+
+- `LCATD_SANDBOX=1` (implies read-only) lets a visitor *edit* -- the record
+  editor shows Save and renders each change as if committed, wiped on refresh --
+  without anything persisting.
+- **Subject search works out of the box:** the built-in `lcsh` source proxies to
+  `id.loc.gov` live (`/v1/vocabsuggest`), so the picker autocompletes all of LCSH
+  with no local load (the Lambda just needs outbound internet).
+- **Existing subjects display** their real headings if you bundle a
+  corpus-sized authority snapshot: `lcat vocab-subset --catalog catalog.json
+  --out lcsh.nq`, drop it under `grains/data/authorities/vocab/lcsh.nq`, and set
+  `LCATD_VOCAB_SCHEMES=lcsh` (a small file -> fast cold start). Reproject with it
+  loaded to fill the public catalog's labels too.
+
 **Turnkey terraform module** (`deploy/terraform/modules/readonly-demo/`): a
 consumer supplies the built zip (via the module's `build-zip.sh`) and gets the
 Lambda + Function URL + a CloudFront distribution wired with the right cache
