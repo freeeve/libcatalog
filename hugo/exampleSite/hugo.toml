@@ -14,6 +14,28 @@ defaultContentLanguage = "en"
   [languages.es]
     weight = 2
     languageName = "Español"
+    # Per-language menu names (tasks/118): a language block that defines menus
+    # overrides the site-level [[menu.main]] wholesale for that language.
+    [[languages.es.menus.main]]
+      name = "Obras"
+      url = "/works/"
+      weight = 1
+    [[languages.es.menus.main]]
+      name = "Temas"
+      url = "/subjects/"
+      weight = 2
+
+# Header navigation (tasks/118): the module renders [[menu.main]] as an accessible
+# primary nav (aria-current on the active entry; a section landing stays active on
+# its child pages). Sites without a main menu get no nav markup at all.
+[[menu.main]]
+  name = "Works"
+  url = "/works/"
+  weight = 1
+[[menu.main]]
+  name = "Subjects"
+  url = "/subjects/"
+  weight = 2
 
 # Import the libcatalog module (resolved locally via go.mod replace during dev).
 [module]

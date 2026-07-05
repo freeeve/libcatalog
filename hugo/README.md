@@ -80,6 +80,26 @@ That is the whole setup -- see `exampleSite/` for a runnable reference.
   Format (ebook / audiobook) is a per-Instance property, so a Work that clusters an
   ebook and an audiobook edition appears under both formats (tasks/011).
 
+## SEO head (default)
+
+The base template ships the SEO basics for every page (tasks/119), so an adopter
+gets indexable pages with zero configuration -- and works index as *books*:
+
+- `<meta name="description">` -- page front matter, page params, a synthesized
+  "*Title* by *Authors* · *Site*" for Work pages (the `workMetaDescription` i18n
+  key, so it localizes), then `[params] description`, in that order.
+- Canonical URL plus `hreflang` alternates for every translation.
+- Open Graph + Twitter Card -- a Work's `cover` param (via the adapter `extra`
+  passthrough) becomes `og:image`; `[params] ogImage` is the site-wide fallback;
+  Work pages get `og:type` `book`.
+- JSON-LD: `WebSite` with a `SearchAction` into `/works/` on the homepage; `Book`
+  on Work pages (authors from contributor roles, per-edition `workExample` with
+  format and ISBN, localized subjects as `about`, genre/tags, language).
+
+Set `[params.seo] disable = true` to suppress everything except `<title>`, or
+shadow `layouts/_partials/head-seo.html` for finer control. `head-extra.html`
+stays the hook for *additions* -- favicons, verification tags, `theme-color`.
+
 ## Multilingual
 
 The module is multilingual out of the box -- no per-language content mounts, no copy
@@ -276,6 +296,26 @@ fork (tasks/025):
 :root { --lcat-accent: #115c52; --lcat-bg: #fbf9f4; --lcat-maxw: 72rem; }
 ```
 
+### Buttons
+
+CTA buttons are easy to get wrong across light/dark (the token *pairs* matter), so
+the module ships a `.lcat-btn` component whose three variants carry mode-correct
+pairs -- verified once here instead of per adopter (tasks/120). Works on `<a>` and
+`<button>`:
+
+| Variant | Pairing | Use on |
+| --- | --- | --- |
+| `.lcat-btn--solid` | `--lcat-accent` fill, `--lcat-on-accent` text | any background |
+| `.lcat-btn--surface` | `--lcat-surface` fill, `--lcat-accent` text, `--lcat-border` border | page/neutral backgrounds |
+| `.lcat-btn--ghost` | transparent, `--lcat-on-accent` text + border | accent-filled surfaces (a hero) |
+
+```html
+<a class="lcat-btn lcat-btn--solid" href="/works/">Browse the catalog</a>
+```
+
+Re-setting the tokens re-themes the buttons with everything else; keep
+`--lcat-on-accent` readable on `--lcat-accent` in both modes if you change either.
+
 ### Cover art (optional)
 
 Set `[params] covers = true` and result cards + Work detail pages render a cover slot from
@@ -294,11 +334,17 @@ root and Hugo's module precedence uses yours.
 
 To add site-wide chrome without shadowing the base template, override these
 empty-by-default hooks. They add nothing to the output until you do, so a site that
-ignores them is byte-for-byte unchanged (tasks/020):
+ignores them is byte-for-byte unchanged (tasks/020, tasks/118):
 
 - **`layouts/_partials/head-extra.html`** -- injected into `<head>` after the module
-  stylesheet. Add a canonical link, Open Graph / Twitter cards, JSON-LD, or favicons
-  here without redefining `<title>`.
+  stylesheet. Add favicons, extra meta, or verification tags here (the SEO basics --
+  description, canonical, Open Graph, JSON-LD -- ship by default; see "SEO head").
+- **`layouts/_partials/banner.html`** -- rendered first in `<body>` after the skip
+  link, ABOVE the header: a site-wide ribbon (demo disclosure, closure notice,
+  emergency message). Wrap the content in a landmark (e.g. `<aside aria-label="…">`).
+- **`layouts/_partials/brand.html`** -- the content of the header's `.lcat-brand`
+  anchor (defaults to the site title). Shadow it to put a logo or colophon next to
+  the title; keep decorative images `aria-hidden`.
 - **`layouts/_partials/footer.html`** -- rendered after the main layout, before the
   deferred scripts. Add a site-wide footer.
 - **`hero` block** -- a full-width slot between the header and the faceted layout,
@@ -307,6 +353,14 @@ ignores them is byte-for-byte unchanged (tasks/020):
   ```
   {{ define "hero" }}<section class="lcat-hero">…</section>{{ end }}
   ```
+
+**Header navigation** needs no hook at all: define Hugo's `[[menu.main]]` in your
+site config and the module renders an accessible primary nav between the brand and
+the search box (`aria-current` on the active entry; a section landing such as
+`/works/` stays active on its child pages; the `primaryNav` i18n key labels the
+landmark). Per-language menu names come from `[languages.<lang>.menus.main]`. A site
+with no main menu gets no nav markup. Shadow `layouts/_partials/nav.html` to change
+the markup itself.
 
 Overriding a hook never requires copying `baseof.html`, so a module bump stays
 merge-free.

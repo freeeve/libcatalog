@@ -45,6 +45,12 @@ other = "Volver a todas las obras"
 [authorityRecordFor]
 other = "Registro de autoridad de {{ .Label }}"
 
+[primaryNav]
+other = "Principal"
+
+[workMetaDescription]
+other = "{{ .Title }} de {{ .Authors }} · {{ .SiteTitle }}"
+
 [searchLabel]
 other = "Buscar en el catálogo"
 

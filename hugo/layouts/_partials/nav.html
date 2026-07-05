@@ -1,0 +1,18 @@
+{{- /*
+  Primary site navigation (tasks/118): rendered only when the site defines a
+  [[menu.main]], so configuration alone gives an adopter an accessible header nav --
+  aria-current marks the active entry, and a section landing (e.g. /works/) stays
+  active on its child pages. Shadow this partial to change the markup; sites without
+  a main menu are byte-for-byte unchanged.
+*/ -}}
+{{- with site.Menus.main }}
+<nav class="lcat-nav" aria-label="{{ i18n "primaryNav" }}">
+  <ul>
+    {{- range . }}
+    {{- $active := or ($.IsMenuCurrent "main" .) ($.HasMenuCurrent "main" .) -}}
+    {{- if and (not $active) (ne .URL "/") }}{{ $active = hasPrefix $.RelPermalink (.URL | relURL) }}{{ end -}}
+    <li><a href="{{ .URL | relURL }}"{{ if $active }} aria-current="page"{{ end }}>{{ .Name }}</a></li>
+    {{- end }}
+  </ul>
+</nav>
+{{- end -}}

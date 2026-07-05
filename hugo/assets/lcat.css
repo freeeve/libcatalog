@@ -130,6 +130,46 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
   color: var(--lcat-accent-ink);
   text-decoration: none;
 }
+/* Buttons (tasks/120): the module owns both the tokens and these pairings, so the
+   AA contrast of each variant holds in light AND dark mode without per-adopter
+   auditing. --solid and --ghost are made for accent-filled surfaces (a hero);
+   --surface is the neutral chip that flips with the theme. Works on <a> and
+   <button>; focus-visible comes from the global rule. */
+.lcat-btn {
+  display: inline-block;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.lcat-btn:hover { text-decoration: underline; }
+.lcat-btn--solid { background: var(--lcat-accent); color: var(--lcat-on-accent); border-color: var(--lcat-accent); }
+.lcat-btn--surface { background: var(--lcat-surface); color: var(--lcat-accent); border-color: var(--lcat-border); }
+.lcat-btn--ghost { background: transparent; color: var(--lcat-on-accent); border-color: var(--lcat-on-accent); }
+
+/* Primary nav (tasks/118): configuration-driven from [[menu.main]]; sits in the
+   header flex between brand and search, wrapping on narrow viewports. */
+.lcat-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lcat-nav a {
+  display: inline-block;
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--lcat-accent-ink);
+}
+.lcat-nav a:hover { background: var(--lcat-surface-alt); text-decoration: underline; }
+.lcat-nav a[aria-current="page"] { color: var(--lcat-accent); box-shadow: inset 0 -3px 0 var(--lcat-accent); }
 .lcat-search { display: flex; gap: 0.5rem; }
 .lcat-search input {
   padding: 0.4rem 0.6rem;

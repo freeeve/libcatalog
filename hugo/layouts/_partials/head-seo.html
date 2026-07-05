@@ -1,0 +1,94 @@
+{{- /*
+  Default SEO head (tasks/119): <title>, meta description, canonical + hreflang,
+  Open Graph / Twitter, and schema.org JSON-LD -- WebSite (with a SearchAction into
+  /works/) on the homepage, Book on Work detail pages, built from the params the
+  content adapter owns (contributors, instances/ISBNs, subjects, tags). Lifted from
+  the Eve's Library reference site so every adopter's works index as books without
+  hand-rolling a head.
+
+  Disable everything below the <title> with [params.seo] disable = true, or shadow
+  this partial for finer control; head-extra.html remains the hook for additions
+  (favicons, verification tags, theme-color). A work cover (via the adapter's
+  `extra` passthrough) becomes the og:image; [params] ogImage is the site fallback.
+*/ -}}
+{{- $isWork := and (eq .Kind "page") (eq .Section "works") -}}
+<title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} · {{ site.Title }}{{ end }}</title>
+{{- $disabled := false }}{{ with site.Params.seo }}{{ $disabled = .disable | default false }}{{ end }}
+{{- if not $disabled }}
+{{- $siteDesc := site.Params.description | default site.Title -}}
+{{- /* Description: page front matter > page params > synthesized for a Work > site. */ -}}
+{{- $desc := or .Description .Params.description "" -}}
+{{- if and (not $desc) $isWork .Params.contributorList -}}
+  {{- $by := slice }}{{ range first 3 .Params.contributorList }}{{ $by = $by | append .name }}{{ end -}}
+  {{- $desc = i18n "workMetaDescription" (dict "Title" .Title "Authors" (delimit $by ", ") "SiteTitle" site.Title) -}}
+{{- end -}}
+{{- if not $desc }}{{ $desc = $siteDesc }}{{ end -}}
+{{- /* Truncate for meta/social (catalog descriptions can run long); JSON-LD keeps full. */ -}}
+{{- $metaDesc := $desc | truncate 200 }}
+<meta name="description" content="{{ $metaDesc }}">
+<link rel="canonical" href="{{ .Permalink }}">
+{{- range .AllTranslations }}
+<link rel="alternate" hreflang="{{ .Language.Lang }}" href="{{ .Permalink }}">
+{{- end }}
+{{- /* Open Graph + Twitter. Prefer a work cover; else the optional site image. */ -}}
+{{- $image := .Params.cover | default "" -}}
+{{- if and (not $image) site.Params.ogImage }}{{ $image = (site.Params.ogImage | absURL) }}{{ end }}
+<meta property="og:site_name" content="{{ site.Title }}">
+<meta property="og:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
+<meta property="og:description" content="{{ $metaDesc }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:type" content="{{ if $isWork }}book{{ else }}website{{ end }}">
+{{- with $image }}
+<meta property="og:image" content="{{ . }}">
+{{- end }}
+<meta name="twitter:card" content="{{ if $image }}summary_large_image{{ else }}summary{{ end }}">
+<meta name="twitter:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }}{{ end }}">
+<meta name="twitter:description" content="{{ $metaDesc }}">
+{{- with $image }}
+<meta name="twitter:image" content="{{ . }}">
+{{- end }}
+{{- /* JSON-LD, built as a dict and jsonify'd so escaping is always valid. safeJS:
+       <script type="application/ld+json"> is a JS context to html/template, which
+       would otherwise re-encode the jsonify output as a JS string literal. */ -}}
+{{- if .IsHome -}}
+{{- $ld := dict
+  "@context" "https://schema.org"
+  "@type" "WebSite"
+  "name" site.Title
+  "url" site.BaseURL
+  "description" $siteDesc
+  "potentialAction" (dict
+    "@type" "SearchAction"
+    "target" (dict "@type" "EntryPoint" "urlTemplate" (printf "%sworks/?q={query}" site.BaseURL))
+    "query-input" "required name=query") }}
+<script type="application/ld+json">{{ $ld | jsonify | safeJS }}</script>
+{{- else if $isWork -}}
+{{- /* MARC language codes -> BCP 47 for the common cases; unknown codes pass through. */ -}}
+{{- $langMap := dict "eng" "en" "spa" "es" "fre" "fr" "ger" "de" "ita" "it" "por" "pt" "und" "" -}}
+{{- $authors := slice -}}
+{{- range .Params.contributorList -}}
+  {{- if or (not .role) (eq .role "author") }}{{ $authors = $authors | append (dict "@type" "Person" "name" .name) }}{{ end -}}
+{{- end -}}
+{{- $editions := slice -}}
+{{- $fmtMap := dict "ebook" "https://schema.org/EBook" "audiobook" "https://schema.org/AudiobookFormat" "print" "https://schema.org/Hardcover" -}}
+{{- range .Params.instances -}}
+  {{- $ed := dict "@type" "Book" -}}
+  {{- with .format }}{{ $ed = merge $ed (dict "bookFormat" (index $fmtMap . | default "https://schema.org/Book")) }}{{ end -}}
+  {{- with .isbns }}{{ $ed = merge $ed (dict "isbn" (index . 0)) }}{{ end -}}
+  {{- $editions = $editions | append $ed -}}
+{{- end -}}
+{{- $lang := .Language.Lang -}}
+{{- $subjects := slice -}}
+{{- range .Params.subjectList }}{{ $subjects = $subjects | append (index .labels $lang | default (index .labels "en") | default .id) }}{{ end -}}
+{{- $ld := dict "@context" "https://schema.org" "@type" "Book" "name" .Title "url" .Permalink -}}
+{{- with .Params.subtitle }}{{ $ld = merge $ld (dict "alternativeHeadline" .) }}{{ end -}}
+{{- with $authors }}{{ $ld = merge $ld (dict "author" .) }}{{ end -}}
+{{- with .Params.languages }}{{ $ld = merge $ld (dict "inLanguage" (index $langMap (index . 0) | default (index . 0))) }}{{ end -}}
+{{- with .Params.tagLabels }}{{ $ld = merge $ld (dict "genre" .) }}{{ end -}}
+{{- with $subjects }}{{ $ld = merge $ld (dict "about" .) }}{{ end -}}
+{{- with $desc }}{{ $ld = merge $ld (dict "description" .) }}{{ end -}}
+{{- with .Params.cover }}{{ $ld = merge $ld (dict "image" .) }}{{ end -}}
+{{- with $editions }}{{ $ld = merge $ld (dict "workExample" .) }}{{ end }}
+<script type="application/ld+json">{{ $ld | jsonify | safeJS }}</script>
+{{- end -}}
+{{- end -}}

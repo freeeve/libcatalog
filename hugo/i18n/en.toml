@@ -47,6 +47,15 @@ other = "Back to all works"
 [authorityRecordFor]
 other = "Authority record for {{ .Label }}"
 
+# Header navigation (tasks/118)
+[primaryNav]
+other = "Primary"
+
+# SEO head (tasks/119): the synthesized meta description for a Work page
+# without one of its own.
+[workMetaDescription]
+other = "{{ .Title }} by {{ .Authors }} · {{ .SiteTitle }}"
+
 # Search form
 [searchLabel]
 other = "Search the catalog"

@@ -5,15 +5,16 @@
   {{- /* Pre-paint theme application so a stored dark choice never flashes light. */}}
   <script>try{var t=localStorage.getItem("lcat-theme");if(t)document.documentElement.setAttribute("data-lcat-theme",t)}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} · {{ site.Title }}{{ end }}</title>
+  {{ partial "head-seo.html" . }}
   {{ with resources.Get "lcat.css" }}<link rel="stylesheet" href="{{ .RelPermalink }}">{{ end }}{{ partial "head-extra.html" . }}
   {{ block "head" . }}{{ end }}
 </head>
 <body>
   <a class="lcat-skip" href="#lcat-main">Skip to main content</a>
+  {{- partial "banner.html" . }}
   <header class="lcat-header" data-pagefind-ignore>
-    <a class="lcat-brand" href="{{ "/" | relURL }}">{{ site.Title }}</a>
-    {{ partial "search.html" . }}
+    <a class="lcat-brand" href="{{ "/" | relURL }}">{{ partial "brand.html" . }}</a>
+    {{ partial "nav.html" . }}{{ partial "search.html" . }}
     {{ partial "theme-toggle.html" . }}
   </header>{{ block "hero" . }}{{ end }}
   <div class="lcat-layout">
