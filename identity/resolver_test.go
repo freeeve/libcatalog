@@ -107,3 +107,26 @@ func TestSplitPinOverridesCluster(t *testing.T) {
 		t.Errorf("pinned instance resolved to %s, want wnew (pin ignored)", a.WorkID)
 	}
 }
+
+// TestEmptyKeyNeverClusters checks that records with no main title (an empty
+// access-point key, tasks/101) each mint their own Work instead of all
+// clustering onto the first one, in both fresh-resolve and seeded form.
+func TestEmptyKeyNeverClusters(t *testing.T) {
+	r := NewResolver()
+	a := r.Resolve(Record{ProviderKeys: []string{"overdrive:1"}})
+	b := r.Resolve(Record{ProviderKeys: []string{"overdrive:2"}, Author: "A", Lang: "eng"})
+	if a.WorkID == b.WorkID {
+		t.Errorf("title-less records must not cluster: both got %s", a.WorkID)
+	}
+	if !b.MintedWork {
+		t.Errorf("title-less record should mint its own Work: %+v", b)
+	}
+
+	// Seeding an empty committed key must not create a cluster target either.
+	seeded := NewResolver()
+	seeded.SeedWorkKey(WorkKey("", "", ""), "wempty0000")
+	c := seeded.Resolve(Record{ProviderKeys: []string{"overdrive:3"}})
+	if c.WorkID == "wempty0000" {
+		t.Error("empty seeded key must not attract title-less records")
+	}
+}

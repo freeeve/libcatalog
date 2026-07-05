@@ -132,11 +132,13 @@ func (r *Resolver) Resolve(rec Record) Assignment {
 		workID, ok = r.workByInst[instanceID]
 		if !ok {
 			key := WorkKey(rec.Author, rec.Title, rec.Lang)
-			if wid, seen := r.workByKey[key]; seen {
+			if wid, seen := r.workByKey[key]; key != "" && seen {
 				workID = wid
 			} else {
 				workID = r.mint(WorkPrefix, r.usedWork)
-				r.workByKey[key] = workID
+				if key != "" {
+					r.workByKey[key] = workID
+				}
 				mintedWork = true
 			}
 		}

@@ -58,8 +58,16 @@ const keySep = "\x1f"
 // work id or an editorial merge/split decision says otherwise. The title is the
 // main title only (not the subtitle), so editions that vary a subtitle still
 // cluster.
+//
+// A record with no main title has no usable access point: clustering title-less
+// records by author (or by nothing) would merge unrelated books, so WorkKey
+// returns "" and the caller must mint instead of clustering (tasks/101).
 func WorkKey(author, title, lang string) string {
-	return NormalizeKey(author) + keySep + NormalizeKey(title) + keySep +
+	t := NormalizeKey(title)
+	if t == "" {
+		return ""
+	}
+	return NormalizeKey(author) + keySep + t + keySep +
 		strings.ToLower(strings.TrimSpace(lang))
 }
 
