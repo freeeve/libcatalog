@@ -26,7 +26,7 @@ provider "aws" {
 }
 
 module "demo" {
-  source     = "github.com/freeeve/libcatalog//backend/deploy/terraform/modules/readonly-demo?ref=backend/v0.3.0"
+  source     = "github.com/freeeve/libcatalog//backend/deploy/terraform/modules/readonly-demo?ref=v0.4.0"
   name       = "eves-library"
   lambda_zip = "./lcatd-demo.zip"
 
