@@ -56,8 +56,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 
 ## Status
 
-Working, with versioned releases -- the root, `backend/`, and `hugo/` modules
-tag in lockstep (latest: `v0.7.2`). Both tiers are implemented:
+Working, with versioned releases. Both tiers are implemented:
 
 - **Tier 1** ships end to end: MARC / Hardcover / OverDrive ingest to
   canonical BIBFRAME grains, projection to `catalog.json`/`facets.json`, and
@@ -78,6 +77,20 @@ tag in lockstep (latest: `v0.7.2`). Both tiers are implemented:
 The reference implementation was migrated out of qllpoc (that repo's
 `tasks/038`--`044`); libcatalog is now developed in place, tracked in
 [`tasks/`](tasks/).
+
+## Versioning
+
+The root, `hugo/`, and `backend/` modules release in **lockstep**: every
+release tags all three with the same version at the same commit
+(`scripts/release.sh vX.Y.Z` tags and pushes the triple). The version number
+IS the compatibility contract -- pin one number across every libcatalog
+dependency and the projection-schema pairing (the `catalog.json` version the
+projector emits and the Hugo module targets) is guaranteed by construction;
+the released backend module requires the root module at its own version for
+the same reason. Lockstep (re)starts at `v0.19.0`: earlier numbers come from
+three independent tag families, several of them never published -- treat
+anything below v0.19.0 as historical and do not pin across modules with
+them.
 
 ## License
 
