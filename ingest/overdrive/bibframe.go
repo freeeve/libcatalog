@@ -53,10 +53,13 @@ func (it Item) Work() codexbf.Work {
 	}
 	// BISAC is a controlled classification: the code carries bf:source "bisacsh" so
 	// the scheme is explicit (tasks/008). The MARC detour dropped these entirely.
+	// The feed's heading text rides the display-only Label (rdfs:label in the
+	// graph, libcodex v0.14.0), so facets show the heading while MARC 084
+	// keeps the code (tasks/142).
 	for _, b := range it.BISAC {
 		if b.Code != "" {
 			w.Classifications = append(w.Classifications,
-				codexbf.Classification{Class: "Classification", Value: b.Code, Source: SourceBISAC})
+				codexbf.Classification{Class: "Classification", Value: b.Code, Label: b.Description, Source: SourceBISAC})
 		}
 	}
 	return w

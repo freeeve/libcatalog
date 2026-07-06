@@ -33,8 +33,9 @@ func TestBIBFRAMECrosswalk(t *testing.T) {
 	if got := bib.Work.Languages; len(got) != 1 || got[0] != "eng" {
 		t.Errorf("Work.Languages = %v, want [eng]", got)
 	}
-	if c := bib.Work.Classifications; len(c) != 1 || c[0].Value != "FIC073000" || c[0].Source != SourceBISAC {
-		t.Errorf("Work.Classifications = %+v, want one BISAC code with source %q", bib.Work.Classifications, SourceBISAC)
+	if c := bib.Work.Classifications; len(c) != 1 || c[0].Value != "FIC073000" || c[0].Source != SourceBISAC ||
+		c[0].Label != "Fiction / LGBTQ+ / Transgender" {
+		t.Errorf("Work.Classifications = %+v, want one BISAC code with source %q and the heading label (tasks/142)", bib.Work.Classifications, SourceBISAC)
 	}
 
 	if n := len(bib.Work.Contributions); n != 2 {
@@ -85,8 +86,9 @@ func TestBIBFRAMECrosswalk(t *testing.T) {
 		"http://id.loc.gov/vocabulary/languages/eng",
 		"9781668128251",
 		"feed:overdrive",
-		SourceBISAC,     // bf:source "bisacsh" on the BISAC classification
-		SourceReserveID, // bf:source "overdrive-reserve" on the Reserve ID
+		SourceBISAC,                      // bf:source "bisacsh" on the BISAC classification
+		"Fiction / LGBTQ+ / Transgender", // BISAC heading as rdfs:label on the node (tasks/142)
+		SourceReserveID,                  // bf:source "overdrive-reserve" on the Reserve ID
 		"http://id.loc.gov/ontologies/bibframe/source",
 		relatorVocab + "aut", // relator IRI on the primary contribution (tasks/019)
 		relatorVocab + "nrt", // relator IRI on the narrator contribution (tasks/019)

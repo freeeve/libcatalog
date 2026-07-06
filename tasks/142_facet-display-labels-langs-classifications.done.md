@@ -63,3 +63,11 @@ Classifications -- label channel through the projection:
   (uncommitted there): add Classification.Label, emit/read rdfs:label on
   the node. Once shipped, ingest/overdrive can set Label from the feed's
   BISAC.Description, and queerbooks flips Value back to codes.
+
+## Update: libcodex v0.14.0 adopted (same day)
+
+libcodex shipped Classification.Label (their tasks/090) in v0.14.0; both
+go.mods bumped and ingest/overdrive now sets Label from the feed's
+BISAC.Description, so the OverDrive route lights the whole chain: feed
+heading -> rdfs:label on the classification node -> projector {value,
+label} (schema v9) -> facet shows the heading, MARC 084 keeps the code.
