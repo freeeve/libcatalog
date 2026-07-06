@@ -57,10 +57,9 @@ func TestRecordsExplodeByFormat(t *testing.T) {
 		t.Fatal("record does not implement ingest.ExtraProvider")
 	}
 	wantExtra := map[string]string{
-		"cover":       "https://covers.example.org/herculine.jpg",
-		"rating":      "5",
-		"dateRead":    "2026-01-15",
-		"description": "A haunting debut novel.",
+		"cover":    "https://covers.example.org/herculine.jpg",
+		"rating":   "5",
+		"dateRead": "2026-01-15",
 	}
 	if got := ep.Extras(); !reflect.DeepEqual(got, wantExtra) {
 		t.Errorf("extras = %v, want %v", got, wantExtra)
@@ -137,13 +136,16 @@ func TestEndToEndProjection(t *testing.T) {
 		t.Errorf("Horror broader = %v, want [Fiction]", horror.Broader)
 	}
 	wantExtra := map[string]string{
-		"cover":       "https://covers.example.org/herculine.jpg",
-		"rating":      "5",
-		"dateRead":    "2026-01-15",
-		"description": "A haunting debut novel.",
+		"cover":    "https://covers.example.org/herculine.jpg",
+		"rating":   "5",
+		"dateRead": "2026-01-15",
 	}
 	if !reflect.DeepEqual(h.Extra, wantExtra) {
 		t.Errorf("Herculine extra = %v, want %v", h.Extra, wantExtra)
+	}
+	// The description projects as first-class bf:summary, not an extra (tasks/124).
+	if h.Summary != "A haunting debut novel." {
+		t.Errorf("Herculine summary = %q, want %q", h.Summary, "A haunting debut novel.")
 	}
 	if !hasHardcoverProvenance(h) {
 		t.Errorf("Herculine instances missing a hardcover source-tagged id: %+v", h.Instances)

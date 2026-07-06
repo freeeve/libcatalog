@@ -259,6 +259,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .lcat-subtitle { font-weight: 400; color: var(--lcat-muted); }
 .lcat-contribs { margin: 0.15rem 0; color: var(--lcat-muted); }
 .lcat-role { font-style: italic; }
+/* Work summary (bf:summary, tasks/124): measure-capped prose so a long blurb reads
+   comfortably next to full-width sections. */
+.lcat-summary { max-width: 65ch; }
+.lcat-summary p { margin: 0.6rem 0; }
 .lcat-tags { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.35rem 0 0; padding: 0; }
 .lcat-tags li {
   font-size: 0.8rem;

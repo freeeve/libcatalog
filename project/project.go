@@ -29,6 +29,7 @@ const (
 	pAgent            = bfNS + "agent"
 	pRole             = bfNS + "role"
 	pSubject          = bfNS + "subject"
+	pSummary          = bfNS + "summary"
 	pLanguage         = bfNS + "language"
 	pClassif          = bfNS + "classification"
 	pClassPortion     = bfNS + "classificationPortion"
@@ -64,7 +65,9 @@ const (
 // consumers render vocabulary hierarchy without re-reading the graph (tasks/015).
 // v6 added the holdings signal (Instance.Held / Work.Held): physical items or a
 // live-availability identifier whose feed still lists the Work (tasks/078).
-const SchemaVersion = 6
+// v7 added Work.Summary from bf:summary -- the description/abstract as first-class
+// bibliographic data rather than an adopter extra (tasks/124).
+const SchemaVersion = 7
 
 // Catalog is the projected corpus: one record per Work, sorted by id.
 type Catalog struct {
@@ -75,9 +78,12 @@ type Catalog struct {
 // Work is the discovery unit as the static site sees it -- the display and facet
 // fields of a bf:Work plus its Instances (the borrowable editions/formats).
 type Work struct {
-	ID              string        `json:"id"`
-	Title           string        `json:"title"`
-	Subtitle        string        `json:"subtitle,omitempty"`
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Subtitle string `json:"subtitle,omitempty"`
+	// Summary is the Work's description/abstract (bf:summary), first label wins
+	// when a record carries several (tasks/124).
+	Summary         string        `json:"summary,omitempty"`
 	Contributors    []Contributor `json:"contributors,omitempty"`
 	Subjects        []Subject     `json:"subjects,omitempty"`
 	Tags            []string      `json:"tags,omitempty"`
@@ -496,6 +502,7 @@ func (p *projector) work(w rdf.Term) Work {
 		wk.Title, _ = p.view.Literal(t, pMainTitle)
 		wk.Subtitle, _ = p.view.Literal(t, pSubtitle)
 	}
+	wk.Summary = p.summary(w)
 	wk.Contributors = p.contributors(w)
 	wk.Subjects, wk.Tags = p.subjectsAndTags(w)
 	wk.Languages = p.languages(w)
@@ -510,6 +517,18 @@ func (p *projector) work(w rdf.Term) Work {
 		}
 	}
 	return wk
+}
+
+// summary returns the Work's description/abstract: the label of its first
+// bf:summary node carrying one. Records rarely have several (a MARC record can
+// repeat 520); first-wins matches how the title projects.
+func (p *projector) summary(w rdf.Term) string {
+	for _, s := range p.view.Objects(w, pSummary) {
+		if label, _ := p.view.Literal(s, pLabel); label != "" {
+			return label
+		}
+	}
+	return ""
 }
 
 // formatUnion is the deduped, sorted set of the Work's Instances' formats -- the

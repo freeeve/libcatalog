@@ -15,6 +15,15 @@
   </p>
   {{ end }}
 
+  {{- /* The Work's bf:summary (tasks/124): plain text from the projector, split on
+         blank lines into paragraphs. Inside data-pagefind-body, so blurb text lands
+         in the full-text index. */ -}}
+  {{ with .Params.summary }}
+  <div class="lcat-summary">
+    {{ range split . "\n\n" }}{{ with trim . " \n" }}<p>{{ . }}</p>{{ end }}{{ end }}
+  </div>
+  {{ end }}
+
   {{ with .Params.subjectList }}
   <section aria-labelledby="lcat-subj"><h2 id="lcat-subj">{{ i18n "subjects" }}</h2>
     <ul class="lcat-tags">
@@ -45,6 +54,7 @@
     {{ with .Params.languages }}<dt>{{ i18n "language" }}</dt><dd>{{ range $i, $l := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="language">{{ $l }}</span>{{ end }}</dd>{{ end }}
     {{ with .Params.classifications }}<dt>{{ i18n "classification" }}</dt><dd>{{ range $i, $c := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="classification">{{ $c }}</span>{{ end }}</dd>{{ end }}
   </dl>
+
 
   {{ with .Params.instances }}
   <section aria-labelledby="lcat-ed"><h2 id="lcat-ed">{{ i18n "editionsAndFormats" }}</h2>

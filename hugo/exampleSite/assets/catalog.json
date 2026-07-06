@@ -1,10 +1,11 @@
 {
-  "version": 6,
+  "version": 7,
   "works": [
     {
       "id": "wexampleone",
       "title": "Herculine",
       "subtitle": "A Novel",
+      "summary": "An unnamed narrator retreats to a queer commune in the Catskills after a breakup, only to find the property haunted by demons both literal and personal.\n\nA sharp, funny debut about gender, faith, and exorcising what refuses to leave.",
       "contributors": [
         {
           "name": "Byron, Grace",

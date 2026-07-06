@@ -36,6 +36,9 @@ func (r record) Work() codexbf.Work {
 		w.Subjects = append(w.Subjects, codexbf.Subject{Class: "Topic", Label: g})
 	}
 	w.Languages = []string{"eng"}
+	if desc := strings.TrimSpace(b.Description); desc != "" {
+		w.Summary = []string{desc}
+	}
 	return w
 }
 
@@ -85,8 +88,9 @@ func (r record) Identity() identity.Record {
 
 // Extras returns the book's non-BIBFRAME display fields carried through to
 // catalog.json's `extra` object via the feed provenance graph (tasks/026): cover URL,
-// personal rating, read date, and description. Identical across a book's format records
-// (first wins). Nil when the book supplies none.
+// personal rating, and read date. The description is NOT an extra: it is core
+// bibliographic data, emitted as bf:summary on the Work (tasks/124). Identical across
+// a book's format records (first wins). Nil when the book supplies none.
 func (r record) Extras() map[string]string {
 	m := map[string]string{}
 	if c := r.ub.Book.cover(); c != "" {
@@ -97,9 +101,6 @@ func (r record) Extras() map[string]string {
 	}
 	if d := r.dateRead(); d != "" {
 		m["dateRead"] = d
-	}
-	if desc := strings.TrimSpace(r.ub.Book.Description); desc != "" {
-		m["description"] = desc
 	}
 	if len(m) == 0 {
 		return nil

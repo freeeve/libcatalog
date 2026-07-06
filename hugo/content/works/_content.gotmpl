@@ -45,6 +45,7 @@
            `extra` can add keys but never clobber a reserved one. No `extra` = unchanged. */ -}}
     {{- $params := dict
       "subtitle" .subtitle
+      "summary" .summary
       "languages" .languages
       "subjects" $subjectSlugs
       "tags" $tagSlugs

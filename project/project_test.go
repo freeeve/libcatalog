@@ -356,3 +356,32 @@ func TestWorkExtras(t *testing.T) {
 		t.Errorf("wn extra = %v, want nil", got)
 	}
 }
+
+// TestWorkSummary covers the bf:summary projection (tasks/124): the label of the
+// Work's first labeled bf:Summary node surfaces as Work.Summary; an unlabeled
+// summary node is skipped in favor of a later labeled one; a Work without a
+// summary omits the field.
+func TestWorkSummary(t *testing.T) {
+	const nq = `<#wsWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+<#wsWork> <http://id.loc.gov/ontologies/bibframe/summary> _:empty <feed:overdrive> .
+<#wsWork> <http://id.loc.gov/ontologies/bibframe/summary> _:s1 <feed:overdrive> .
+_:empty <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Summary> <feed:overdrive> .
+_:s1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Summary> <feed:overdrive> .
+_:s1 <http://www.w3.org/2000/01/rdf-schema#label> "A haunting debut novel." <feed:overdrive> .
+<#wnWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+`
+	cat, err := Project([]byte(nq), "overdrive")
+	if err != nil {
+		t.Fatalf("Project: %v", err)
+	}
+	byID := map[string]string{}
+	for _, w := range cat.Works {
+		byID[w.ID] = w.Summary
+	}
+	if got := byID["ws"]; got != "A haunting debut novel." {
+		t.Errorf("ws summary = %q, want %q", got, "A haunting debut novel.")
+	}
+	if got := byID["wn"]; got != "" {
+		t.Errorf("wn summary = %q, want empty (omitted)", got)
+	}
+}
