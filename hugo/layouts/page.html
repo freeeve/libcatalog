@@ -57,8 +57,10 @@
     {{ with .Params.formats }}<dt>{{ i18n "formats" }}</dt><dd>
       {{ range $i, $f := . }}{{ if $i }}, {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "formats" "key" $f) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="format">{{ $f }}</a>{{ else }}<span data-pagefind-filter="format">{{ $f }}</span>{{ end }}{{ end }}
     </dd>{{ end }}
-    {{ with .Params.languages }}<dt>{{ i18n "language" }}</dt><dd>{{ range $i, $l := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="language">{{ $l }}</span>{{ end }}</dd>{{ end }}
-    {{ with .Params.classifications }}<dt>{{ i18n "classification" }}</dt><dd>{{ range $i, $c := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="classification">{{ $c }}</span>{{ end }}</dd>{{ end }}
+    {{- /* Languages and classifications display their human label (tasks/142);
+           the pagefind filter carries the same label the facet shows. */}}
+    {{ with .Params.languages }}<dt>{{ i18n "language" }}</dt><dd>{{ range $i, $l := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="language">{{ partial "lcat-lang-name.html" $l }}</span>{{ end }}</dd>{{ end }}
+    {{ with .Params.classificationList }}<dt>{{ i18n "classification" }}</dt><dd>{{ range $i, $c := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="classification">{{ or $c.label $c.value }}</span>{{ end }}</dd>{{ end }}
   </dl>
 
   {{- /* Adopter hook (tasks/125): empty by default; an importing site overrides

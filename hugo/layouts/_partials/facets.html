@@ -77,8 +77,12 @@
                contributors by their lcat-cap-bounded name (tasks/134); the other
                dimensions index the raw value -- pass whichever key was indexed. */}}
         {{- $key := .value }}{{ if eq $dim.key "tags" }}{{ $key = partial "lcat-slug.html" .value }}{{ else if eq $dim.key "contributors" }}{{ $key = partial "lcat-cap.html" .value }}{{ end }}
+        {{- /* Display labels (tasks/142): language codes map to names, a
+               classification shows its label when the projection carries one;
+               both keep keying/linking on the raw value. */}}
+        {{- $display := .value }}{{ if eq $dim.key "languages" }}{{ $display = partial "lcat-lang-name.html" .value }}{{ else if eq $dim.key "classifications" }}{{ $display = or .label .value }}{{ end }}
         {{- $url := partial "lcat-term-url.html" (dict "taxonomy" $dim.key "key" $key) }}
-        <li>{{ if $url }}<a href="{{ $url }}"><span class="lcat-facet-value">{{ .value }}</span> <span class="lcat-count">{{ .count }}</span></a>{{ else }}<span class="lcat-facet-value">{{ .value }}</span> <span class="lcat-count">{{ .count }}</span>{{ end }}</li>
+        <li>{{ if $url }}<a href="{{ $url }}"><span class="lcat-facet-value">{{ $display }}</span> <span class="lcat-count">{{ .count }}</span></a>{{ else }}<span class="lcat-facet-value">{{ $display }}</span> <span class="lcat-count">{{ .count }}</span>{{ end }}</li>
         {{- end }}
       </ul>
     </details>

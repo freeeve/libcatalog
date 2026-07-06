@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "works": [
     {
       "id": "wexampleone",
@@ -44,7 +44,10 @@
         "eng"
       ],
       "classifications": [
-        "FIC073000"
+        {
+          "value": "FIC073000",
+          "label": "Fiction / LGBTQ+ / Transgender"
+        }
       ],
       "formats": [
         "audiobook",
@@ -127,7 +130,10 @@
         "spa"
       ],
       "classifications": [
-        "FIC000000"
+        {
+          "value": "FIC000000",
+          "label": "Fiction / General"
+        }
       ],
       "formats": [
         "ebook"
@@ -167,7 +173,10 @@
         "jpn"
       ],
       "classifications": [
-        "FIC019000"
+        {
+          "value": "FIC019000",
+          "label": "Fiction / Literary"
+        }
       ],
       "formats": [
         "ebook"

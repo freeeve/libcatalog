@@ -66,3 +66,16 @@ other = "Cerrar"
 [workCount]
 one = "{{ .Count }} obra"
 other = "{{ .Count }} obras"
+
+# Language display names (tasks/142): "lang-<639-2 code>" overrides the
+# module's shipped English name table (data/lcat/languageNames.toml) per
+# code -- translate only the codes the corpus carries.
+
+["lang-eng"]
+other = "Inglés"
+
+["lang-spa"]
+other = "Español"
+
+["lang-jpn"]
+other = "Japonés"

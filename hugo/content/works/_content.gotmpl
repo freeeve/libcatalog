@@ -45,6 +45,11 @@
              vocabularies mint distinct term pages. */ -}}
       {{- $subjectSlugs = $subjectSlugs | append (partial "lcat-subject-key.html" (dict "label" $label "scheme" .scheme)) -}}
     {{- end -}}
+    {{- /* Classifications are {value, label} since schema v9 (tasks/142): the
+           taxonomy indexes the code, classificationList keeps the label for
+           the detail page (mirrors subjects/subjectList). */ -}}
+    {{- $classificationValues := slice -}}
+    {{- range .classifications -}}{{- $classificationValues = $classificationValues | append .value -}}{{- end -}}
     {{- /* Adopter passthrough (tasks/022): fields under a Work's reserved `extra` object
            flow verbatim into page params, so a site whose projection carries custom fields
            (e.g. cover, rating, dateRead from Hardcover) surfaces them in templates without
@@ -59,7 +64,8 @@
       "tagLabels" .tags
       "formats" .formats
       "contributors" $names
-      "classifications" .classifications
+      "classifications" $classificationValues
+      "classificationList" .classifications
       "contributorList" .contributors
       "subjectList" .subjects
       "instances" .instances

@@ -71,7 +71,12 @@ const (
 // derived from the authority-URI namespace -- so a multi-vocabulary corpus can
 // facet and mint term pages per scheme instead of colliding same-label terms
 // from different vocabularies (tasks/141).
-const SchemaVersion = 8
+// v9 made classifications {value, label} objects (Work.Classifications /
+// Facets.Classifications): value stays the scheme code (what MARC 084 $a
+// carries), label is the human text riding the classification node's
+// rdfs:label -- the display-only channel -- so a facet can show "Fiction /
+// Romance / Contemporary" while exports keep FIC027000 (tasks/142).
+const SchemaVersion = 9
 
 // Catalog is the projected corpus: one record per Work, sorted by id.
 type Catalog struct {
@@ -87,12 +92,12 @@ type Work struct {
 	Subtitle string `json:"subtitle,omitempty"`
 	// Summary is the Work's description/abstract (bf:summary), first label wins
 	// when a record carries several (tasks/124).
-	Summary         string        `json:"summary,omitempty"`
-	Contributors    []Contributor `json:"contributors,omitempty"`
-	Subjects        []Subject     `json:"subjects,omitempty"`
-	Tags            []string      `json:"tags,omitempty"`
-	Languages       []string      `json:"languages,omitempty"`
-	Classifications []string      `json:"classifications,omitempty"`
+	Summary         string           `json:"summary,omitempty"`
+	Contributors    []Contributor    `json:"contributors,omitempty"`
+	Subjects        []Subject        `json:"subjects,omitempty"`
+	Tags            []string         `json:"tags,omitempty"`
+	Languages       []string         `json:"languages,omitempty"`
+	Classifications []Classification `json:"classifications,omitempty"`
 	// Formats is the union of the Work's Instances' formats (e.g. ebook, audiobook),
 	// so a clustered mixed-format Work is faceted under each format it offers.
 	Formats   []string   `json:"formats,omitempty"`
@@ -112,6 +117,16 @@ type Work struct {
 type Contributor struct {
 	Name string `json:"name"`
 	Role string `json:"role,omitempty"`
+}
+
+// Classification is one classification of a Work: the scheme code (bf:
+// classificationPortion -- what MARC 084 $a carries) plus the optional human
+// label riding the classification node's rdfs:label (tasks/142). Facets and
+// term pages key on Value; display prefers Label and falls back to Value, so
+// a corpus without labels renders exactly as before.
+type Classification struct {
+	Value string `json:"value"`
+	Label string `json:"label,omitempty"`
 }
 
 // Subject is a controlled-vocabulary subject: a stable authority URI plus the
@@ -203,18 +218,27 @@ type ProviderID struct {
 // distinct values and how many Works carry each. Emitting it saves the static
 // site from aggregating the whole corpus in templates at build time.
 type Facets struct {
-	Version         int            `json:"version"`
-	Languages       []FacetValue   `json:"languages,omitempty"`
-	Subjects        []SubjectFacet `json:"subjects,omitempty"`
-	Tags            []FacetValue   `json:"tags,omitempty"`
-	Formats         []FacetValue   `json:"formats,omitempty"`
-	Contributors    []FacetValue   `json:"contributors,omitempty"`
-	Classifications []FacetValue   `json:"classifications,omitempty"`
+	Version         int                   `json:"version"`
+	Languages       []FacetValue          `json:"languages,omitempty"`
+	Subjects        []SubjectFacet        `json:"subjects,omitempty"`
+	Tags            []FacetValue          `json:"tags,omitempty"`
+	Formats         []FacetValue          `json:"formats,omitempty"`
+	Contributors    []FacetValue          `json:"contributors,omitempty"`
+	Classifications []ClassificationFacet `json:"classifications,omitempty"`
 }
 
 // FacetValue is one facet value and the number of Works that carry it.
 type FacetValue struct {
 	Value string `json:"value"`
+	Count int    `json:"count"`
+}
+
+// ClassificationFacet is one classification facet value: the scheme code (the
+// key), the optional human label (see Classification), and the number of Works
+// carrying it (tasks/142).
+type ClassificationFacet struct {
+	Value string `json:"value"`
+	Label string `json:"label,omitempty"`
 	Count int    `json:"count"`
 }
 
@@ -236,14 +260,28 @@ type SubjectFacet struct {
 // counted once per Work. Values are ordered by descending count then value, so
 // the output is deterministic.
 func (c *Catalog) Facets() Facets {
-	lang, tag, contrib, cls := map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}
+	lang, tag, contrib := map[string]int{}, map[string]int{}, map[string]int{}
 	fmts := map[string]int{}
 	subj := map[string]*SubjectFacet{}
+	cls := map[string]*ClassificationFacet{}
 	for _, w := range c.Works {
 		countDistinct(lang, w.Languages)
 		countDistinct(tag, w.Tags)
 		countDistinct(fmts, w.Formats)
-		countDistinct(cls, w.Classifications)
+		for _, cl := range w.Classifications {
+			if cl.Value == "" {
+				continue
+			}
+			cf := cls[cl.Value]
+			if cf == nil {
+				cf = &ClassificationFacet{Value: cl.Value}
+				cls[cl.Value] = cf
+			}
+			if cf.Label == "" {
+				cf.Label = cl.Label
+			}
+			cf.Count++
+		}
 		names := make([]string, len(w.Contributors))
 		for i, con := range w.Contributors {
 			names[i] = con.Name
@@ -270,8 +308,27 @@ func (c *Catalog) Facets() Facets {
 		Tags:            facetValues(tag),
 		Formats:         facetValues(fmts),
 		Contributors:    facetValues(contrib),
-		Classifications: facetValues(cls),
+		Classifications: classificationFacets(cls),
 	}
+}
+
+// classificationFacets turns the value->ClassificationFacet map into a slice
+// ordered by descending count, then value, so the output is deterministic.
+func classificationFacets(m map[string]*ClassificationFacet) []ClassificationFacet {
+	if len(m) == 0 {
+		return nil
+	}
+	out := make([]ClassificationFacet, 0, len(m))
+	for _, cf := range m {
+		out = append(out, *cf)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Count != out[j].Count {
+			return out[i].Count > out[j].Count
+		}
+		return out[i].Value < out[j].Value
+	})
+	return out
 }
 
 // subjectFacets turns the URI->SubjectFacet map into a slice ordered by descending
@@ -828,14 +885,36 @@ func (p *projector) languages(w rdf.Term) []string {
 	return sortedKeys(set)
 }
 
-func (p *projector) classifications(w rdf.Term) []string {
-	set := map[string]bool{}
+// classifications collects the Work's classifications, deduped by code. The
+// code is the node's bf:classificationPortion; the optional display label is
+// its rdfs:label -- the display-only channel a scheme-aware crosswalk (or an
+// editorial graph) hangs the human text on (tasks/142). When the same code
+// appears both labeled and bare, the label wins.
+func (p *projector) classifications(w rdf.Term) []Classification {
+	labels := map[string]string{}
 	for _, c := range p.view.Objects(w, pClassif) {
-		if v, ok := p.view.Literal(c, pClassPortion); ok && v != "" {
-			set[v] = true
+		v, ok := p.view.Literal(c, pClassPortion)
+		if !ok || v == "" {
+			continue
+		}
+		label, _ := p.view.Literal(c, pLabel)
+		if labels[v] == "" {
+			labels[v] = label
 		}
 	}
-	return sortedKeys(set)
+	if len(labels) == 0 {
+		return nil
+	}
+	values := make([]string, 0, len(labels))
+	for v := range labels {
+		values = append(values, v)
+	}
+	sort.Strings(values)
+	out := make([]Classification, len(values))
+	for i, v := range values {
+		out[i] = Classification{Value: v, Label: labels[v]}
+	}
+	return out
 }
 
 // availabilitySources are the bf:source schemes whose identifiers a runtime

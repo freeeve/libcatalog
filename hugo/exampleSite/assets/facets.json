@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "languages": [
     {
       "value": "eng",
@@ -93,14 +93,17 @@
   "classifications": [
     {
       "value": "FIC000000",
+      "label": "Fiction / General",
       "count": 1
     },
     {
       "value": "FIC019000",
+      "label": "Fiction / Literary",
       "count": 1
     },
     {
       "value": "FIC073000",
+      "label": "Fiction / LGBTQ+ / Transgender",
       "count": 1
     }
   ]

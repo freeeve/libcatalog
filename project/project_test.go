@@ -28,6 +28,9 @@ _:s1 <http://www.w3.org/2000/01/rdf-schema#label> "Fiction" <feed:overdrive> .
 <#w1Work> <http://id.loc.gov/ontologies/bibframe/language> <http://id.loc.gov/vocabulary/languages/eng> <feed:overdrive> .
 <#w1Work> <http://id.loc.gov/ontologies/bibframe/classification> _:cl <feed:overdrive> .
 _:cl <http://id.loc.gov/ontologies/bibframe/classificationPortion> "FIC073000" <feed:overdrive> .
+_:cl <http://www.w3.org/2000/01/rdf-schema#label> "Fiction / LGBTQ+ / Transgender" <feed:overdrive> .
+<#w1Work> <http://id.loc.gov/ontologies/bibframe/classification> _:cl2 <feed:overdrive> .
+_:cl2 <http://id.loc.gov/ontologies/bibframe/classificationPortion> "FIC027000" <feed:overdrive> .
 <#w1Work> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#i1Instance> <feed:overdrive> .
 <#i1Instance> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Instance> <feed:overdrive> .
 <#i1Instance> <http://id.loc.gov/ontologies/bibframe/identifiedBy> _:id1 <feed:overdrive> .
@@ -87,8 +90,14 @@ func TestProject(t *testing.T) {
 	if !reflect.DeepEqual(w.Languages, []string{"eng"}) {
 		t.Errorf("languages = %v", w.Languages)
 	}
-	if !reflect.DeepEqual(w.Classifications, []string{"FIC073000"}) {
-		t.Errorf("classifications = %v", w.Classifications)
+	// A classification is {code, optional rdfs:label} (tasks/142): the labeled
+	// node carries its display text, the bare one falls back to code-only.
+	wantClassifications := []Classification{
+		{Value: "FIC027000"},
+		{Value: "FIC073000", Label: "Fiction / LGBTQ+ / Transgender"},
+	}
+	if !reflect.DeepEqual(w.Classifications, wantClassifications) {
+		t.Errorf("classifications = %+v, want %+v", w.Classifications, wantClassifications)
 	}
 	if len(w.Instances) != 1 {
 		t.Fatalf("got %d instances, want 1", len(w.Instances))
@@ -246,6 +255,15 @@ func TestFacets(t *testing.T) {
 	}
 	if !reflect.DeepEqual(f.Formats, []FacetValue{{Value: "ebook", Count: 1}}) {
 		t.Errorf("format facet = %+v, want [{ebook 1}]", f.Formats)
+	}
+	// The classification facet keys on the code and carries the display label
+	// when the graph has one (tasks/142).
+	wantCls := []ClassificationFacet{
+		{Value: "FIC027000", Count: 1},
+		{Value: "FIC073000", Label: "Fiction / LGBTQ+ / Transgender", Count: 1},
+	}
+	if !reflect.DeepEqual(f.Classifications, wantCls) {
+		t.Errorf("classification facet = %+v, want %+v", f.Classifications, wantCls)
 	}
 }
 

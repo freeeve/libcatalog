@@ -5,11 +5,19 @@
 {{ define "main" }}
 {{- /* Subject terms key by scheme-prefixed slug (tasks/141), so the human
        label (and its vocabulary) comes from the cached facets.json lookup;
-       other taxonomies keep the term key as the title. */ -}}
+       languages map their 639-2 code to a name and classifications show
+       their projected label (tasks/142); other taxonomies keep the term key
+       as the title. */ -}}
 {{- $title := .Title -}}{{- $scheme := "" -}}
 {{- if eq .Data.Plural "subjects" -}}
   {{- with index (partialCached "lcat-subject-labels.html" .) .Data.Term -}}
     {{- $title = .label -}}{{- $scheme = .scheme -}}
+  {{- end -}}
+{{- else if eq .Data.Plural "languages" -}}
+  {{- $title = partial "lcat-lang-name.html" .Data.Term -}}
+{{- else if eq .Data.Plural "classifications" -}}
+  {{- with index (partialCached "lcat-classification-labels.html" .) .Data.Term -}}
+    {{- $title = . -}}
   {{- end -}}
 {{- end -}}
 <h1><span class="lcat-facet-dim">{{ .Data.Singular | humanize }}:</span> {{ $title }}{{ with $scheme }} <span class="lcat-term-scheme">({{ . }})</span>{{ end }}</h1>

@@ -302,6 +302,14 @@ func (s *Service) emitCSV(ctx context.Context, w io.Writer, paths []string) (int
 				}
 				subjects = append(subjects, label)
 			}
+			classifications := make([]string, 0, len(work.Classifications))
+			for _, cl := range work.Classifications {
+				if cl.Label != "" {
+					classifications = append(classifications, cl.Label)
+				} else {
+					classifications = append(classifications, cl.Value)
+				}
+			}
 			var isbns []string
 			for _, inst := range work.Instances {
 				isbns = append(isbns, inst.ISBNs...)
@@ -310,7 +318,7 @@ func (s *Service) emitCSV(ctx context.Context, w io.Writer, paths []string) (int
 				work.ID, work.Title, work.Subtitle,
 				strings.Join(contributors, "; "), strings.Join(subjects, "; "),
 				strings.Join(work.Tags, "; "), strings.Join(work.Languages, "; "),
-				strings.Join(work.Formats, "; "), strings.Join(work.Classifications, "; "),
+				strings.Join(work.Formats, "; "), strings.Join(classifications, "; "),
 				strings.Join(isbns, "; "),
 			})
 			count++

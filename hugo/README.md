@@ -159,7 +159,7 @@ if you need those localized.
 
 Both JSON files carry a top-level `version` (`project.SchemaVersion`). The adapter
 fails the build loudly if `catalog.json`'s version does not match the version the
-module targets (`params.catalogSchemaVersion`, currently **8**). Reproject with a
+module targets (`params.catalogSchemaVersion`, currently **9**). Reproject with a
 matching `lcat` if you hit a mismatch. v6 added the holdings signal: `held` on each
 instance and work (physical items, or a live-availability identifier whose feed
 still lists the work -- tasks/078). Whether unheld works are hidden, badged, or
@@ -168,7 +168,20 @@ added `summary` on each work (the description/abstract, from `bf:summary` --
 tasks/124); the detail page renders it as paragraphs, and Pagefind indexes it.
 v8 added `scheme` on each subject and subject facet (the vocabulary code derived
 from the authority namespace), driving the per-vocabulary facet groups and
-scheme-prefixed subject term keys above (tasks/141).
+scheme-prefixed subject term keys above (tasks/141). v9 made classifications
+`{value, label}` objects: `value` stays the scheme code (the taxonomy key),
+`label` the human text when the graph carries one; facets, term pages, and the
+detail row show the label and fall back to the code (tasks/142).
+
+## Display labels for language codes
+
+The projector emits languages as raw ISO 639-2 codes; display mapping is the
+presentation layer's job (tasks/142). The module ships a LOC code -> English
+name table (`data/lcat/languageNames.toml`) consulted by the `lcat-lang-name`
+partial everywhere a language renders (facet sidebar, term pages, the detail
+row). A site localizes or corrects a name with an i18n key `lang-<code>`
+(e.g. `["lang-eng"]` / `other = "Inglés"` in `i18n/es.toml`), which wins over
+the shipped table; unknown codes render raw. See `exampleSite/i18n/es.toml`.
 
 ## Data quality
 

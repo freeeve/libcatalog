@@ -1,0 +1,14 @@
+{{- /*
+  ISO 639-2 code -> display name (tasks/142). Resolution order: a site i18n
+  override (key "lang-<code>", so a translated site localizes names the same
+  way it localizes chrome), then the module's shipped LOC name table
+  (data/lcat/languageNames.toml), then the raw code -- an unknown code renders
+  as before. Takes the code string; reads only i18n and site data, so callers
+  inside partialCached partials stay page-invariant.
+*/ -}}
+{{- $code := . -}}
+{{- $name := i18n (printf "lang-%s" $code) -}}
+{{- if not $name -}}
+  {{- $name = index (or (index (or site.Data.lcat dict) "languageNames") dict) $code -}}
+{{- end -}}
+{{- return (or $name $code) -}}

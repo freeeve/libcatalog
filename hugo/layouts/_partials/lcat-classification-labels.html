@@ -1,0 +1,17 @@
+{{- /*
+  Classification code -> display label map for term pages (tasks/142): the
+  taxonomy keys on the raw code (what MARC 084 $a carries), so a term page
+  otherwise only has "FIC027000" for a title; facets.json carries the human
+  label when the graph has one. Built via scratch (merge in a loop is
+  quadratic -- tasks/133); call through partialCached: nothing here reads
+  page state.
+*/ -}}
+{{- $s := newScratch -}}
+{{- $s.Set "map" dict -}}
+{{- with resources.Get "facets.json" -}}
+  {{- range (index (. | transform.Unmarshal) "classifications") -}}
+    {{- $e := . -}}
+    {{- with $e.label -}}{{- $s.SetInMap "map" (string $e.value) . -}}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return ($s.Get "map") -}}
