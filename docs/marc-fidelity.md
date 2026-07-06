@@ -48,7 +48,7 @@ changes.
 | 511 / 521 / 533 / 538 | Specialized notes | since libcodex v0.11.0 -- typed bf:noteType decodes back to the original tag; note labels join every subfield |
 | 520 | Summary | |
 | 776 | Additional physical form | since libcodex v0.11.0 (the $c/$z print/ebook pairing survives as a bf:Isbn on the associated resource) |
-| 650 | Topical subject | |
+| 650 | Topical subject | controlled (SKOS-shaped) subjects export as `650 _7 $a label $2 code $0 authority-iri` since tasks/136 -- see below |
 | 655 | Genre/form | |
 | 856 | Electronic location (access URL) | |
 
@@ -126,6 +126,31 @@ full OCLC/LC catalog record** -- and "Express" refers to neither, only to how fa
 and how freely the file arrives. OverDrive ships no "fuller" MARC tier of its own;
 Express is the lightweight sibling of *third-party* full records, not of a premium
 OverDrive feed.
+
+## Controlled subjects in MARC output (tasks/136)
+
+The ingest emission writes a controlled subject as `<work> bf:subject
+<authority-iri>` plus the IRI's `skos:prefLabel` -- a SKOS shape the libcodex
+crosswalk (which reads `rdf:type` Topic/Place/... + `rdfs:label` +
+`bf:source`) does not see, so these subjects used to vanish from
+`DecodeGrainMARC` output entirely. `DecodeGrainMARC` now shims them at decode
+time: each such node gains (in memory only, never in the stored grain)
+`rdf:type bf:Topic`, an `rdfs:label` from the preferred label (English
+first), and a `bf:source` naming the thesaurus when the IRI belongs to a
+known authority (homosaurus, FAST, LCSH), then the decoded heading gains
+`$0 <authority-iri>` -- yielding `650 _7 $a Label $2 code $0 iri`.
+
+Choices to know about:
+
+- **`skos:broader` maps to nothing.** MARC `$x` subdivisions are a different
+  axis than thesaurus hierarchy; flattening broader-chains into subdivisions
+  would fabricate headings no authority defines.
+- **Everything shims as `bf:Topic` (650).** The emission carries no
+  Topic/Place/Person distinction; geographic or name authorities would need
+  type info at ingest first.
+- **Re-ingesting the `$0` link** (so a round-trip through MARC keeps the
+  authority connection) is the libcodex `FromRecord` side -- tracked as a
+  libcodex task; until then `$0` is output-only.
 
 ## Uncontrolled subjects → tags (empty subject facet is expected)
 

@@ -122,6 +122,9 @@ func DecodeGrainMARC(grain []byte) ([]*codex.Record, error) {
 		keep = append(keep, q)
 	}
 	ds.Quads = keep
+	// SKOS-shaped controlled subjects become crosswalk-readable for this
+	// decode only, and their headings gain $0 authority links (tasks/136).
+	subjectsByLabel := shimControlledSubjects(ds)
 	var enc rdf.Encoder
 	var doc []byte
 	for _, gt := range ds.Graphs() {
@@ -131,6 +134,7 @@ func DecodeGrainMARC(grain []byte) ([]*codex.Record, error) {
 	if err != nil {
 		return nil, err
 	}
+	injectSubjectAuthorityIDs(recs, subjectsByLabel)
 	nodes := marcRecordNodes(ds)
 	if len(nodes) == len(recs) {
 		for i, rec := range recs {
