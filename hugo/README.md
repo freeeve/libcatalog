@@ -349,6 +349,10 @@ ignores them is byte-for-byte unchanged (tasks/020, tasks/118):
   the title; keep decorative images `aria-hidden`.
 - **`layouts/_partials/footer.html`** -- rendered after the main layout, before the
   deferred scripts. Add a site-wide footer.
+- **`layouts/_partials/work-extra.html`** -- rendered on the Work detail page after
+  the metadata list, inside the Pagefind-indexed article (tasks/125). Override it to
+  render your adopter passthrough extras (tasks/022) -- e.g. a personal reading log's
+  `.Params.rating` / `.Params.dateRead` -- without shadowing `page.html`.
 - **`hero` block** -- a full-width slot between the header and the faceted layout,
   filled by a layout `define` (e.g. an intro on the home page):
 

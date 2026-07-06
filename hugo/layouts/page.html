@@ -55,6 +55,10 @@
     {{ with .Params.classifications }}<dt>{{ i18n "classification" }}</dt><dd>{{ range $i, $c := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="classification">{{ $c }}</span>{{ end }}</dd>{{ end }}
   </dl>
 
+  {{- /* Adopter hook (tasks/125): empty by default; an importing site overrides
+         work-extra.html to render its passthrough extras here. */ -}}
+  {{ partial "work-extra.html" . }}
+
 
   {{ with .Params.instances }}
   <section aria-labelledby="lcat-ed"><h2 id="lcat-ed">{{ i18n "editionsAndFormats" }}</h2>

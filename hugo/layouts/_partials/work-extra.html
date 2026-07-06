@@ -1,0 +1,7 @@
+{{- /* Work-detail extension hook (tasks/125): empty by default, so the module adds
+       nothing to the Work page on its own. An importing site overrides this partial
+       (layouts/_partials/work-extra.html) to render its adopter passthrough extras
+       (tasks/022/026) -- e.g. a personal reading log's rating/dateRead -- without
+       shadowing page.html. Receives the page context: extras are flat page params
+       (.Params.rating, .Params.dateRead, ...). Rendered inside the article's
+       data-pagefind-body, so hooked content is indexed when Pagefind is enabled. */ -}}
