@@ -23,8 +23,13 @@
   {{- end -}}
   {{- $lang := site.Language.Lang -}}
   {{- range $data.works -}}
+    {{- /* Contributor names are free text and taxonomy-indexed as-is, so an
+           oversized label (e.g. a whole artist list in one field) would mint a
+           term directory past the filesystem name limit and fail the build --
+           bound the key through lcat-cap (tasks/134). Display keeps the full
+           name via contributorList; lookups cap the same way. */ -}}
     {{- $names := slice -}}
-    {{- range .contributors -}}{{- $names = $names | append .name -}}{{- end -}}
+    {{- range .contributors -}}{{- $names = $names | append (partial "lcat-cap.html" .name) -}}{{- end -}}
     {{- /* Free-text subjects and tags can carry characters `urlize` leaves unsafe in a
            URL path (`+`, `/`, ...), which a CDN mis-decodes into a 404. Taxonomy-index
            them by a URL-safe slug (the shared lcat-slug partial, tasks/023) so the term

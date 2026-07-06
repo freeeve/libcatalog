@@ -20,7 +20,7 @@
            suffix stays outside the link text. */}}
     {{- with .Params.contributorList }}
     <p class="lcat-contribs">
-      {{ range $i, $c := first 4 . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" $c.name) }}{{ if $url }}<a href="{{ $url }}">{{ $c.name }}</a>{{ else }}{{ $c.name }}{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
+      {{ range $i, $c := first 4 . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" (partial "lcat-cap.html" $c.name)) }}{{ if $url }}<a href="{{ $url }}">{{ $c.name }}</a>{{ else }}{{ $c.name }}{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
     </p>
     {{- end }}
     {{- /* Subject chips, linked to their term pages like the detail page's

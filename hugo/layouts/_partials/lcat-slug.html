@@ -10,5 +10,8 @@
   and Hugo's own term slugging disagree on periods) -- they resolve through
   lcat-term-url.html, which asks Hugo for the minted page. This partial's only
   link-side use is computing the adapter-indexed KEY passed to that lookup.
+
+  Output is byte-bounded through lcat-cap.html (tasks/134) so one oversized
+  source label cannot mint a term directory past the filesystem name limit.
 */ -}}
-{{- . | lower | replaceRE "[^\\p{L}\\p{Nd}]+" "-" | replaceRE "(^-+|-+$)" "" -}}
+{{- partial "lcat-cap.html" (. | lower | replaceRE "[^\\p{L}\\p{Nd}]+" "-" | replaceRE "(^-+|-+$)" "") -}}

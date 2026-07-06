@@ -136,6 +136,18 @@ faceted is the site's choice; the module renders them unchanged by default. v7
 added `summary` on each work (the description/abstract, from `bf:summary` --
 tasks/124); the detail page renders it as paragraphs, and Pagefind indexes it.
 
+## Data quality
+
+Labels are display text; keys and slugs are bounded. Free-text taxonomy values
+(subjects, tags, contributor names) are indexed by a key capped at 100 bytes --
+longer labels get a truncated key with a short stable hash appended, so one
+oversized source label (say, a whole comma-separated artist list in a single
+contributor field) cannot mint a term directory past the filesystem's 255-byte
+name limit and fail the build. Cards and detail pages always show the full
+label; only the term page's URL (and its minted title) reflect the capped key.
+Clean the source data if the truncated term pages bother you -- the cap is a
+guardrail, not a normalizer.
+
 ## Live availability (optional)
 
 Availability is fetched client-side at view time by `assets/lcat-availability.js` and

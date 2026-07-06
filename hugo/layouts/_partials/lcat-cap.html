@@ -1,0 +1,26 @@
+{{- /*
+  Bounds a taxonomy KEY to 100 bytes so a single oversized source label cannot
+  mint a term directory past the filesystem's 255-byte name limit and fail the
+  whole build (tasks/134: an anthology record carried a 300+ byte contributor
+  list as one label). Keys at or under the bound pass through byte-identical.
+  Longer keys are cut at a rune boundary and suffixed with an 8-hex-char sha1
+  of the full key, so two long labels sharing a 100-byte prefix still mint
+  distinct term pages. Only the indexed key is bounded -- display labels stay
+  full-length. Callers: lcat-slug.html (subjects/tags) and every site that
+  indexes or looks up a contributor term key.
+
+  `len` counts bytes on strings; iterating `split $s ""` accumulates whole
+  runes, so multibyte text is never cut mid-character.
+*/ -}}
+{{- $max := 100 -}}
+{{- $s := . -}}
+{{- if gt (len $s) $max -}}
+  {{- $hash := substr (sha1 $s) 0 8 -}}
+  {{- $t := "" -}}
+  {{- range split $s "" -}}
+    {{- if gt (add (len $t) (len .)) $max -}}{{- break -}}{{- end -}}
+    {{- $t = printf "%s%s" $t . -}}
+  {{- end -}}
+  {{- $s = printf "%s-%s" (strings.TrimRight " ,;-" $t) $hash -}}
+{{- end -}}
+{{- return $s -}}

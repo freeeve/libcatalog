@@ -43,9 +43,10 @@
       <summary>{{ $dim.label }} <span class="lcat-facet-total">{{ len . }}</span></summary>
       <ul>
         {{- range first 20 . }}
-        {{- /* tags are taxonomy-indexed by their lcat-slug (tasks/023); the other
+        {{- /* tags are taxonomy-indexed by their lcat-slug (tasks/023) and
+               contributors by their lcat-cap-bounded name (tasks/134); the other
                dimensions index the raw value -- pass whichever key was indexed. */}}
-        {{- $key := .value }}{{ if eq $dim.key "tags" }}{{ $key = partial "lcat-slug.html" .value }}{{ end }}
+        {{- $key := .value }}{{ if eq $dim.key "tags" }}{{ $key = partial "lcat-slug.html" .value }}{{ else if eq $dim.key "contributors" }}{{ $key = partial "lcat-cap.html" .value }}{{ end }}
         {{- $url := partial "lcat-term-url.html" (dict "taxonomy" $dim.key "key" $key) }}
         <li>{{ if $url }}<a href="{{ $url }}"><span class="lcat-facet-value">{{ .value }}</span> <span class="lcat-count">{{ .count }}</span></a>{{ else }}<span class="lcat-facet-value">{{ .value }}</span> <span class="lcat-count">{{ .count }}</span>{{ end }}</li>
         {{- end }}

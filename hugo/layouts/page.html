@@ -10,10 +10,11 @@
   <h1 data-pagefind-meta="title">{{ .Title }}{{ with .Params.subtitle }} <span class="lcat-subtitle">{{ . }}</span>{{ end }}</h1>
 
   {{- /* Contributor names link to their term pages, matching the browse cards
-         (tasks/129); raw names are the taxonomy keys (tasks/128). */}}
+         (tasks/129); raw names are the taxonomy keys (tasks/128), byte-bounded
+         through lcat-cap (tasks/134). */}}
   {{ with .Params.contributorList }}
   <p class="lcat-contribs" data-pagefind-meta="author">
-    {{ range $i, $c := . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" $c.name) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="contributor">{{ $c.name }}</a>{{ else }}<span data-pagefind-filter="contributor">{{ $c.name }}</span>{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
+    {{ range $i, $c := . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" (partial "lcat-cap.html" $c.name)) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="contributor">{{ $c.name }}</a>{{ else }}<span data-pagefind-filter="contributor">{{ $c.name }}</span>{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
   </p>
   {{ end }}
 
