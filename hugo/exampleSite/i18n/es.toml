@@ -67,6 +67,11 @@ other = "Cerrar"
 one = "{{ .Count }} obra"
 other = "{{ .Count }} obras"
 
+# Deployment-defined facet heading (tasks/143): the i18n key named after the
+# extraFacets entry wins over its config title.
+[sources]
+other = "Fuentes"
+
 # Language display names (tasks/142): "lang-<639-2 code>" overrides the
 # module's shipped English name table (data/lcat/languageNames.toml) per
 # code -- translate only the codes the corpus carries.

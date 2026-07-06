@@ -40,3 +40,18 @@
   # facetLimit caps the entries rendered per facet group (default 20); groups
   # with more than 10 entries get a client-side type-to-filter box.
   #facetLimit = 20
+
+  # Deployment-defined facet dimensions (tasks/143): lift a Work extras key
+  # into a real faceted taxonomy -- sidebar group, term pages, counts. Declare
+  # BOTH the [taxonomies] entry and the [params.extraFacets.<name>] block
+  # site-side (the [taxonomies] merge gotcha above applies; these are the
+  # site's dimensions anyway). <name> is the taxonomy plural / page param
+  # (lowercase); the group heading resolves i18n key <name>, then `title`,
+  # then the humanized name. Example (a "sources" facet from a CSV extra):
+  #
+  #   [taxonomies]
+  #     source = "sources"          # ...plus the six module dimensions
+  #   [params.extraFacets.sources]
+  #     extra = "sources"           # extras key (default: the entry name)
+  #     split = ","                 # omit for single-valued extras
+  #     title = "Sources"

@@ -1,0 +1,23 @@
+{{- /*
+  Display label for a deployment-defined facet term (tasks/143). The taxonomy
+  keys on the lcat-slug of the raw extras value, so a term page (or a
+  site.Taxonomies entry) only has the slug; the raw text rides each member
+  work's <name>Labels param, index-aligned with its <name> keys param. Zip
+  them via the first member work -- O(1) per term, no corpus walk. Falls back
+  to the slug for a term whose members predate the labels param.
+
+  Context: a term page of an extra-facet taxonomy.
+*/ -}}
+{{- $term := .Data.Term -}}
+{{- $label := $term -}}
+{{- $plural := .Data.Plural -}}
+{{- with index .Pages 0 -}}
+  {{- $keys := or (index .Params $plural) slice -}}
+  {{- $labels := or (index .Params (lower (printf "%sLabels" $plural))) slice -}}
+  {{- range $i, $k := $keys -}}
+    {{- if and (eq $k $term) (lt $i (len $labels)) -}}
+      {{- $label = index $labels $i -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $label -}}

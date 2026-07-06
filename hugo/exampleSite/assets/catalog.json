@@ -87,7 +87,10 @@
           "held": true
         }
       ],
-      "held": true
+      "held": true,
+      "extra": {
+        "sources": "Mombian, Queer Lit"
+      }
     },
     {
       "id": "wexampletwo",
@@ -154,7 +157,10 @@
           "held": true
         }
       ],
-      "held": true
+      "held": true,
+      "extra": {
+        "sources": "Mombian"
+      }
     },
     {
       "id": "wexamplethree",
@@ -197,7 +203,10 @@
           "held": true
         }
       ],
-      "held": true
+      "held": true,
+      "extra": {
+        "sources": "Queer Books Database, Queer Lit"
+      }
     }
   ]
 }

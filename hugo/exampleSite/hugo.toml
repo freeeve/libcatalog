@@ -77,6 +77,16 @@ defaultContentLanguage = "en"
   format = "formats"
   contributor = "contributors"
   classification = "classifications"
+  source = "sources"               # deployment-defined dimension (tasks/143)
+
+# Deployment-defined facet (tasks/143): lifts each work's `extra.sources` CSV
+# into a Sources facet -- sidebar group, /sources/ term pages, counts. Needs
+# the matching [taxonomies] entry above. The heading prefers i18n key
+# "sources" (es.toml says "Fuentes"), falling back to this title.
+[params.extraFacets.sources]
+  extra = "sources"
+  split = ","
+  title = "Sources"
 
 # Live availability (tasks/004): when enabled, lcat-availability.js fetches each
 # edition's status client-side from the provider, keyed on the scheme-tagged id the

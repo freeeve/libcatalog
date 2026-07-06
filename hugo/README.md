@@ -111,6 +111,31 @@ entries rendered per facet group (default 20), and any group with more than
 10 entries gets a client-side type-to-filter box (a substring match over the
 rendered entries; no index, no fetch).
 
+## Deployment-defined facet dimensions (tasks/143)
+
+A deployment whose projection carries a facetable field in extras (say
+`sources: "loc,mombian"` on every work) can lift it into a real dimension --
+sidebar group, term pages, counts -- without forking templates. Declare both
+site-side:
+
+```toml
+[taxonomies]
+  source = "sources"     # ...plus the six module dimensions
+
+[params.extraFacets.sources]
+  extra = "sources"      # extras key (default: the entry name)
+  split = ","            # omit for single-valued extras
+  title = "Sources"      # heading; i18n key "sources" wins when defined
+```
+
+The adapter splits and trims each work's value, indexes the taxonomy by
+`lcat-slug` keys (URL-safe like tags), and keeps the raw text for display
+(`<name>Labels`, index-aligned). Counts come from Hugo's taxonomy machinery;
+facet entries order by count. The entry name is the taxonomy plural and page
+param -- lowercase, and not one of the module's reserved param names. Under
+the same-name key, the split slice replaces the raw extras string in page
+params (an overridden `work-extra.html` reading it sees a slice).
+
 ## SEO head (default)
 
 The base template ships the SEO basics for every page (tasks/119), so an adopter

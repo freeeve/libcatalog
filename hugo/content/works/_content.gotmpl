@@ -50,6 +50,35 @@
            the detail page (mirrors subjects/subjectList). */ -}}
     {{- $classificationValues := slice -}}
     {{- range .classifications -}}{{- $classificationValues = $classificationValues | append .value -}}{{- end -}}
+    {{- /* Deployment-defined facet dimensions (tasks/143): each
+           [params.extraFacets.<name>] lifts one extras key into a taxonomy
+           param (the site declares the matching [taxonomies] entry). Term
+           keys are lcat-slugs for URL safety (tasks/023); <name>Labels keeps
+           the raw text, index-aligned with <name>, for display (the
+           tags/tagLabels pattern). */ -}}
+    {{- $extraFacetParams := dict -}}
+    {{- $extras := or .extra dict -}}
+    {{- range $name, $cfg := (or site.Params.extraFacets dict) -}}
+      {{- $raw := index $extras (or $cfg.extra $name) -}}
+      {{- if $raw -}}
+        {{- $vals := slice $raw -}}
+        {{- with $cfg.split -}}{{- $vals = split $raw . -}}{{- end -}}
+        {{- $keys := slice -}}{{- $labels := slice -}}
+        {{- range $vals -}}
+          {{- $v := trim . " " -}}
+          {{- if $v -}}
+            {{- $k := string (partial "lcat-slug.html" $v) -}}
+            {{- if not (in $keys $k) -}}
+              {{- $keys = $keys | append $k -}}
+              {{- $labels = $labels | append $v -}}
+            {{- end -}}
+          {{- end -}}
+        {{- end -}}
+        {{- if $keys -}}
+          {{- $extraFacetParams = merge $extraFacetParams (dict $name $keys (printf "%sLabels" $name) $labels) -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
     {{- /* Adopter passthrough (tasks/022): fields under a Work's reserved `extra` object
            flow verbatim into page params, so a site whose projection carries custom fields
            (e.g. cover, rating, dateRead from Hardcover) surfaces them in templates without
@@ -70,7 +99,10 @@
       "subjectList" .subjects
       "instances" .instances
       "workID" .id -}}
-    {{- with .extra -}}{{- $params = merge . $params -}}{{- end -}}
+    {{- /* Extra facet params sit between: they override the raw extras value
+           under the same key (the split slice replaces the joined string) but
+           never a reserved param. */ -}}
+    {{- $params = merge $extras $extraFacetParams $params -}}
     {{- $.AddPage (dict
       "kind" "page"
       "path" .id

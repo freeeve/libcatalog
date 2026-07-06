@@ -19,6 +19,9 @@
   {{- with index (partialCached "lcat-classification-labels.html" .) .Data.Term -}}
     {{- $title = . -}}
   {{- end -}}
+{{- else if index (or site.Params.extraFacets dict) .Data.Plural -}}
+  {{- /* Deployment-defined dimension (tasks/143): slug key -> raw label. */ -}}
+  {{- $title = partial "lcat-extra-facet-label.html" . -}}
 {{- end -}}
 <h1><span class="lcat-facet-dim">{{ .Data.Singular | humanize }}:</span> {{ $title }}{{ with $scheme }} <span class="lcat-term-scheme">({{ . }})</span>{{ end }}</h1>
 {{ $paginator := .Paginate .Pages }}

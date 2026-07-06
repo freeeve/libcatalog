@@ -88,6 +88,30 @@
     </details>
     {{- end -}}
   {{- end -}}
+  {{- /* Deployment-defined dimensions (tasks/143): one group per
+         [params.extraFacets.<name>], counts straight from Hugo's taxonomy
+         machinery (the site declares the matching [taxonomies] entry, so a
+         config typo means no group, not a broken one). Heading: i18n key
+         <name> first (a bilingual site translates it like any chrome
+         string), then the config title, then the humanized name. */ -}}
+  {{- range $name, $cfg := (or site.Params.extraFacets dict) -}}
+    {{- with index site.Taxonomies $name -}}
+    <details class="lcat-facet" open>
+      <summary>{{ or (i18n $name) $cfg.title (humanize $name) }} <span class="lcat-facet-total">{{ len . }}</span></summary>
+      {{- if gt (len .) 10 }}
+      <input type="search" class="lcat-facet-filter" data-lcat-facet-filter aria-label="{{ i18n "filterFacet" }}" placeholder="{{ i18n "filterFacet" }}">
+      {{- end }}
+      <ul>
+        {{- range first $facetLimit .ByCount }}
+        {{- $count := .Count }}
+        {{- with site.GetPage (printf "/%s/%s" $name .Name) }}
+        <li><a href="{{ .RelPermalink }}"><span class="lcat-facet-value">{{ partial "lcat-extra-facet-label.html" . }}</span> <span class="lcat-count">{{ $count }}</span></a></li>
+        {{- end }}
+        {{- end }}
+      </ul>
+    </details>
+    {{- end -}}
+  {{- end -}}
 </nav>
 {{- /* Type-to-filter over the rendered facet entries (tasks/141) -- pure
        client-side, so this partial stays page-invariant (tasks/133). */ -}}
