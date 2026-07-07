@@ -89,9 +89,9 @@ cross-repo blocker**:
    Verification note: the reader requires an HTTP-Range-capable origin (S3/CDN/
    nginx/`hugo server` all qualify; **python http.server does not** -- symptoms
    are "range bytes=0-15 returned N bytes" and a clean fallback to the static
-   list). The Playwright drivers + a Range-capable static server used for the
-   E2E live in the session scratchpad (`pw/drive.mjs`, `pw/drive2.mjs`,
-   `pw/range-server.mjs`); reuse the pattern for future rounds.
+   list). The E2E harness is committed at `hugo/e2e/` (`run.sh` builds the
+   exampleSite + artifacts, serves over a Range-capable server, and drives the
+   5 checks in headless Chromium; see its README for the Playwright setup).
 
    Follow-ups riding later tasks: facet display labels + i18n of field names
    (157 sidebar rework), pagination beyond the first PAGE=60 (RrsCursor),

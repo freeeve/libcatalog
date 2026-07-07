@@ -1,0 +1,8 @@
+{
+  "version": 8,
+  "works": [
+    { "id": "wexampleone", "title": "Herculine", "languages": ["fre"], "formats": ["book"], "contributors": [{ "name": "Foucault, Michel" }], "subjects": [{ "id": "s:memoir" }], "tags": ["memoir"] },
+    { "id": "wexampletwo", "title": "The House of the Spirits", "languages": ["spa"], "formats": ["ebook"], "contributors": [{ "name": "Allende, Isabel" }], "subjects": [{ "id": "s:fiction" }], "tags": ["fiction"] },
+    { "id": "wexamplethree", "title": "Snow Country", "languages": ["jpn"], "formats": ["book"], "contributors": [{ "name": "Kawabata, Yasunari" }], "subjects": [{ "id": "s:fiction" }] }
+  ]
+}
