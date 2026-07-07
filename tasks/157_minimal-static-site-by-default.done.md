@@ -1,5 +1,28 @@
 # 157 -- Minimal static site by default: details + browse shell + sitemap
 
+## Outcome (2026-07-07): shipped as the documented "minimal static profile"
+
+Implemented as **opt-in native Hugo config**, not a changed module default --
+taxonomies are configured by each consuming site (`[taxonomies]` +
+`[[menu.main]]`), so the module cannot flip them without breaking existing
+deployments, and per the prefer-native-formats convention the switch is Hugo's
+own `disableKinds = ["taxonomy", "term"]` rather than an invented module flag.
+The module's job was to make that profile work cleanly, and it does:
+
+- **Verified on the exampleSite**: `disableKinds = ["taxonomy","term"]` +
+  `engine = "roaringrange"` builds 117 pages -> **15** (details + `/works/`
+  shell + home + sitemaps); detail pages stay in the per-language sitemaps
+  (crawlable); the module emits **zero dead term links** (the only dangling
+  link was the exampleSite's own menu entry, a site-config concern, documented);
+  Playwright E2E 5/5 (search, facet-only browse, query+facet, restore) against
+  the minimal build; a11y clean.
+- **Documented** in `hugo/README.md` ("Minimal static profile", with the
+  roaringrange engine section it builds on).
+- The `/works/` list keeps its static pagination as the no-JS path; curated
+  static views for SEO are task 160.
+
+Original framing below.
+
 Plane 2 default of [154]. Shrinks the public build from "pre-render every view"
 to the finite, canonical, incrementally-regenerable set; the combinatorial
 surface moves client-side (task 158).

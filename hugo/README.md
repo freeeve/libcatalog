@@ -382,13 +382,58 @@ Two engines, chosen by `[params.search] engine`:
 Either way, **with JavaScript disabled the search form still submits to `/works/`** and
 the full faceted list browses -- search never blocks navigation.
 
-### Advanced: roaringrange
+### Advanced: roaringrange (tasks/158)
 
-For very large corpora, custom BM25 ranking internals, split-set sharding, or a
-**no-Node** build, `roaringrange` (Go build-side indexes + a WASM reader) is the opt-in
-advanced engine. Its build-side index arms exist (`tasks/005`/`010`); the browser reader
-(`tasks/009`) is the remaining advanced-path work. Pagefind covers the multilingual/CJK
-goal natively for the default path, so most deployments will not need it.
+For very large corpora -- where pre-rendering every facet/term page stops scaling --
+`roaringrange` (Go build-side indexes + a WASM reader the module ships) serves search,
+facet counts, facet filtering, and result cards **entirely client-side over HTTP Range**:
+
+```toml
+[params.search]
+  engine = "roaringrange"
+  base = "/search"        # where the lcat index artifacts are published (default)
+```
+
+Build the artifacts from the projected catalog and publish them at `base`:
+
+```
+lcat index --catalog catalog.json --out public/search
+```
+
+That emits the per-language search indexes plus the browse set the reader opens
+(`browse-index.rrs`, `browse-facets.rrsf`, `browse-records.{idx,bin}`,
+`browse-docs.json`). With the engine on, `lcat-browse.js` boots the reader
+(published under `/lcat/` only for opted-in sites, ~1.7MB wasm) and serves three
+paths over one doc space: ranked text search, search + facet filters, and
+facet-only browse -- replacing the interim substring filter. The static list is
+the no-JS fallback and returns whenever query + facets clear. The origin must
+honor HTTP Range requests (S3/CDN/nginx/`hugo server` do; `python -m
+http.server` does not -- the module then falls back to the static list).
+
+### Minimal static profile (tasks/157)
+
+At catalog scale the combinatorial static surface -- one page per facet term,
+per language -- dominates build time and deploy size, and it has no finite
+pre-renderable set. The minimal profile keeps only the canonical static pages
+(one detail page per work, the `/works/` browse shell, the sitemap) and moves
+facet/term browsing to the client-side reader. It is plain Hugo config, no
+module switch:
+
+```toml
+disableKinds = ["taxonomy", "term"]   # drop per-term + taxonomy landing pages
+
+[params.search]
+  engine = "roaringrange"             # client-side search + facets (above)
+```
+
+The facet sidebar degrades cleanly (no dead term links are emitted); drop any
+`[[menu.main]]` entries that point at disabled taxonomy landings. Detail pages
+stay in the per-language sitemaps, so works remain crawlable while browse runs
+client-side. The `/works/` list keeps its static pagination as the no-JS path.
+On the reference corpus this profile cuts the exampleSite from 117 built pages
+to 15; at 48k works it removes ~99% of the page count. To pin a handful of
+curated views back to static HTML for SEO, see the opt-in curated views work
+(`tasks/160`).
 
 ## Accessibility
 
