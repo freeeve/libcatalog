@@ -68,4 +68,14 @@ for fam in "" "hugo/" "backend/"; do
 done
 
 git push origin main "v$V" "hugo/v$V" "backend/v$V"
-echo "released v$V (root, hugo, backend) at $(git rev-parse --short HEAD)"
+
+# Three releases shipped with local-only tags (tasks/139, 145, 152), so don't
+# trust the push's exit status alone: confirm each tag ref is actually visible
+# on origin, and fail loudly if any is missing.
+for fam in "" "hugo/" "backend/"; do
+  if ! git ls-remote --exit-code --tags origin "refs/tags/${fam}v$V" >/dev/null; then
+    echo "release.sh: ${fam}v$V not visible on origin after push" >&2
+    exit 1
+  fi
+done
+echo "released v$V (root, hugo, backend) at $(git rev-parse --short HEAD); tags verified on origin"
