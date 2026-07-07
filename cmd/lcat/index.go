@@ -36,8 +36,14 @@ func runIndex(args []string) error {
 	if err := os.MkdirAll(*out, 0o755); err != nil {
 		return err
 	}
-	m, err := search.BuildIndexes(&cat, storage.Dir(*out))
+	sink := storage.Dir(*out)
+	m, err := search.BuildIndexes(&cat, sink)
 	if err != nil {
+		return err
+	}
+	// The browse artifacts (facet sidecar + record store + doc map) the client
+	// WASM reader opens for search/facets/details (tasks/158).
+	if err := search.BuildBrowse(&cat, sink); err != nil {
 		return err
 	}
 	langs := make([]string, len(m.Indexes))

@@ -42,14 +42,15 @@ cross-repo blocker**:
 
 ### The gap 158 must close (all in libcatalog)
 
-1. **Build must emit the reader's inputs.** `search/search.go` today emits only
-   the search index (`.rrt`/`.rrb`/`.rrs` + manifest) -- **not** the RRSF facet
-   sidecar or the RRSR record store `RrsCatalog.openAll` needs. Add, from
-   `catalog.json` (`project/`): the facet sidecar (`WriteFacets` over the same
-   facet dimensions the Hugo taxonomies use -- tasks 141-144) and the record
-   store (`WriteRecords` over the per-work card/detail JSON, doc-id = search
-   rank), plus optionally RRIL (ISBN/identifier -> work). Keep doc IDs aligned
-   across the search index, facet sidecar, and record store.
+1. **[DONE] Build emits the reader's inputs.** `search/browse.go`
+   (`BuildBrowse`, wired into `lcat index`) emits, over a single global doc-id
+   space dense from 0 in catalog order: `browse-facets.rrsf` (`WriteFacets` over
+   language/format/subject/tag/classification/contributor),
+   `browse-records.bin`/`.idx` (`WriteRecords` over the per-Work result-card
+   JSON), and `browse-docs.json` (doc-id -> Work-id, so per-language search hits
+   bridge into this space and cards link to `/works/<id>`). The per-language
+   search indexes keep their own doc spaces; the client bridges via the Work id.
+   (RRIL identifier lookup deferred -- not needed for browse/facets/details.)
 2. **Wire the WASM reader in Hugo.** Ship `roaringrange_reader` (wasm + JS glue)
    as a Hugo asset; boot `RrsCatalog.openAll(...)` (or `RrtIndex` +
    `RrfFacets` + `RrsRecords` for the term path) in the browse shell; render
