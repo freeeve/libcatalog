@@ -14,7 +14,10 @@ fine at 48k, a wall at millions, and still a per-read cost.
 ## Fix: an append-only change feed of projected entries
 
 The snapshot ([155]) is the periodic checkpoint; the feed is the tail of changes
-since it. Both carry the **projection**, so neither needs a grain rescan.
+since it. Both carry the **projection**, so neither needs a grain rescan. This is
+the admin plane's base+delta -- distinct from the public search index's
+`splitset` base+delta (tasks 158/159), which shards RRS/RRTI search bodies, not
+this projection.
 
 1. **Append on write.** A publish/commit PUTs its grain(s) then appends their
    projected entries (`{path, etag, entry}`, plus tombstones for deletes) to the

@@ -6,11 +6,16 @@ regenerates only what changed, not the whole site. Depends on [156], [157],
 
 ## Scope
 
-1. **Incremental propagation.** For each entry in the change feed since the last
-   public build: regenerate that work's detail page (task 157) and update the
-   RoaringRange index shards it touches (task 158). Deletes drop the page and
-   remove the doc from its shard. `catalog.nq` / `catalog.json` regenerate for
-   the touched works. No full-site render on a publish.
+1. **Incremental propagation via `splitset` base+delta.** For each entry in the
+   change feed since the last public build: regenerate that work's detail page
+   (task 157) and fold its change into the search index as a **`splitset` delta
+   split** rather than rebuilding the monolith -- the reader merges the delta
+   (task 158), and a later **compaction** rolls deltas into the base. Deletes are
+   tombstoned in the delta and dropped at compaction. `catalog.nq` /
+   `catalog.json` regenerate for the touched works. No full-site render, and no
+   full search-index rebuild, on a publish. (This is where sharded/incremental
+   writes actually live -- `splitset` over RRS/RRTI search bodies; the admin
+   snapshot's analog is the feed, task 156.)
 2. **Full rebuild only for seed / schema change.** A from-scratch build (initial
    seed, template or index-schema change that invalidates everything) is the
    only path that scans the whole corpus. That is the one place heavy compute is

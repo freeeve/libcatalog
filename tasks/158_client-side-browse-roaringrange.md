@@ -17,8 +17,9 @@ Wire the browse shell (task 157) to the RoaringRange reader for:
   ID / rank.
 - **Details on demand** -- RRSR `Get(docID)` for a row's fields without a page
   load.
-- `splitset` sharding so indexes are range-fetched, not whole-downloaded, into
-  the millions.
+- `splitset` base splits + per-query **pruning** (read only the splits that can
+  match) + range-fetch, so indexes are not whole-downloaded, into the millions;
+  the reader merges any **delta splits** from recent publishes (task 159).
 
 Live availability stays client-side (already is -- keyed by Reserve ID, never in
 the graph), so it composes here.
