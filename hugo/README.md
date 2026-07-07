@@ -491,6 +491,12 @@ ignores them is byte-for-byte unchanged (tasks/020, tasks/118):
   the metadata list, inside the Pagefind-indexed article (tasks/125). Override it to
   render your adopter passthrough extras (tasks/022) -- e.g. a personal reading log's
   `.Params.rating` / `.Params.dateRead` -- without shadowing `page.html`.
+- **`layouts/_partials/work-card-extra.html`** -- rendered on every result card after
+  the title, before contributors (tasks/151). Override it to inject per-work card
+  content (e.g. holding/availability chips) without shadowing `work-card.html`.
+  Caveat: the card renders via `partialCached` keyed on the work's `.RelPermalink`
+  (tasks/133), so the hook's output must be a function of the work page alone --
+  nothing from the surrounding list page.
 - **`hero` block** -- a full-width slot between the header and the faceted layout,
   filled by a layout `define` (e.g. an intro on the home page):
 

@@ -30,6 +30,10 @@
     <h2 class="lcat-card-title">
       <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ with .Params.subtitle }}<span class="lcat-subtitle">: {{ . }}</span>{{ end }}
     </h2>
+    {{- /* Extension hook (tasks/151): empty by default; sites inject per-work card
+           content (e.g. holding chips) here instead of shadowing this partial. Bound
+           by the same partialCached contract as the card (see work-card-extra.html). */}}
+    {{- partial "work-card-extra.html" . }}
     {{- /* Contributor names link to their term pages (tasks/129); the taxonomy
            indexes raw names, so the name IS the lookup key (tasks/128). The role
            suffix stays outside the link text. */}}
