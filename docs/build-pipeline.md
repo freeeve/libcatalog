@@ -94,20 +94,46 @@ work-prefix = "urn:coll:work:"   # subjects under this prefix are works
 # id-scheme = "collnq"           # durable id namespace (default: feed name)
 # class = "Text"
 # default-language = "eng"
+# identity-language = "eng"      # fix the resolution-key language (tasks/182):
+#                                # matches WorkIDs freshly minted by a replaced
+#                                # provider that keyed everything under one lang
 # id-order = "numeric"           # or "lexical" (default)
+# keyword-source = "overdrive"   # bf:source on "keyword" topics (tags carry none)
+# extras-prefix = "urn:coll:extra:"  # predicate PREFIX -> work extras, verbatim
 
 [predicates]                     # field = predicate IRI (or list of IRIs)
 title = "http://purl.org/dc/terms/title"
-creator = "http://purl.org/dc/terms/creator"
+subtitle = "https://schema.org/alternativeHeadline"
+creator = "http://purl.org/dc/terms/creator"          # identity access point
+contributor = "http://purl.org/dc/terms/contributor"  # "Last, First (role)" literals
+summary = "http://purl.org/dc/terms/abstract"
 identifier = "http://purl.org/dc/terms/identifier"
-subject = "http://purl.org/dc/terms/subject"
+subject = "http://purl.org/dc/terms/subject"          # authority IRIs
+tag = "urn:coll:p:qll-tag"                            # uncontrolled topics, no source
+keyword = "https://schema.org/keywords"               # uncontrolled topics, keyword-source
+classification = "urn:coll:p:classification"          # coded IRIs, see [classifications]
 source = "http://purl.org/dc/terms/source"
 language = "http://purl.org/dc/terms/language"
+publisher = "http://purl.org/dc/terms/publisher"      # Instance provision
+issued = "http://purl.org/dc/terms/issued"            #   "
+format = "http://purl.org/dc/terms/format"            # physical|ebook|audiobook -> RDA 337
+group = "http://purl.org/dc/terms/isPartOf"           # bucket grouping, see below
 prefLabel = "http://www.w3.org/2004/02/skos/core#prefLabel"
+broader = "http://www.w3.org/2004/02/skos/core#broader"
+
+[classifications]
+prefix = "urn:bisac:"            # object IRI minus prefix = the code Value;
+source = "bisacsh"               # Label = the IRI's harvested prefLabel
 
 [identifiers]                    # object URN prefix = scheme; "isbn" clusters cross-feed
 "urn:isbn:" = "isbn"
-"urn:overdrive:" = "overdrive"
+"urn:overdrive:" = "overdrive"   # string form: always a resolution key
+[identifiers."urn:coll:isbn10:"] # table form (tasks/182): non-key identifiers
+class = "Isbn"                   # "Isbn" or "Identifier" (default)
+key = false                      # rides the Instance, never a merge key
+[identifiers."urn:coll:odreserve:"]
+source = "overdrive-reserve"     # bf:source tag (raw value, no scheme prefix)
+key = false
 
 [languages]                      # export code = ISO 639-2/B
 en = "eng"
@@ -121,6 +147,19 @@ tentative = ["urn:coll:src:scan-tier-2"]  # attestation that confers no confiden
 
 Works attested only by `tentative` sources get the `tentative = "yes"` extra;
 `params.tentative = "drop"` drops them at ingest instead.
+
+**Bucket grouping** (tasks/182): records sharing a `group` object (self when
+absent) cluster into ONE work with one Instance each -- how a per-format
+export (`urn:coll:work:7`, `urn:coll:work:7:ebook`, ...) keeps one work per
+cluster. Work-level statements must repeat on every bucket record (first
+record wins); identifiers, publisher/issued, and format are per-bucket.
+
+**Term descriptions**: `prefLabel`/`broader` statements on non-work subjects
+describe the works' controlled subjects and their ancestor chains (untagged
+labels count as English; other languages ride `@lang` tags). Subjects emit
+with labels + broader; described ancestors ride along as standalone
+feed-graph terms (no subject link) feeding the catalog's vocabulary sideband
+(tasks/178/180), so subject trees keep labeled top levels.
 
 ### csv mapping
 

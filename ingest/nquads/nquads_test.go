@@ -165,6 +165,279 @@ title = "x"`,
 	}
 }
 
+// collMapping is a coll-feed-shaped mapping (tasks/182): bucket grouping,
+// contributor roles, provisions, format, tags/keywords, classifications,
+// extras passthrough, non-key identifier rules, broader harvesting, and a
+// fixed identity language.
+const collMapping = `
+work-prefix = "urn:coll:work:"
+id-scheme = "coll"
+id-order = "numeric"
+identity-language = "eng"
+keyword-source = "overdrive"
+extras-prefix = "urn:coll:extra:"
+
+[predicates]
+title = "http://purl.org/dc/terms/title"
+subtitle = "https://schema.org/alternativeHeadline"
+creator = "http://purl.org/dc/terms/creator"
+contributor = "http://purl.org/dc/terms/contributor"
+summary = "http://purl.org/dc/terms/abstract"
+identifier = "http://purl.org/dc/terms/identifier"
+subject = "http://purl.org/dc/terms/subject"
+language = "http://purl.org/dc/terms/language"
+publisher = "http://purl.org/dc/terms/publisher"
+issued = "http://purl.org/dc/terms/issued"
+format = "http://purl.org/dc/terms/format"
+tag = "urn:coll:p:qll-tag"
+keyword = "https://schema.org/keywords"
+classification = "urn:coll:p:classification"
+group = "http://purl.org/dc/terms/isPartOf"
+prefLabel = "http://www.w3.org/2004/02/skos/core#prefLabel"
+broader = "http://www.w3.org/2004/02/skos/core#broader"
+
+[classifications]
+prefix = "urn:bisac:"
+source = "bisacsh"
+
+[identifiers]
+"urn:isbn:" = "isbn"
+[identifiers."urn:coll:isbn10:"]
+class = "Isbn"
+key = false
+[identifiers."urn:coll:asin:"]
+source = "asin"
+key = false
+[identifiers."urn:coll:odreserve:"]
+source = "overdrive-reserve"
+key = false
+`
+
+// collNQ is one cluster (7) in three buckets -- physical, ebook, formatless
+// -- with work-level statements repeated per bucket per the coll-feed
+// contract, plus the term statements: the used subject's labels + broader,
+// its labeled ancestor chain, and the BISAC code label.
+const collNQ = `<urn:coll:work:7:physical> <http://purl.org/dc/terms/isPartOf> <urn:coll:work:7> .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/title> "Stone Butch Blues" .
+<urn:coll:work:7:physical> <https://schema.org/alternativeHeadline> "A Novel" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/creator> "Leslie Feinberg" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/contributor> "Feinberg, Leslie (Author)" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/contributor> "Doe, Jane (Narrator)" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/abstract> "A classic." .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/language> "fre" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/language> "eng" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/subject> <https://homosaurus.org/v5/hom1> .
+<urn:coll:work:7:physical> <urn:coll:p:qll-tag> "ebook in QLL" .
+<urn:coll:work:7:physical> <https://schema.org/keywords> "lgbtq fiction" .
+<urn:coll:work:7:physical> <urn:coll:p:classification> <urn:bisac:FIC000000> .
+<urn:coll:work:7:physical> <urn:coll:extra:cover> "https://covers.example.org/7.jpg" .
+<urn:coll:work:7:physical> <urn:coll:extra:sources> "QLL,loc" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/identifier> <urn:isbn:9780000000077> .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/identifier> <urn:coll:isbn10:0000000077> .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/publisher> "Firebrand Books" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/issued> "1993" .
+<urn:coll:work:7:physical> <http://purl.org/dc/terms/format> "physical" .
+<urn:coll:work:7:ebook> <http://purl.org/dc/terms/isPartOf> <urn:coll:work:7> .
+<urn:coll:work:7:ebook> <http://purl.org/dc/terms/title> "Stone Butch Blues" .
+<urn:coll:work:7:ebook> <http://purl.org/dc/terms/creator> "Leslie Feinberg" .
+<urn:coll:work:7:ebook> <http://purl.org/dc/terms/subject> <https://homosaurus.org/v5/hom1> .
+<urn:coll:work:7:ebook> <http://purl.org/dc/terms/format> "ebook" .
+<urn:coll:work:7:ebook> <http://purl.org/dc/terms/identifier> <urn:coll:asin:B00EXAMPLE> .
+<urn:coll:work:7:ebook> <http://purl.org/dc/terms/identifier> <urn:coll:odreserve:123456> .
+<urn:coll:work:7> <http://purl.org/dc/terms/title> "Stone Butch Blues" .
+<urn:coll:work:7> <http://purl.org/dc/terms/creator> "Leslie Feinberg" .
+<urn:coll:work:7> <http://purl.org/dc/terms/subject> <https://homosaurus.org/v5/hom1> .
+<https://homosaurus.org/v5/hom1> <http://www.w3.org/2004/02/skos/core#prefLabel> "Butch" .
+<https://homosaurus.org/v5/hom1> <http://www.w3.org/2004/02/skos/core#prefLabel> "Butch (es)"@es .
+<https://homosaurus.org/v5/hom1> <http://www.w3.org/2004/02/skos/core#broader> <https://homosaurus.org/v5/hom2> .
+<https://homosaurus.org/v5/hom2> <http://www.w3.org/2004/02/skos/core#prefLabel> "Gender expression" .
+<https://homosaurus.org/v5/hom2> <http://www.w3.org/2004/02/skos/core#broader> <https://homosaurus.org/v5/hom3> .
+<urn:bisac:FIC000000> <http://www.w3.org/2004/02/skos/core#prefLabel> "Fiction / General" .
+`
+
+func buildCollProvider(t *testing.T) ingest.Provider {
+	t.Helper()
+	dir := t.TempDir()
+	mapping := filepath.Join(dir, "coll-mapping.toml")
+	nq := filepath.Join(dir, "catalog.coll.nq")
+	if err := os.WriteFile(mapping, []byte(collMapping), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(nq, []byte(collNQ), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p, err := New(ingest.Config{Feed: "coll", Source: nq, Params: map[string]string{"mapping": mapping}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// TestCollFeedRecords covers the tasks/182 mapping extensions end to end at
+// the record level: bucket grouping identity, provider-key round-trips,
+// non-key identifiers, provisions, formats, contributions with roles,
+// subjects with labels + broader, ancestor terms, classifications with
+// harvested labels, tags before keywords, and extras passthrough.
+func TestCollFeedRecords(t *testing.T) {
+	recs, err := buildCollProvider(t).Records(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recs) != 3 {
+		t.Fatalf("records = %d, want 3 buckets", len(recs))
+	}
+	byID := map[string]record{}
+	for _, r := range recs {
+		rec := r.(record)
+		byID[rec.w.id] = rec
+	}
+	phys, ebook, formatless := byID["7:physical"], byID["7:ebook"], byID["7"]
+
+	// Grouping: all three buckets share the cluster-scoped author key (and
+	// the fixed identity language), so they cluster into ONE Work; provider
+	// ids stay per-bucket, round-tripping the old provider's keys.
+	pid, eid, fid := phys.Identity(), ebook.Identity(), formatless.Identity()
+	if pid.Author != "coll:7 Feinberg, Leslie" || pid.Author != eid.Author || pid.Author != fid.Author {
+		t.Fatalf("group identity authors = %q / %q / %q", pid.Author, eid.Author, fid.Author)
+	}
+	if pid.Lang != "eng" {
+		t.Fatalf("identity language = %q, want the fixed eng (work carries fre first)", pid.Lang)
+	}
+	if !slices.Contains(pid.ProviderKeys, string(identity.ProviderKey(identity.SchemeID, "coll:7:physical"))) ||
+		!slices.Contains(eid.ProviderKeys, string(identity.ProviderKey(identity.SchemeID, "coll:7:ebook"))) ||
+		!slices.Contains(fid.ProviderKeys, string(identity.ProviderKey(identity.SchemeID, "coll:7"))) {
+		t.Fatalf("provider keys = %v / %v / %v", pid.ProviderKeys, eid.ProviderKeys, fid.ProviderKeys)
+	}
+	// isbn13 is a merge key; isbn10/asin/odreserve are not.
+	if !slices.Contains(pid.ProviderKeys, string(identity.ProviderKey(identity.SchemeISBN, "9780000000077"))) {
+		t.Fatalf("missing isbn merge key: %v", pid.ProviderKeys)
+	}
+	if len(eid.ProviderKeys) != 1 {
+		t.Fatalf("ebook keys = %v, want only the provider id (asin/odreserve are non-key)", eid.ProviderKeys)
+	}
+
+	// Work-level mapping: subtitle, contributions with roles, languages in
+	// statement order, summary, topics (tag before keyword, keyword
+	// sourced), classification with the harvested label.
+	w := phys.Work()
+	if len(w.Titles) != 1 || w.Titles[0].Subtitle != "A Novel" {
+		t.Fatalf("titles = %+v", w.Titles)
+	}
+	if len(w.Contributions) != 2 || !w.Contributions[0].Primary ||
+		w.Contributions[0].Label != "Feinberg, Leslie" || w.Contributions[0].Roles[0].Term != "author" ||
+		w.Contributions[1].Label != "Doe, Jane" || w.Contributions[1].Roles[0].Term != "narrator" {
+		t.Fatalf("contributions = %+v", w.Contributions)
+	}
+	if len(w.Languages) != 2 || w.Languages[0] != "fre" || w.Languages[1] != "eng" {
+		t.Fatalf("languages = %v, want statement order", w.Languages)
+	}
+	if len(w.Summary) != 1 || w.Summary[0] != "A classic." {
+		t.Fatalf("summary = %v", w.Summary)
+	}
+	if len(w.Subjects) != 2 || w.Subjects[0].Label != "ebook in QLL" || w.Subjects[0].Source != "" ||
+		w.Subjects[1].Label != "lgbtq fiction" || w.Subjects[1].Source != "overdrive" {
+		t.Fatalf("topic subjects = %+v", w.Subjects)
+	}
+	if len(w.Classifications) != 1 || w.Classifications[0].Value != "FIC000000" ||
+		w.Classifications[0].Label != "Fiction / General" || w.Classifications[0].Source != "bisacsh" {
+		t.Fatalf("classifications = %+v", w.Classifications)
+	}
+
+	// Instance-level mapping: RDA media per format, identifier emission
+	// (isbn13 + non-key isbn10; raw-valued asin/odreserve), provision.
+	pi := phys.Instance()
+	if len(pi.Media) != 1 || pi.Media[0].Code != "n" {
+		t.Fatalf("physical media = %+v", pi.Media)
+	}
+	var isbns, others []string
+	for _, id := range pi.Identifiers {
+		if id.Class == "Isbn" {
+			isbns = append(isbns, id.Value)
+		} else {
+			others = append(others, id.Source+"="+id.Value)
+		}
+	}
+	if !slices.Contains(isbns, "9780000000077") || !slices.Contains(isbns, "0000000077") {
+		t.Fatalf("isbn identifiers = %v", isbns)
+	}
+	if len(pi.Provisions) != 1 || pi.Provisions[0].Publisher != "Firebrand Books" || pi.Provisions[0].Date != "1993" {
+		t.Fatalf("provisions = %+v", pi.Provisions)
+	}
+	ei := ebook.Instance()
+	if len(ei.Media) != 1 || ei.Media[0].Code != "c" {
+		t.Fatalf("ebook media = %+v", ei.Media)
+	}
+	var eOthers []string
+	for _, id := range ei.Identifiers {
+		if id.Class != "Isbn" {
+			eOthers = append(eOthers, id.Source+"="+id.Value)
+		}
+	}
+	if !slices.Contains(eOthers, "asin=B00EXAMPLE") || !slices.Contains(eOthers, "overdrive-reserve=123456") ||
+		!slices.Contains(eOthers, "coll=coll:7:ebook") {
+		t.Fatalf("ebook identifiers = %v", eOthers)
+	}
+	if fi := formatless.Instance(); len(fi.Media) != 0 {
+		t.Fatalf("formatless media = %+v", fi.Media)
+	}
+
+	// Term side: the subject carries multilingual labels + broader; the
+	// ancestor chain rides DescribedTerms (labeled hom2 with its edge to the
+	// undescribed hom3, which itself is skipped); extras pass through with
+	// the raw sources value intact.
+	subs := phys.ControlledSubjects()
+	if len(subs) != 1 || subs[0].Labels["en"] != "Butch" || subs[0].Labels["es"] != "Butch (es)" ||
+		len(subs[0].Broader) != 1 || subs[0].Broader[0] != "https://homosaurus.org/v5/hom2" {
+		t.Fatalf("controlled subjects = %+v", subs)
+	}
+	terms := phys.DescribedTerms()
+	if len(terms) != 1 || terms[0].URI != "https://homosaurus.org/v5/hom2" ||
+		terms[0].Labels["en"] != "Gender expression" ||
+		len(terms[0].Broader) != 1 || terms[0].Broader[0] != "https://homosaurus.org/v5/hom3" {
+		t.Fatalf("described terms = %+v", terms)
+	}
+	extras := phys.Extras()
+	if extras["cover"] != "https://covers.example.org/7.jpg" || extras["sources"] != "QLL,loc" {
+		t.Fatalf("extras = %v", extras)
+	}
+}
+
+// TestCollFeedGrouping proves the grouping end to end through ingest.Run:
+// three bucket records write ONE grain (one Work) carrying three Instances
+// with their per-bucket provider ids.
+func TestCollFeedGrouping(t *testing.T) {
+	out := t.TempDir()
+	if _, err := ingest.Run(buildCollProvider(t), out); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	var grains []string
+	err := filepath.WalkDir(filepath.Join(out, "data", "works"), func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(path, ".nq") {
+			grains = append(grains, path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(grains) != 1 {
+		t.Fatalf("grains = %v, want one Work for the cluster", grains)
+	}
+	nq, err := os.ReadFile(grains[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(nq)
+	for _, want := range []string{"coll:7:physical", "coll:7:ebook", `"coll:7"`, "Gender expression"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("grain missing %q:\n%s", want, text)
+		}
+	}
+}
+
 // TestMappingPredicateList checks a field may list several predicate IRIs.
 func TestMappingPredicateList(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "m.toml")

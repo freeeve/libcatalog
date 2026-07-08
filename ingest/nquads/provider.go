@@ -5,7 +5,11 @@
 // sideloads an RDF export the way Aspen Discovery sideloads MARC: with a
 // profile, not code. Works sharing identifier keys (e.g. ISBNs) with a
 // primary feed merge in the shared clustering pipeline; unshared works mint
-// as their own. Generalized from the queerbooks-demo collnq provider.
+// as their own. Generalized from the queerbooks-demo collnq provider;
+// tasks/182 extended it to the full coll-feed contract (per-format bucket
+// grouping, contributions with roles, provisions, formats, topic tags,
+// classifications, extras passthrough, non-key identifiers, and standalone
+// term descriptions for the vocabulary sideband).
 package nquads
 
 import (
@@ -13,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -73,8 +78,41 @@ func (p *Provider) Name() string { return p.feed }
 // Role marks this an ingest-role provider.
 func (p *Provider) Role() ingest.Role { return ingest.RoleIngest }
 
-// Records parses the export and returns one record per work, ordered per the
-// mapping's id-order so ingest runs are deterministic.
+// terms is the harvested term-description side of the export: prefLabels per
+// language and broader edges on non-work subjects (concept IRIs), shared by
+// every record for subject labeling, classification labels, and the
+// ancestor-chain standalone terms (tasks/182).
+type terms struct {
+	labels  map[string]map[string]string // concept IRI -> lang -> label
+	broader map[string][]string          // concept IRI -> parent IRIs, statement order, deduped
+}
+
+// label is the concept's best single-language label: en, then untagged, then
+// any (sorted for determinism).
+func (t *terms) label(iri string) string {
+	m := t.labels[iri]
+	if len(m) == 0 {
+		return ""
+	}
+	if l := m["en"]; l != "" {
+		return l
+	}
+	if l := m[""]; l != "" {
+		return l
+	}
+	langs := make([]string, 0, len(m))
+	for lang := range m {
+		langs = append(langs, lang)
+	}
+	sort.Strings(langs)
+	return m[langs[0]]
+}
+
+// Records parses the export and returns one record per work subject, ordered
+// per the mapping's id-order so ingest runs are deterministic. Records
+// sharing a mapped "group" object (dcterms:isPartOf-style; self when absent)
+// carry a shared grouping id, so the pipeline clusters them into one Work
+// with one Instance each (tasks/182).
 func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 	f, err := os.Open(p.path)
 	if err != nil {
@@ -88,7 +126,7 @@ func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 		tentative[iri] = true
 	}
 	works := map[string]*work{}
-	labels := map[string]string{}
+	tm := &terms{labels: map[string]map[string]string{}, broader: map[string][]string{}}
 	get := func(iri string) *work {
 		id := strings.TrimPrefix(iri, p.m.WorkPrefix)
 		w := works[id]
@@ -113,10 +151,28 @@ func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 		}
 		field := fieldFor[q.P.Value]
 		if !strings.HasPrefix(q.S.Value, p.m.WorkPrefix) {
-			// Authority labels ride on the concept IRI itself, outside the
-			// work prefix.
-			if field == "prefLabel" && labels[q.S.Value] == "" {
-				labels[q.S.Value] = q.O.Value
+			// Term descriptions ride on the concept IRI itself, outside the
+			// work prefix: prefLabels per language (untagged = English by
+			// the coll-feed convention) and broader edges (tasks/182).
+			switch field {
+			case "prefLabel":
+				lang := q.O.Lang
+				if lang == "" {
+					lang = "en"
+				}
+				m := tm.labels[q.S.Value]
+				if m == nil {
+					m = map[string]string{}
+					tm.labels[q.S.Value] = m
+				}
+				if m[lang] == "" {
+					m[lang] = q.O.Value
+				}
+			case "broader":
+				parents := tm.broader[q.S.Value]
+				if !slices.Contains(parents, q.O.Value) {
+					tm.broader[q.S.Value] = append(parents, q.O.Value)
+				}
 			}
 			continue
 		}
@@ -126,29 +182,74 @@ func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 			if w.title == "" {
 				w.title = q.O.Value
 			}
+		case "subtitle":
+			if w.subtitle == "" {
+				w.subtitle = q.O.Value
+			}
+		case "summary":
+			if w.summary == "" {
+				w.summary = q.O.Value
+			}
 		case "creator":
 			w.creators = append(w.creators, q.O.Value)
-		case "identifier":
-			for prefix, scheme := range p.m.Identifiers {
-				if v, ok := strings.CutPrefix(q.O.Value, prefix); ok {
-					if scheme == "isbn" {
-						w.isbns = append(w.isbns, v)
-					} else {
-						w.ids = append(w.ids, schemedID{scheme: scheme, value: v})
-					}
-					break
-				}
+		case "contributor":
+			w.contributors = append(w.contributors, q.O.Value)
+		case "publisher":
+			if w.publisher == "" {
+				w.publisher = q.O.Value
 			}
+		case "issued":
+			if w.issued == "" {
+				w.issued = q.O.Value
+			}
+		case "format":
+			if w.format == "" {
+				w.format = q.O.Value
+			}
+		case "group":
+			if w.group == "" {
+				w.group = strings.TrimPrefix(q.O.Value, p.m.WorkPrefix)
+			}
+		case "identifier":
+			p.mapIdentifier(w, q.O.Value)
 		case "subject":
-			w.subjectURIs = append(w.subjectURIs, q.O.Value)
+			if !slices.Contains(w.subjectURIs, q.O.Value) {
+				w.subjectURIs = append(w.subjectURIs, q.O.Value)
+			}
+		case "tag":
+			if !slices.Contains(w.tags, q.O.Value) {
+				w.tags = append(w.tags, q.O.Value)
+			}
+		case "keyword":
+			if !slices.Contains(w.keywords, q.O.Value) {
+				w.keywords = append(w.keywords, q.O.Value)
+			}
+		case "classification":
+			if v, ok := strings.CutPrefix(q.O.Value, p.m.Classifications.Prefix); ok && !slices.Contains(w.classCodes, v) {
+				w.classCodes = append(w.classCodes, v)
+				w.classIRIs = append(w.classIRIs, q.O.Value)
+			}
 		case "language":
-			if w.lang == "" {
-				w.lang = p.m.language(q.O.Value)
+			if code := p.m.language(q.O.Value); !slices.Contains(w.languages, code) {
+				w.languages = append(w.languages, code)
 			}
 		case "source":
 			w.sources = append(w.sources, strings.TrimPrefix(q.O.Value, p.m.Sources.Prefix))
 			if !tentative[q.O.Value] {
 				w.confident = true
+			}
+		default:
+			// Extras ride predicate PREFIXES, not exact predicates: the key
+			// is the remainder, the value verbatim (tasks/182).
+			if p.m.ExtrasPrefix != "" {
+				if key, ok := strings.CutPrefix(q.P.Value, p.m.ExtrasPrefix); ok && key != "" {
+					if w.extras == nil {
+						w.extras = map[string]string{}
+					}
+					if w.extras[key] == "" {
+						w.extras[key] = q.O.Value
+					}
+				}
 			}
 		}
 	}
@@ -164,6 +265,9 @@ func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 			dropped++
 			continue
 		}
+		if w.group == "" {
+			w.group = id // ungrouped records group with themselves
+		}
 		ids = append(ids, id)
 	}
 	if p.m.IDOrder == "numeric" {
@@ -176,9 +280,40 @@ func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 	}
 	recs := make([]ingest.Record, 0, len(ids))
 	for _, id := range ids {
-		recs = append(recs, record{w: works[id], labels: labels, m: p.m, idScheme: p.idScheme})
+		recs = append(recs, record{w: works[id], terms: tm, m: p.m, idScheme: p.idScheme})
 	}
 	return recs, nil
+}
+
+// mapIdentifier routes one identifier object through the mapping's prefix
+// rules: legacy scheme strings keep their keyed behavior, table rules emit
+// class/source identifiers and opt into key-ness (tasks/182).
+func (p *Provider) mapIdentifier(w *work, obj string) {
+	for prefix, rule := range p.m.Identifiers {
+		v, ok := strings.CutPrefix(obj, prefix)
+		if !ok {
+			continue
+		}
+		switch {
+		case rule.Scheme == "isbn" || (rule.Scheme == "" && rule.Key && rule.Class == "Isbn"):
+			w.isbns = append(w.isbns, v)
+		case rule.Scheme != "":
+			// Legacy keyed schemed id: "<scheme>:<value>" as both the
+			// resolution key and the emitted identifier value.
+			w.idents = append(w.idents, mappedID{class: "Identifier", source: rule.Scheme, value: rule.Scheme + ":" + v, key: rule.Scheme + ":" + v})
+		default:
+			class := rule.Class
+			if class == "" {
+				class = "Identifier"
+			}
+			id := mappedID{class: class, source: rule.Source, value: v}
+			if rule.Key {
+				id.key = rule.Source + ":" + v
+			}
+			w.idents = append(w.idents, id)
+		}
+		return
+	}
 }
 
 // byNumericID orders work ids numerically when possible (unpadded decimal
