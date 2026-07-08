@@ -34,12 +34,21 @@ export interface WorkSummary {
   HasAvailability?: boolean;
 }
 
+/** One facet value with its work count (tasks/168). */
+export interface FacetCount {
+  value: string;
+  count: number;
+}
+
 export interface WorksPage {
   works: WorkSummary[];
   total: number;
   /** Query hits across the whole catalog (works is one window of these). */
   matched?: number;
   offset?: number;
+  /** Self-excluding facet counts by group: visibility, holdings, needs,
+   *  subject, tag (tasks/168). */
+  facets?: Record<string, FacetCount[]>;
 }
 
 /** editor.FieldValue -- one value of a profile field, with provenance. */

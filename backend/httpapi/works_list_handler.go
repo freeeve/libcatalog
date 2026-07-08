@@ -35,23 +35,37 @@ func registerWorksList(mux *http.ServeMux, ix *workindex.Index, verifier auth.To
 			writeError(w, http.StatusInternalServerError, "scan failed")
 			return
 		}
-		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+		params := r.URL.Query()
+		q := strings.ToLower(strings.TrimSpace(params.Get("q")))
 		limit := 50
-		if raw := r.URL.Query().Get("limit"); raw != "" {
+		if raw := params.Get("limit"); raw != "" {
 			if n, err := strconv.Atoi(raw); err == nil && n > 0 && n <= 500 {
 				limit = n
 			}
 		}
 		offset := 0
-		if raw := r.URL.Query().Get("offset"); raw != "" {
+		if raw := params.Get("offset"); raw != "" {
 			if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
 				offset = n
 			}
 		}
+		// Facets (tasks/168): filters AND across groups, OR within one;
+		// counts are self-excluding over the query-matched set.
+		filters := parseWorkFilters(params)
+		counter := newFacetCounter()
 		matched := 0
 		matches := make([]ingest.WorkSummary, 0, limit)
 		for _, s := range all {
 			if q != "" && !s.Matches(q) {
+				continue
+			}
+			m := filters.groupMatches(s)
+			counter.add(s, m)
+			pass := true
+			for _, ok := range m {
+				pass = pass && ok
+			}
+			if !pass {
 				continue
 			}
 			matched++
@@ -65,6 +79,7 @@ func registerWorksList(mux *http.ServeMux, ix *workindex.Index, verifier auth.To
 			"total":   len(all),
 			"matched": matched,
 			"offset":  offset,
+			"facets":  counter.result(),
 		})
 	})))
 	return wl

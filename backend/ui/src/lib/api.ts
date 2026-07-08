@@ -133,10 +133,18 @@ export function decideWithdrawn(workId: string, action: "keep" | "suppress"): Pr
   return call("POST", `/v1/works/${encodeURIComponent(workId)}/withdrawn`, { action });
 }
 
+/** Facet selections for the works list, keyed by group (tasks/168):
+ *  visibility, holdings, needs, subject, tag. Values within a group OR;
+ *  groups AND. */
+export type WorkFilters = Record<string, string[]>;
+
 /** Work search over the grain tree (librarian); offset pages the matches. */
-export function fetchWorks(q: string, limit = 50, offset = 0): Promise<WorksPage> {
+export function fetchWorks(q: string, limit = 50, offset = 0, filters: WorkFilters = {}): Promise<WorksPage> {
   const params = new URLSearchParams({ q, limit: String(limit) });
   if (offset > 0) params.set("offset", String(offset));
+  for (const [group, values] of Object.entries(filters)) {
+    for (const v of values) params.append(group, v);
+  }
   return call("GET", `/v1/works?${params}`);
 }
 
