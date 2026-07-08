@@ -34,6 +34,9 @@
      *  disclosure (tasks/083) -- present, but not competing with the
      *  primary worksheet. */
     section?: "more";
+    /** Prose fields (summary) span every worksheet column: paragraph text
+     *  squeezed into one 30rem column reads worse than a full line. */
+    wide?: boolean;
     /** Decodes a stored literal into a heading + code (BISAC), so coded
      *  values read like subjects with the raw code demoted. */
     decode?: (v: string) => BisacTerm | undefined;
@@ -52,7 +55,7 @@
     { path: "title", label: "Title", kind: "single" },
     { path: "subtitle", label: "Subtitle", kind: "single" },
     { path: "contributors", label: "Contributors", kind: "readonly" },
-    { path: "summary", label: "Summary", kind: "langLiteral" },
+    { path: "summary", label: "Summary", kind: "langLiteral", wide: true },
     { path: "language", label: "Language", kind: "iri", options: termOptions(LANGUAGES) },
     { path: "subjects", label: "Subjects", kind: "vocab" },
     { path: "subjectLabels", label: "Subject headings", kind: "readonly" },
@@ -270,7 +273,7 @@
   {#snippet fieldBlock(spec: FieldSpec)}
     {@const values = res.fields[spec.path] ?? []}
     {@const adds = pendingAdds(spec.path)}
-    <div class="field">
+    <div class="field" class:wide={spec.wide}>
       <svelte:element this={heading} class="fieldhead">{spec.label}</svelte:element>
       <ul class="vals">
         {#each values as fv, i (fv.node + i)}
@@ -567,6 +570,14 @@
   .field > .vals,
   .field > .addrow {
     justify-self: stretch;
+  }
+  /* Prose fields (summary) span the whole worksheet; the entry box grows to
+     the full line so paragraph text is written where it will be read. */
+  .field.wide {
+    grid-column: 1 / -1;
+  }
+  .field.wide .addrow input[type="text"]:first-child {
+    flex: 1 1 16rem;
   }
   .vals {
     margin: 0;
