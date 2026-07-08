@@ -7,7 +7,7 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 func loadFixture(t *testing.T, schemes []string) *Index {
@@ -206,7 +206,7 @@ func TestReloadAndMergedTerms(t *testing.T) {
 	}
 	// Retire the term: it leaves search but still resolves (old references
 	// keep labeling), and Terms still lists it for the management screen.
-	retired := local + `<https://example.org/local/a1> <https://github.com/freeeve/libcatalog/ns#mergedInto> <https://homosaurus.org/v4/homoit0001235> <authority:local> .
+	retired := local + `<https://example.org/local/a1> <https://github.com/freeeve/libcat/ns#mergedInto> <https://homosaurus.org/v4/homoit0001235> <authority:local> .
 `
 	if _, err := st.Put(t.Context(), "data/authorities/aa/a1.nq", []byte(retired), blob.PutOptions{}); err != nil {
 		t.Fatal(err)

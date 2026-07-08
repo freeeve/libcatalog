@@ -1,4 +1,4 @@
-# libcatalog Hugo module -- default (English) UI chrome (tasks/016). Hugo merges a
+# libcat Hugo module -- default (English) UI chrome (tasks/016). Hugo merges a
 # module's i18n bundle into the importing site, so these are the defaults every
 # adopter gets. To translate, add i18n/<lang>.toml with the same keys (missing keys
 # fall back to the default content language) -- no template fork. See README.

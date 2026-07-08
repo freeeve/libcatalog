@@ -1,5 +1,5 @@
 {{- /*
-  libcatalog content adapter (Hugo >= 0.126): mint one Page per Work directly from
+  libcat content adapter (Hugo >= 0.126): mint one Page per Work directly from
   the projected catalog.json -- no per-record content files (tasks/009 contract,
   ARCHITECTURE §7). catalog.json is read as an asset resource, NOT .Site.Data, so
   the whole corpus is not pinned in global site data. The graph stays source of
@@ -19,7 +19,7 @@
   {{- $data := . | transform.Unmarshal -}}
   {{- $want := site.Params.catalogSchemaVersion | int -}}
   {{- if ne ($data.version | int) $want -}}
-    {{- errorf "libcatalog: catalog.json schema version %v, module targets %d -- reproject with a matching lcat (tasks/009)" $data.version $want -}}
+    {{- errorf "libcat: catalog.json schema version %v, module targets %d -- reproject with a matching lcat (tasks/009)" $data.version $want -}}
   {{- end -}}
   {{- $lang := site.Language.Lang -}}
   {{- range $data.works -}}
@@ -111,5 +111,5 @@
     ) -}}
   {{- end -}}
 {{- else -}}
-  {{- errorf "libcatalog: assets/catalog.json not found -- run `lcat project` and mount its output under the site assets/ (tasks/009)" -}}
+  {{- errorf "libcat: assets/catalog.json not found -- run `lcat project` and mount its output under the site assets/ (tasks/009)" -}}
 {{- end -}}

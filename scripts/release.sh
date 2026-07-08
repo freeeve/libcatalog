@@ -61,7 +61,7 @@ fi
 
 # Lockstep by construction: the published backend module requires the root
 # module at this same version.
-(cd backend && go mod edit -require="github.com/freeeve/libcatalog@v$V")
+(cd backend && go mod edit -require="github.com/freeeve/libcat@v$V")
 if ! git diff --quiet backend/go.mod; then
   git commit -m "release(backend): require root v$V in lockstep (tasks/146)" backend/go.mod
 fi

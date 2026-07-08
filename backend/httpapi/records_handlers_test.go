@@ -10,12 +10,12 @@ import (
 
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/editor"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/editor"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 const editWorkID = "wabc123def456"

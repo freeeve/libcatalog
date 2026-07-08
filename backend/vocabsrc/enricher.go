@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/ingest"
 )
 
 // Enricher adapts a suggest-capable source to the ingest.Enricher contract

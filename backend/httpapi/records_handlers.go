@@ -8,17 +8,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/editor"
-	"github.com/freeeve/libcatalog/backend/profilesvc"
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/suggest"
-	"github.com/freeeve/libcatalog/backend/vocab"
-	"github.com/freeeve/libcatalog/backend/workindex"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/editor"
+	"github.com/freeeve/libcat/backend/profilesvc"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/suggest"
+	"github.com/freeeve/libcat/backend/vocab"
+	"github.com/freeeve/libcat/backend/workindex"
 )
 
 // grainView is the read shape of a record: raw canonical N-Quads plus the

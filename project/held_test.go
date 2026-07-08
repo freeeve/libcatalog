@@ -15,7 +15,7 @@ _:s1 <http://www.w3.org/2000/01/rdf-schema#label> "overdrive-reserve" <feed:over
 <#w2Work> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
 <#w2Work> <http://id.loc.gov/ontologies/bibframe/title> _:t2 <feed:overdrive> .
 _:t2 <http://id.loc.gov/ontologies/bibframe/mainTitle> "Withdrawn" <feed:overdrive> .
-<#w2Work> <https://github.com/freeeve/libcatalog/ns#withdrawnFromFeed> "2026-07-03" <editorial:> .
+<#w2Work> <https://github.com/freeeve/libcat/ns#withdrawnFromFeed> "2026-07-03" <editorial:> .
 <#w2Work> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#i2Instance> <feed:overdrive> .
 <#i2Instance> <http://id.loc.gov/ontologies/bibframe/identifiedBy> _:id2 <feed:overdrive> .
 _:id2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "res-2" <feed:overdrive> .
@@ -26,7 +26,7 @@ _:s2 <http://www.w3.org/2000/01/rdf-schema#label> "overdrive-reserve" <feed:over
 _:t3 <http://id.loc.gov/ontologies/bibframe/mainTitle> "Physical" <feed:copycat> .
 <#w3Work> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#i3Instance> <feed:copycat> .
 <#i3Instance> <http://id.loc.gov/ontologies/bibframe/hasItem> <#i3Instance-item-1> <editorial:> .
-<#i3Instance-item-1> <https://github.com/freeeve/libcatalog/ns#barcode> "30001" <editorial:> .
+<#i3Instance-item-1> <https://github.com/freeeve/libcat/ns#barcode> "30001" <editorial:> .
 `
 
 // TestHeld pins the tasks/078 holdings signal: an availability identifier

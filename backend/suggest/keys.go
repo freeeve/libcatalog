@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // Key builders. Term IDs (authority URIs) may themselves contain "#", so

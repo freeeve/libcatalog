@@ -16,12 +16,12 @@ import (
 	"github.com/freeeve/libcodex/iso2709"
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/project"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/project"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // Run executes a QUEUED job (claiming it RUNNING first, so concurrent

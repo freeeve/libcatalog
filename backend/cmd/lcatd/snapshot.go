@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/awsstore"
-	"github.com/freeeve/libcatalog/backend/workindex"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/backend/awsstore"
+	"github.com/freeeve/libcat/backend/workindex"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // runWorkindexSnapshot builds the work-index snapshot from a grain store off the

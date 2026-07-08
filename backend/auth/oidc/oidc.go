@@ -17,7 +17,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 
-	"github.com/freeeve/libcatalog/backend/auth"
+	"github.com/freeeve/libcat/backend/auth"
 )
 
 // Config describes one external issuer.

@@ -15,13 +15,13 @@ import (
 
 	codexbf "github.com/freeeve/libcodex/bibframe"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/ingest/marc"
-	"github.com/freeeve/libcatalog/storage"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/ingest/marc"
+	"github.com/freeeve/libcat/storage"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 const marcSample = "../../ingest/overdrive/testdata/marc-express/od-sample-ebook.mrc"

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 func newService(t *testing.T) (*Service, *store.Mem) {

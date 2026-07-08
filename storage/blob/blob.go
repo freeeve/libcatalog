@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/storage"
 )
 
 // ErrNotFound reports that no object exists at the requested path.

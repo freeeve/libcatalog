@@ -1,6 +1,6 @@
 /*
  * Client-side ranked search + facet filtering over the RoaringRange WASM reader
- * (libcatalog tasks/158). Opt-in via [params.search] engine = "roaringrange".
+ * (libcat tasks/158). Opt-in via [params.search] engine = "roaringrange".
  *
  * Progressive enhancement: the server-rendered work list (task 157) is the
  * default view. When the visitor types a query or selects a facet, this module

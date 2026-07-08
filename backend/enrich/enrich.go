@@ -9,11 +9,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/suggest"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/suggest"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // Mode selects how a source's results land.

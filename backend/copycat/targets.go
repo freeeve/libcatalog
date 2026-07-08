@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // Target is one external search source.

@@ -269,9 +269,9 @@ func TestFacets(t *testing.T) {
 
 // catalogWithMerges is a catalog.nq whose editorial graph records a merge chain
 // (a->b->c) and an independent merge (d->e), plus a feed line that must be ignored.
-const catalogWithMerges = `<#aWork> <https://github.com/freeeve/libcatalog/ns#mergedInto> <#bWork> <editorial:> .
-<#bWork> <https://github.com/freeeve/libcatalog/ns#mergedInto> <#cWork> <editorial:> .
-<#dWork> <https://github.com/freeeve/libcatalog/ns#mergedInto> <#eWork> <editorial:> .
+const catalogWithMerges = `<#aWork> <https://github.com/freeeve/libcat/ns#mergedInto> <#bWork> <editorial:> .
+<#bWork> <https://github.com/freeeve/libcat/ns#mergedInto> <#cWork> <editorial:> .
+<#dWork> <https://github.com/freeeve/libcat/ns#mergedInto> <#eWork> <editorial:> .
 <#cWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
 `
 
@@ -293,8 +293,8 @@ func TestRedirects(t *testing.T) {
 func TestRedirectsCycleSafe(t *testing.T) {
 	// A malformed overlay with a cycle (a<->b) must terminate, not loop, and emit no
 	// self-redirect (From == To is dropped).
-	cyc := `<#aWork> <https://github.com/freeeve/libcatalog/ns#mergedInto> <#bWork> <editorial:> .
-<#bWork> <https://github.com/freeeve/libcatalog/ns#mergedInto> <#aWork> <editorial:> .
+	cyc := `<#aWork> <https://github.com/freeeve/libcat/ns#mergedInto> <#bWork> <editorial:> .
+<#bWork> <https://github.com/freeeve/libcat/ns#mergedInto> <#aWork> <editorial:> .
 `
 	rm, err := Redirects([]byte(cyc))
 	if err != nil {
@@ -349,10 +349,10 @@ func TestSubjectBroader(t *testing.T) {
 // Work with no extras omits the field.
 func TestWorkExtras(t *testing.T) {
 	const nq = `<#weWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
-<#weWork> <https://github.com/freeeve/libcatalog/ns#extra/cover> "https://covers.example.org/x.jpg" <feed:overdrive> .
-<#weWork> <https://github.com/freeeve/libcatalog/ns#extra/rating> "5" <feed:overdrive> .
-<#weWork> <https://github.com/freeeve/libcatalog/ns#extra/dateRead> "2026-01-15" <feed:overdrive> .
-<#weWork> <https://github.com/freeeve/libcatalog/ns#extra/ignored> "other feed" <feed:other> .
+<#weWork> <https://github.com/freeeve/libcat/ns#extra/cover> "https://covers.example.org/x.jpg" <feed:overdrive> .
+<#weWork> <https://github.com/freeeve/libcat/ns#extra/rating> "5" <feed:overdrive> .
+<#weWork> <https://github.com/freeeve/libcat/ns#extra/dateRead> "2026-01-15" <feed:overdrive> .
+<#weWork> <https://github.com/freeeve/libcat/ns#extra/ignored> "other feed" <feed:other> .
 <#wnWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
 `
 	cat, err := Project([]byte(nq), "overdrive")

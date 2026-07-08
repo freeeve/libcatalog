@@ -1,4 +1,4 @@
-# Module config merged into any site that imports the libcatalog Hugo module.
+# Module config merged into any site that imports the libcat Hugo module.
 # It declares the facet taxonomies the content adapter populates, so importing the
 # module is enough to get faceted navigation -- the site need only mount the
 # projected catalog.json / facets.json under assets/ (see exampleSite).

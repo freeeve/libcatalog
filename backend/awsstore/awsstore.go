@@ -14,11 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/blobs3"
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/store/dynamo"
+	"github.com/freeeve/libcat/backend/blobs3"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/store/dynamo"
 )
 
 // Dynamo builds a DynamoDB-backed document store over table. Region and

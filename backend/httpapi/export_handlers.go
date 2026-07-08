@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/batch"
-	"github.com/freeeve/libcatalog/backend/export"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/batch"
+	"github.com/freeeve/libcat/backend/export"
 )
 
 // exportView augments a job with its download link when ready.

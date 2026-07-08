@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // Two schemes side by side: a homosaurus term closeMatch-linked to an LCSH
@@ -21,7 +21,7 @@ const crosswalkNT = `<https://homosaurus.org/v4/homoit1> <http://www.w3.org/2004
 <http://id.loc.gov/authorities/subjects/sh1> <http://www.w3.org/2004/02/skos/core#prefLabel> "Gay men"@en <authority:lcsh> .
 <http://id.loc.gov/authorities/subjects/sh2> <http://www.w3.org/2004/02/skos/core#prefLabel> "Zines"@en <authority:lcsh> .
 <http://id.loc.gov/authorities/subjects/sh3> <http://www.w3.org/2004/02/skos/core#prefLabel> "Old heading"@en <authority:lcsh> .
-<http://id.loc.gov/authorities/subjects/sh3> <https://github.com/freeeve/libcatalog/ns#mergedInto> <http://id.loc.gov/authorities/subjects/sh2> <authority:lcsh> .
+<http://id.loc.gov/authorities/subjects/sh3> <https://github.com/freeeve/libcat/ns#mergedInto> <http://id.loc.gov/authorities/subjects/sh2> <authority:lcsh> .
 `
 
 func crosswalkIndex(t *testing.T) *vocab.Index {

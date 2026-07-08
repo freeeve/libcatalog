@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 func TestBulkAddItems(t *testing.T) {

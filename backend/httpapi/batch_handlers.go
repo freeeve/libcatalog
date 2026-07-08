@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/batch"
-	"github.com/freeeve/libcatalog/backend/editor"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/batch"
+	"github.com/freeeve/libcat/backend/editor"
 )
 
 // resolvePreviewLimit caps the work list carried in a resolve preview; the

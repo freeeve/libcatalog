@@ -11,12 +11,12 @@ import (
 
 	codex "github.com/freeeve/libcodex"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/copycat"
-	"github.com/freeeve/libcatalog/backend/marcview"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/copycat"
+	"github.com/freeeve/libcat/backend/marcview"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 func newCopycatAPI(t *testing.T) (http.Handler, *copycat.Service) {

@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/freeeve/libcatalog/backend/marcview"
+	"github.com/freeeve/libcat/backend/marcview"
 )
 
 //go:embed templates/*.json

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/backend/copycat"
-	"github.com/freeeve/libcatalog/backend/marcview"
+	"github.com/freeeve/libcat/backend/copycat"
+	"github.com/freeeve/libcat/backend/marcview"
 )
 
 // TestTemplates pins the shipped skeletons: well-formed fixed fields, a 245

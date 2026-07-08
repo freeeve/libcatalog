@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/marcview"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/marcview"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // TestMARCPreviewAppliesStagedOps drives the tasks/070 live-preview route: a

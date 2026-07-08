@@ -3,9 +3,9 @@ package ingest_test
 import (
 	"testing"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 const (
@@ -17,7 +17,7 @@ func feedGrain(id, graph string, editorial string) []byte {
 	nq := "<#" + id + "Work> " + rdfType + " " + bfWork + " <" + graph + "> .\n" +
 		"<#" + id + "Work> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#" + id + "iInstance> <" + graph + "> .\n"
 	if editorial != "" {
-		nq += "<#" + id + "Work> <https://github.com/freeeve/libcatalog/ns#tag> \"" + editorial + "\" <editorial:> .\n"
+		nq += "<#" + id + "Work> <https://github.com/freeeve/libcat/ns#tag> \"" + editorial + "\" <editorial:> .\n"
 	}
 	return []byte(nq)
 }

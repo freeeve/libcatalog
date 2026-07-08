@@ -1,6 +1,6 @@
 // Package bibframe crosswalks codex records into canonical BIBFRAME N-Quads
 // grains. It wraps libcodex's record<->BIBFRAME conversion
-// (github.com/freeeve/libcodex/bibframe) and adds libcatalog's provenance
+// (github.com/freeeve/libcodex/bibframe) and adds libcat's provenance
 // graphs plus RDFC-1.0 canonical emission, so each grain re-serializes
 // byte-for-byte when unchanged -- the clean-diff invariant in ARCHITECTURE §3.
 package bibframe

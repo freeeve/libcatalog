@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/storage"
 	"github.com/freeeve/libcodex/rdf"
 )
 

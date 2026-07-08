@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/ingest"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/workindex"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/workindex"
 )
 
 // worksList serves the SPA's work search off the shared work index, which

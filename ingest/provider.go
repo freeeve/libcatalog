@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 
@@ -114,7 +114,7 @@ type Config struct {
 
 // Factory constructs a configured Provider from a Config. A deployment registers
 // one per provider type, so adding a source is a Register call plus the provider's
-// own package -- no libcatalog fork.
+// own package -- no libcat fork.
 type Factory func(Config) (Provider, error)
 
 // Registry maps a provider type key to its Factory. Registration is explicit (in

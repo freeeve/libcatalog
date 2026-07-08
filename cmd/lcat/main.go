@@ -1,4 +1,4 @@
-// Command lcat is libcatalog's projector CLI: it ingests bibliographic sources
+// Command lcat is libcat's projector CLI: it ingests bibliographic sources
 // into canonical BIBFRAME grains (and, later, projects them for the Hugo
 // module). It is storage- and compute-agnostic: this same binary is the
 // entrypoint for a local run or a Fargate/container task, and a cloud-function
@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage"
 )
 
 func main() {

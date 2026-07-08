@@ -21,7 +21,7 @@ import (
 	codexbf "github.com/freeeve/libcodex/bibframe"
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcat/bibframe"
 )
 
 // Subfield is one (code, value) pair of a data field.

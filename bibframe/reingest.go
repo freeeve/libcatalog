@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/freeeve/libcatalog/identity"
+	"github.com/freeeve/libcat/identity"
 	"github.com/freeeve/libcodex/rdf"
 )
 

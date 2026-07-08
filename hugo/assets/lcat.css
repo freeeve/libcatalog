@@ -1,4 +1,4 @@
-/* libcatalog reference styles: accessible, desktop-credible, override-friendly. Every
+/* libcat reference styles: accessible, desktop-credible, override-friendly. Every
    component is driven by the --lcat-* tokens below, so an adopter re-themes by re-setting
    those variables in their own stylesheet (loaded after this one) -- no need to shadow
    assets/lcat.css or reimplement any chrome (tasks/025). Uses system fonts and CSS grid.

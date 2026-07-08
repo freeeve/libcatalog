@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/suggest"
-	"github.com/freeeve/libcatalog/backend/workindex"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/suggest"
+	"github.com/freeeve/libcat/backend/workindex"
 )
 
 // registerMaintenance mounts the tasks/051 maintenance surfaces: the

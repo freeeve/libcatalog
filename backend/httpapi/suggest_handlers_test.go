@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/suggest"
-	"github.com/freeeve/libcatalog/backend/vocab"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/suggest"
+	"github.com/freeeve/libcat/backend/vocab"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 const transURI = "https://homosaurus.org/v4/homoit0001235"

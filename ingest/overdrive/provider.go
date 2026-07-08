@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/ingest"
 )
 
 // ProviderName is the OverDrive provider's registry key and default provenance

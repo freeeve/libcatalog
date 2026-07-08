@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/vocabsrc"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/vocabsrc"
 )
 
 // defaultUploadCapMB bounds a hand-uploaded dump unless the deployment says

@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"github.com/freeeve/libcatalog/backend/blobs3"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/backend/blobs3"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // TestS3Conformance runs against an S3-compatible endpoint (MinIO):

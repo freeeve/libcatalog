@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/ingest"
 )
 
 // TestProviderCleansTitles pins that the provider normalizes HTML character

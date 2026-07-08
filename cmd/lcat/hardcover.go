@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/ingest/hardcover"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/ingest/hardcover"
 )
 
 // runHardcover ingests a user's Hardcover "Read" shelf into canonical BIBFRAME grains

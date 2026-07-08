@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // DefaultFeedPath is where the change feed lives -- outside the grain prefix the

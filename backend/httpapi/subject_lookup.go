@@ -8,14 +8,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/freeeve/libcatalog/identity"
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/identity"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/copycat"
-	"github.com/freeeve/libcatalog/backend/marcview"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/copycat"
+	"github.com/freeeve/libcat/backend/marcview"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // subjectCandidate is one external heading a cataloger can pull in: the

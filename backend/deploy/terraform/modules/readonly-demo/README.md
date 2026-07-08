@@ -26,7 +26,7 @@ provider "aws" {
 }
 
 module "demo" {
-  source     = "github.com/freeeve/libcatalog//backend/deploy/terraform/modules/readonly-demo?ref=v0.4.2"
+  source     = "github.com/freeeve/libcat//backend/deploy/terraform/modules/readonly-demo?ref=v0.4.2"
   name       = "eves-library"
   lambda_zip = "./lcatd-demo.zip"
 
@@ -65,4 +65,4 @@ shows immediately; `/assets/*` change hash so they never go stale.
   is fine for a read-only demo. Locking the origin to CloudFront (OAC + IAM auth)
   is a later option.
 - **Writable production** is a different shape (DynamoDB/S3 + a worker model);
-  see the parent `deploy/terraform/` stack and libcatalog `tasks/099`.
+  see the parent `deploy/terraform/` stack and libcat `tasks/099`.

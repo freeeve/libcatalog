@@ -1,4 +1,4 @@
-module github.com/freeeve/libcatalog
+module github.com/freeeve/libcat
 
 go 1.25.0
 

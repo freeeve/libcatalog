@@ -76,7 +76,7 @@
         {{ with .format }}<span class="lcat-format">{{ . }}</span>{{ end }}
         {{ with .isbns }}<span class="lcat-isbn">{{ i18n "isbn" }} {{ index . 0 }}</span>{{ end }}
         {{/* Availability is fetched client-side at view time by lcat-availability.js
-             (libcatalog tasks/004), keyed on data-overdrive-reserve above; it fills
+             (libcat tasks/004), keyed on data-overdrive-reserve above; it fills
              this placeholder in when the site enables [params.availability]. Without
              that config (or JS) the placeholder stays inert -- the static page never
              depends on it. */}}

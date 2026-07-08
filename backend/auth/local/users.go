@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // ErrUserExists reports a create against an existing email.

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/profiles"
-	"github.com/freeeve/libcatalog/backend/profilesvc"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/profiles"
+	"github.com/freeeve/libcat/backend/profilesvc"
 )
 
 func newProfilesAPI(t *testing.T) (http.Handler, *profilesvc.Service) {

@@ -9,9 +9,9 @@ import (
 	codex "github.com/freeeve/libcodex"
 	"github.com/freeeve/libcodex/iso2709"
 
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/ingest/marc"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/ingest/marc"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // TestExportMARCEmitsRawFreeText is the tasks/091 regression: ISO 2709 is a

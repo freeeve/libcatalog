@@ -10,8 +10,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // Decision is one staff review action inside a batch.

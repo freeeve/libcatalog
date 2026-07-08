@@ -5,7 +5,7 @@ import (
 
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcat/bibframe"
 )
 
 // overrideCorpus builds a one-Work corpus: a feed subject + feed tag, then

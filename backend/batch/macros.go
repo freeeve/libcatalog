@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/editor"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/editor"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // Param declares one macro parameter, referenced in op values as ${name}.

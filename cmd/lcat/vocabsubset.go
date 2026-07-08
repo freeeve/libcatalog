@@ -14,8 +14,8 @@ import (
 
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/project"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/project"
 )
 
 // subsetKeep is the SKOS surface the vocab index reads (mirrors
@@ -195,7 +195,7 @@ func fetchConcept(client *http.Client, uri, suffix string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/n-triples")
-	req.Header.Set("User-Agent", "libcatalog lcat vocab-subset")
+	req.Header.Set("User-Agent", "libcat lcat vocab-subset")
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func readDump(src string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/n-triples")
-	req.Header.Set("User-Agent", "libcatalog lcat vocab-subset")
+	req.Header.Set("User-Agent", "libcat lcat vocab-subset")
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

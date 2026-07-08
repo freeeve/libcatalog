@@ -3,7 +3,7 @@ package project
 import (
 	"testing"
 
-	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcat/bibframe"
 )
 
 // visibilityCorpus: two Works; helpers then tombstone/suppress w1.

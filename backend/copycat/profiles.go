@@ -8,7 +8,7 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // Profile is a saved staging configuration (tasks/068): which targets a

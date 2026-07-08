@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/store/storetest"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/store/storetest"
 )
 
 func TestMemConformance(t *testing.T) {

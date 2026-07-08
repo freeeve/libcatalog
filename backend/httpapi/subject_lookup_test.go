@@ -8,13 +8,13 @@ import (
 
 	codex "github.com/freeeve/libcodex"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/copycat"
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/copycat"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 const lookupVocabNT = `<https://homosaurus.org/v4/homoit1> <http://www.w3.org/2004/02/skos/core#prefLabel> "Gay men"@en <authority:homosaurus> .
@@ -55,7 +55,7 @@ func TestSubjectLookupByISBN(t *testing.T) {
 	workID := "wlookup00001"
 	grain := identityGrain(workID, "A Book", "Author, Some", "9780441478125")
 	grain = append(grain, []byte(`<#`+workID+`Work> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#`+workID+`iInstance> <feed:overdrive> .
-<#`+workID+`Work> <https://github.com/freeeve/libcatalog/ns#tag> "Nonfiction." <editorial:> .`+"\n")...)
+<#`+workID+`Work> <https://github.com/freeeve/libcat/ns#tag> "Nonfiction." <editorial:> .`+"\n")...)
 	if _, err := bs.Put(ctx, bibframe.GrainPath(workID), grain, blob.PutOptions{}); err != nil {
 		t.Fatal(err)
 	}

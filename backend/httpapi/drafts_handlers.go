@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // draft is a per-user editor draft: an opaque client payload (op list /

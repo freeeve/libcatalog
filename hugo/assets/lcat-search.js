@@ -1,8 +1,8 @@
 /*
- * Interim client-side search filter (progressive enhancement) for the libcatalog
+ * Interim client-side search filter (progressive enhancement) for the libcat
  * Hugo module. It filters the rendered results list by a case-insensitive
  * substring match on each card's text. This is a stopgap until the roaringrange
- * WASM reader is wired (libcatalog tasks/010), which will replace this with a real
+ * WASM reader is wired (libcat tasks/010), which will replace this with a real
  * ranked index query over the search-manifest.json artifact. Kept intentionally
  * small and dependency-free; the form still works (full list) with JS disabled.
  */

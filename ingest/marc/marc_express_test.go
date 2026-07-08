@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/ingest"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 

@@ -14,7 +14,7 @@ import (
 	ebtypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 
-	"github.com/freeeve/libcatalog/backend/trigger"
+	"github.com/freeeve/libcat/backend/trigger"
 )
 
 // NewSQS builds an SQS notifier from the standard AWS environment; a

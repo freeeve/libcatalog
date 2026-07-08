@@ -14,7 +14,7 @@
     },
     {
       "path": "tags",
-      "predicates": ["https://github.com/freeeve/libcatalog/ns#tag"],
+      "predicates": ["https://github.com/freeeve/libcat/ns#tag"],
       "label": "Tags",
       "valueSource": {"kind": "literal"}
     }

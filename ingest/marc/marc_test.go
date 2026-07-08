@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/ingest"
 	codex "github.com/freeeve/libcodex"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 	"github.com/freeeve/libcodex/iso2709"

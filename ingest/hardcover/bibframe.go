@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 

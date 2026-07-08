@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Build, serve, and drive the libcatalog Hugo module's exampleSite to verify template/asset changes at the rendered-site surface.
+description: Build, serve, and drive the libcat Hugo module's exampleSite to verify template/asset changes at the rendered-site surface.
 ---
 
 # Verifying hugo-module changes

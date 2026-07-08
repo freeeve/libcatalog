@@ -5,16 +5,16 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/editor"
-	"github.com/freeeve/libcatalog/backend/marcview"
-	"github.com/freeeve/libcatalog/backend/profilesvc"
-	"github.com/freeeve/libcatalog/backend/suggest"
-	"github.com/freeeve/libcatalog/backend/vocab"
-	"github.com/freeeve/libcatalog/backend/workindex"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/editor"
+	"github.com/freeeve/libcat/backend/marcview"
+	"github.com/freeeve/libcat/backend/profilesvc"
+	"github.com/freeeve/libcat/backend/suggest"
+	"github.com/freeeve/libcat/backend/vocab"
+	"github.com/freeeve/libcat/backend/workindex"
 )
 
 // registerMARC mounts the MARC half of the dual-view editor (tasks/049):

@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/project"
-	"github.com/freeeve/libcatalog/search"
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/project"
+	"github.com/freeeve/libcat/search"
+	"github.com/freeeve/libcat/storage"
 )
 
 // The feed-driven incremental public rebuild (tasks/159): instead of the full

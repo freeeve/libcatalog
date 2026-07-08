@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 const (

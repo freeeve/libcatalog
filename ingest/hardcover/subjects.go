@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcat/bibframe"
 )
 
 // subjectMapJSON is the shipped genre->authority table (ported from the demo pipeline,

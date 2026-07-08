@@ -6,10 +6,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/profiles"
-	"github.com/freeeve/libcatalog/backend/profilesvc"
-	"github.com/freeeve/libcatalog/backend/suggest"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/profiles"
+	"github.com/freeeve/libcat/backend/profilesvc"
+	"github.com/freeeve/libcat/backend/suggest"
 )
 
 // profileSummary is the list shape: the profile plus whether a deployment

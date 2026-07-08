@@ -1,5 +1,5 @@
 /*
- * Opt-in negative facet filters (libcatalog tasks/144): filter works OUT by a
+ * Opt-in negative facet filters (libcat tasks/144): filter works OUT by a
  * facet term. URL state is x<taxonomy>=<term>, repeatable, matching the qllpoc
  * convention, so exclusions are shareable and bookmarkable. Exclusions are
  * buttons, not links -- "hide X" URLs stay out of crawlers -- and everything

@@ -10,7 +10,7 @@ import (
 
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // sampleGrain builds a small grain with feed statements for one Work.

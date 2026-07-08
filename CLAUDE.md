@@ -1,4 +1,4 @@
-# libcatalog
+# libcat
 
 ## Local servers -- standard testing config
 
@@ -16,18 +16,18 @@ admin holds the admin role (librarian-gated routes included).
 
 ### Demo playground (port 8481)
 
-`~/libcatalog-playground/run.sh` execs `~/lcatd-play` with the blob dir
-`~/libcatalog-playground/site` -- the store is persistent, so copycat
+`~/libcat-playground/run.sh` execs `~/lcatd-play` with the blob dir
+`~/libcat-playground/site` -- the store is persistent, so copycat
 targets, the seed marker, and edits survive restarts. Restart recipe
 after each completed task (post-commit):
 
 1. `cd backend/ui && npm run build`
 2. `cd backend && go build -o ~/lcatd-play ./cmd/lcatd`
-3. `cd .. && go build -o ~/libcatalog-playground/lcat ./cmd/lcat`
+3. `cd .. && go build -o ~/libcat-playground/lcat ./cmd/lcat`
    (`cmd/lcat` is at the repo root, NOT under backend/)
 4. `git checkout backend/ui/dist` (the dist in git is a placeholder;
    the real build is embedded into the binary in step 2)
-5. `pkill -f lcatd-play`, then run `~/libcatalog-playground/run.sh` in
+5. `pkill -f lcatd-play`, then run `~/libcat-playground/run.sh` in
    the background
 6. The server loads vocabularies for a few seconds before listening --
    poll `curl -s localhost:8481/` for 200 rather than assuming 2s is

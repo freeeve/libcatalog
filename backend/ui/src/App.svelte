@@ -146,7 +146,7 @@
   <Login config={$configStore} />
 {:else}
   <header class="top">
-    <a class="brand" href="#/">libcatalog</a>
+    <a class="brand" href="#/">libcat</a>
     <nav aria-label="Primary">
       <a href="#/works" class:current={route.name === "works" || route.name === "work"}>Works</a>
       <a href="#/authorities" class:current={route.name === "authorities" || route.name === "authority"}>Authorities</a>

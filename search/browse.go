@@ -22,8 +22,8 @@ import (
 	"slices"
 
 	"github.com/RoaringBitmap/roaring/v2"
-	"github.com/freeeve/libcatalog/project"
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/project"
+	"github.com/freeeve/libcat/storage"
 	rr "github.com/freeeve/roaringrange"
 )
 

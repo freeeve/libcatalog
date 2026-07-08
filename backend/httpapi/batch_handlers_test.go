@@ -8,15 +8,15 @@ import (
 
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/batch"
-	"github.com/freeeve/libcatalog/backend/editor"
-	"github.com/freeeve/libcatalog/backend/export"
-	"github.com/freeeve/libcatalog/backend/profiles"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/batch"
+	"github.com/freeeve/libcat/backend/editor"
+	"github.com/freeeve/libcat/backend/export"
+	"github.com/freeeve/libcat/backend/profiles"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // testMapper builds an op mapper from the shipped defaults for batch tests.

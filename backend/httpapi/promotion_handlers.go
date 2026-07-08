@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/suggest"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/suggest"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // registerPromotions mounts the tag-promotion surface: moderators propose,

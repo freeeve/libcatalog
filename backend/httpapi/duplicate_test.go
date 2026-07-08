@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/workindex"
+	"github.com/freeeve/libcat/backend/workindex"
 )
 
 // identityGrain renders a minimal grain carrying the signals ScanGrain reads:

@@ -8,8 +8,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // Service is the suggestion queue over the document store. Controlled terms

@@ -7,11 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/suggest"
-	"github.com/freeeve/libcatalog/backend/vocab"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/suggest"
+	"github.com/freeeve/libcat/backend/vocab"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // staffVerifier maps fixed tokens to staff identities.

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/identity"
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/ingest/overdrive"
+	"github.com/freeeve/libcat/identity"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/ingest/overdrive"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 
@@ -188,7 +188,7 @@ func TestRunWorkExtras(t *testing.T) {
 	}
 
 	nq := readNQuads(t, out)
-	const extraNS = "https://github.com/freeeve/libcatalog/ns#extra/"
+	const extraNS = "https://github.com/freeeve/libcat/ns#extra/"
 	for _, want := range []string{
 		extraNS + "cover> \"https://covers.example.org/a.jpg\"",
 		extraNS + "rating> \"4\"",

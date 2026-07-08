@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcat/bibframe"
 )
 
 // runMerge records an editorial merge decision (tasks/001) by adding an

@@ -1,4 +1,4 @@
-// Command lcatd serves the libcatalog dynamic backend as a standalone HTTP
+// Command lcatd serves the libcat dynamic backend as a standalone HTTP
 // server -- the container / self-host deployment shape. The same handler runs
 // under AWS Lambda via cmd/lcatd-lambda.
 package main
@@ -16,10 +16,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/appdeps"
-	"github.com/freeeve/libcatalog/backend/config"
-	"github.com/freeeve/libcatalog/backend/httpapi"
-	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcat/backend/appdeps"
+	"github.com/freeeve/libcat/backend/config"
+	"github.com/freeeve/libcat/backend/httpapi"
+	"github.com/freeeve/libcat/backend/profiles"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // Options tunes the suite per implementation.

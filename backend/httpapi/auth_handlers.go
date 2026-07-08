@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/auth/local"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/auth/local"
 )
 
 // registerLocalAuth mounts the built-in user routes: login/refresh/logout for

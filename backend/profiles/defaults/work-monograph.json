@@ -66,7 +66,7 @@
     },
     {
       "path": "tags",
-      "predicates": ["https://github.com/freeeve/libcatalog/ns#tag"],
+      "predicates": ["https://github.com/freeeve/libcat/ns#tag"],
       "label": "Tags",
       "help": "Uncontrolled community/staff tags",
       "valueSource": {"kind": "literal"}

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/freeeve/libcatalog/project"
-	"github.com/freeeve/libcatalog/search"
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/project"
+	"github.com/freeeve/libcat/search"
+	"github.com/freeeve/libcat/storage"
 )
 
 // runIndex builds the lexical search index from a projected catalog.json: one

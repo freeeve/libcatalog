@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // LoadPriorStore is LoadPrior over a blob.Store: it reads every per-Work

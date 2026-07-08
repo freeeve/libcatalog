@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/copycat"
-	"github.com/freeeve/libcatalog/backend/marcview"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/copycat"
+	"github.com/freeeve/libcat/backend/marcview"
 )
 
 // registerCopycat mounts the copy-cataloging surface (tasks/050): external

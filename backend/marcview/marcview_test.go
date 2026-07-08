@@ -8,10 +8,10 @@ import (
 
 	codexbf "github.com/freeeve/libcodex/bibframe"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage"
 
-	"github.com/freeeve/libcatalog/backend/marcview"
+	"github.com/freeeve/libcat/backend/marcview"
 )
 
 // grainFixture builds a grain exactly the way MARC ingest does from the

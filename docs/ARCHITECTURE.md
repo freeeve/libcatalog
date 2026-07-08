@@ -1,8 +1,8 @@
-# libcatalog architecture
+# libcat architecture
 
 ## 1. Framework vs. implementation
 
-libcatalog is a **generic framework**: the reusable machinery for turning a
+libcat is a **generic framework**: the reusable machinery for turning a
 bibliographic graph into a fast, faceted, static discovery catalog, plus an
 optional collaborative cataloging backend.
 
@@ -13,10 +13,10 @@ library on OverDrive/Libby, cataloged with the Homosaurus vocabulary).
 
 The split is deliberate and load-bearing:
 
-- Nothing library-specific lives in libcatalog. OverDrive is *one* provider;
+- Nothing library-specific lives in libcat. OverDrive is *one* provider;
   Homosaurus is *one* vocabulary; queer-lit branding is *one* theme.
 - A deployment is a thin layer -- config + theme + local extensions -- depending
-  on `github.com/freeeve/libcatalog`.
+  on `github.com/freeeve/libcat`.
 - Anything that turns out generic migrates *down* out of a deployment into the
   framework.
 
@@ -203,7 +203,7 @@ catalog ships as two distributable artifacts:
    function -- cloud SDKs stay out of the baseline. Grains land in git (the
    source of truth); derived artifacts (`catalog.nq`, projected JSON, index) in
    object storage.
-2. **Hugo module** (`hugo mod get github.com/freeeve/libcatalog/hugo`): catalog
+2. **Hugo module** (`hugo mod get github.com/freeeve/libcat/hugo`): catalog
    layouts, partials (facets, vocabulary picker, live-availability + search JS
    assets), and a **content adapter** (`_content.gotmpl`, Hugo >= 0.126) that
    mints a Page per Work from the projected data -- no content files, no
@@ -305,7 +305,7 @@ A **provider** plugs in two halves that share one id contract:
 ## 9a. Extension model: providers as a compile-in registry
 
 Providers (9) and enrichers plug in at **compile time**, not via dynamic loading.
-libcatalog is a Go framework a deployment depends on (1, 10), so the deployment
+libcat is a Go framework a deployment depends on (1, 10), so the deployment
 already builds its own binary -- adding a provider is Go code compiled into it,
 registered against an interface, with no plugin ABI.
 
@@ -340,7 +340,7 @@ registered against an interface, with no plugin ABI.
 
 A deployment (e.g. qllpoc):
 
-- depends on `github.com/freeeve/libcatalog` (Go) and the Hugo module;
+- depends on `github.com/freeeve/libcat` (Go) and the Hugo module;
 - supplies **config** (providers, enabled vocabularies, feature flags such as
   embeddings on/off, languages);
 - supplies a **theme** (Hugo theme/overrides on top of the module's templates
@@ -360,7 +360,7 @@ qllpoc is the reference implementation and proving ground.
   storage only.
 - Canonical, sorted, skolemized RDF, or the git/audit story breaks.
 - **Not an ILS.** No acquisitions, no patron accounts, no lending -- borrowing is
-  the provider's job (OverDrive, etc.). libcatalog is discovery + cataloging: the
+  the provider's job (OverDrive, etc.). libcat is discovery + cataloging: the
   bibliographic half only.
 - Embeddings / paid AI never on by default.
 
@@ -368,7 +368,7 @@ qllpoc is the reference implementation and proving ground.
 
 Sibling repos under one parent directory:
 
-- `libcatalog/` -- this framework.
+- `libcat/` -- this framework.
 - `libcodex/` (`github.com/freeeve/libcodex`) -- MARC/MODS/DC/schema.org/BIBFRAME
   read-write-convert + RDF toolkit + streaming authority-file decoder.
 - `roaringrange/{go,rust,python}` (`github.com/freeeve/roaringrange`) -- search
@@ -379,10 +379,10 @@ Sibling repos under one parent directory:
 ## 13. Proposed repo layout
 
 ```
-libcatalog/
+libcat/
   README.md
   docs/            ARCHITECTURE.md, ROADMAP.md
-  go.mod           module github.com/freeeve/libcatalog
+  go.mod           module github.com/freeeve/libcat
   cmd/lcat/        the projector / import-export CLI
   bibframe/        record <-> BIBFRAME crosswalk (over libcodex)
   identity/        two-tier Work/Instance ids + clustering

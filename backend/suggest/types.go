@@ -11,7 +11,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // SuggType distinguishes a proposal to add a term from a flag to remove one.

@@ -1,5 +1,5 @@
 /*
-  libcatalog client-side availability (libcatalog tasks/004). Live availability is
+  libcat client-side availability (libcat tasks/004). Live availability is
   fetched in the browser at view time and kept OUT of the graph (ARCHITECTURE §5), so
   the static build stays backend-free. Each provider plugs in as an adapter -- the
   runtime sibling of an ingest provider (tasks/006) -- mapping its source to one

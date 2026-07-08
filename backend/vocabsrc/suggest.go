@@ -49,7 +49,7 @@ type SuggestClient struct {
 	Client *http.Client
 }
 
-const suggestUserAgent = "libcatalog-vocabsrc"
+const suggestUserAgent = "libcat-vocabsrc"
 
 var defaultSuggestHTTP = &http.Client{Timeout: 10 * time.Second}
 

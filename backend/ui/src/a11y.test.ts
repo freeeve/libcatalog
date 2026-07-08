@@ -180,7 +180,7 @@ describe("a11y", () => {
           json({
             etag: "etag-1",
             diff: {
-              added: ['<http://example.org/w-001> <https://github.com/freeeve/libcatalog/ns#overrides> "subjects" <editorial:> .'],
+              added: ['<http://example.org/w-001> <https://github.com/freeeve/libcat/ns#overrides> "subjects" <editorial:> .'],
               removed: ['<http://example.org/w-001> <http://id.loc.gov/ontologies/bibframe/subject> <http://id.loc.gov/sh-ocean> <feed:marc> .'],
             },
           }),
@@ -253,13 +253,13 @@ describe("a11y", () => {
           terms: [
             {
               scheme: "local",
-              id: "https://github.com/freeeve/libcatalog/authority/a0123456789ab",
+              id: "https://github.com/freeeve/libcat/authority/a0123456789ab",
               labels: { en: "Cozy fantasy" },
               altLabels: { en: ["Comfort fantasy"] },
             },
             {
               scheme: "local",
-              id: "https://github.com/freeeve/libcatalog/authority/a0123456789ac",
+              id: "https://github.com/freeeve/libcat/authority/a0123456789ac",
               labels: { en: "Trans folks" },
               mergedInto: "https://homosaurus.org/v4/homoit0001235",
             },
@@ -318,7 +318,7 @@ describe("a11y", () => {
           id: "a0123456789ab",
           etag: "etag-1",
           term: {
-            uri: "https://github.com/freeeve/libcatalog/authority/a0123456789ab",
+            uri: "https://github.com/freeeve/libcat/authority/a0123456789ab",
             prefLabel: { en: "Cozy fantasy", es: "Fantasía acogedora" },
             altLabel: { en: ["Comfort fantasy"] },
             definition: { en: "Low-stakes fantasy centered on comfort." },

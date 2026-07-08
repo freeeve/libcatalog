@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
+	"github.com/freeeve/libcat/ingest"
 	codex "github.com/freeeve/libcodex"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )

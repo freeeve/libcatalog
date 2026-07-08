@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 func TestLease(t *testing.T) {

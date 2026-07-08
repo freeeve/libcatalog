@@ -63,7 +63,7 @@ version the Hugo module consumes.
 
 ## For the "Eve's Library" demo
 
-The `libcatalog-demo` adopter originally built its catalog with three Node scripts
+The `libcat-demo` adopter originally built its catalog with three Node scripts
 (`scripts/fetch-hardcover.mjs`, `map-subjects.mjs`, `gen-facets.mjs`, driven by
 `npm run data:refresh`). This provider replaces all three: the demo's `data:refresh` becomes
 the two `lcat` steps above, so it can drop `scripts/*.mjs`, the `data:*` npm scripts, and the

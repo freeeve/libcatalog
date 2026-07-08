@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
 )
 
 // runSplit records an editorial split decision (tasks/001): it mints a new Work id

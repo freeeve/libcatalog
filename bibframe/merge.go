@@ -4,15 +4,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/freeeve/libcatalog/identity"
+	"github.com/freeeve/libcat/identity"
 	"github.com/freeeve/libcodex/rdf"
 )
 
-// LcatNS is libcatalog's own namespace for statements BIBFRAME 2.0 does not cover
+// LcatNS is libcat's own namespace for statements BIBFRAME 2.0 does not cover
 // (ARCHITECTURE §5, "extend, don't fight the model"). Its clustering-correction
 // predicates live in the editorial graph, so they are preserved across re-ingest
 // and the computed clustering key cannot override a human decision (§4).
-const LcatNS = "https://github.com/freeeve/libcatalog/ns#"
+const LcatNS = "https://github.com/freeeve/libcat/ns#"
 
 // PredMergedInto records an editorial merge: the retired Work (subject) was merged
 // into the surviving Work (object). It is the under-merge fix -- two records that

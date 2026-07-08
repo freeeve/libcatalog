@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // runIngestCmd ingests any registered provider into canonical grains under --out:

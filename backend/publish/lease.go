@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // Lease is the advisory ingest lease: feed re-ingest holds it (identity

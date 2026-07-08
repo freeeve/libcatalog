@@ -1,4 +1,4 @@
-# libcatalog roadmap
+# libcat roadmap
 
 Sequencing rule: **prove the model, keep qllpoc shipping, swap components last.**
 Never change the source of truth, the renderer, and the backend at the same
@@ -22,7 +22,7 @@ too (libcodex `tasks/036`, shipping in **v0.5.0**): `rdf/canon.go` gives
 `Dataset.Canonical()` with canonical blank-node labeling + statement sort, so an
 unchanged grain re-serializes byte-for-byte (validated against the 65 W3C
 rdf-canon vectors + isomorphism/idempotence/fuzz). Both halves Phase 0 needs --
-N-Quads I/O and canonical output -- are in place once libcatalog requires libcodex
+N-Quads I/O and canonical output -- are in place once libcat requires libcodex
 v0.5.0; grains are written through `Canonical()`, while the raw `NQuads()` stays
 insertion-order for the streaming/bulk fast path.
 
@@ -40,7 +40,7 @@ triples. Availability excluded.
 
 ## Phase 2 -- Tier 1 static framework
 
-Bootstrap libcatalog: projector CLI + Hugo module (content adapter, ported
+Bootstrap libcat: projector CLI + Hugo module (content adapter, ported
 templates/assets). qllpoc renders from the graph via the module -- first as a
 transitional bridge (graph -> projected data -> Hugo module), retiring the
 frontmatter/markdown pipeline. roaringrange lexical search wired in, embeddings
@@ -56,7 +56,7 @@ behind the interface.
 
 ## Phase 4 -- qllpoc as an implementation
 
-qllpoc depends on libcatalog; QLL-specifics (Homosaurus config, OverDrive
+qllpoc depends on libcat; QLL-specifics (Homosaurus config, OverDrive
 config, branding/theme) become a thin implementation layer. The
 framework/implementation split becomes real.
 -> `tasks/044`.

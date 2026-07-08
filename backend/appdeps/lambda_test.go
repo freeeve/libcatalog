@@ -9,10 +9,10 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/freeeve/libcatalog/backend/appdeps"
-	"github.com/freeeve/libcatalog/backend/awslambda"
-	"github.com/freeeve/libcatalog/backend/config"
-	"github.com/freeeve/libcatalog/backend/httpapi"
+	"github.com/freeeve/libcat/backend/appdeps"
+	"github.com/freeeve/libcat/backend/awslambda"
+	"github.com/freeeve/libcat/backend/config"
+	"github.com/freeeve/libcat/backend/httpapi"
 )
 
 // TestLambdaServesReadOnlyDemo builds the read-only demo deps the same way
@@ -57,8 +57,8 @@ func TestLambdaServesReadOnlyDemo(t *testing.T) {
 		t.Errorf("/config = %d %s", r.StatusCode, r.Body)
 	}
 	// The SPA is served through Lambda (placeholder or real build, both are the
-	// libcatalog app shell).
-	if r := invoke("GET", "/"); r.StatusCode != 200 || !strings.Contains(r.Body, "libcatalog") {
+	// libcat app shell).
+	if r := invoke("GET", "/"); r.StatusCode != 200 || !strings.Contains(r.Body, "libcat") {
 		t.Errorf("GET / = %d (len %d)", r.StatusCode, len(r.Body))
 	}
 	// The read-only guard rejects an editorial write even over Lambda.

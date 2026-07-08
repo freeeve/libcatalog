@@ -7,10 +7,10 @@ import (
 
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
 
-	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcat/backend/profiles"
 )
 
 // FieldValue is one value of a profile field, with provenance for the

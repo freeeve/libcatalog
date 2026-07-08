@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/project"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/project"
 
-	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcat/backend/profiles"
 )
 
 // applyAndProject runs ops over a real grain, then projects the result --

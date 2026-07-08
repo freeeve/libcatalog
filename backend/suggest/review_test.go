@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 func TestQueueAndReview(t *testing.T) {

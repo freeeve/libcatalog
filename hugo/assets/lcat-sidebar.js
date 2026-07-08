@@ -1,5 +1,5 @@
 /*
- * Shared facet sidebar loader (libcatalog tasks/150, opt-in via
+ * Shared facet sidebar loader (libcat tasks/150, opt-in via
  * [params.facets] shared). The sidebar body is published once per language as
  * a fingerprinted fragment asset instead of being inlined into every page;
  * this fetches it (immutable-cached, so one network hit per visit) and

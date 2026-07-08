@@ -8,9 +8,9 @@ import (
 
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcat/bibframe"
 
-	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcat/backend/profiles"
 )
 
 // skosPrefLabel is the annotation predicate the label-companion contract

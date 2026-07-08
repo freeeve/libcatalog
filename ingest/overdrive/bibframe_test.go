@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/identity"
+	"github.com/freeeve/libcat/identity"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 	"github.com/freeeve/libcodex/rdf"
 )

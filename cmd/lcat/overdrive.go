@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/ingest/overdrive"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/ingest/overdrive"
 )
 
 // runOverdrive ingests a cached OverDrive scan (page-*.json), mapping the Thunder JSON

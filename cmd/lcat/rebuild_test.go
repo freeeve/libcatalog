@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/project"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/project"
 )
 
 // rebuildGrain renders a minimal projectable grain: one minted Work with a
@@ -19,7 +19,7 @@ func rebuildGrain(id, title, mergedInto string) []byte {
 _:t <http://id.loc.gov/ontologies/bibframe/mainTitle> "%[2]s" <feed:overdrive> .
 `, id, title)
 	if mergedInto != "" {
-		g = fmt.Appendf(g, `<#%sWork> <https://github.com/freeeve/libcatalog/ns#mergedInto> <#%sWork> <editorial:> .
+		g = fmt.Appendf(g, `<#%sWork> <https://github.com/freeeve/libcat/ns#mergedInto> <#%sWork> <editorial:> .
 `, id, mergedInto)
 	}
 	return g

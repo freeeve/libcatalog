@@ -1,5 +1,5 @@
 {
-  "_comment": "Controlled-subject table for the Hardcover provider (tasks/026), ported from the libcatalog-demo pipeline. Data-driven, not hardcoded per Work: `genreToSubject` maps a lowercased genre tag to a controlled-subject authority URI; `authorities` holds each URI's localized labels and optional skos:broader parents. LCSH URIs are id.loc.gov; Homosaurus is homosaurus.org. Spanish labels are supplied to demonstrate localized subject labels. A genre with no entry stays uncontrolled in tags[] so both dimensions coexist.",
+  "_comment": "Controlled-subject table for the Hardcover provider (tasks/026), ported from the libcat-demo pipeline. Data-driven, not hardcoded per Work: `genreToSubject` maps a lowercased genre tag to a controlled-subject authority URI; `authorities` holds each URI's localized labels and optional skos:broader parents. LCSH URIs are id.loc.gov; Homosaurus is homosaurus.org. Spanish labels are supplied to demonstrate localized subject labels. A genre with no entry stays uncontrolled in tags[] so both dimensions coexist.",
 
   "genreToSubject": {
     "fiction": "https://id.loc.gov/authorities/subjects/sh2026001126",

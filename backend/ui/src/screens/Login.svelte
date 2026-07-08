@@ -30,7 +30,7 @@
 </script>
 
 <main class="login">
-  <h1>libcatalog</h1>
+  <h1>libcat</h1>
   <p class="muted">Cataloging sign-in</p>
 
   {#if config.localAuth}

@@ -1,13 +1,13 @@
-# libcatalog
+# libcat
 
 A generic framework for building **library discovery catalogs** as fast, static,
 faceted websites -- with BIBFRAME as the source of truth and an optional
 collaborative cataloging backend.
 
-**Live demo:** [libcatalog.evefreeman.com](https://libcatalog.evefreeman.com) --
+**Live demo:** [libcat.evefreeman.com](https://libcat.evefreeman.com) --
 "Eve's Library", a public adopter site built on the framework + Hugo module.
 
-libcatalog is the *framework*. A deployment (for example a queer-literature
+libcat is the *framework*. A deployment (for example a queer-literature
 library on OverDrive) *themes and implements* it: it brings its own collection,
 controlled vocabularies, provider feeds, and branding. Nothing library-specific
 lives in here.
@@ -40,7 +40,7 @@ lives in here.
 - **Tier 2 -- dynamic, optional.** A collaborative in-browser cataloging/review
   app (auth, roles, edit history) that writes BIBFRAME back to the grain store.
   Cloud infra; self-hosted or SaaS. Lives in [`backend/`](backend/), a **nested
-  Go module** (`github.com/freeeve/libcatalog/backend`) so its cloud SDKs never
+  Go module** (`github.com/freeeve/libcat/backend`) so its cloud SDKs never
   reach the core's dependency tree -- CI builds and tests the root module and
   `backend/` separately (as with `hugo/`). Serve it with `backend/cmd/lcatd`
   (container/self-host) or `backend/cmd/lcatd-lambda` (AWS Lambda behind an
@@ -75,7 +75,7 @@ Working, with versioned releases. Both tiers are implemented:
   `backend/deploy/terraform/modules/readonly-demo` stands up the demo shape.
 
 The reference implementation was migrated out of qllpoc (that repo's
-`tasks/038`--`044`); libcatalog is now developed in place, tracked in
+`tasks/038`--`044`); libcat is now developed in place, tracked in
 [`tasks/`](tasks/).
 
 ## Versioning
@@ -83,7 +83,7 @@ The reference implementation was migrated out of qllpoc (that repo's
 The root, `hugo/`, and `backend/` modules release in **lockstep**: every
 release tags all three with the same version at the same commit
 (`scripts/release.sh vX.Y.Z` tags and pushes the triple). The version number
-IS the compatibility contract -- pin one number across every libcatalog
+IS the compatibility contract -- pin one number across every libcat
 dependency and the projection-schema pairing (the `catalog.json` version the
 projector emits and the Hugo module targets) is guaranteed by construction;
 the released backend module requires the root module at its own version for

@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
-	"github.com/freeeve/libcatalog/backend/store/dynamo"
-	"github.com/freeeve/libcatalog/backend/store/storetest"
+	"github.com/freeeve/libcat/backend/store/dynamo"
+	"github.com/freeeve/libcat/backend/store/storetest"
 )
 
 // TestDynamoConformance runs the shared store conformance suite against a

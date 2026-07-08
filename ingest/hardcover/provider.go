@@ -8,7 +8,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/ingest"
 )
 
 // ProviderName is the Hardcover provider's registry key and default provenance feed

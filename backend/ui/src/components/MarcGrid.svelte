@@ -30,7 +30,7 @@
     onchange: (record: MarcRecordDoc) => void;
   } = $props();
 
-  const FIDELITY_URL = "https://github.com/freeeve/libcatalog/blob/main/docs/marc-fidelity.md";
+  const FIDELITY_URL = "https://github.com/freeeve/libcat/blob/main/docs/marc-fidelity.md";
 
   let expanded = $state<Record<number, boolean>>({});
   /** The row the field ops act on: the last one focus visited. */

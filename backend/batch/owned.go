@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 // OwnedMeta is the shared identity/sharing surface of the owned-or-shared

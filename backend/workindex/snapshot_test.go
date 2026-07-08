@@ -6,8 +6,8 @@ import (
 	"iter"
 	"testing"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // TestSnapshotRoundTrip: a saved snapshot lets a fresh index serve the same

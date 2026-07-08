@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // TestTermsResolveBatch drives the tasks/071 chip-resolver: URIs resolve to

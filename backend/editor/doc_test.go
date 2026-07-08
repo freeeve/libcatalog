@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/ingest/marc"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/ingest/marc"
 
-	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcat/backend/profiles"
 )
 
 var marcSamples = []string{

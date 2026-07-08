@@ -1,10 +1,10 @@
 /*
-  Accessibility audit for the libcatalog Hugo module (WCAG 2.1 A/AA), run with
+  Accessibility audit for the libcat Hugo module (WCAG 2.1 A/AA), run with
   axe-core under jsdom over a *built* site. Dev tooling only -- Hugo never consumes
   this; it ships no runtime dependency.
 
   Usage:
-    cd exampleSite && hugo --destination public   # or any built libcatalog site
+    cd exampleSite && hugo --destination public   # or any built libcat site
     cd .. && npm install && node a11y_audit.js exampleSite/public
 
   It walks every .html under the given directory and reports violations, exiting

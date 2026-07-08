@@ -4,10 +4,10 @@ import (
 	"context"
 	"slices"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/ingest"
 
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // Crosswalk confidence by link kind: exactMatch is definitional identity,

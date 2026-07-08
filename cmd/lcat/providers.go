@@ -1,16 +1,16 @@
 package main
 
 import (
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/ingest/hardcover"
-	"github.com/freeeve/libcatalog/ingest/marc"
-	"github.com/freeeve/libcatalog/ingest/overdrive"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/ingest/hardcover"
+	"github.com/freeeve/libcat/ingest/marc"
+	"github.com/freeeve/libcat/ingest/overdrive"
 )
 
 // providerRegistry builds the registry of first-party ingest providers. Registration
 // is explicit here (not init()) so the built-in set is auditable in one place; a
 // deployment composes its own registry the same way -- its provider's package plus
-// one Register call, no libcatalog fork (ARCHITECTURE §9a, tasks/006).
+// one Register call, no libcat fork (ARCHITECTURE §9a, tasks/006).
 func providerRegistry() *ingest.Registry {
 	reg := ingest.NewRegistry()
 	// Register errors only on an empty name, a nil factory, or a duplicate key --

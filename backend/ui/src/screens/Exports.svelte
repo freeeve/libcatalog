@@ -28,7 +28,7 @@
     { value: "jsonld", label: "JSON-LD (.jsonld)", note: "The record path's JSON-LD; fidelity-bounded like the MARC detour." },
     { value: "csv", label: "CSV (.csv)", note: "Projected rows: id, title, contributors, subjects, and friends." },
   ];
-  const FIDELITY_URL = "https://github.com/freeeve/libcatalog/blob/main/docs/marc-fidelity.md";
+  const FIDELITY_URL = "https://github.com/freeeve/libcat/blob/main/docs/marc-fidelity.md";
   const POLL_MS = 4000;
 
   // Prefill props are deliberately consumed once at mount (the route keys a

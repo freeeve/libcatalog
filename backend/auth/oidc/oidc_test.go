@@ -15,7 +15,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 
-	"github.com/freeeve/libcatalog/backend/auth"
+	"github.com/freeeve/libcat/backend/auth"
 )
 
 // issuer is a fake OIDC issuer: an RSA key, a JWKS endpoint, discovery, and a

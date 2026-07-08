@@ -109,7 +109,7 @@ type Profile struct {
 var knownPredicatePrefixes = []string{
 	"http://id.loc.gov/ontologies/bibframe/",
 	"http://id.loc.gov/ontologies/bflc/",
-	"https://github.com/freeeve/libcatalog/ns#",
+	"https://github.com/freeeve/libcat/ns#",
 	"http://www.w3.org/2004/02/skos/core#",
 	"http://www.w3.org/2000/01/rdf-schema#",
 	"http://www.w3.org/1999/02/22-rdf-syntax-ns#",

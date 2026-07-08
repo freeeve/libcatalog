@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/storage"
 	codex "github.com/freeeve/libcodex"
 	"github.com/freeeve/libcodex/iso2709"
 )

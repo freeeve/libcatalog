@@ -12,7 +12,7 @@ import (
 	"github.com/freeeve/libcodex/sru"
 	"github.com/freeeve/libcodex/z3950"
 
-	"github.com/freeeve/libcatalog/backend/marcview"
+	"github.com/freeeve/libcat/backend/marcview"
 )
 
 // SearchResult is one external hit, ready to stage.

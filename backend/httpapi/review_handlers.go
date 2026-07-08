@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/publish"
-	"github.com/freeeve/libcatalog/backend/suggest"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/publish"
+	"github.com/freeeve/libcat/backend/suggest"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 var monthPattern = regexp.MustCompile(`^\d{4}-\d{2}$`)

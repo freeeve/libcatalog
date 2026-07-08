@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/freeeve/libcatalog/project"
+	"github.com/freeeve/libcat/project"
 	rr "github.com/freeeve/roaringrange"
 )
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 func TestReadOnly(t *testing.T) {

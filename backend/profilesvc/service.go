@@ -17,10 +17,10 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/editor"
-	"github.com/freeeve/libcatalog/backend/profiles"
+	"github.com/freeeve/libcat/backend/editor"
+	"github.com/freeeve/libcat/backend/profiles"
 )
 
 var (

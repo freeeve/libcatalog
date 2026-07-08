@@ -13,7 +13,7 @@ import (
 
 	"github.com/freeeve/libcodex/rdf"
 
-	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcat/bibframe"
 )
 
 // Term is the JSON wire form of an RDF term.
@@ -43,13 +43,13 @@ type Patch struct {
 }
 
 // DefaultPredicateAllowlist is the editorial predicate policy when a
-// deployment configures none: BIBFRAME descriptive predicates, libcatalog's
+// deployment configures none: BIBFRAME descriptive predicates, libcat's
 // lcat: extension markers, and SKOS term descriptions. A fully open
 // editorial graph would let one bad request poison projector output.
 var DefaultPredicateAllowlist = []string{
 	"http://id.loc.gov/ontologies/bibframe/",
 	"http://id.loc.gov/ontologies/bflc/",
-	"https://github.com/freeeve/libcatalog/ns#",
+	"https://github.com/freeeve/libcat/ns#",
 	"http://www.w3.org/2004/02/skos/core#",
 	"http://www.w3.org/2000/01/rdf-schema#label",
 }

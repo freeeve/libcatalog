@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/RoaringBitmap/roaring/v2"
-	"github.com/freeeve/libcatalog/project"
+	"github.com/freeeve/libcat/project"
 	rr "github.com/freeeve/roaringrange"
 )
 

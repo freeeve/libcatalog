@@ -3,8 +3,8 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/enrich"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/enrich"
 )
 
 // registerEnrich mounts the admin enrichment surface: list configured

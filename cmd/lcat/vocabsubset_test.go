@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/project"
+	"github.com/freeeve/libcat/project"
 )
 
 func TestSubsetFromNT(t *testing.T) {

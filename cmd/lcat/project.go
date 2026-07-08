@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/freeeve/libcatalog/project"
+	"github.com/freeeve/libcat/project"
 )
 
 // runProject reads a catalog.nq dataset and writes the projected catalog.json --

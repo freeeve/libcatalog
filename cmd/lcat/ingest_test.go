@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/ingest"
 )
 
 // emptyProvider scans zero records, like a mistyped cache path would if the

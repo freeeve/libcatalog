@@ -14,8 +14,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/ingest"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/ingest"
 )
 
 // Name is the enricher's registry key and enrichment-graph name.

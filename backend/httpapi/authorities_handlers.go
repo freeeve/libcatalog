@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 
-	"github.com/freeeve/libcatalog/backend/auth"
-	"github.com/freeeve/libcatalog/backend/authoritiesvc"
-	"github.com/freeeve/libcatalog/backend/profilesvc"
-	"github.com/freeeve/libcatalog/backend/vocab"
+	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/authoritiesvc"
+	"github.com/freeeve/libcat/backend/profilesvc"
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // authorityView is the read shape of a local authority term.

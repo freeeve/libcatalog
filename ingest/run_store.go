@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // RunStore is Run over a blob.Store (tasks/050): the same prior-load /

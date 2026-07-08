@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/freeeve/libcatalog/backend/awsstore"
-	"github.com/freeeve/libcatalog/backend/store"
-	"github.com/freeeve/libcatalog/backend/vocabsrc"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/backend/awsstore"
+	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/vocabsrc"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // runVocabInstall installs a vocabulary snapshot into a blob store off the

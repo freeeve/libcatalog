@@ -13,7 +13,7 @@ import (
 // (tasks/046). Shared vocabularies (Homosaurus, LCSH) bring their own IRIs;
 // a heading a deployment coins itself gets one under this namespace so
 // bf:subject references stay absolute IRIs like any other controlled term.
-const LocalAuthorityNS = "https://github.com/freeeve/libcatalog/authority/"
+const LocalAuthorityNS = "https://github.com/freeeve/libcat/authority/"
 
 // SKOS predicate IRIs the authority grain writer emits (the read side lives
 // in backend/vocab, which indexes the same statements).

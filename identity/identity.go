@@ -1,4 +1,4 @@
-// Package identity assigns libcatalog's opaque, two-tier Work/Instance ids
+// Package identity assigns libcat's opaque, two-tier Work/Instance ids
 // (ARCHITECTURE §4). Ids are minted once and never derived from a provider id;
 // on re-ingest a provider record resolves back to its previously minted id via
 // the persisted identity map, so unchanged records keep stable ids -- and

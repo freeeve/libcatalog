@@ -1,4 +1,4 @@
-// Command lcatd-lambda serves the libcatalog dynamic backend under AWS Lambda
+// Command lcatd-lambda serves the libcat dynamic backend under AWS Lambda
 // behind a Function URL (or API Gateway v2 HTTP API; both deliver the v2 HTTP
 // payload). provided.al2023, handler "bootstrap". It builds the same handler as
 // cmd/lcatd from the same LCATD_* environment, so a read-only demo runs on
@@ -13,10 +13,10 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 
-	"github.com/freeeve/libcatalog/backend/appdeps"
-	"github.com/freeeve/libcatalog/backend/awslambda"
-	"github.com/freeeve/libcatalog/backend/config"
-	"github.com/freeeve/libcatalog/backend/httpapi"
+	"github.com/freeeve/libcat/backend/appdeps"
+	"github.com/freeeve/libcat/backend/awslambda"
+	"github.com/freeeve/libcat/backend/config"
+	"github.com/freeeve/libcat/backend/httpapi"
 )
 
 func main() {

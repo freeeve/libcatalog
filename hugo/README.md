@@ -1,4 +1,4 @@
-# libcatalog Hugo module
+# libcat Hugo module
 
 Turns a projected `catalog.json` + `facets.json` (from `lcat project`) into a
 faceted, accessible, multilingual discovery site: one page per Work, minted by a
@@ -6,11 +6,11 @@ content adapter -- no per-record markdown. This is the Tier 1 rendering half of 
 framework (ARCHITECTURE §6/§7, `tasks/009`); the graph stays the source of truth
 and the JSON is a derived build artifact.
 
-It is a **separate Go module** from the libcatalog framework, so Hugo sites that
+It is a **separate Go module** from the libcat framework, so Hugo sites that
 import it never pull the Go build dependencies -- it ships only templates and
 assets.
 
-**Live reference adopter:** [libcatalog.evefreeman.com](https://libcatalog.evefreeman.com)
+**Live reference adopter:** [libcat.evefreeman.com](https://libcat.evefreeman.com)
 ("Eve's Library") imports this module, provides projected data, and adds light branding --
 a runnable example of a real site built on it, alongside the `exampleSite/` in this repo.
 
@@ -25,10 +25,10 @@ a runnable example of a real site built on it, alongside the `exampleSite/` in t
    ```toml
    [module]
      [[module.imports]]
-       path = "github.com/freeeve/libcatalog/hugo"
+       path = "github.com/freeeve/libcat/hugo"
    ```
 
-   Then `hugo mod get github.com/freeeve/libcatalog/hugo`.
+   Then `hugo mod get github.com/freeeve/libcat/hugo`.
 
 2. **Provide the projected data** under the site's `assets/`:
 

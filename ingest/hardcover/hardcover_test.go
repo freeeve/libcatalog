@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/ingest/hardcover"
-	"github.com/freeeve/libcatalog/project"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/ingest/hardcover"
+	"github.com/freeeve/libcat/project"
 )
 
 const fixture = "testdata/read-shelf.json"

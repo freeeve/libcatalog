@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/freeeve/libcatalog/identity"
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/identity"
+	"github.com/freeeve/libcat/storage"
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 

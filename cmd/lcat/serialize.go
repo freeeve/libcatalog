@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/storage"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/storage"
 )
 
 // runSerialize regenerates catalog.nq from the committed per-Work grains under

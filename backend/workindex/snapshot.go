@@ -18,9 +18,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/freeeve/libcatalog/identity"
-	"github.com/freeeve/libcatalog/ingest"
-	"github.com/freeeve/libcatalog/storage/blob"
+	"github.com/freeeve/libcat/identity"
+	"github.com/freeeve/libcat/ingest"
+	"github.com/freeeve/libcat/storage/blob"
 )
 
 // DefaultSnapshotPath is where the persisted projection lives -- outside the

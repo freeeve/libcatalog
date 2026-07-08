@@ -1,8 +1,8 @@
-module github.com/freeeve/libcatalog/backend
+module github.com/freeeve/libcat/backend
 
 go 1.25.0
 
-require github.com/freeeve/libcatalog v0.24.0
+require github.com/freeeve/libcat v0.24.0
 
 require (
 	github.com/aws/aws-lambda-go v1.54.0
@@ -52,4 +52,4 @@ require (
 	golang.org/x/sys v0.46.0 // indirect
 )
 
-replace github.com/freeeve/libcatalog => ../
+replace github.com/freeeve/libcat => ../

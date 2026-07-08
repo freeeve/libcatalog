@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/freeeve/libcatalog/backend/batch"
-	"github.com/freeeve/libcatalog/backend/store"
+	"github.com/freeeve/libcat/backend/batch"
+	"github.com/freeeve/libcat/backend/store"
 )
 
 func TestItemTemplatesCRUDAndSharing(t *testing.T) {

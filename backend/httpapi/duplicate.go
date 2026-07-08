@@ -4,10 +4,10 @@ import (
 	"context"
 	"sort"
 
-	"github.com/freeeve/libcatalog/bibframe"
-	"github.com/freeeve/libcatalog/identity"
+	"github.com/freeeve/libcat/bibframe"
+	"github.com/freeeve/libcat/identity"
 
-	"github.com/freeeve/libcatalog/backend/workindex"
+	"github.com/freeeve/libcat/backend/workindex"
 )
 
 // duplicateView reports that a saved (or previewed) doc's identity collides

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/freeeve/libcatalog/bibframe"
+	"github.com/freeeve/libcat/bibframe"
 	"github.com/freeeve/libcodex/rdf"
 )
 
@@ -47,11 +47,11 @@ const (
 	pBroader          = skosNS + "broader"
 	pValue            = rdfNS + "value"
 	primaryContr      = bflcNS + "PrimaryContribution"
-	// pTag is libcatalog's blank-free folksonomy-tag predicate
+	// pTag is libcat's blank-free folksonomy-tag predicate
 	// (bibframe.PredTag): editorial-class graphs cannot carry the feed's
 	// labeled-blank-node tag shape, so approved community tags arrive as
 	// plain literals on this predicate instead.
-	pTag = "https://github.com/freeeve/libcatalog/ns#tag"
+	pTag = "https://github.com/freeeve/libcat/ns#tag"
 )
 
 // SchemaVersion is the catalog.json / facets.json / redirects.json schema version.
