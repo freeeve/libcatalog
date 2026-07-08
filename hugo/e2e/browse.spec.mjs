@@ -62,6 +62,15 @@ check(
     treeRows.some((r) => r.label === "Gender identity" && r.count === "3"),
 );
 
+// 1b'. The fixture gives the root an unlabeled broader ancestor
+//      (homoit9999901): the build mints it into the sidecar for rolled-up
+//      postings, but it must never render -- a label-less concept would show
+//      as a raw authority URI at the top of the tree (tasks/176).
+check(
+  "unlabeled minted ancestor never renders (no URI rows)",
+  !treeRows.some((r) => r.cat.includes("homoit9999901") || r.label.includes("homosaurus.org")),
+);
+
 // 1c. Expanding the root reveals the narrower concept with its own count.
 await page.click('#lcat-browse-facets li[data-lcat-cat$="homoit0000282"] > .lcat-facet-caret');
 await page.waitForSelector('#lcat-browse-facets li[data-lcat-cat$="homoit0000669"]', { timeout: 10000 });
@@ -113,6 +122,34 @@ await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampletwo"]', {
 let hrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
 check("facet-only ebook -> exactly wexampletwo", hrefs.length === 1 && hrefs[0].includes("wexampletwo"));
 
+// 2a. Live facet counts (tasks/177): with ebook active, inactive fields
+//     intersect the survivors (fre drops to 0 and greys, spa keeps 1), the
+//     active format field recounts with its own selection removed so its
+//     other values stay addable (book keeps 2), and the homosaurus root's
+//     rollup re-derives over the survivors (1).
+await page.waitForFunction(
+  () => {
+    const cb = document.querySelector('#lcat-browse-facets input[data-field="language"][data-cat="fre"]');
+    const li = cb && cb.closest("li");
+    return li && li.querySelector(".lcat-count").textContent === "0";
+  },
+  { timeout: 10000 },
+);
+const live = await page.evaluate(() => {
+  const g = (f, c) => {
+    const cb = document.querySelector(`#lcat-browse-facets input[data-field="${f}"][data-cat="${c}"]`);
+    const li = cb && cb.closest("li");
+    return li && { n: li.querySelector(".lcat-count").textContent, zero: li.classList.contains("lcat-count-zero") };
+  };
+  const root = document.querySelector('#lcat-browse-facets li[data-lcat-cat$="homoit0000282"]');
+  return { fre: g("language", "fre"), spa: g("language", "spa"), book: g("format", "book"), root: root && root.querySelector(".lcat-count").textContent };
+});
+check(
+  "live counts: fre greys to 0, spa keeps 1, active-field book stays addable at 2",
+  live.fre && live.fre.n === "0" && live.fre.zero && live.spa && live.spa.n === "1" && !live.spa.zero && live.book && live.book.n === "2" && !live.book.zero,
+);
+check("live counts: homosaurus root rollup recounts to 1", live.root === "1");
+
 // 3. A query on top of the facet intersects.
 await page.fill('.lcat-search input[name="q"]', "Spirits");
 await page.waitForTimeout(700);
@@ -131,6 +168,40 @@ await page.click('#lcat-browse-facets input[data-field="format"][data-cat="ebook
 await page.waitForTimeout(500);
 const staticBack = await page.$$eval("#lcat-results li", (lis) => lis.length);
 check("clearing restores static list (" + staticLis + " lis)", staticBack === staticLis);
+
+// 5a. Clearing also restores the cold full-corpus counts (tasks/177).
+const coldBack = await page.evaluate(() => {
+  const cb = document.querySelector('#lcat-browse-facets input[data-field="language"][data-cat="fre"]');
+  const li = cb && cb.closest("li");
+  return li && { n: li.querySelector(".lcat-count").textContent, zero: li.classList.contains("lcat-count-zero") };
+});
+check("clearing restores cold counts (fre 1, ungreyed)", coldBack && coldBack.n === "1" && !coldBack.zero);
+
+// 6. Query-only live counts: the search pass's own facet counts drive the
+//    rail (spa greys out of the Herculine result, fre keeps its 1).
+await page.fill('.lcat-search input[name="q"]', "Herculine");
+await page.waitForFunction(
+  () => {
+    const cb = document.querySelector('#lcat-browse-facets input[data-field="language"][data-cat="spa"]');
+    const li = cb && cb.closest("li");
+    return li && li.querySelector(".lcat-count").textContent === "0";
+  },
+  { timeout: 10000 },
+);
+const qLive = await page.evaluate(() => {
+  const g = (c) => {
+    const cb = document.querySelector(`#lcat-browse-facets input[data-field="language"][data-cat="${c}"]`);
+    const li = cb && cb.closest("li");
+    return li && { n: li.querySelector(".lcat-count").textContent, zero: li.classList.contains("lcat-count-zero") };
+  };
+  return { fre: g("fre"), spa: g("spa") };
+});
+check(
+  "query-only live counts: spa 0 greyed, fre 1",
+  qLive.spa && qLive.spa.n === "0" && qLive.spa.zero && qLive.fre && qLive.fre.n === "1" && !qLive.fre.zero,
+);
+await page.fill('.lcat-search input[name="q"]', "");
+await page.waitForTimeout(500);
 
 if (errors.length) console.log("CONSOLE_ERRORS:", errors.slice(0, 5).join(" | "));
 console.log(pass + " passed, " + fail + " failed");

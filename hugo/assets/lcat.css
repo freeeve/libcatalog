@@ -339,13 +339,25 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .lcat-facet-caret-leaf { cursor: default; }
 .lcat-facets .lcat-facet-children,
 .lcat-browse-facets .lcat-facet-children {
-  flex: 1 0 100%;
+  /* Shrinkable (tasks/176): with flex-shrink 0 the 1.1rem indent margin
+     overflowed the row by one indent per nesting level, and a deep branch's
+     min-content width compounded until the group slid under the results
+     column -- the same treatment 173 gave flat rows. */
+  flex: 1 1 100%;
   margin: 0 0 0 1.1rem;
   padding: 0;
   list-style: none;
+  min-width: 0;
+  max-width: calc(100% - 1.1rem);
 }
 .lcat-facets li:has(> .lcat-facet-children),
 .lcat-browse-facets li:has(> .lcat-facet-children) { flex-wrap: wrap; }
+.lcat-facets li,
+.lcat-browse-facets li { min-width: 0; max-width: 100%; }
+/* Live counts (tasks/177): a category with no hits in the current result set
+   greys out instead of hiding, so the rail stays stable while filtering. */
+.lcat-facets li.lcat-count-zero > label,
+.lcat-browse-facets li.lcat-count-zero > label { opacity: 0.55; }
 /* Fallback facet panel rows (tasks/158): same toggle-row layout as hydrated
    sidebar rows (tasks/173). */
 .lcat-browse-facets ul { list-style: none; margin: 0.5rem 0 0; padding: 0; }

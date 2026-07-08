@@ -12,10 +12,10 @@
  * list. If the reader or artifacts are unavailable, the static list stays and
  * nothing regresses.
  *
- * Three read paths over one shared doc space:
- *   query only          -> RrsCatalog.search(q, ..., [])
- *   query + facets      -> RrsCatalog.search(q, ..., filters)
- *   facets only         -> RrfFacets.filterIds(allIds, filters) + records.getMany
+ * One read shape over one shared doc space (tasks/177, the POC's browse()):
+ * a ranked base set -- RrsCatalog.search(q, ..., []) for a query, else every
+ * doc id -- then RrfFacets.filterIds(base, filters) + records.getMany for the
+ * survivors; a query with no filters renders straight from the search call.
  *
  * Facet UI (tasks/170): sidebar rows the templates could not link (the
  * minimal profile has no term pages) ship data-lcat-field/-cat attributes;
@@ -35,6 +35,15 @@
  * as an exclude toggle (aria-pressed), and selected() emits those rows as
  * {field, category, exclude: true} entries -- the reader subtracts their
  * posting sets. A row is include- or exclude-filtered, never both.
+ *
+ * Live facet counts (tasks/177, the QLL POC's model): while a query or
+ * filter is active, every rendered count re-derives from the result set --
+ * each category's postings intersected with the surviving ids -- so the rail
+ * never promises a result set it will not deliver. An active field's counts
+ * are recomputed with its own selections removed (Pagefind-style drill-down:
+ * its other values stay addable), zero-count rows grey out rather than
+ * disappear so the rail stays stable, and clearing query + filters restores
+ * the cold full-corpus numbers.
  */
 import init, { RrsCatalog, RrfFacets, RrsRecords } from "/lcat/roaringrange.js";
 
@@ -298,9 +307,13 @@ function start() {
 
   let engineP = null;
   /** subjectEngine builds the vocabulary model once per page: display labels,
-   * counts from the sidecar, children/roots per scheme (a concept whose
-   * broader ids all fall outside the corpus roots rather than orphans), and
-   * which schemes have any hierarchy at all. */
+   * counts from the sidecar, children/roots per scheme, and which schemes
+   * have any hierarchy at all. A minted, still label-less ancestor (the
+   * build creates those to close ancestry holes in the postings, tasks/174)
+   * is not a display node: rendering one would put a raw authority URI at
+   * the top of the tree (tasks/176) -- instead each concept's parent links
+   * pass through such nodes to the nearest displayable ancestor, and a
+   * concept with none becomes a root. */
   function subjectEngine() {
     if (!engineP) {
       engineP = subjectMeta().then((meta) => {
@@ -313,16 +326,51 @@ function start() {
           const m = meta[id];
           return (m && m.labels && (m.labels[lang] || m.labels.en || m.labels[""])) || id;
         };
+        // A minted entry with no labels yet is postings plumbing, not a
+        // concept anyone described; everything else displays (an unlabeled
+        // DIRECT subject keeps its id-as-label fallback -- pre-scheme data
+        // uses label-like ids).
+        const displayable = (id) => {
+          const m = meta[id];
+          return !!m && (!m.minted || !!(m.labels && (m.labels[lang] || m.labels.en || m.labels[""])));
+        };
+        // parentsOf resolves id's displayable parents: displayable broader
+        // concepts directly, plumbing nodes replaced by their own displayable
+        // parents (transitively, cycle- and depth-guarded like ancestryOf).
+        const parentCache = new Map();
+        const parentsOf = (id, depth, trail) => {
+          if (parentCache.has(id)) return parentCache.get(id);
+          const out = [];
+          if (depth < 12) {
+            ((meta[id] && meta[id].broader) || []).forEach((b) => {
+              if (!meta[b] || trail.has(b)) return;
+              if (displayable(b)) {
+                if (out.indexOf(b) === -1) out.push(b);
+                return;
+              }
+              trail.add(b);
+              parentsOf(b, depth + 1, trail).forEach((p) => {
+                if (out.indexOf(p) === -1) out.push(p);
+              });
+              trail.delete(b);
+            });
+          }
+          parentCache.set(id, out);
+          return out;
+        };
+        const parents = new Map(); // display node -> displayable parents
         const children = new Map();
         const roots = new Map(); // scheme -> [id]
         const treeSchemes = new Set();
         const byCount = (a, b) => (counts.get(b) || 0) - (counts.get(a) || 0) || (label(a) < label(b) ? -1 : 1);
         Object.keys(meta).forEach((id) => {
+          if (!displayable(id)) return;
           const scheme = meta[id].scheme || "";
-          const parents = (meta[id].broader || []).filter((b) => meta[b]);
-          if (parents.length) {
+          const ps = parentsOf(id, 0, new Set([id]));
+          parents.set(id, ps);
+          if (ps.length) {
             treeSchemes.add(scheme);
-            parents.forEach((p) => {
+            ps.forEach((p) => {
               if (!children.has(p)) children.set(p, []);
               children.get(p).push(id);
             });
@@ -333,7 +381,7 @@ function start() {
         });
         roots.forEach((ids) => ids.sort(byCount));
         children.forEach((ids) => ids.sort(byCount));
-        return { meta, counts, label, children, roots, treeSchemes };
+        return { meta, counts, label, displayable, parents, children, roots, treeSchemes };
       });
     }
     return engineP;
@@ -407,6 +455,7 @@ function start() {
       ul.className = "lcat-facet-children";
       (eng.children.get(li.getAttribute("data-lcat-cat")) || []).forEach((kid) => ul.appendChild(subjectRow(eng, kid)));
       li.appendChild(ul);
+      applyLiveCounts();
     }
     if (ul) ul.hidden = !open;
     caret.setAttribute("aria-expanded", open ? "true" : "false");
@@ -434,7 +483,9 @@ function start() {
     });
   }
 
-  /** ancestryOf collects id plus every in-corpus broader ancestor into set. */
+  /** ancestryOf collects id plus every displayable ancestor into set,
+   * walking the pass-through parent graph so unlabeled minted ancestors
+   * never enter a rendered branch (tasks/176). */
   function ancestryOf(eng, id, set) {
     let frontier = [id];
     for (let depth = 0; depth < 12 && frontier.length; depth++) {
@@ -442,9 +493,7 @@ function start() {
       frontier.forEach((v) => {
         if (set.has(v)) return;
         set.add(v);
-        (eng.meta[v].broader || []).forEach((b) => {
-          if (eng.meta[b]) next.push(b);
-        });
+        (eng.parents.get(v) || []).forEach((p) => next.push(p));
       });
       frontier = next;
     }
@@ -474,7 +523,7 @@ function start() {
       let matched = 0;
       Object.keys(eng.meta).forEach((id) => {
         if ((eng.meta[id].scheme || "") !== scheme || matched >= MATCHES_SHOWN) return;
-        if (eng.label(id).toLowerCase().indexOf(needle) === -1) return;
+        if (!eng.displayable(id) || eng.label(id).toLowerCase().indexOf(needle) === -1) return;
         matched++;
         ancestryOf(eng, id, visible);
       });
@@ -511,6 +560,9 @@ function start() {
       });
     }
     applyTreeState(ul, state);
+    // Fresh rows rendered the cold counts; repaint from the live set when a
+    // query/filter is active (tasks/177).
+    applyLiveCounts();
   }
 
   /** wireTreeFilter points a group's type-to-filter at the full vocabulary
@@ -586,6 +638,7 @@ function start() {
         li.appendChild(label);
         ul.appendChild(li);
       });
+      applyLiveCounts();
     };
     if (cats.length > 10) {
       const input = document.createElement("input");
@@ -619,8 +672,11 @@ function start() {
         // Partition subject categories by scheme: configured schemes first
         // in config order, unlisted ones after in first-seen order. A single
         // (or unknown-scheme) vocabulary keeps the one localized group.
+        // Minted label-less plumbing nodes stay out of flat groups just as
+        // renderTree keeps them out of trees (tasks/176).
         const byScheme = new Map();
         (f.cats || []).forEach((c) => {
+          if (eng.meta[c.name] && !eng.displayable(c.name)) return;
           const scheme = (eng.meta[c.name] && eng.meta[c.name].scheme) || "";
           if (!byScheme.has(scheme)) byScheme.set(scheme, []);
           byScheme.get(scheme).push(c);
@@ -652,12 +708,99 @@ function start() {
         });
       });
       panel.hidden = false;
+      // A deep link (?q=) can refresh before the panel exists; repaint the
+      // fresh rows from the live set (tasks/177).
+      applyLiveCounts();
     });
+  }
+
+  // ---- Live facet counts (tasks/177) ----
+  //
+  // While a query/filter is active: liveCounts holds field -> category ->
+  // count over the current result set, liveIds the per-active-field id sets
+  // (that field's own selections removed, for drill-down), liveResultIds the
+  // final survivors (inactive fields intersect with these). All null when
+  // idle -- rows then show the cold full-corpus numbers they rendered with.
+  let liveCounts = null;
+  let liveIds = null;
+  let liveResultIds = null;
+
+  /** countsToMap normalizes the reader's facetCounts array into nested Maps. */
+  function countsToMap(arr) {
+    const out = new Map();
+    (arr || []).forEach((f) => {
+      const m = new Map();
+      (f.cats || []).forEach((c) => m.set(c.name, c.count));
+      out.set(f.field, m);
+    });
+    return out;
+  }
+
+  /** countRows returns every rendered facet row that can carry a live count:
+   * the hydrated/tree/panel checkbox next to its .lcat-count span. */
+  function countRows() {
+    return Array.from(document.querySelectorAll(".lcat-facets input[data-field], .lcat-browse-facets input[data-field]"));
+  }
+
+  /** applyLiveCounts paints liveCounts onto every rendered row, remembering
+   * each row's cold text on first touch. Rendered categories the count wave
+   * did not price (long-tail tree rows) resolve exactly via countsFor, then
+   * paint on arrival. With liveCounts null it restores the cold numbers. */
+  function applyLiveCounts() {
+    const mine = seq;
+    const missing = new Map(); // field -> [category]
+    countRows().forEach((cb) => {
+      const label = cb.closest("label");
+      const span = label && label.querySelector(".lcat-count");
+      if (!span) return;
+      const li = cb.closest("li");
+      if (!liveCounts) {
+        if (span.dataset.lcatCold != null) span.textContent = span.dataset.lcatCold;
+        if (li) li.classList.remove("lcat-count-zero");
+        return;
+      }
+      const field = cb.getAttribute("data-field");
+      const cat = cb.getAttribute("data-cat");
+      const m = liveCounts.get(field);
+      if (!m || !m.has(cat)) {
+        if (!missing.has(field)) missing.set(field, []);
+        missing.get(field).push(cat);
+        return;
+      }
+      if (span.dataset.lcatCold == null) span.dataset.lcatCold = span.textContent;
+      const n = m.get(cat);
+      span.textContent = String(n);
+      if (li) li.classList.toggle("lcat-count-zero", n === 0);
+    });
+    if (!liveCounts || !missing.size || !facets) return;
+    missing.forEach((cats, field) => {
+      const ids = (liveIds && liveIds.get(field)) || liveResultIds;
+      if (!ids) return;
+      facets
+        .countsFor(ids, cats.map((c) => [field, c]))
+        .then((arr) => {
+          if (mine !== seq || !liveCounts) return;
+          const m = liveCounts.get(field) || new Map();
+          cats.forEach((c, i) => m.set(c, arr[i] || 0));
+          liveCounts.set(field, m);
+          applyLiveCounts();
+        })
+        .catch(() => {});
+    });
+  }
+
+  /** setLiveCounts installs (or clears, with null) the live count state. */
+  function setLiveCounts(counts, idsByField, resultIds) {
+    liveCounts = counts;
+    liveIds = idsByField;
+    liveResultIds = resultIds;
+    applyLiveCounts();
   }
 
   function restore() {
     results.innerHTML = staticList;
     if (countEl) countEl.textContent = staticCount;
+    setLiveCounts(null, null, null);
   }
 
   function renderCards(recs, total) {
@@ -669,6 +812,11 @@ function start() {
     if (countEl) {
       countEl.textContent = total + (total >= PAGE ? "+ " : " ") + labels.results;
     }
+  }
+
+  /** filterField reads an entry's field from either shape selected() emits. */
+  function filterField(f) {
+    return f.field || f[0];
   }
 
   let seq = 0;
@@ -684,18 +832,52 @@ function start() {
     boot()
       .then((ok) => {
         if (!ok || mine !== seq) return; // reader down, or a newer interaction won
-        if (q !== "") {
-          return catalog.search(q, 0, PAGE, 0, filters).then((res) => {
-            if (mine === seq) renderCards(res.records || [], (res.ids || []).length);
-          });
-        }
-        // Facet-only browse: filter the whole doc space, page the survivors.
-        return facets.filterIds(allIds, filters, false).then((fi) => {
-          const ids = fi.ids;
-          const page = ids.slice(0, PAGE);
-          return records.getMany(page).then((recs) => {
-            // getMany resolves to an Array aligned with the input ids.
-            if (mine === seq) renderCards(recs, ids.length);
+        // One ranked base set (query results, or the whole doc space), then
+        // facet filtering over it -- the POC's single-pass browse() shape, so
+        // the same survivors drive results AND live counts (tasks/177).
+        const baseP =
+          q !== ""
+            ? catalog.search(q, 0, PAGE, 0, []).then((res) => ({
+                ids: res.ids || new Uint32Array(0),
+                records: res.records,
+                counts: res.facetCounts,
+              }))
+            : Promise.resolve({ ids: allIds, records: null, counts: null });
+        return baseP.then((base) => {
+          if (mine !== seq) return;
+          if (!filters.length) {
+            // Query only: the search call already carries the page's records
+            // and the query-filtered counts.
+            renderCards(base.records || [], base.ids.length);
+            setLiveCounts(countsToMap(base.counts), new Map(), base.ids);
+            return;
+          }
+          return facets.filterIds(base.ids, filters, true).then((fi) => {
+            if (mine !== seq) return;
+            const ids = fi.ids;
+            const cmap = countsToMap(fi.facetCounts());
+            const renderP = records.getMany(ids.slice(0, PAGE)).then((recs) => {
+              // getMany resolves to an Array aligned with the input ids.
+              if (mine === seq) renderCards(recs, ids.length);
+            });
+            // Drill-down (POC/Pagefind): each active field recounts with its
+            // own selections removed, so its other values stay addable
+            // instead of dropping to the intersection's zeros.
+            const idsByField = new Map();
+            const activeFields = Array.from(new Set(filters.map(filterField)));
+            const drillP = Promise.all(
+              activeFields.map((field) => {
+                const others = filters.filter((f) => filterField(f) !== field);
+                return facets.filterIds(base.ids, others, true).then((fr) => {
+                  const c = countsToMap(fr.facetCounts());
+                  if (c.has(field)) cmap.set(field, c.get(field));
+                  idsByField.set(field, fr.ids);
+                });
+              }),
+            );
+            return Promise.all([renderP, drillP]).then(() => {
+              if (mine === seq) setLiveCounts(cmap, idsByField, ids);
+            });
           });
         });
       })

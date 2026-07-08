@@ -20,7 +20,7 @@
       "formats": ["ebook"],
       "contributors": [{ "name": "Allende, Isabel" }],
       "subjects": [
-        { "id": "https://homosaurus.org/v3/homoit0000282", "labels": { "en": "Gender identity" }, "scheme": "homosaurus" }
+        { "id": "https://homosaurus.org/v3/homoit0000282", "labels": { "en": "Gender identity" }, "scheme": "homosaurus", "broader": ["https://homosaurus.org/v3/homoit9999901"] }
       ],
       "tags": ["fiction"]
     },

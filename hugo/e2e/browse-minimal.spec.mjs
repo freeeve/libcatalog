@@ -53,6 +53,28 @@ await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampletwo"]', {
 let hrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
 check("sidebar toggle ebook -> exactly wexampletwo", hrefs.length === 1 && hrefs[0].includes("wexampletwo"));
 
+// 3a. Live counts paint the hydrated rows too (tasks/177): the ebook
+//     survivor set is {House of the Spirits} (spa), so jpn greys to 0 and
+//     spa recounts to 1 -- overriding the fragment's static numbers.
+await page.waitForFunction(
+  () => {
+    const li = document.querySelector('.lcat-facets li[data-lcat-field="language"][data-lcat-cat="jpn"]');
+    return li && li.querySelector(".lcat-count").textContent === "0";
+  },
+  { timeout: 10000 },
+);
+const liveRows = await page.evaluate(() => {
+  const g = (c) => {
+    const li = document.querySelector(`.lcat-facets li[data-lcat-field="language"][data-lcat-cat="${c}"]`);
+    return li && { n: li.querySelector(".lcat-count").textContent, zero: li.classList.contains("lcat-count-zero") };
+  };
+  return { jpn: g("jpn"), spa: g("spa") };
+});
+check(
+  "sidebar live counts: jpn 0 greyed, spa 1",
+  liveRows.jpn && liveRows.jpn.n === "0" && liveRows.jpn.zero && liveRows.spa && liveRows.spa.n === "1" && !liveRows.spa.zero,
+);
+
 // 4. A query intersects with the sidebar toggle.
 await page.fill('.lcat-search input[name="q"]', "Herculine");
 await page.waitForTimeout(700);
@@ -65,6 +87,12 @@ await page.click('.lcat-facets li[data-lcat-field="format"][data-lcat-cat="ebook
 await page.waitForTimeout(500);
 const staticBack = await page.$$eval("#lcat-results li", (lis) => lis.length);
 check("clearing restores static list (" + staticLis + " lis)", staticBack === staticLis);
+// 5a. Clearing restores the fragment's cold count and ungreys (tasks/177).
+const coldRow = await page.evaluate(() => {
+  const li = document.querySelector('.lcat-facets li[data-lcat-field="language"][data-lcat-cat="jpn"]');
+  return li && { n: li.querySelector(".lcat-count").textContent, zero: li.classList.contains("lcat-count-zero") };
+});
+check("clearing restores the cold jpn count, ungreyed", coldRow && coldRow.n === "1" && !coldRow.zero);
 
 // 6. Negative filter (tasks/173): hydration unhides the row's exclude toggle;
 //    pressing it subtracts the category (ebook -> wexampletwo drops).
@@ -117,6 +145,11 @@ check(
   "sidebar homosaurus group treeifies to the root (Gender identity, 3)",
   sidebarTree.length === 1 && !sidebarTree[0].nested && sidebarTree[0].label === "Gender identity" && sidebarTree[0].count === "3",
 );
+// The root's unlabeled minted ancestor (homoit9999901, fixture) must not have
+// rendered above it as a raw-URI row (tasks/176) -- covered by length === 1
+// above; assert the id is absent anywhere in the sidebar for clarity.
+const mintedRows = await page.$$eval('.lcat-facets li[data-lcat-cat$="homoit9999901"]', (lis) => lis.length);
+check("unlabeled minted ancestor never renders in the sidebar", mintedRows === 0);
 
 // 10. Excluding the root subtracts the whole subtree: every fixture work
 //     carries a homosaurus concept at or under it, so nothing survives.
