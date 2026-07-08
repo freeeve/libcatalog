@@ -61,10 +61,11 @@ type browseSubject struct {
 	Scheme  string            `json:"scheme,omitempty"`
 	Broader []string          `json:"broader,omitempty"`
 	// Minted marks an entry created only to close an ancestry hole
-	// (expandSubjectAncestry): no Work carries it directly and no feed
-	// described it. While it stays label-less the facet UI keeps its
-	// rolled-up postings out of the rendered tree instead of showing a raw
-	// authority URI as a top-level concept (tasks/176).
+	// (expandSubjectAncestry): no Work carries it directly. Its labels and
+	// broader edges fill from the catalog's vocabulary sideband when the
+	// graph described the term (tasks/178); while it stays label-less the
+	// facet UI keeps its rolled-up postings out of the rendered tree instead
+	// of showing a raw authority URI as a top-level concept (tasks/176).
 	Minted bool `json:"minted,omitempty"`
 }
 
@@ -111,6 +112,11 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 	// search.go remain for a future stemmed-search refinement).
 	tri := rr.NewTrigramMonolithBuilder(trigramGramSize, 0)
 
+	terms := make(map[string]project.Term, len(cat.Terms))
+	for _, t := range cat.Terms {
+		terms[t.ID] = t
+	}
+
 	for i, w := range cat.Works {
 		doc := uint32(i)
 		docIDs[i] = w.ID
@@ -145,7 +151,7 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 		}
 	}
 
-	expandSubjectAncestry(facets[FacetSubject], subjects)
+	expandSubjectAncestry(facets[FacetSubject], subjects, terms)
 
 	if err := writeTrigram(sink, BrowseIndexName, tri); err != nil {
 		return err
@@ -172,10 +178,13 @@ const ancestryDepthCap = 12
 // the parent -- include or exclude -- covers works tagged anywhere below it,
 // with no per-node queries client-side. Ancestors named by broader edges but
 // never used as a direct subject are minted into both the postings and the
-// metadata map (scheme inherited from the child, flagged Minted so the UI
-// can keep label-less plumbing nodes out of the rendered tree), so the
-// postings have no holes.
-func expandSubjectAncestry(cats map[string]*roaring.Bitmap, subjects map[string]browseSubject) {
+// metadata map, flagged Minted so the UI can keep label-less plumbing nodes
+// out of the rendered tree. A minted entry fills its labels, broader edges,
+// and scheme from the catalog's vocabulary sideband when the graph described
+// the term (tasks/178) -- labels make it a real tree node client-side, and
+// its broader edges extend the walk so rollups cross ancestors no work
+// carries; without a sideband entry the scheme falls back to the child's.
+func expandSubjectAncestry(cats map[string]*roaring.Bitmap, subjects map[string]browseSubject, terms map[string]project.Term) {
 	if len(cats) == 0 {
 		return
 	}
@@ -191,7 +200,15 @@ func expandSubjectAncestry(cats map[string]*roaring.Bitmap, subjects map[string]
 				}
 				seen[a] = true
 				if _, ok := subjects[a]; !ok {
-					subjects[a] = browseSubject{Scheme: subjects[id].Scheme, Minted: true}
+					minted := browseSubject{Scheme: subjects[id].Scheme, Minted: true}
+					if t, ok := terms[a]; ok {
+						minted.Labels = t.Labels
+						minted.Broader = t.Broader
+						if t.Scheme != "" {
+							minted.Scheme = t.Scheme
+						}
+					}
+					subjects[a] = minted
 				}
 				abm := cats[a]
 				if abm == nil {

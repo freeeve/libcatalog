@@ -134,3 +134,65 @@ func TestBuildBrowseSubjectAncestry(t *testing.T) {
 		t.Fatalf("direct subject flagged minted: %+v", s)
 	}
 }
+
+// TestBuildBrowseTermSideband checks tasks/178: a minted ancestor fills its
+// labels, broader edges, and scheme from Catalog.Terms, and those broader
+// edges extend the rollup walk across ancestors no work carries -- the
+// postings reach a grandparent known only to the sideband.
+func TestBuildBrowseTermSideband(t *testing.T) {
+	cat := &project.Catalog{
+		Works: []project.Work{
+			{ID: "w1", Title: "Child-tagged", Subjects: []project.Subject{
+				{ID: "s:child", Labels: map[string]string{"en": "Trans women"}, Scheme: "homosaurus", Broader: []string{"s:parent"}},
+			}},
+		},
+		Terms: []project.Term{
+			{ID: "s:parent", Labels: map[string]string{"en": "Gender minorities"}, Broader: []string{"s:grand"}, Scheme: "homosaurus"},
+			{ID: "s:grand", Broader: []string{"s:great"}},
+			{ID: "s:great", Labels: map[string]string{"en": "People"}},
+		},
+	}
+	sink := newMemSink()
+	if err := BuildBrowse(cat, sink); err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err := rr.OpenFacets(bytes.NewReader(sink.files[BrowseFacetsName]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields, err := fi.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	counts := map[string]uint64{}
+	for _, fld := range fields {
+		if fld.Name != FacetSubject {
+			continue
+		}
+		for _, c := range fld.Categories {
+			counts[c.Name] = c.Bitmap.GetCardinality()
+		}
+	}
+	for _, id := range []string{"s:child", "s:parent", "s:grand", "s:great"} {
+		if counts[id] != 1 {
+			t.Fatalf("posting count %s = %d, want 1 (all: %v)", id, counts[id], counts)
+		}
+	}
+
+	var subjects map[string]browseSubject
+	if err := json.Unmarshal(sink.files[BrowseSubjectsName], &subjects); err != nil {
+		t.Fatal(err)
+	}
+	if s := subjects["s:parent"]; !s.Minted || s.Labels["en"] != "Gender minorities" || s.Scheme != "homosaurus" || len(s.Broader) != 1 || s.Broader[0] != "s:grand" {
+		t.Fatalf("labeled minted parent meta = %+v", s)
+	}
+	// s:grand has no sideband labels and no explicit scheme: minted with the
+	// child's scheme inherited, broader carried from the sideband.
+	if s := subjects["s:grand"]; !s.Minted || len(s.Labels) != 0 || s.Scheme != "homosaurus" || len(s.Broader) != 1 || s.Broader[0] != "s:great" {
+		t.Fatalf("plumbing grandparent meta = %+v", s)
+	}
+	if s := subjects["s:great"]; !s.Minted || s.Labels["en"] != "People" {
+		t.Fatalf("sideband-labeled great-grandparent meta = %+v", s)
+	}
+}
