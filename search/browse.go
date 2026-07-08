@@ -53,11 +53,13 @@ const (
 
 // browseSubject is one subject category's display metadata in
 // browse-subjects.json: the RRSF sidecar keys subjects by authority id only,
-// so the fallback facet panel needs this map to render localized labels and
-// group by vocabulary scheme like the static sidebar does (tasks/173).
+// so the facet UI needs this map to render localized labels, group by
+// vocabulary scheme like the static sidebar does (tasks/173), and nest
+// concepts under their skos:broader parents (tasks/174).
 type browseSubject struct {
-	Labels map[string]string `json:"labels,omitempty"`
-	Scheme string            `json:"scheme,omitempty"`
+	Labels  map[string]string `json:"labels,omitempty"`
+	Scheme  string            `json:"scheme,omitempty"`
+	Broader []string          `json:"broader,omitempty"`
 }
 
 // browseCard is the compact per-Work payload stored in the record store -- what a
@@ -126,7 +128,7 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 		for _, s := range w.Subjects {
 			add(FacetSubject, s.ID, doc)
 			if _, ok := subjects[s.ID]; !ok {
-				subjects[s.ID] = browseSubject{Labels: s.Labels, Scheme: s.Scheme}
+				subjects[s.ID] = browseSubject{Labels: s.Labels, Scheme: s.Scheme, Broader: s.Broader}
 			}
 		}
 		for _, t := range w.Tags {
@@ -136,6 +138,8 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 			add(FacetClassification, c.Value, doc)
 		}
 	}
+
+	expandSubjectAncestry(facets[FacetSubject], subjects)
 
 	if err := writeTrigram(sink, BrowseIndexName, tri); err != nil {
 		return err
@@ -150,6 +154,49 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 		return err
 	}
 	return writeJSON(sink, BrowseDocsName, docIDs)
+}
+
+// ancestryDepthCap bounds the skos:broader walk; homosaurus tops out well
+// under this, and a malformed vocabulary must not spin the build.
+const ancestryDepthCap = 12
+
+// expandSubjectAncestry unions each subject category's postings into every
+// skos:broader ancestor's postings (tasks/174, mirroring the QLL POC): a
+// parent concept's count then already rolls up its subtree, and a filter on
+// the parent -- include or exclude -- covers works tagged anywhere below it,
+// with no per-node queries client-side. Ancestors named by broader edges but
+// never used as a direct subject are minted into both the postings and the
+// metadata map (scheme inherited from the child; label falls back to the id
+// until some feed carries one), so the tree has no holes.
+func expandSubjectAncestry(cats map[string]*roaring.Bitmap, subjects map[string]browseSubject) {
+	if len(cats) == 0 {
+		return
+	}
+	for _, id := range slices.Sorted(maps.Keys(cats)) {
+		bm := cats[id]
+		seen := map[string]bool{id: true}
+		frontier := subjects[id].Broader
+		for depth := 0; depth < ancestryDepthCap && len(frontier) > 0; depth++ {
+			var next []string
+			for _, a := range frontier {
+				if a == "" || seen[a] {
+					continue
+				}
+				seen[a] = true
+				if _, ok := subjects[a]; !ok {
+					subjects[a] = browseSubject{Scheme: subjects[id].Scheme}
+				}
+				abm := cats[a]
+				if abm == nil {
+					abm = roaring.New()
+					cats[a] = abm
+				}
+				abm.Or(bm)
+				next = append(next, subjects[a].Broader...)
+			}
+			frontier = next
+		}
+	}
 }
 
 // writeRecords seals the per-Work cards into an RRSR record store (.bin blob +

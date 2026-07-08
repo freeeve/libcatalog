@@ -71,3 +71,63 @@ func TestBuildBrowse(t *testing.T) {
 		t.Fatalf("facet sidecar not RRSF (len %d)", len(f))
 	}
 }
+
+// TestBuildBrowseSubjectAncestry checks tasks/174: subject postings roll up
+// through skos:broader (a parent category covers its subtree), an ancestor
+// never used as a direct subject is minted with the child's scheme, and
+// browse-subjects.json carries labels, scheme, and broader edges.
+func TestBuildBrowseSubjectAncestry(t *testing.T) {
+	cat := &project.Catalog{Works: []project.Work{
+		{ID: "w1", Title: "Parent-tagged", Subjects: []project.Subject{
+			{ID: "s:parent", Labels: map[string]string{"en": "Gender minorities"}, Scheme: "homosaurus", Broader: []string{"s:grand"}},
+		}},
+		{ID: "w2", Title: "Child-tagged", Subjects: []project.Subject{
+			{ID: "s:child", Labels: map[string]string{"en": "Trans women"}, Scheme: "homosaurus", Broader: []string{"s:parent"}},
+		}},
+		{ID: "w3", Title: "Flat-tagged", Subjects: []project.Subject{
+			{ID: "f:flat", Labels: map[string]string{"en": "Fiction"}, Scheme: "fast"},
+		}},
+	}}
+	sink := newMemSink()
+	if err := BuildBrowse(cat, sink); err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err := rr.OpenFacets(bytes.NewReader(sink.files[BrowseFacetsName]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields, err := fi.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	counts := map[string]uint64{}
+	for _, fld := range fields {
+		if fld.Name != FacetSubject {
+			continue
+		}
+		for _, c := range fld.Categories {
+			counts[c.Name] = c.Bitmap.GetCardinality()
+		}
+	}
+	want := map[string]uint64{"s:child": 1, "s:parent": 2, "s:grand": 2, "f:flat": 1}
+	for id, n := range want {
+		if counts[id] != n {
+			t.Fatalf("posting count %s = %d, want %d (all: %v)", id, counts[id], n, counts)
+		}
+	}
+
+	var subjects map[string]browseSubject
+	if err := json.Unmarshal(sink.files[BrowseSubjectsName], &subjects); err != nil {
+		t.Fatal(err)
+	}
+	if s := subjects["s:child"]; s.Scheme != "homosaurus" || s.Labels["en"] != "Trans women" || len(s.Broader) != 1 || s.Broader[0] != "s:parent" {
+		t.Fatalf("child meta = %+v", s)
+	}
+	if s := subjects["s:grand"]; s.Scheme != "homosaurus" || len(s.Labels) != 0 {
+		t.Fatalf("minted ancestor meta = %+v", s)
+	}
+	if s := subjects["f:flat"]; s.Scheme != "fast" || len(s.Broader) != 0 {
+		t.Fatalf("flat meta = %+v", s)
+	}
+}
