@@ -308,8 +308,31 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
   padding: 0.15rem 0;
   cursor: pointer;
 }
-.lcat-facets li > label .lcat-facet-value { flex: 1 1 auto; min-width: 0; }
 .lcat-facets li > label:hover .lcat-facet-value { text-decoration: underline; }
+/* Shrink/wrap rules keyed to the value span itself, not the row markup, so
+   linked, hydrated, and panel rows all confine long labels to the sidebar's
+   fixed track instead of painting over the results column (tasks/173). */
+.lcat-facets .lcat-facet-value,
+.lcat-browse-facets .lcat-facet-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.lcat-facets .lcat-count,
+.lcat-browse-facets .lcat-count { flex: none; }
+/* Fallback facet panel rows (tasks/158): same toggle-row layout as hydrated
+   sidebar rows (tasks/173). */
+.lcat-browse-facets ul { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.lcat-browse-facets li { display: flex; align-items: center; gap: 0.3rem; }
+.lcat-browse-facets li > label {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0;
+  cursor: pointer;
+}
 /* Shared-sidebar fallback (tasks/150): taxonomy landing links shown before the
    fragment loads, without JS, or when the fetch fails. */
 .lcat-facets-fallback { list-style: none; margin: 0; padding: 0; }

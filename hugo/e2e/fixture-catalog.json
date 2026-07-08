@@ -1,8 +1,8 @@
 {
   "version": 8,
   "works": [
-    { "id": "wexampleone", "title": "Herculine", "languages": ["fre"], "formats": ["book"], "contributors": [{ "name": "Foucault, Michel" }], "subjects": [{ "id": "s:memoir" }], "tags": ["memoir"] },
-    { "id": "wexampletwo", "title": "The House of the Spirits", "languages": ["spa"], "formats": ["ebook"], "contributors": [{ "name": "Allende, Isabel" }], "subjects": [{ "id": "s:fiction" }], "tags": ["fiction"] },
-    { "id": "wexamplethree", "title": "Snow Country", "languages": ["jpn"], "formats": ["book"], "contributors": [{ "name": "Kawabata, Yasunari" }], "subjects": [{ "id": "s:fiction" }] }
+    { "id": "wexampleone", "title": "Herculine", "languages": ["fre"], "formats": ["book"], "contributors": [{ "name": "Foucault, Michel" }], "subjects": [{ "id": "s:memoir", "labels": { "en": "Memoirs" }, "scheme": "homosaurus" }], "tags": ["memoir"] },
+    { "id": "wexampletwo", "title": "The House of the Spirits", "languages": ["spa"], "formats": ["ebook"], "contributors": [{ "name": "Allende, Isabel" }], "subjects": [{ "id": "s:fiction", "labels": { "en": "Fiction" }, "scheme": "homosaurus" }, { "id": "f:fiction", "labels": { "en": "Fiction" }, "scheme": "fast" }], "tags": ["fiction"] },
+    { "id": "wexamplethree", "title": "Snow Country", "languages": ["jpn"], "formats": ["book"], "contributors": [{ "name": "Kawabata, Yasunari" }], "subjects": [{ "id": "s:fiction", "labels": { "en": "Fiction" }, "scheme": "homosaurus" }] }
   ]
 }

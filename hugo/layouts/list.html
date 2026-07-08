@@ -10,8 +10,12 @@
 {{ $paginator := .Paginate $pages }}
 <p class="lcat-resultcount" role="status">{{ i18n "workCount" (len $pages) }}</p>
 {{- /* Host for the client-rendered facet filter panel (tasks/158); populated
-       and unhidden by lcat-browse.js once the reader boots. */ -}}
-{{ if eq (site.Params.search.engine | default "") "roaringrange" }}<div id="lcat-browse-facets" class="lcat-browse-facets" hidden></div>{{ end }}
+       and unhidden by lcat-browse.js once the reader boots. The config blob
+       carries the scheme grouping the static sidebar gets from
+       [params.subjectSchemes], so the panel can group subjects the same way
+       (tasks/173). */ -}}
+{{ if eq (site.Params.search.engine | default "") "roaringrange" }}<div id="lcat-browse-facets" class="lcat-browse-facets" hidden></div>
+<script id="lcat-browse-config" type="application/json">{{ dict "subjects" (i18n "subjects") "subjectSchemes" (site.Params.subjectSchemes | default slice) | jsonify | safeJS }}</script>{{ end }}
 <ol class="lcat-results" id="lcat-results"{{ if eq (site.Params.search.engine | default "") "roaringrange" }} data-lcat-browse="{{ site.Params.search.base | default "/search" }}"{{ end }}>
   {{ range $paginator.Pages }}
   <li>{{ partialCached "work-card.html" . .RelPermalink }}</li>

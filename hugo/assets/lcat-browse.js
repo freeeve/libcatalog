@@ -22,10 +22,19 @@
  * once the reader boots they hydrate into checkbox toggles, making the
  * i18n'd, scheme-grouped sidebar the facet UI. In shared-sidebar mode the
  * fragment arrives async, so hydration also runs on the loader's
- * lcat:facets-loaded event. Only when no such rows exist (term pages present,
+ * lcat:facets-loaded event -- and while that fragment is still in flight the
+ * fallback panel holds off, so it never flashes over a sidebar about to take
+ * over (tasks/173). Only when no hydratable rows exist (term pages present,
  * or no sidebar at all) does the fallback panel render from
- * RrfFacets.facets() (names + full-corpus counts) into the
- * #lcat-browse-facets host the list template emits.
+ * RrfFacets.facets() into the #lcat-browse-facets host the list template
+ * emits -- subjects grouped by vocabulary scheme with localized labels from
+ * browse-subjects.json, like the static rail (tasks/173).
+ *
+ * Negative filters (tasks/144) in browse mode (tasks/173): when the site opts
+ * in, every row ships a hidden .lcat-facet-not button; hydration unhides it
+ * as an exclude toggle (aria-pressed), and selected() emits those rows as
+ * {field, category, exclude: true} entries -- the reader subtracts their
+ * posting sets. A row is include- or exclude-filtered, never both.
  */
 import init, { RrsCatalog, RrfFacets, RrsRecords } from "/lcat/roaringrange.js";
 
@@ -107,7 +116,7 @@ function start() {
           records = r;
           allIds = new Uint32Array(r.len());
           for (let i = 0; i < allIds.length; i++) allIds[i] = i;
-          if (!adoptSidebar()) renderPanel();
+          if (!adoptSidebar() && !sharedPending()) renderPanel();
           return true;
         })
         .catch((e) => {
@@ -124,20 +133,58 @@ function start() {
   input.addEventListener("focus", boot, { once: true });
   if (panel) boot();
 
-  /** selected returns the checked [field, category] pairs from the panel and
-   * any hydrated sidebar rows. */
+  /** selected returns the active filters: checked [field, category] pairs
+   * from the panel and any hydrated sidebar rows, plus {field, category,
+   * exclude} entries for pressed exclude toggles (tasks/173). The reader
+   * accepts both entry shapes in one array. */
   function selected() {
     const boxes = Array.from(panel ? panel.querySelectorAll("input:checked") : []).concat(
       Array.from(document.querySelectorAll(".lcat-facets input[data-field]:checked")),
     );
-    return boxes.map((cb) => [cb.getAttribute("data-field"), cb.getAttribute("data-cat")]);
+    const filters = boxes.map((cb) => [cb.getAttribute("data-field"), cb.getAttribute("data-cat")]);
+    document
+      .querySelectorAll('.lcat-facets li[data-lcat-field] .lcat-facet-not[aria-pressed="true"]')
+      .forEach((btn) => {
+        const li = btn.closest("li");
+        filters.push({
+          field: li.getAttribute("data-lcat-field"),
+          category: li.getAttribute("data-lcat-cat"),
+          exclude: true,
+        });
+      });
+    return filters;
+  }
+
+  /** negLabel formats one of the lcat-negatives-config strings (rendered only
+   * when [params.facets] negatives is on) with the row's display label. */
+  function negLabel(key, label) {
+    const cfgEl = document.getElementById("lcat-negatives-config");
+    if (!cfgEl) return label;
+    try {
+      return (JSON.parse(cfgEl.textContent)[key] || "%s").replace("%s", label);
+    } catch (e) {
+      return label;
+    }
+  }
+
+  /** setNot flips one hydrated row's exclude toggle: aria-pressed drives both
+   * the CSS state and selected()'s collection, and the accessible name tracks
+   * the action the next press performs. */
+  function setNot(li, btn, pressed) {
+    btn.setAttribute("aria-pressed", pressed ? "true" : "false");
+    const value = li.querySelector(".lcat-facet-value");
+    const name = negLabel(pressed ? "remove" : "exclude", value ? value.textContent.trim() : "");
+    btn.setAttribute("aria-label", name);
+    btn.title = name;
   }
 
   /** adoptSidebar hydrates unlinked sidebar facet rows (data-lcat-field/-cat,
    * emitted where no term page exists) into checkbox toggles driving the
    * reader, and reports whether the sidebar took over as the facet UI --
-   * in which case the duplicate panel is skipped or torn down. Idempotent:
-   * already-hydrated rows are left alone. */
+   * in which case the duplicate panel is skipped or torn down. When the site
+   * opted into negatives, each row's shipped-hidden exclude button becomes an
+   * exclude toggle; include and exclude on one row are mutually exclusive
+   * (tasks/173). Idempotent: already-hydrated rows are left alone. */
   function adoptSidebar() {
     const rows = document.querySelectorAll(".lcat-facets li[data-lcat-field]");
     if (!rows.length) return false;
@@ -156,7 +203,21 @@ function start() {
         label.appendChild(li.firstChild);
       }
       li.insertBefore(label, li.firstChild);
-      li.addEventListener("change", refresh);
+      const not = li.querySelector(".lcat-facet-not");
+      if (not) {
+        not.hidden = false;
+        setNot(li, not, false);
+        not.addEventListener("click", () => {
+          const pressed = not.getAttribute("aria-pressed") !== "true";
+          if (pressed) cb.checked = false;
+          setNot(li, not, pressed);
+          refresh();
+        });
+      }
+      li.addEventListener("change", () => {
+        if (cb.checked && not) setNot(li, not, false);
+        refresh();
+      });
     });
     if (panel) {
       panel.innerHTML = "";
@@ -165,43 +226,129 @@ function start() {
     return true;
   }
 
+  /** sharedPending reports a shared-sidebar fragment still in flight: the
+   * loader host is on the page but no facet nav has been inserted yet. While
+   * pending, the fallback panel holds off -- rendering it would flash a flat,
+   * unlabeled panel that the arriving fragment immediately tears down
+   * (tasks/173). If the fetch fails the loader keeps its static fallback
+   * links, which remain the (JS-free) facet UI. */
+  function sharedPending() {
+    return !!document.querySelector("[data-lcat-facets-src]") && !document.querySelector(".lcat-facets");
+  }
+
   // Shared-sidebar mode inserts the fragment after boot may have finished;
-  // hydrate on the loader's signal and drop the panel if it already rendered.
+  // hydrate on the loader's signal, or render the panel if the fragment
+  // arrived without hydratable rows. Before boot this is a no-op: boot's own
+  // adoptSidebar/renderPanel pass sees whatever the fragment inserted.
   document.addEventListener("lcat:facets-loaded", () => {
-    if (facets && adoptSidebar()) refresh();
+    if (!facets) return;
+    if (adoptSidebar()) refresh();
+    else renderPanel();
   });
 
+  /** browseConfig reads the list template's config blob: the localized
+   * "Subjects" heading and the [params.subjectSchemes] order/display names. */
+  function browseConfig() {
+    const el = document.getElementById("lcat-browse-config");
+    if (!el) return { subjects: "subject", subjectSchemes: [] };
+    try {
+      const cfg = JSON.parse(el.textContent) || {};
+      return { subjects: cfg.subjects || "subject", subjectSchemes: cfg.subjectSchemes || [] };
+    } catch (e) {
+      return { subjects: "subject", subjectSchemes: [] };
+    }
+  }
+
+  /** subjectMeta lazily fetches browse-subjects.json (subject id -> labels +
+   * vocabulary scheme; tasks/173); an absent or failed sidecar degrades to
+   * ungrouped raw ids, exactly the pre-173 panel. */
+  let subjectMetaP = null;
+  function subjectMeta() {
+    if (!subjectMetaP) {
+      subjectMetaP = fetch(base + "/browse-subjects.json")
+        .then((r) => (r.ok ? r.json() : {}))
+        .catch(() => ({}));
+    }
+    return subjectMetaP;
+  }
+
+  /** panelRows renders one category list, largest counts first. */
+  function panelRows(field, cats, display) {
+    return cats
+      .slice()
+      .sort((a, b) => b.count - a.count)
+      .slice(0, CATS_SHOWN)
+      .map(
+        (c) =>
+          '<li><label><input type="checkbox" data-field="' +
+          esc(field) +
+          '" data-cat="' +
+          esc(c.name) +
+          '"> <span class="lcat-facet-value">' +
+          esc(display(c.name)) +
+          '</span> <span class="lcat-count">' +
+          c.count +
+          "</span></label></li>",
+      )
+      .join("");
+  }
+
+  function panelGroup(summary, rowsHTML) {
+    return '<details class="lcat-browse-facet"><summary>' + esc(summary) + "</summary><ul>" + rowsHTML + "</ul></details>";
+  }
+
+  /** renderPanel builds the fallback facet panel from the sidecar. Subjects
+   * render one group per vocabulary scheme in [params.subjectSchemes] order
+   * with localized labels, like the static rail (tasks/173); other fields
+   * stay one group each. */
   function renderPanel() {
     if (!panel || !facets) return;
     const fields = facets.facets() || [];
     if (!fields.length) return;
-    const html = fields.map((f) => {
-      const cats = (f.cats || []).slice().sort((a, b) => b.count - a.count).slice(0, CATS_SHOWN);
-      const rows = cats
-        .map(
-          (c) =>
-            '<li><label><input type="checkbox" data-field="' +
-            esc(f.field) +
-            '" data-cat="' +
-            esc(c.name) +
-            '"> ' +
-            esc(c.name) +
-            ' <span class="lcat-count">' +
-            c.count +
-            "</span></label></li>",
-        )
-        .join("");
-      return (
-        '<details class="lcat-browse-facet"><summary>' +
-        esc(f.field) +
-        "</summary><ul>" +
-        rows +
-        "</ul></details>"
-      );
+    subjectMeta().then((meta) => {
+      const cfg = browseConfig();
+      const lang = document.documentElement.lang || "en";
+      const subjectLabel = (id) => {
+        const m = meta[id];
+        return (m && m.labels && (m.labels[lang] || m.labels.en || m.labels[""])) || id;
+      };
+      const html = fields.map((f) => {
+        if (f.field !== "subject") {
+          return panelGroup(f.field, panelRows(f.field, f.cats || [], (n) => n));
+        }
+        // Partition subject categories by scheme: configured schemes first in
+        // config order, unlisted ones after in first-seen order. A single
+        // (or unknown-scheme) vocabulary keeps the one localized group.
+        const byScheme = new Map();
+        (f.cats || []).forEach((c) => {
+          const scheme = (meta[c.name] && meta[c.name].scheme) || "";
+          if (!byScheme.has(scheme)) byScheme.set(scheme, []);
+          byScheme.get(scheme).push(c);
+        });
+        const order = [];
+        cfg.subjectSchemes.forEach((s) => {
+          const scheme = s.scheme || "";
+          if (byScheme.has(scheme)) order.push({ scheme, name: s.name || scheme });
+        });
+        byScheme.forEach((_, scheme) => {
+          if (!order.some((o) => o.scheme === scheme)) order.push({ scheme, name: scheme });
+        });
+        return order
+          .map((o) =>
+            panelGroup(
+              order.length > 1 ? o.name || cfg.subjects : cfg.subjects,
+              panelRows(f.field, byScheme.get(o.scheme), subjectLabel),
+            ),
+          )
+          .join("");
+      });
+      panel.innerHTML = html.join("");
+      panel.hidden = false;
+      if (!panel.dataset.lcatWired) {
+        panel.dataset.lcatWired = "1";
+        panel.addEventListener("change", refresh);
+      }
     });
-    panel.innerHTML = html.join("");
-    panel.hidden = false;
-    panel.addEventListener("change", refresh);
   }
 
   function restore() {

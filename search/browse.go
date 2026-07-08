@@ -12,6 +12,9 @@
 // browse-docs.json maps each doc id to its Work id, so the per-language search
 // hits (which carry Work ids via their own docs maps) bridge into this global
 // space, and a card links to the static /works/<id> detail page.
+// browse-subjects.json maps each subject id to its labels + vocabulary scheme,
+// so the fallback facet panel renders localized, scheme-grouped subjects
+// (tasks/173).
 package search
 
 import (
@@ -29,11 +32,12 @@ import (
 
 // Browse artifact filenames.
 const (
-	BrowseIndexName  = "browse-index.rrs"
-	BrowseRecordsBin = "browse-records.bin"
-	BrowseRecordsIdx = "browse-records.idx"
-	BrowseFacetsName = "browse-facets.rrsf"
-	BrowseDocsName   = "browse-docs.json"
+	BrowseIndexName    = "browse-index.rrs"
+	BrowseRecordsBin   = "browse-records.bin"
+	BrowseRecordsIdx   = "browse-records.idx"
+	BrowseFacetsName   = "browse-facets.rrsf"
+	BrowseDocsName     = "browse-docs.json"
+	BrowseSubjectsName = "browse-subjects.json"
 )
 
 // Facet field names in the RRSF sidecar; the reader's filter pairs
@@ -46,6 +50,15 @@ const (
 	FacetClassification = "classification"
 	FacetContributor    = "contributor"
 )
+
+// browseSubject is one subject category's display metadata in
+// browse-subjects.json: the RRSF sidecar keys subjects by authority id only,
+// so the fallback facet panel needs this map to render localized labels and
+// group by vocabulary scheme like the static sidebar does (tasks/173).
+type browseSubject struct {
+	Labels map[string]string `json:"labels,omitempty"`
+	Scheme string            `json:"scheme,omitempty"`
+}
 
 // browseCard is the compact per-Work payload stored in the record store -- what a
 // search/browse result row needs; the row links to the static detail page for
@@ -66,6 +79,7 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 	records := make([][]byte, len(cat.Works))
 	docIDs := make([]string, len(cat.Works))
 	facets := map[string]map[string]*roaring.Bitmap{}
+	subjects := map[string]browseSubject{}
 	add := func(field, category string, doc uint32) {
 		if category == "" {
 			return
@@ -111,6 +125,9 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 		}
 		for _, s := range w.Subjects {
 			add(FacetSubject, s.ID, doc)
+			if _, ok := subjects[s.ID]; !ok {
+				subjects[s.ID] = browseSubject{Labels: s.Labels, Scheme: s.Scheme}
+			}
 		}
 		for _, t := range w.Tags {
 			add(FacetTag, t, doc)
@@ -127,6 +144,9 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 		return err
 	}
 	if err := writeFacets(sink, facets); err != nil {
+		return err
+	}
+	if err := writeJSON(sink, BrowseSubjectsName, subjects); err != nil {
 		return err
 	}
 	return writeJSON(sink, BrowseDocsName, docIDs)

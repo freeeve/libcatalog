@@ -32,8 +32,10 @@ node "$here/browse.spec.mjs" "http://127.0.0.1:$port"
 
 # Minimal profile (tasks/157): no taxonomy/term pages, shared sidebar. The
 # sidebar's unlinked rows must hydrate into reader toggles and replace the
-# fallback panel (tasks/170).
-printf 'disableKinds = ["taxonomy","term"]\n[params.search]\n  engine = "roaringrange"\n[params.facets]\n  shared = true\n' > "${out}.toml"
+# fallback panel (tasks/170), including the exclude toggles (tasks/173) --
+# negatives is on in the exampleSite config, restated here so this pass never
+# depends on the params merge strategy.
+printf 'disableKinds = ["taxonomy","term"]\n[params.search]\n  engine = "roaringrange"\n[params.facets]\n  shared = true\n  negatives = true\n' > "${out}.toml"
 (cd "$repo/hugo/exampleSite" && hugo --quiet --config hugo.toml,"${out}.toml" --destination "$out-min")
 rm "${out}.toml"
 cp -R "$out/search" "$out-min/search"

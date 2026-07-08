@@ -36,6 +36,31 @@ await page.waitForSelector("#lcat-browse-facets details", { timeout: 20000 });
 const fields = await page.$$eval("#lcat-browse-facets details summary", (els) => els.map((e) => e.textContent.trim()));
 check("facet panel renders fields: " + fields.join(","), fields.includes("format") && fields.includes("language"));
 
+// 1a. Subjects group by vocabulary scheme with the configured display names
+//     and localized labels, like the static rail (tasks/173): the fixture
+//     carries homosaurus + fast concepts sharing the label "Fiction".
+check(
+  "panel groups subjects per scheme (Homosaurus + FAST)",
+  fields.includes("Homosaurus") && fields.includes("FAST") && !fields.includes("subject"),
+);
+const subjectLabels = await page.$$eval(
+  '#lcat-browse-facets input[data-field="subject"]',
+  (ins) => ins.map((i) => ({ cat: i.getAttribute("data-cat"), text: i.parentElement.textContent.trim() })),
+);
+check(
+  "panel subject rows show labels, not raw ids",
+  subjectLabels.length === 3 && subjectLabels.every((s) => s.text.startsWith("Fiction") || s.text.startsWith("Memoirs")),
+);
+
+// 1b. A scheme-grouped subject toggle still filters by the raw id.
+await page.$$eval("#lcat-browse-facets details", (ds) => ds.forEach((d) => (d.open = true)));
+await page.click('#lcat-browse-facets input[data-field="subject"][data-cat="f:fiction"]');
+await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampletwo"]', { timeout: 10000 });
+let subjHrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
+check("fast Fiction toggle -> exactly wexampletwo", subjHrefs.length === 1 && subjHrefs[0].includes("wexampletwo"));
+await page.click('#lcat-browse-facets input[data-field="subject"][data-cat="f:fiction"]');
+await page.waitForTimeout(400);
+
 // 2. Facet-only browse: format=ebook -> exactly the fixture's one ebook work.
 await page.$$eval("#lcat-browse-facets details", (ds) => ds.forEach((d) => (d.open = true)));
 await page.click('#lcat-browse-facets input[data-field="format"][data-cat="ebook"]');

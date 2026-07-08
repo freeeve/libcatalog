@@ -66,6 +66,43 @@ await page.waitForTimeout(500);
 const staticBack = await page.$$eval("#lcat-results li", (lis) => lis.length);
 check("clearing restores static list (" + staticLis + " lis)", staticBack === staticLis);
 
+// 6. Negative filter (tasks/173): hydration unhides the row's exclude toggle;
+//    pressing it subtracts the category (ebook -> wexampletwo drops).
+const notBtn = '.lcat-facets li[data-lcat-field="format"][data-lcat-cat="ebook"] .lcat-facet-not';
+const notState = await page.$eval(notBtn, (b) => ({
+  hidden: b.hidden,
+  pressed: b.getAttribute("aria-pressed"),
+  named: (b.getAttribute("aria-label") || "").length > 0,
+}));
+check(
+  "hydrated row unhides its exclude toggle (labeled, unpressed)",
+  !notState.hidden && notState.pressed === "false" && notState.named,
+);
+await page.click(notBtn);
+await page.waitForSelector("#lcat-results a.lcat-result", { timeout: 10000 });
+hrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
+check(
+  "excluding ebook drops wexampletwo, keeps the other two",
+  hrefs.length === 2 && !hrefs.some((h) => h.includes("wexampletwo")),
+);
+
+// 7. Include and exclude on one row are mutually exclusive: checking the
+//    include toggle clears the exclusion and wins.
+await page.click('.lcat-facets li[data-lcat-field="format"][data-lcat-cat="ebook"] input');
+await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampletwo"]', { timeout: 10000 });
+const cleared = await page.$eval(notBtn, (b) => b.getAttribute("aria-pressed"));
+hrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
+check(
+  "checking the row clears its exclusion and includes ebook",
+  cleared === "false" && hrefs.length === 1 && hrefs[0].includes("wexampletwo"),
+);
+
+// 8. Clearing the include restores the static list again.
+await page.click('.lcat-facets li[data-lcat-field="format"][data-lcat-cat="ebook"] input');
+await page.waitForTimeout(500);
+const staticAgain = await page.$$eval("#lcat-results li", (lis) => lis.length);
+check("clearing after negatives restores static list", staticAgain === staticLis);
+
 if (errors.length) console.log("CONSOLE_ERRORS:", errors.slice(0, 5).join(" | "));
 console.log(pass + " passed, " + fail + " failed");
 await browser.close();
