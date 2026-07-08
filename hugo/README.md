@@ -111,6 +111,19 @@ entries rendered per facet group (default 20), and any group with more than
 10 entries gets a client-side type-to-filter box (a substring match over the
 rendered entries; no index, no fetch).
 
+### Vocabulary trees in browse mode (tasks/174)
+
+Under the roaringrange engine, a subject scheme whose concepts carry
+skos:broader links (Homosaurus does; FAST does not) upgrades in the browser
+to an expandable tree: collapsed top-level concepts whose counts roll up
+their whole subtree, lazy expansion to narrower terms, and -- with negatives
+on -- an exclude toggle per concept that subtracts the subtree. The
+per-group filter box then searches the full vocabulary (not just the
+rendered rows), showing matches under their ancestors. Data comes from the
+build's `browse-subjects.json` sidecar and ancestry-expanded facet postings
+(`lcat index`); schemes without broader links keep the flat list, and
+without JS the static rail renders exactly as before.
+
 ## Deployment-defined facet dimensions (tasks/143)
 
 A deployment whose projection carries a facetable field in extras (say

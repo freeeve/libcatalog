@@ -116,7 +116,8 @@ function start() {
           records = r;
           allIds = new Uint32Array(r.len());
           for (let i = 0; i < allIds.length; i++) allIds[i] = i;
-          if (!adoptSidebar() && !sharedPending()) renderPanel();
+          if (adoptSidebar()) treeifySidebar();
+          else if (!sharedPending()) renderPanel();
           return true;
         })
         .catch((e) => {
@@ -143,7 +144,10 @@ function start() {
     );
     const filters = boxes.map((cb) => [cb.getAttribute("data-field"), cb.getAttribute("data-cat")]);
     document
-      .querySelectorAll('.lcat-facets li[data-lcat-field] .lcat-facet-not[aria-pressed="true"]')
+      .querySelectorAll(
+        '.lcat-facets li[data-lcat-field] .lcat-facet-not[aria-pressed="true"], ' +
+          '.lcat-browse-facets li[data-lcat-field] .lcat-facet-not[aria-pressed="true"]',
+      )
       .forEach((btn) => {
         const li = btn.closest("li");
         filters.push({
@@ -242,8 +246,10 @@ function start() {
   // adoptSidebar/renderPanel pass sees whatever the fragment inserted.
   document.addEventListener("lcat:facets-loaded", () => {
     if (!facets) return;
-    if (adoptSidebar()) refresh();
-    else renderPanel();
+    if (adoptSidebar()) {
+      treeifySidebar();
+      refresh();
+    } else renderPanel();
   });
 
   /** browseConfig reads the list template's config blob: the localized
@@ -259,9 +265,9 @@ function start() {
     }
   }
 
-  /** subjectMeta lazily fetches browse-subjects.json (subject id -> labels +
-   * vocabulary scheme; tasks/173); an absent or failed sidecar degrades to
-   * ungrouped raw ids, exactly the pre-173 panel. */
+  /** subjectMeta lazily fetches browse-subjects.json (subject id -> labels,
+   * vocabulary scheme, skos:broader parents; tasks/173/174); an absent or
+   * failed sidecar degrades to flat, ungrouped raw ids. */
   let subjectMetaP = null;
   function subjectMeta() {
     if (!subjectMetaP) {
@@ -272,56 +278,350 @@ function start() {
     return subjectMetaP;
   }
 
-  /** panelRows renders one category list, largest counts first. */
-  function panelRows(field, cats, display) {
-    return cats
-      .slice()
-      .sort((a, b) => b.count - a.count)
-      .slice(0, CATS_SHOWN)
-      .map(
-        (c) =>
-          '<li><label><input type="checkbox" data-field="' +
-          esc(field) +
-          '" data-cat="' +
-          esc(c.name) +
-          '"> <span class="lcat-facet-value">' +
-          esc(display(c.name)) +
-          '</span> <span class="lcat-count">' +
-          c.count +
-          "</span></label></li>",
-      )
-      .join("");
+  // ---- Subject vocabulary trees (tasks/174, ported from the QLL POC) ----
+  //
+  // browse-subjects.json + the sidecar's ancestry-expanded postings give a
+  // complete client-side model: children/roots per scheme, and a parent's
+  // count already rolls up its subtree, so rows render counts with no
+  // per-node queries. Trees render only for schemes whose concepts carry
+  // broader links; FAST-like flat schemes keep a flat list, both behind a
+  // per-group filter over the full vocabulary, not just the rendered rows.
+
+  const ROOTS_SHOWN = 20; // top-level concepts per tree group, by count
+  const MATCHES_SHOWN = 200; // filter-match cap, keeps a broad query renderable
+
+  /** negativesOn reports the site's [params.facets] negatives opt-in, by the
+   * config blob the fragment ships with the exclude buttons. */
+  function negativesOn() {
+    return !!document.getElementById("lcat-negatives-config");
   }
 
-  function panelGroup(summary, rowsHTML) {
-    return '<details class="lcat-browse-facet"><summary>' + esc(summary) + "</summary><ul>" + rowsHTML + "</ul></details>";
+  let engineP = null;
+  /** subjectEngine builds the vocabulary model once per page: display labels,
+   * counts from the sidecar, children/roots per scheme (a concept whose
+   * broader ids all fall outside the corpus roots rather than orphans), and
+   * which schemes have any hierarchy at all. */
+  function subjectEngine() {
+    if (!engineP) {
+      engineP = subjectMeta().then((meta) => {
+        const lang = document.documentElement.lang || "en";
+        const counts = new Map();
+        (facets ? facets.facets() || [] : []).forEach((f) => {
+          if (f.field === "subject") (f.cats || []).forEach((c) => counts.set(c.name, c.count));
+        });
+        const label = (id) => {
+          const m = meta[id];
+          return (m && m.labels && (m.labels[lang] || m.labels.en || m.labels[""])) || id;
+        };
+        const children = new Map();
+        const roots = new Map(); // scheme -> [id]
+        const treeSchemes = new Set();
+        const byCount = (a, b) => (counts.get(b) || 0) - (counts.get(a) || 0) || (label(a) < label(b) ? -1 : 1);
+        Object.keys(meta).forEach((id) => {
+          const scheme = meta[id].scheme || "";
+          const parents = (meta[id].broader || []).filter((b) => meta[b]);
+          if (parents.length) {
+            treeSchemes.add(scheme);
+            parents.forEach((p) => {
+              if (!children.has(p)) children.set(p, []);
+              children.get(p).push(id);
+            });
+          } else {
+            if (!roots.has(scheme)) roots.set(scheme, []);
+            roots.get(scheme).push(id);
+          }
+        });
+        roots.forEach((ids) => ids.sort(byCount));
+        children.forEach((ids) => ids.sort(byCount));
+        return { meta, counts, label, children, roots, treeSchemes };
+      });
+    }
+    return engineP;
+  }
+
+  /** subjectRow builds one toggle row for a subject id: optional expand
+   * caret, checkbox label with localized value + rolled-up count, and the
+   * exclude toggle when the site opted into negatives. Same wiring contract
+   * as hydrated fragment rows, so selected() sees no difference. */
+  function subjectRow(eng, id) {
+    const li = document.createElement("li");
+    li.setAttribute("data-lcat-field", "subject");
+    li.setAttribute("data-lcat-cat", id);
+    const kids = eng.children.get(id) || [];
+    if (kids.length) {
+      const caret = document.createElement("button");
+      caret.type = "button";
+      caret.className = "lcat-facet-caret";
+      caret.setAttribute("aria-expanded", "false");
+      caret.textContent = "▸";
+      caret.addEventListener("click", () => toggleKids(eng, li, caret));
+      li.appendChild(caret);
+    } else {
+      const pad = document.createElement("span");
+      pad.className = "lcat-facet-caret lcat-facet-caret-leaf";
+      li.appendChild(pad);
+    }
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.setAttribute("data-field", "subject");
+    cb.setAttribute("data-cat", id);
+    const value = document.createElement("span");
+    value.className = "lcat-facet-value";
+    value.textContent = eng.label(id);
+    const count = document.createElement("span");
+    count.className = "lcat-count";
+    count.textContent = String(eng.counts.get(id) || 0);
+    label.appendChild(cb);
+    label.appendChild(value);
+    label.appendChild(count);
+    li.appendChild(label);
+    let not = null;
+    if (negativesOn()) {
+      not = document.createElement("button");
+      not.type = "button";
+      not.className = "lcat-facet-not";
+      not.textContent = "−";
+      li.appendChild(not);
+      setNot(li, not, false);
+      not.addEventListener("click", () => {
+        const pressed = not.getAttribute("aria-pressed") !== "true";
+        if (pressed) cb.checked = false;
+        setNot(li, not, pressed);
+        refresh();
+      });
+    }
+    li.addEventListener("change", () => {
+      if (cb.checked && not) setNot(li, not, false);
+      refresh();
+    });
+    return li;
+  }
+
+  /** toggleKids lazily builds (then shows/hides) a row's child list. */
+  function toggleKids(eng, li, caret) {
+    let ul = li.querySelector(":scope > ul");
+    const open = caret.getAttribute("aria-expanded") !== "true";
+    if (open && !ul) {
+      ul = document.createElement("ul");
+      ul.className = "lcat-facet-children";
+      (eng.children.get(li.getAttribute("data-lcat-cat")) || []).forEach((kid) => ul.appendChild(subjectRow(eng, kid)));
+      li.appendChild(ul);
+    }
+    if (ul) ul.hidden = !open;
+    caret.setAttribute("aria-expanded", open ? "true" : "false");
+    caret.textContent = open ? "▾" : "▸";
+  }
+
+  /** treeState captures a group's selection so a filter rebuild keeps it. */
+  function treeState(ul) {
+    const checked = new Set();
+    const excluded = new Set();
+    ul.querySelectorAll("input[data-cat]:checked").forEach((cb) => checked.add(cb.getAttribute("data-cat")));
+    ul.querySelectorAll('.lcat-facet-not[aria-pressed="true"]').forEach((b) => {
+      excluded.add(b.closest("li").getAttribute("data-lcat-cat"));
+    });
+    return { checked, excluded };
+  }
+
+  function applyTreeState(ul, state) {
+    ul.querySelectorAll("li[data-lcat-cat]").forEach((li) => {
+      const id = li.getAttribute("data-lcat-cat");
+      const cb = li.querySelector("input[data-cat]");
+      if (cb && state.checked.has(id)) cb.checked = true;
+      const not = li.querySelector(".lcat-facet-not");
+      if (not && state.excluded.has(id)) setNot(li, not, true);
+    });
+  }
+
+  /** ancestryOf collects id plus every in-corpus broader ancestor into set. */
+  function ancestryOf(eng, id, set) {
+    let frontier = [id];
+    for (let depth = 0; depth < 12 && frontier.length; depth++) {
+      const next = [];
+      frontier.forEach((v) => {
+        if (set.has(v)) return;
+        set.add(v);
+        (eng.meta[v].broader || []).forEach((b) => {
+          if (eng.meta[b]) next.push(b);
+        });
+      });
+      frontier = next;
+    }
+  }
+
+  /** renderTree fills ul with a scheme's tree: top ROOTS_SHOWN roots when no
+   * filter, else every matching concept (label contains q, over the FULL
+   * vocabulary) with its ancestor chain forced open for context -- the POC's
+   * computeHomoVisible behavior. A selected or excluded concept always stays
+   * rendered (its branch forced open), so a rebuild can never silently drop
+   * an active filter. */
+  function renderTree(eng, scheme, ul, q) {
+    const state = treeState(ul);
+    ul.innerHTML = "";
+    const roots = eng.roots.get(scheme) || [];
+    const active = new Set();
+    state.checked.forEach((id) => {
+      if (eng.meta[id]) ancestryOf(eng, id, active);
+    });
+    state.excluded.forEach((id) => {
+      if (eng.meta[id]) ancestryOf(eng, id, active);
+    });
+    let visible = null; // null = unfiltered: capped roots + active branches
+    if (q) {
+      visible = new Set(active);
+      const needle = q.toLowerCase();
+      let matched = 0;
+      Object.keys(eng.meta).forEach((id) => {
+        if ((eng.meta[id].scheme || "") !== scheme || matched >= MATCHES_SHOWN) return;
+        if (eng.label(id).toLowerCase().indexOf(needle) === -1) return;
+        matched++;
+        ancestryOf(eng, id, visible);
+      });
+    }
+    const addBranch = (id, parent, keep) => {
+      if (visible ? !visible.has(id) : !keep.has(id)) return false;
+      const li = subjectRow(eng, id);
+      parent.appendChild(li);
+      const kids = (eng.children.get(id) || []).filter((k) => (visible ? visible.has(k) : keep.has(k)));
+      if (kids.length) {
+        const kidUl = document.createElement("ul");
+        kidUl.className = "lcat-facet-children";
+        kids.forEach((k) => addBranch(k, kidUl, keep));
+        li.appendChild(kidUl);
+        const caret = li.querySelector(".lcat-facet-caret");
+        if (caret && caret.tagName === "BUTTON") {
+          caret.setAttribute("aria-expanded", "true");
+          caret.textContent = "▾";
+        }
+      }
+      return true;
+    };
+    if (visible) {
+      roots.forEach((r) => addBranch(r, ul, visible));
+    } else {
+      const shown = new Set(roots.slice(0, ROOTS_SHOWN));
+      roots.forEach((r) => {
+        if (active.has(r)) shown.add(r);
+      });
+      roots.forEach((r) => {
+        if (!shown.has(r)) return;
+        if (active.has(r)) addBranch(r, ul, active);
+        else ul.appendChild(subjectRow(eng, r));
+      });
+    }
+    applyTreeState(ul, state);
+  }
+
+  /** wireTreeFilter points a group's type-to-filter at the full vocabulary
+   * (replacing lcat-facets.js's rendered-rows filter for this group). */
+  function wireTreeFilter(eng, scheme, details, ul) {
+    let input = details.querySelector("[data-lcat-facet-filter]");
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "search";
+      input.className = "lcat-facet-filter";
+      input.setAttribute("placeholder", "…");
+      details.insertBefore(input, ul);
+    }
+    // Replacing the node drops lcat-facets.js's rendered-rows listener; the
+    // clone filters the whole vocabulary instead.
+    const clone = input.cloneNode(true);
+    input.replaceWith(clone);
+    clone.addEventListener("input", () => renderTree(eng, scheme, ul, clone.value.trim()));
+  }
+
+  /** treeifySidebar upgrades hydrated subject groups whose scheme carries
+   * broader links into expandable trees over the full vocabulary
+   * (tasks/174). Flat schemes keep their hydrated rows and the fragment's
+   * rendered-rows filter. Idempotent per group. */
+  function treeifySidebar() {
+    return subjectEngine().then((eng) => {
+      document.querySelectorAll(".lcat-facets details").forEach((details) => {
+        if (details.dataset.lcatTree) return;
+        const first = details.querySelector('li[data-lcat-field="subject"]');
+        if (!first) return;
+        const scheme = (eng.meta[first.getAttribute("data-lcat-cat")] || {}).scheme || "";
+        if (!eng.treeSchemes.has(scheme)) return;
+        const ul = details.querySelector("ul");
+        if (!ul) return;
+        details.dataset.lcatTree = "1";
+        renderTree(eng, scheme, ul, "");
+        wireTreeFilter(eng, scheme, details, ul);
+      });
+    });
+  }
+
+  /** panelFlatGroup builds one flat panel group with a full-list filter. */
+  function panelFlatGroup(title, field, cats, display) {
+    const details = document.createElement("details");
+    details.className = "lcat-browse-facet";
+    const summary = document.createElement("summary");
+    summary.textContent = title;
+    details.appendChild(summary);
+    const ul = document.createElement("ul");
+    const fill = (q) => {
+      ul.innerHTML = "";
+      let list = cats.slice().sort((a, b) => b.count - a.count);
+      if (q) {
+        const needle = q.toLowerCase();
+        list = list.filter((c) => display(c.name).toLowerCase().indexOf(needle) !== -1);
+      }
+      list.slice(0, CATS_SHOWN).forEach((c) => {
+        const li = document.createElement("li");
+        const label = document.createElement("label");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.setAttribute("data-field", field);
+        cb.setAttribute("data-cat", c.name);
+        const value = document.createElement("span");
+        value.className = "lcat-facet-value";
+        value.textContent = display(c.name);
+        const count = document.createElement("span");
+        count.className = "lcat-count";
+        count.textContent = String(c.count);
+        label.appendChild(cb);
+        label.appendChild(value);
+        label.appendChild(count);
+        li.appendChild(label);
+        ul.appendChild(li);
+      });
+    };
+    if (cats.length > 10) {
+      const input = document.createElement("input");
+      input.type = "search";
+      input.className = "lcat-facet-filter";
+      input.addEventListener("input", () => fill(input.value.trim()));
+      details.appendChild(input);
+    }
+    fill("");
+    ul.addEventListener("change", refresh);
+    details.appendChild(ul);
+    return details;
   }
 
   /** renderPanel builds the fallback facet panel from the sidecar. Subjects
    * render one group per vocabulary scheme in [params.subjectSchemes] order
-   * with localized labels, like the static rail (tasks/173); other fields
-   * stay one group each. */
+   * with localized labels (tasks/173); a scheme with broader links renders
+   * as an expandable tree, flat schemes as filtered lists (tasks/174). */
   function renderPanel() {
     if (!panel || !facets) return;
     const fields = facets.facets() || [];
     if (!fields.length) return;
-    subjectMeta().then((meta) => {
+    subjectEngine().then((eng) => {
       const cfg = browseConfig();
-      const lang = document.documentElement.lang || "en";
-      const subjectLabel = (id) => {
-        const m = meta[id];
-        return (m && m.labels && (m.labels[lang] || m.labels.en || m.labels[""])) || id;
-      };
-      const html = fields.map((f) => {
+      panel.innerHTML = "";
+      fields.forEach((f) => {
         if (f.field !== "subject") {
-          return panelGroup(f.field, panelRows(f.field, f.cats || [], (n) => n));
+          panel.appendChild(panelFlatGroup(f.field, f.field, f.cats || [], (n) => n));
+          return;
         }
-        // Partition subject categories by scheme: configured schemes first in
-        // config order, unlisted ones after in first-seen order. A single
+        // Partition subject categories by scheme: configured schemes first
+        // in config order, unlisted ones after in first-seen order. A single
         // (or unknown-scheme) vocabulary keeps the one localized group.
         const byScheme = new Map();
         (f.cats || []).forEach((c) => {
-          const scheme = (meta[c.name] && meta[c.name].scheme) || "";
+          const scheme = (eng.meta[c.name] && eng.meta[c.name].scheme) || "";
           if (!byScheme.has(scheme)) byScheme.set(scheme, []);
           byScheme.get(scheme).push(c);
         });
@@ -333,21 +633,25 @@ function start() {
         byScheme.forEach((_, scheme) => {
           if (!order.some((o) => o.scheme === scheme)) order.push({ scheme, name: scheme });
         });
-        return order
-          .map((o) =>
-            panelGroup(
-              order.length > 1 ? o.name || cfg.subjects : cfg.subjects,
-              panelRows(f.field, byScheme.get(o.scheme), subjectLabel),
-            ),
-          )
-          .join("");
+        order.forEach((o) => {
+          const title = order.length > 1 ? o.name || cfg.subjects : cfg.subjects;
+          if (eng.treeSchemes.has(o.scheme)) {
+            const details = document.createElement("details");
+            details.className = "lcat-browse-facet";
+            const summary = document.createElement("summary");
+            summary.textContent = title;
+            details.appendChild(summary);
+            const ul = document.createElement("ul");
+            details.appendChild(ul);
+            renderTree(eng, o.scheme, ul, "");
+            wireTreeFilter(eng, o.scheme, details, ul);
+            panel.appendChild(details);
+          } else {
+            panel.appendChild(panelFlatGroup(title, "subject", byScheme.get(o.scheme), eng.label));
+          }
+        });
       });
-      panel.innerHTML = html.join("");
       panel.hidden = false;
-      if (!panel.dataset.lcatWired) {
-        panel.dataset.lcatWired = "1";
-        panel.addEventListener("change", refresh);
-      }
     });
   }
 

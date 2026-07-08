@@ -1,8 +1,38 @@
 {
   "version": 8,
   "works": [
-    { "id": "wexampleone", "title": "Herculine", "languages": ["fre"], "formats": ["book"], "contributors": [{ "name": "Foucault, Michel" }], "subjects": [{ "id": "s:memoir", "labels": { "en": "Memoirs" }, "scheme": "homosaurus" }], "tags": ["memoir"] },
-    { "id": "wexampletwo", "title": "The House of the Spirits", "languages": ["spa"], "formats": ["ebook"], "contributors": [{ "name": "Allende, Isabel" }], "subjects": [{ "id": "s:fiction", "labels": { "en": "Fiction" }, "scheme": "homosaurus" }, { "id": "f:fiction", "labels": { "en": "Fiction" }, "scheme": "fast" }], "tags": ["fiction"] },
-    { "id": "wexamplethree", "title": "Snow Country", "languages": ["jpn"], "formats": ["book"], "contributors": [{ "name": "Kawabata, Yasunari" }], "subjects": [{ "id": "s:fiction", "labels": { "en": "Fiction" }, "scheme": "homosaurus" }] }
+    {
+      "id": "wexampleone",
+      "title": "Herculine",
+      "languages": ["fre"],
+      "formats": ["book"],
+      "contributors": [{ "name": "Foucault, Michel" }],
+      "subjects": [
+        { "id": "https://homosaurus.org/v3/homoit0000669", "labels": { "en": "Transgender people" }, "scheme": "homosaurus", "broader": ["https://homosaurus.org/v3/homoit0000282"] },
+        { "id": "http://id.worldcat.org/fast/1735592", "labels": { "en": "Transgender people" }, "scheme": "fast" }
+      ],
+      "tags": ["memoir"]
+    },
+    {
+      "id": "wexampletwo",
+      "title": "The House of the Spirits",
+      "languages": ["spa"],
+      "formats": ["ebook"],
+      "contributors": [{ "name": "Allende, Isabel" }],
+      "subjects": [
+        { "id": "https://homosaurus.org/v3/homoit0000282", "labels": { "en": "Gender identity" }, "scheme": "homosaurus" }
+      ],
+      "tags": ["fiction"]
+    },
+    {
+      "id": "wexamplethree",
+      "title": "Snow Country",
+      "languages": ["jpn"],
+      "formats": ["book"],
+      "contributors": [{ "name": "Kawabata, Yasunari" }],
+      "subjects": [
+        { "id": "https://homosaurus.org/v3/homoit0000669", "labels": { "en": "Transgender people" }, "scheme": "homosaurus", "broader": ["https://homosaurus.org/v3/homoit0000282"] }
+      ]
+    }
   ]
 }

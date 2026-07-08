@@ -320,6 +320,32 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .lcat-facets .lcat-count,
 .lcat-browse-facets .lcat-count { flex: none; }
+/* Subject vocabulary trees (tasks/174): expand carets on concepts with
+   narrower terms, children indented under their parent. The leaf spacer
+   keeps siblings aligned. */
+.lcat-facet-caret {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  font: inherit;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--lcat-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.lcat-facet-caret-leaf { cursor: default; }
+.lcat-facets .lcat-facet-children,
+.lcat-browse-facets .lcat-facet-children {
+  flex: 1 0 100%;
+  margin: 0 0 0 1.1rem;
+  padding: 0;
+  list-style: none;
+}
+.lcat-facets li:has(> .lcat-facet-children),
+.lcat-browse-facets li:has(> .lcat-facet-children) { flex-wrap: wrap; }
 /* Fallback facet panel rows (tasks/158): same toggle-row layout as hydrated
    sidebar rows (tasks/173). */
 .lcat-browse-facets ul { list-style: none; margin: 0.5rem 0 0; padding: 0; }

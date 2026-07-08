@@ -37,28 +37,73 @@ const fields = await page.$$eval("#lcat-browse-facets details summary", (els) =>
 check("facet panel renders fields: " + fields.join(","), fields.includes("format") && fields.includes("language"));
 
 // 1a. Subjects group by vocabulary scheme with the configured display names
-//     and localized labels, like the static rail (tasks/173): the fixture
-//     carries homosaurus + fast concepts sharing the label "Fiction".
+//     (tasks/173): homosaurus + fast, no raw "subject" group.
 check(
   "panel groups subjects per scheme (Homosaurus + FAST)",
   fields.includes("Homosaurus") && fields.includes("FAST") && !fields.includes("subject"),
 );
-const subjectLabels = await page.$$eval(
-  '#lcat-browse-facets input[data-field="subject"]',
-  (ins) => ins.map((i) => ({ cat: i.getAttribute("data-cat"), text: i.parentElement.textContent.trim() })),
+
+// 1b. The homosaurus group is a tree (tasks/174): only the root concept
+//     shows, its count rolled up over the subtree (w2 direct + w1/w3 via
+//     the narrower concept = 3).
+await page.$$eval("#lcat-browse-facets details", (ds) => ds.forEach((d) => (d.open = true)));
+await page.waitForSelector("#lcat-browse-facets .lcat-facet-caret", { timeout: 10000 });
+const treeRows = await page.$$eval('#lcat-browse-facets li[data-lcat-field="subject"]', (lis) =>
+  lis.map((li) => ({
+    cat: li.getAttribute("data-lcat-cat"),
+    label: li.querySelector(".lcat-facet-value").textContent,
+    count: li.querySelector(".lcat-count").textContent,
+    nested: !!li.closest("ul.lcat-facet-children"),
+  })),
 );
 check(
-  "panel subject rows show labels, not raw ids",
-  subjectLabels.length === 3 && subjectLabels.every((s) => s.text.startsWith("Fiction") || s.text.startsWith("Memoirs")),
+  "homosaurus tree shows only the root with a rolled-up count of 3",
+  treeRows.filter((r) => !r.nested && r.cat.includes("homosaurus")).length === 1 &&
+    treeRows.some((r) => r.label === "Gender identity" && r.count === "3"),
 );
 
-// 1b. A scheme-grouped subject toggle still filters by the raw id.
-await page.$$eval("#lcat-browse-facets details", (ds) => ds.forEach((d) => (d.open = true)));
-await page.click('#lcat-browse-facets input[data-field="subject"][data-cat="f:fiction"]');
-await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampletwo"]', { timeout: 10000 });
+// 1c. Expanding the root reveals the narrower concept with its own count.
+await page.click('#lcat-browse-facets li[data-lcat-cat$="homoit0000282"] > .lcat-facet-caret');
+await page.waitForSelector('#lcat-browse-facets li[data-lcat-cat$="homoit0000669"]', { timeout: 10000 });
+const child = await page.$eval('#lcat-browse-facets li[data-lcat-cat$="homoit0000669"]', (li) => ({
+  label: li.querySelector(".lcat-facet-value").textContent,
+  count: li.querySelector(".lcat-count").textContent,
+}));
+check("expanding reveals Transgender people (2)", child.label === "Transgender people" && child.count === "2");
+
+// 1d. Selecting the narrower concept filters to its works.
+await page.click('#lcat-browse-facets li[data-lcat-cat$="homoit0000669"] input[data-cat]');
+await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampleone"]', { timeout: 10000 });
 let subjHrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
-check("fast Fiction toggle -> exactly wexampletwo", subjHrefs.length === 1 && subjHrefs[0].includes("wexampletwo"));
-await page.click('#lcat-browse-facets input[data-field="subject"][data-cat="f:fiction"]');
+check(
+  "narrower toggle -> Herculine + Snow Country",
+  subjHrefs.length === 2 && !subjHrefs.some((h) => h.includes("wexampletwo")),
+);
+await page.click('#lcat-browse-facets li[data-lcat-cat$="homoit0000669"] input[data-cat]');
+await page.waitForTimeout(400);
+
+// 1e. The per-group filter searches the full vocabulary and renders matches
+//     under their forced-open ancestors (tasks/174).
+const treeFilter = '#lcat-browse-facets details:has(.lcat-facet-caret) .lcat-facet-filter';
+await page.fill(treeFilter, "transgender");
+await page.waitForTimeout(300);
+const filtered = await page.$$eval(
+  '#lcat-browse-facets details:has(.lcat-facet-caret) li[data-lcat-field="subject"]',
+  (lis) => lis.map((li) => li.querySelector(".lcat-facet-value").textContent),
+);
+check(
+  "tree filter finds the narrower concept with its ancestor for context",
+  filtered.includes("Transgender people") && filtered.includes("Gender identity"),
+);
+await page.fill(treeFilter, "");
+await page.waitForTimeout(300);
+
+// 1f. The fast group stays flat and its toggle filters by raw id.
+await page.click('#lcat-browse-facets input[data-cat$="fast/1735592"]');
+await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampleone"]', { timeout: 10000 });
+subjHrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
+check("fast toggle -> exactly wexampleone", subjHrefs.length === 1 && subjHrefs[0].includes("wexampleone"));
+await page.click('#lcat-browse-facets input[data-cat$="fast/1735592"]');
 await page.waitForTimeout(400);
 
 // 2. Facet-only browse: format=ebook -> exactly the fixture's one ebook work.

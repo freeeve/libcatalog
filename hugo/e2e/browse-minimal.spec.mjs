@@ -103,6 +103,50 @@ await page.waitForTimeout(500);
 const staticAgain = await page.$$eval("#lcat-results li", (lis) => lis.length);
 check("clearing after negatives restores static list", staticAgain === staticLis);
 
+// 9. The hydrated homosaurus group upgrades to a vocabulary tree (tasks/174):
+//    only the root concept renders, count rolled up over the subtree.
+await page.waitForSelector(".lcat-facets .lcat-facet-caret", { timeout: 10000 });
+const sidebarTree = await page.$$eval('.lcat-facets li[data-lcat-cat*="homosaurus.org"]', (lis) =>
+  lis.map((li) => ({
+    label: li.querySelector(".lcat-facet-value").textContent,
+    count: li.querySelector(".lcat-count").textContent,
+    nested: !!li.closest("ul.lcat-facet-children"),
+  })),
+);
+check(
+  "sidebar homosaurus group treeifies to the root (Gender identity, 3)",
+  sidebarTree.length === 1 && !sidebarTree[0].nested && sidebarTree[0].label === "Gender identity" && sidebarTree[0].count === "3",
+);
+
+// 10. Excluding the root subtracts the whole subtree: every fixture work
+//     carries a homosaurus concept at or under it, so nothing survives.
+await page.click('.lcat-facets li[data-lcat-cat$="homoit0000282"] .lcat-facet-not');
+await page.waitForSelector("#lcat-results .lcat-noresults", { timeout: 10000 });
+check("excluding the root excludes descendant-tagged works too", true);
+await page.click('.lcat-facets li[data-lcat-cat$="homoit0000282"] .lcat-facet-not');
+await page.waitForTimeout(500);
+
+// 11. Expanding the root reveals the narrower concept; selecting it filters,
+//     and the selection survives a filter-input rebuild of the tree.
+await page.click('.lcat-facets li[data-lcat-cat$="homoit0000282"] > .lcat-facet-caret');
+await page.click('.lcat-facets li[data-lcat-cat$="homoit0000669"] input[data-cat]');
+await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampleone"]', { timeout: 10000 });
+const sidebarFilter = '.lcat-facets details:has(.lcat-facet-caret) .lcat-facet-filter';
+await page.fill(sidebarFilter, "gender");
+await page.waitForTimeout(300);
+const stillChecked = await page.$eval('.lcat-facets li[data-lcat-cat$="homoit0000669"] input[data-cat]', (cb) => cb.checked);
+let treeHrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
+check(
+  "narrower selection filters results and survives a tree rebuild",
+  stillChecked && treeHrefs.length === 2 && !treeHrefs.some((h) => h.includes("wexampletwo")),
+);
+await page.fill(sidebarFilter, "");
+await page.waitForTimeout(300);
+await page.click('.lcat-facets li[data-lcat-cat$="homoit0000669"] input[data-cat]');
+await page.waitForTimeout(500);
+const staticFinal = await page.$$eval("#lcat-results li", (lis) => lis.length);
+check("clearing the tree selection restores the static list", staticFinal === staticLis);
+
 if (errors.length) console.log("CONSOLE_ERRORS:", errors.slice(0, 5).join(" | "));
 console.log(pass + " passed, " + fail + " failed");
 await browser.close();
