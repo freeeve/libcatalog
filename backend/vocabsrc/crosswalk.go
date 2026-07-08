@@ -39,7 +39,9 @@ func (e *CrosswalkEnricher) Name() string { return "crosswalk-" + e.Target }
 
 // Enrich implements ingest.Enricher: for each work, every controlled
 // subject's match links resolving in the target scheme (and not already on
-// the work) become subject candidates.
+// the work) become subject candidates, and each candidate's skos:broader
+// ancestor chain rides along as standalone term metadata (tasks/178) so
+// hierarchy nodes stay labeled without a work carrying them.
 func (e *CrosswalkEnricher) Enrich(_ context.Context, works []ingest.WorkSummary) ([]ingest.Enrichment, error) {
 	var out []ingest.Enrichment
 	for _, work := range works {
@@ -63,6 +65,15 @@ func (e *CrosswalkEnricher) Enrich(_ context.Context, works []ingest.WorkSummary
 					enrichment.Subjects = append(enrichment.Subjects, bibframe.AuthoritySubject{
 						URI: target.ID, Labels: target.Labels, Broader: target.Broader,
 					})
+					for _, a := range e.Index.Ancestors(e.Target, target.ID) {
+						if seen[a.ID] {
+							continue
+						}
+						seen[a.ID] = true
+						enrichment.Terms = append(enrichment.Terms, bibframe.AuthoritySubject{
+							URI: a.ID, Labels: a.Labels, Broader: a.Broader,
+						})
+					}
 					if confidence < enrichment.Confidence {
 						enrichment.Confidence = confidence
 					}

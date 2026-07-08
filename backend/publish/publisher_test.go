@@ -116,12 +116,17 @@ func TestPublishApproved(t *testing.T) {
 	for _, want := range []string{
 		"<editorial:>", transURI, // controlled subject link
 		"<authority:homosaurus>", "Transgender people", // labels ride along
+		"Gender identity",                // the broader ancestor's description too (tasks/178)
 		"cozy fantasy", bibframe.PredTag, // folk tag
 		"A Book", // feed untouched
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("grain missing %q:\n%s", want, text)
 		}
+	}
+	// The ancestor is description-only: no subject link points at it.
+	if strings.Contains(text, "bibframe/subject> <https://homosaurus.org/v4/homoit0000508>") {
+		t.Fatalf("ancestor linked as a work subject:\n%s", text)
 	}
 	// Worklist drained, etag stamped, audit written, trigger fired.
 	pending, _ := queue.ApprovedUnpublished(t.Context())

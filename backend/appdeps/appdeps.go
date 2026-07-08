@@ -344,8 +344,13 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			if _, taken := enrichSources[src.Name]; taken {
 				continue
 			}
+			// The local vocab index (when the scheme is installed) upgrades
+			// matches to full term descriptions and rides their ancestor
+			// chains along (tasks/178).
+			enr := vocabsrc.NewEnricher(src, nil)
+			enr.Index = deps.Vocab
 			enrichSources[src.Name] = enrich.Source{
-				Enricher: vocabsrc.NewEnricher(src, nil), Mode: enrich.ModeQueue, Scheme: src.Scheme,
+				Enricher: enr, Mode: enrich.ModeQueue, Scheme: src.Scheme,
 			}
 		}
 	}

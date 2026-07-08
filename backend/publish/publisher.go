@@ -165,6 +165,9 @@ func (p *Publisher) applyGroup(grain []byte, workID string, group []suggest.Sugg
 			})
 		case sg.Type == suggest.TypeAdd:
 			grain, err = bibframe.AppendAuthoritySubject(grain, workID, p.authoritySubject(term), term.Scheme)
+			if err == nil {
+				grain, err = bibframe.AppendAuthorityTerms(grain, term.Scheme, p.ancestorTerms(term))
+			}
 		default: // TypeRemove
 			grain, err = p.applyRemoval(grain, workID, term)
 		}
@@ -188,6 +191,22 @@ func (p *Publisher) authoritySubject(term vocab.TermRef) bibframe.AuthoritySubje
 		labels[""] = term.Label
 	}
 	return bibframe.AuthoritySubject{URI: term.ID, Labels: labels}
+}
+
+// ancestorTerms resolves the term's transitive skos:broader chain from the
+// vocabulary index (tasks/178): the descriptions land in the authority graph
+// alongside the subject's own, so the projection can label hierarchy nodes
+// no Work carries directly. Nil without an index or for a root term.
+func (p *Publisher) ancestorTerms(term vocab.TermRef) []bibframe.AuthoritySubject {
+	if p.Vocab == nil {
+		return nil
+	}
+	ancestors := p.Vocab.Ancestors(term.Scheme, term.ID)
+	out := make([]bibframe.AuthoritySubject, 0, len(ancestors))
+	for _, a := range ancestors {
+		out = append(out, bibframe.AuthoritySubject{URI: a.ID, Labels: a.Labels, Broader: a.Broader})
+	}
+	return out
 }
 
 // applyRemoval retracts an editorial-added subject or tag. Removing a

@@ -495,6 +495,55 @@ func TestEnricherReconciles(t *testing.T) {
 	}
 }
 
+// TestEnricherIndexUpgradesTerms covers the local-index arm (tasks/178): a
+// suggest match whose scheme is installed picks up the full term description
+// (multilingual labels, broader edges) and its skos:broader ancestor chain
+// rides along as Enrichment.Terms.
+func TestEnricherIndexUpgradesTerms(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("q") == "zines" {
+			_, _ = w.Write([]byte(`{"hits":[{"uri":"http://id.loc.gov/authorities/subjects/shX","aLabel":"Zines"}]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"hits":[]}`))
+	}))
+	defer srv.Close()
+	const lcshNT = `<http://id.loc.gov/authorities/subjects/shX> <http://www.w3.org/2004/02/skos/core#prefLabel> "Zines"@en <authority:lcsh> .
+<http://id.loc.gov/authorities/subjects/shX> <http://www.w3.org/2004/02/skos/core#prefLabel> "Fanzines"@es <authority:lcsh> .
+<http://id.loc.gov/authorities/subjects/shX> <http://www.w3.org/2004/02/skos/core#broader> <http://id.loc.gov/authorities/subjects/shP> <authority:lcsh> .
+<http://id.loc.gov/authorities/subjects/shP> <http://www.w3.org/2004/02/skos/core#prefLabel> "Periodicals"@en <authority:lcsh> .
+`
+	bs := blob.NewMem()
+	if _, err := bs.Put(t.Context(), "data/authorities/lcsh.nq", []byte(lcshNT), blob.PutOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	ix, err := vocab.Load(t.Context(), bs, "data/authorities/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := Source{
+		Name: "lcsh", Scheme: "lcsh",
+		SuggestFlavor: FlavorSuggest2, SuggestURL: srv.URL, SuggestDataset: "authorities/subjects",
+	}
+	e := NewEnricher(src, &SuggestClient{Client: srv.Client()})
+	e.Index = ix
+	out, err := e.Enrich(context.Background(), []ingest.WorkSummary{{WorkID: "w1", Tags: []string{"Zines"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 1 || len(out[0].Subjects) != 1 {
+		t.Fatalf("enrichments: %+v", out)
+	}
+	subj := out[0].Subjects[0]
+	if subj.Labels["es"] != "Fanzines" || len(subj.Broader) != 1 || subj.Broader[0] != "http://id.loc.gov/authorities/subjects/shP" {
+		t.Fatalf("index-upgraded subject = %+v", subj)
+	}
+	if len(out[0].Terms) != 1 || out[0].Terms[0].URI != "http://id.loc.gov/authorities/subjects/shP" ||
+		out[0].Terms[0].Labels["en"] != "Periodicals" {
+		t.Fatalf("ancestor terms = %+v", out[0].Terms)
+	}
+}
+
 // syntheticDump yields n distinct SKOS prefLabel lines without materializing
 // them -- the memory-bound test's input.
 type syntheticDump struct {

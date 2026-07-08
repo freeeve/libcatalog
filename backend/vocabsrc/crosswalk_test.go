@@ -19,6 +19,10 @@ const crosswalkNT = `<https://homosaurus.org/v4/homoit1> <http://www.w3.org/2004
 <https://homosaurus.org/v4/homoit3> <http://www.w3.org/2004/02/skos/core#prefLabel> "Retired link"@en <authority:homosaurus> .
 <https://homosaurus.org/v4/homoit3> <http://www.w3.org/2004/02/skos/core#closeMatch> <http://id.loc.gov/authorities/subjects/sh3> <authority:homosaurus> .
 <http://id.loc.gov/authorities/subjects/sh1> <http://www.w3.org/2004/02/skos/core#prefLabel> "Gay men"@en <authority:lcsh> .
+<http://id.loc.gov/authorities/subjects/sh1> <http://www.w3.org/2004/02/skos/core#broader> <http://id.loc.gov/authorities/subjects/shParent> <authority:lcsh> .
+<http://id.loc.gov/authorities/subjects/shParent> <http://www.w3.org/2004/02/skos/core#prefLabel> "Gay people"@en <authority:lcsh> .
+<http://id.loc.gov/authorities/subjects/shParent> <http://www.w3.org/2004/02/skos/core#broader> <http://id.loc.gov/authorities/subjects/shGrand> <authority:lcsh> .
+<http://id.loc.gov/authorities/subjects/shGrand> <http://www.w3.org/2004/02/skos/core#prefLabel> "Sexual minorities"@en <authority:lcsh> .
 <http://id.loc.gov/authorities/subjects/sh2> <http://www.w3.org/2004/02/skos/core#prefLabel> "Zines"@en <authority:lcsh> .
 <http://id.loc.gov/authorities/subjects/sh3> <http://www.w3.org/2004/02/skos/core#prefLabel> "Old heading"@en <authority:lcsh> .
 <http://id.loc.gov/authorities/subjects/sh3> <https://github.com/freeeve/libcat/ns#mergedInto> <http://id.loc.gov/authorities/subjects/sh2> <authority:lcsh> .
@@ -67,6 +71,16 @@ func TestCrosswalkEnricher(t *testing.T) {
 	}
 	if got.Subjects[0].URI != "http://id.loc.gov/authorities/subjects/sh1" || got.Subjects[0].Labels["en"] != "Gay men" {
 		t.Fatalf("w1 subject = %+v", got.Subjects[0])
+	}
+	// The candidate's transitive broader chain rides along as standalone
+	// term metadata (tasks/178), nearer ancestor first.
+	if len(got.Terms) != 2 ||
+		got.Terms[0].URI != "http://id.loc.gov/authorities/subjects/shParent" || got.Terms[0].Labels["en"] != "Gay people" ||
+		got.Terms[1].URI != "http://id.loc.gov/authorities/subjects/shGrand" || got.Terms[1].Labels["en"] != "Sexual minorities" {
+		t.Fatalf("w1 ancestor terms = %+v", got.Terms)
+	}
+	if len(got.Terms[0].Broader) != 1 || got.Terms[0].Broader[0] != "http://id.loc.gov/authorities/subjects/shGrand" {
+		t.Fatalf("parent term broader = %+v", got.Terms[0].Broader)
 	}
 }
 

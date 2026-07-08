@@ -6,6 +6,8 @@ import (
 
 	"github.com/freeeve/libcat/bibframe"
 	"github.com/freeeve/libcat/ingest"
+
+	"github.com/freeeve/libcat/backend/vocab"
 )
 
 // Enricher adapts a suggest-capable source to the ingest.Enricher contract
@@ -16,6 +18,11 @@ import (
 type Enricher struct {
 	Src    Source
 	Client *SuggestClient
+	// Index, when set, upgrades each match with the locally-installed term
+	// description (multilingual labels, broader edges) and rides its
+	// skos:broader ancestor chain along as Enrichment.Terms (tasks/178);
+	// a match whose scheme is not installed keeps the suggest-API label.
+	Index *vocab.Index
 	// MinConfidence drops weaker matches. Default 0.9 (exact label only).
 	MinConfidence float64
 }
@@ -76,10 +83,25 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 				continue
 			}
 			seen[hit.sugg.ID] = true
-			enrichment.Subjects = append(enrichment.Subjects, bibframe.AuthoritySubject{
+			subj := bibframe.AuthoritySubject{
 				URI:    hit.sugg.ID,
 				Labels: map[string]string{"en": hit.sugg.Label},
-			})
+			}
+			if e.Index != nil {
+				if t, ok := e.Index.Lookup(hit.sugg.Scheme, hit.sugg.ID); ok {
+					subj = bibframe.AuthoritySubject{URI: t.ID, Labels: t.Labels, Broader: t.Broader}
+					for _, a := range e.Index.Ancestors(hit.sugg.Scheme, t.ID) {
+						if seen[a.ID] {
+							continue
+						}
+						seen[a.ID] = true
+						enrichment.Terms = append(enrichment.Terms, bibframe.AuthoritySubject{
+							URI: a.ID, Labels: a.Labels, Broader: a.Broader,
+						})
+					}
+				}
+			}
+			enrichment.Subjects = append(enrichment.Subjects, subj)
 			if hit.confidence < enrichment.Confidence {
 				enrichment.Confidence = hit.confidence
 			}

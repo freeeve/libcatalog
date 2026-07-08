@@ -304,6 +304,63 @@ func TestPath(t *testing.T) {
 	}
 }
 
+// TestAncestors covers the full-closure walk (tasks/178): unlike Path's one
+// shortest chain, every broader ancestor comes back (polyhierarchy), BFS
+// order, cycle-safe, with unresolvable parents skipped.
+func TestAncestors(t *testing.T) {
+	nq := func(s, p, o string) string {
+		if strings.HasPrefix(o, "http") {
+			return "<" + s + "> <" + p + "> <" + o + "> <authority:t> .\n"
+		}
+		return "<" + s + "> <" + p + "> \"" + o + "\"@en <authority:t> .\n"
+	}
+	const pref = "http://www.w3.org/2004/02/skos/core#prefLabel"
+	const broad = "http://www.w3.org/2004/02/skos/core#broader"
+	data := nq("http://t/root", pref, "Root") +
+		nq("http://t/mid", pref, "Mid") + nq("http://t/mid", broad, "http://t/root") +
+		nq("http://t/alt", pref, "Alt") +
+		nq("http://t/leaf", pref, "Leaf") +
+		nq("http://t/leaf", broad, "http://t/mid") +
+		nq("http://t/leaf", broad, "http://t/alt") +
+		nq("http://t/c1", pref, "C1") + nq("http://t/c1", broad, "http://t/c2") +
+		nq("http://t/c2", pref, "C2") + nq("http://t/c2", broad, "http://t/c1") +
+		nq("http://t/dangling", pref, "Dangling") +
+		nq("http://t/dangling", broad, "http://elsewhere/gone")
+	st := blob.NewMem()
+	if _, err := st.Put(t.Context(), "a/t.nq", []byte(data), blob.PutOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	ix, err := Load(t.Context(), st, "a/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := func(terms []*Term) string {
+		parts := make([]string, len(terms))
+		for i, term := range terms {
+			parts[i] = term.ID
+		}
+		return strings.Join(parts, " ")
+	}
+	// Both parents come back (Path picks one), nearer level first, then the
+	// grandparent; sorted broader lists keep the order deterministic.
+	if got := ids(ix.Ancestors("t", "http://t/leaf")); got != "http://t/alt http://t/mid http://t/root" {
+		t.Fatalf("leaf ancestors = %q", got)
+	}
+	// A cycle yields the other member once, then terminates.
+	if got := ids(ix.Ancestors("t", "http://t/c1")); got != "http://t/c2" {
+		t.Fatalf("cycle ancestors = %q", got)
+	}
+	// Roots, dangling-parent terms, unknown terms/schemes yield nil.
+	for _, id := range []string{"http://t/root", "http://t/dangling", "http://t/nope"} {
+		if got := ix.Ancestors("t", id); got != nil {
+			t.Fatalf("Ancestors(%s) = %v, want nil", id, got)
+		}
+	}
+	if got := ix.Ancestors("nope", "http://t/leaf"); got != nil {
+		t.Fatalf("unknown scheme ancestors = %v", got)
+	}
+}
+
 func TestNormalizeFolk(t *testing.T) {
 	good := map[string]string{
 		"Cozy Fantasy":      "cozy fantasy",

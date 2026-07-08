@@ -691,6 +691,52 @@ func (ix *Index) Path(scheme, id string) []TermRef {
 	return path
 }
 
+// ancestorsDepthCap bounds the Ancestors walk; real vocabularies top out far
+// under it, and a malformed one must not stall a caller.
+const ancestorsDepthCap = 12
+
+// Ancestors returns the term's full transitive skos:broader closure (the
+// term itself excluded), breadth-first so nearer ancestors come first,
+// deterministic (broader lists are sorted at load), cycle-safe, and
+// depth-capped. Unlike Path -- one shortest chain for breadcrumbs -- this is
+// every ancestor: what a consumer materializing hierarchy metadata (ancestor
+// term descriptions on enrichment/publish, tasks/178) needs for
+// polyhierarchical terms. Broader URIs that do not resolve in the scheme are
+// skipped. A root or unknown term yields nil.
+func (ix *Index) Ancestors(scheme, id string) []*Term {
+	snap := ix.load()
+	get := snap.termGetter(scheme)
+	if get == nil {
+		return nil
+	}
+	start, ok := get(id)
+	if !ok || start == nil {
+		return nil
+	}
+	seen := map[string]bool{id: true}
+	var out []*Term
+	frontier := []*Term{start}
+	for depth := 0; depth < ancestorsDepthCap && len(frontier) > 0; depth++ {
+		var next []*Term
+		for _, cur := range frontier {
+			for _, b := range cur.Broader {
+				if seen[b] {
+					continue
+				}
+				seen[b] = true
+				bt, ok := get(b)
+				if !ok || bt == nil {
+					continue
+				}
+				out = append(out, bt)
+				next = append(next, bt)
+			}
+		}
+		frontier = next
+	}
+	return out
+}
+
 // termGetter returns the scheme's term-by-URI accessor, or nil for an
 // unknown scheme. The map path can never fail; the sidecar path reports
 // read failures as misses.
