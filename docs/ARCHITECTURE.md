@@ -313,6 +313,12 @@ registered against an interface, with no plugin ABI.
   `feed:<name>`, or enrich -> editorial/enrichment) and a `Run` that emits an
   `rdf.Dataset`. First-party providers (OverDrive, MARC, OPDS) ship in-tree and
   the default `cmd/lcat` registers them.
+- **Config is the on-ramp; Go is the escape hatch (tasks/172).** The in-tree
+  generic providers -- `marc`, `nquads`, `csv`, the latter two driven by
+  declarative TOML mapping profiles -- cover the common sideload shapes, and
+  `lcat build` orchestrates the whole pipeline from one `lcat.toml`
+  (docs/build-pipeline.md), so a typical adopter never writes or compiles Go.
+  The compile-in seam below remains for genuinely bespoke sources.
 - **Deployment extension.** A deployment with a novel feed writes a Go package
   and a small `main` that composes its own projector --
   `lcat.Run(overdrive.New(), marc.New(), myprovider.New())` -- with explicit

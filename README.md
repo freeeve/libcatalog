@@ -61,6 +61,13 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 [Hardcover](https://hardcover.app) reading shelf, see
 [docs/hardcover-provider.md](docs/hardcover-provider.md).
 
+**Adopters don't write Go.** One `lcat.toml` describes the whole build --
+sources (MARC files, mapped N-Quads/CSV exports, OverDrive), projection with a
+public-provenance allowlist, downloadable exports, search index, Hugo -- and
+`lcat build` runs it end to end. See
+[docs/build-pipeline.md](docs/build-pipeline.md). The Go provider seam stays
+for bespoke sources.
+
 ## Deployment styles
 
 The two tiers unbundle into a ladder of shapes; pick by how much of the

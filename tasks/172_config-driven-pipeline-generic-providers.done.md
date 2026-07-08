@@ -3,6 +3,30 @@
 Left by the queerbooks-demo session 2026-07-08 (uncommitted cross-repo note).
 Eve's framing: "not really expecting implementers of libcat to work on Go."
 
+## Done (2026-07-08, v0.30.0)
+
+All four lcat-verb items and the two generic providers landed, upstreamed
+from qbd against HEAD (the offer below was overtaken -- we ported directly,
+reading qbd read-only):
+
+- `project.Merge` + `lcat project --provider a,b` (first feed wins) and
+  `--public-sources` via `project.SanitizeSources` (empty = keep everything,
+  unlike qbd's hardcoded default -- the allowlist is deployment policy).
+- `lcat export` / the root `export` package: nq/mrc/xml gz artifacts, sha256
+  manifest, ISO 2709 lockstep skip, same allowlist on the nq download.
+- `ingest/nquads`: collnq generalized to a TOML mapping profile (work-IRI
+  prefix, predicate->field, identifier URN schemes, tentative source tiers,
+  language table). `ingest/csvmap`: CSV/TSV column mapping with extras.
+  `lcat ingest` gained `--mapping` / repeatable `--param`.
+- `lcat build`: whole pipeline (ingest -> serialize -> project -> export ->
+  index -> hugo) from `lcat.toml`; `--only` for iteration. Replaced the
+  legacy Phase-0 build verb (superseded since `ingest --provider marc`).
+- Docs: docs/build-pipeline.md (lcat.toml + mapping reference), README,
+  ARCHITECTURE §9a. One new dep: BurntSushi/toml.
+
+A task drop in queerbooks-demo invites qbd to shed its wrappers against
+v0.30.0.
+
 queerbooks-demo's cmd/qbd is the evidence. After a full adoption cycle, its
 inventory splits cleanly:
 
