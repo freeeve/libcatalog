@@ -13,6 +13,13 @@
   site, and i18n. The script tags at the bottom belong in the body, not the
   dispatcher: in shared mode the loader re-activates them after inserting the
   fragment, so a facet feature added here never touches per-page bytes.
+
+  Rows without a term page (the minimal profile disables taxonomy/term kinds,
+  tasks/157) carry data-lcat-field/-cat -- the reader's [field, category]
+  filter pair, category being the raw indexed value (search.BuildBrowse keys
+  subjects by id, everything else by raw value). lcat-browse.js hydrates such
+  rows into toggles driving the client-side reader (tasks/170); without the
+  reader they stay plain text, exactly as before.
 */ -}}
 {{- $facets := "" -}}
 {{- with resources.Get "facets.json" -}}{{- $facets = . | transform.Unmarshal -}}{{- end -}}
@@ -54,7 +61,7 @@
       {{- $label := .id }}{{ with .labels }}{{ $label = or (index . $lang) (index . "en") $label }}{{ end }}
       {{- $key := string (partial "lcat-subject-key.html" (dict "label" $label "scheme" .scheme)) }}
       {{- $url := partial "lcat-term-url.html" (dict "taxonomy" "subjects" "key" $key) }}
-      <li>{{ if $url }}<a href="{{ $url }}"><span class="lcat-facet-value">{{ $label }}</span> <span class="lcat-count">{{ $count }}</span></a>{{ else }}<span class="lcat-facet-value">{{ $label }}</span> <span class="lcat-count">{{ $count }}</span>{{ end }}{{ partial "lcat-facet-exclude.html" (dict "term" $key "url" (string $url)) }}</li>
+      <li{{ if not $url }} data-lcat-field="subject" data-lcat-cat="{{ .id }}"{{ end }}>{{ if $url }}<a href="{{ $url }}"><span class="lcat-facet-value">{{ $label }}</span> <span class="lcat-count">{{ $count }}</span></a>{{ else }}<span class="lcat-facet-value">{{ $label }}</span> <span class="lcat-count">{{ $count }}</span>{{ end }}{{ partial "lcat-facet-exclude.html" (dict "term" $key "url" (string $url)) }}</li>
       {{- end }}
     </ul>
   </details>
@@ -63,11 +70,11 @@
   {{- end -}}
   {{- /* Plain {value,count} dimensions. */ -}}
   {{- $dims := slice
-    (dict "key" "formats" "label" (i18n "formats"))
-    (dict "key" "tags" "label" (i18n "genresAndTags"))
-    (dict "key" "languages" "label" (i18n "languages"))
-    (dict "key" "classifications" "label" (i18n "classifications"))
-    (dict "key" "contributors" "label" (i18n "contributors")) -}}
+    (dict "key" "formats" "label" (i18n "formats") "field" "format")
+    (dict "key" "tags" "label" (i18n "genresAndTags") "field" "tag")
+    (dict "key" "languages" "label" (i18n "languages") "field" "language")
+    (dict "key" "classifications" "label" (i18n "classifications") "field" "classification")
+    (dict "key" "contributors" "label" (i18n "contributors") "field" "contributor") -}}
   {{- range $dims -}}
     {{- $dim := . -}}
     {{- with index $facets $dim.key -}}
@@ -87,7 +94,7 @@
                both keep keying/linking on the raw value. */}}
         {{- $display := .value }}{{ if eq $dim.key "languages" }}{{ $display = partial "lcat-lang-name.html" .value }}{{ else if eq $dim.key "classifications" }}{{ $display = or .label .value }}{{ end }}
         {{- $url := partial "lcat-term-url.html" (dict "taxonomy" $dim.key "key" $key) }}
-        <li>{{ if $url }}<a href="{{ $url }}"><span class="lcat-facet-value">{{ $display }}</span> <span class="lcat-count">{{ .count }}</span></a>{{ else }}<span class="lcat-facet-value">{{ $display }}</span> <span class="lcat-count">{{ .count }}</span>{{ end }}{{ partial "lcat-facet-exclude.html" (dict "term" (string $key) "url" (string $url)) }}</li>
+        <li{{ if not $url }} data-lcat-field="{{ $dim.field }}" data-lcat-cat="{{ .value }}"{{ end }}>{{ if $url }}<a href="{{ $url }}"><span class="lcat-facet-value">{{ $display }}</span> <span class="lcat-count">{{ .count }}</span></a>{{ else }}<span class="lcat-facet-value">{{ $display }}</span> <span class="lcat-count">{{ .count }}</span>{{ end }}{{ partial "lcat-facet-exclude.html" (dict "term" (string $key) "url" (string $url)) }}</li>
         {{- end }}
       </ul>
     </details>
@@ -101,21 +108,32 @@
          string), then the config title, then the humanized name. */ -}}
   {{- range $name, $cfg := (or site.Params.extraFacets dict) -}}
     {{- with index site.Taxonomies $name -}}
+    {{- /* Resolve term pages up front: under the minimal profile none exist
+           (and the reader has no extra-facet field to hydrate against,
+           tasks/170), so the whole group is skipped instead of rendering a
+           heading over an empty list. */ -}}
+    {{- $total := len . -}}
+    {{- $rows := slice -}}
+    {{- range first $facetLimit .ByCount -}}
+      {{- $count := .Count }}{{ $key := .Name -}}
+      {{- with site.GetPage (printf "/%s/%s" $name $key) -}}
+        {{- $rows = $rows | append (dict "page" . "count" $count "key" $key) -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if $rows }}
     <details class="lcat-facet" open>
-      <summary>{{ or (i18n $name) $cfg.title (humanize $name) }} <span class="lcat-facet-total">{{ len . }}</span></summary>
-      {{- if gt (len .) 10 }}
+      <summary>{{ or (i18n $name) $cfg.title (humanize $name) }} <span class="lcat-facet-total">{{ $total }}</span></summary>
+      {{- if gt $total 10 }}
       <input type="search" class="lcat-facet-filter" data-lcat-facet-filter aria-label="{{ i18n "filterFacet" }}" placeholder="{{ i18n "filterFacet" }}">
       {{- end }}
       <ul>
-        {{- range first $facetLimit .ByCount }}
-        {{- $count := .Count }}{{ $key := .Name }}
-        {{- with site.GetPage (printf "/%s/%s" $name $key) }}
-        {{- $label := string (partial "lcat-extra-facet-label.html" .) }}
-        <li><a href="{{ .RelPermalink }}"><span class="lcat-facet-value">{{ $label }}</span> <span class="lcat-count">{{ $count }}</span></a>{{ partial "lcat-facet-exclude.html" (dict "term" $key "url" .RelPermalink) }}</li>
-        {{- end }}
+        {{- range $rows }}
+        {{- $label := string (partial "lcat-extra-facet-label.html" .page) }}
+        <li><a href="{{ .page.RelPermalink }}"><span class="lcat-facet-value">{{ $label }}</span> <span class="lcat-count">{{ .count }}</span></a>{{ partial "lcat-facet-exclude.html" (dict "term" .key "url" .page.RelPermalink) }}</li>
         {{- end }}
       </ul>
     </details>
+    {{- end -}}
     {{- end -}}
   {{- end -}}
 </nav>

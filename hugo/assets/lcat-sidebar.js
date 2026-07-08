@@ -7,8 +7,10 @@
  * inert per the HTML spec, so each executable script tag in the fragment (the
  * type-to-filter, the negatives hydration -- both written to run over the
  * already-rendered DOM) is re-created in place, which does execute; JSON
- * config scripts stay as parsed data. On any fetch failure the host's no-JS
- * fallback links are left in place.
+ * config scripts stay as parsed data. After insertion a lcat:facets-loaded
+ * event tells already-running consumers (lcat-browse.js hydrates unlinked
+ * rows into reader toggles, tasks/170) the sidebar DOM is ready. On any
+ * fetch failure the host's no-JS fallback links are left in place.
  */
 (function () {
   "use strict";
@@ -32,6 +34,7 @@
         live.textContent = inert.textContent;
         inert.parentNode.replaceChild(live, inert);
       });
+      document.dispatchEvent(new CustomEvent("lcat:facets-loaded"));
     })
     .catch(function () {
       /* keep the fallback links */

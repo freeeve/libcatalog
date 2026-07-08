@@ -17,10 +17,15 @@
  *   query + facets      -> RrsCatalog.search(q, ..., filters)
  *   facets only         -> RrfFacets.filterIds(allIds, filters) + records.getMany
  *
- * The facet panel renders from RrfFacets.facets() (meta-only boot: names +
- * full-corpus counts) into the #lcat-browse-facets host the list template
- * emits. Display polish (labels for subject ids, i18n of field names) rides the
- * task-157 sidebar rework.
+ * Facet UI (tasks/170): sidebar rows the templates could not link (the
+ * minimal profile has no term pages) ship data-lcat-field/-cat attributes;
+ * once the reader boots they hydrate into checkbox toggles, making the
+ * i18n'd, scheme-grouped sidebar the facet UI. In shared-sidebar mode the
+ * fragment arrives async, so hydration also runs on the loader's
+ * lcat:facets-loaded event. Only when no such rows exist (term pages present,
+ * or no sidebar at all) does the fallback panel render from
+ * RrfFacets.facets() (names + full-corpus counts) into the
+ * #lcat-browse-facets host the list template emits.
  */
 import init, { RrsCatalog, RrfFacets, RrsRecords } from "/lcat/roaringrange.js";
 
@@ -102,7 +107,7 @@ function start() {
           records = r;
           allIds = new Uint32Array(r.len());
           for (let i = 0; i < allIds.length; i++) allIds[i] = i;
-          renderPanel();
+          if (!adoptSidebar()) renderPanel();
           return true;
         })
         .catch((e) => {
@@ -119,14 +124,52 @@ function start() {
   input.addEventListener("focus", boot, { once: true });
   if (panel) boot();
 
-  /** selected returns the checked [field, category] pairs from the panel. */
+  /** selected returns the checked [field, category] pairs from the panel and
+   * any hydrated sidebar rows. */
   function selected() {
-    if (!panel) return [];
-    return Array.from(panel.querySelectorAll("input:checked")).map((cb) => [
-      cb.getAttribute("data-field"),
-      cb.getAttribute("data-cat"),
-    ]);
+    const boxes = Array.from(panel ? panel.querySelectorAll("input:checked") : []).concat(
+      Array.from(document.querySelectorAll(".lcat-facets input[data-field]:checked")),
+    );
+    return boxes.map((cb) => [cb.getAttribute("data-field"), cb.getAttribute("data-cat")]);
   }
+
+  /** adoptSidebar hydrates unlinked sidebar facet rows (data-lcat-field/-cat,
+   * emitted where no term page exists) into checkbox toggles driving the
+   * reader, and reports whether the sidebar took over as the facet UI --
+   * in which case the duplicate panel is skipped or torn down. Idempotent:
+   * already-hydrated rows are left alone. */
+  function adoptSidebar() {
+    const rows = document.querySelectorAll(".lcat-facets li[data-lcat-field]");
+    if (!rows.length) return false;
+    rows.forEach((li) => {
+      if (li.querySelector("input[data-field]")) return;
+      const label = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.setAttribute("data-field", li.getAttribute("data-lcat-field"));
+      cb.setAttribute("data-cat", li.getAttribute("data-lcat-cat"));
+      label.appendChild(cb);
+      while (li.firstChild) {
+        // The hidden negatives button stays a direct row child; everything
+        // else (value + count spans) moves into the toggle label.
+        if (li.firstChild.classList && li.firstChild.classList.contains("lcat-facet-not")) break;
+        label.appendChild(li.firstChild);
+      }
+      li.insertBefore(label, li.firstChild);
+      li.addEventListener("change", refresh);
+    });
+    if (panel) {
+      panel.innerHTML = "";
+      panel.hidden = true;
+    }
+    return true;
+  }
+
+  // Shared-sidebar mode inserts the fragment after boot may have finished;
+  // hydrate on the loader's signal and drop the panel if it already rendered.
+  document.addEventListener("lcat:facets-loaded", () => {
+    if (facets && adoptSidebar()) refresh();
+  });
 
   function renderPanel() {
     if (!panel || !facets) return;

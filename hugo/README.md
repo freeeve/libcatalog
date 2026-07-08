@@ -426,10 +426,17 @@ disableKinds = ["taxonomy", "term"]   # drop per-term + taxonomy landing pages
   engine = "roaringrange"             # client-side search + facets (above)
 ```
 
-The facet sidebar degrades cleanly (no dead term links are emitted); drop any
-`[[menu.main]]` entries that point at disabled taxonomy landings. Detail pages
-stay in the per-language sitemaps, so works remain crawlable while browse runs
-client-side. The `/works/` list keeps its static pagination as the no-JS path.
+The facet sidebar stays the facet UI (tasks/170): rows that have no term page
+to link render as plain text, and once the reader boots, `lcat-browse.js`
+hydrates them into checkbox toggles that filter the result list in place --
+the same include-filter semantics the reader panel had, now with the sidebar's
+i18n'd headings and scheme grouping. Without JS (or with the reader
+unavailable) the rows stay informative text and nothing regresses. Extra-facet
+groups (`params.extraFacets`) have no reader field, so under this profile they
+are skipped rather than rendered dead. Drop any `[[menu.main]]` entries that
+point at disabled taxonomy landings. Detail pages stay in the per-language
+sitemaps, so works remain crawlable while browse runs client-side. The
+`/works/` list keeps its static pagination as the no-JS path.
 On the reference corpus this profile cuts the exampleSite from 117 built pages
 to 15; at 48k works it removes ~99% of the page count.
 

@@ -72,6 +72,27 @@ test("re-creates executable scripts so hydration runs over the inserted DOM", as
   assert.ok(src.hasAttribute("defer"));
 });
 
+test("announces insertion via lcat:facets-loaded after scripts re-activate", async () => {
+  const dom = page({ status: 200 });
+  const seen = [];
+  dom.window.document.addEventListener("lcat:facets-loaded", () => {
+    seen.push(dom.window.__lcatHydrated);
+  });
+  await settle();
+  // Fired exactly once, and only after the fragment's scripts were live.
+  assert.deepEqual(seen, [1]);
+});
+
+test("a failed fetch never announces lcat:facets-loaded", async () => {
+  const dom = page({ status: 404 });
+  let fired = false;
+  dom.window.document.addEventListener("lcat:facets-loaded", () => {
+    fired = true;
+  });
+  await settle();
+  assert.equal(fired, false);
+});
+
 test("JSON config scripts pass through as parsed data, untouched", async () => {
   const dom = page({ status: 200 });
   await settle();
