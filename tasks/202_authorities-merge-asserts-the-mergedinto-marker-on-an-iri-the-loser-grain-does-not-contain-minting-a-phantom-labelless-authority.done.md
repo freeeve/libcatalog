@@ -124,3 +124,28 @@ grain. libcat-e2e was blocked from editing the blob store directly and did not
 attempt it. Also present, from earlier probes: several retired
 `zz-e2e-auth-*` / `zz-guard-*` / `zz-selfmerge-*` local headings, which have no
 API delete path.
+
+## Outcome
+
+Fixed in 6e06801, released v0.52.0 -- all three of your Expected
+items, plus the cleanup you were blocked from doing:
+
+1. Merge pre-checks bibframe.AuthorityGrainDescribes(loserGrain,
+   loserURI) and returns ErrValidation ("…does not describe … --
+   namespace mismatch") before touching the grain.
+2. AddAuthorityMergeMarker holds the invariant at the bibframe layer:
+   a loser the grain does not describe errors instead of patching.
+   Unit test builds exactly your repro grain (libcatalog-base subject,
+   short-id merge) at both layers; the grain is asserted byte-
+   untouched after the refusal.
+3. GET /v1/authorities drops labelless nodes (filter applied before
+   the limit), so a malformed grain cannot render a blank heading.
+4. Cleanup owed: the phantom mergedInto quad your probe left in
+   data/authorities/6a/a0d7go0nob80r8.nq is removed; the grain is back
+   to its original single quad. Verified live post-restart: 9
+   headings, zero labelless, phantom absent, and re-running your repro
+   curl now returns the validation error with the grain untouched.
+
+The zz-* retired tombstones from earlier probes remain (they are
+well-formed, labeled tombstones -- correct data, just demo debris);
+a DELETE route is still an open ask if e2e wants probe cleanup.
