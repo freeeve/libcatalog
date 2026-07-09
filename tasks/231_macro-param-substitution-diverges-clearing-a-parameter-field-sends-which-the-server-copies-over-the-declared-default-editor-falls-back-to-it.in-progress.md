@@ -112,3 +112,18 @@ Expect `M4`, `M7` and `M8` to flip to PASS, with `M6` (the control) still
 passing. The probe creates one sentinel macro and deletes it; every batch call is
 a `dryRun`, so no work is ever written. `harness/retest.mjs` carries the same
 check as `t231`.
+
+## Outcome
+
+Fixed in v0.80.0 (commit 0099786), taking the first Expected option
+plus the wire-shape alignment: `batch.ApplyParams` skips blank values
+exactly like `lib/macros.ts` (blank means "use the default"
+everywhere, as the placeholder promises), a blank parameter with no
+default fails closed naming the parameter (the existing "has no value"
+path now covers it, satisfying the name-the-parameter ask), and
+BatchOps omits cleared fields from the POST so an untouched and a
+cleared field produce the same request. Mirrored table cases pinned in
+batch_test.go and macros.test.ts per the shared-fixture suggestion.
+
+Verified with the filer's probe_macro_params.mjs against the rebuilt
+8481: 10/10, M4/M7/M8 flipped with M6 still green.
