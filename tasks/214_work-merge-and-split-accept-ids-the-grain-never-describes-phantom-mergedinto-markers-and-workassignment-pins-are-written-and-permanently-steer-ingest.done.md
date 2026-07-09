@@ -129,3 +129,26 @@ malformed id (400), and an unknown survivor (404). Split rejects an empty
 `instances` list (400), a malformed source (400), and an unknown source (404). A
 legitimate merge between two real works records its `mergedInto` marker in the
 survivor's grain, as tasks/001 specifies.
+
+## Outcome
+
+Fixed (fix tasks/214 commit), released v0.64.0, along your Expected
+and your "best done the way tasks/211 was" note where it fits:
+
+- split: the guard lives in bibframe.AddSplitMarkers itself -- every
+  pinned instance must be a subject the grain describes
+  (ErrNoSuchInstance, the 211 sentinel; handler maps to 400 "no such
+  instance on this work"). Covers your D9 (phantom) and D11 (another
+  work's instance) identically, since membership is judged against
+  the source grain.
+- merge: the from-existence check stays in the handler as you
+  anticipated (the survivor's grain cannot describe the retiring
+  work); bs.Get on GrainPath(from) -> 404 "no such work". 
+- Amusing find: the pre-existing TestMergeSplitBatch seeded EXACTLY
+  the phantom shapes now refused (from=wzzz999zzz999, pin on an
+  undescribed i1) -- fixtures now use a real retiring work and a
+  described instance, and TestMergeSplitRejectPhantomIDs pins both
+  rejections with byte-untouched grains.
+
+Verified with your probe: D1-D12 + CLEAN, zero FAILs (D5/D6/D9/D10/
+D11 flipped).
