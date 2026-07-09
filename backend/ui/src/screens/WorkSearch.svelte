@@ -8,8 +8,9 @@
   import { fetchWorks, resolveTermURIs, ApiError, type WorkFilters } from "../lib/api";
   import { getConfig } from "../lib/config";
   import { bindKeys, pushScope, popScope } from "../lib/keyboard";
-  import { navigate } from "../lib/router";
+  import { navigate, parseHash } from "../lib/router";
   import { screenState } from "../lib/screenState.svelte";
+  import { parseWorksQuery, worksHash } from "../lib/worksurl";
   import { sequencer } from "../lib/sequence";
   import { bestLabel } from "../lib/vocab";
   import RowList from "../components/RowList.svelte";
@@ -150,18 +151,40 @@
   let loading = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
 
+  /** Mirrors the current search state into the hash (tasks/219) so a
+   *  reload or a copied link restores it. replaceState keeps the Back
+   *  stack from gaining one entry per keystroke, and it fires no
+   *  hashchange, so the shell never re-routes. */
+  function syncURL(): void {
+    const target = worksHash(st.q, st.filters);
+    if (location.hash !== target) history.replaceState(null, "", target);
+  }
+
   onMount(() => {
     pushScope(SCOPE);
     const unbind = bindKeys(SCOPE, {
       "/": { description: "focus the search box", legend: "search", handler: focusSearch },
       m: { description: "load more results", legend: "more", handler: () => void loadMore() },
     });
-    // A fresh-enough list is reused without refetching, but the subject
-    // label and scheme-hierarchy maps are component state and reset on
-    // every mount -- re-resolve them from the persisted facets or the rail
-    // shows raw term ids after returning from a work (tasks/191).
-    if (Date.now() - st.loadedAt > FRESH_MS) void search(st.q, true);
-    else void labelSubjects(st.facets);
+    // URL state wins over remembered state when the two disagree: a deep
+    // link or a reload restores the linked view (tasks/219). A plain
+    // #/works (the editor's back link, the nav shortcut) keeps whatever
+    // the screen remembers -- and re-publishes it to the hash.
+    const url = parseWorksQuery(parseHash(location.hash).query);
+    if (url && worksHash(url.q, url.filters) !== worksHash(st.q, st.filters)) {
+      st.q = url.q;
+      st.filters = url.filters;
+      void search(st.q, false);
+    } else if (Date.now() - st.loadedAt > FRESH_MS) {
+      void search(st.q, true);
+    } else {
+      // A fresh-enough list is reused without refetching, but the subject
+      // label and scheme-hierarchy maps are component state and reset on
+      // every mount -- re-resolve them from the persisted facets or the
+      // rail shows raw term ids after returning from a work (tasks/191).
+      void labelSubjects(st.facets);
+      syncURL();
+    }
     return () => {
       unbind();
       popScope(SCOPE);
@@ -177,6 +200,7 @@
   /** Runs the search; a refresh keeps the selection pinned to the same
       work id, a new query starts back at the top. */
   async function search(query: string, refresh: boolean): Promise<void> {
+    syncURL();
     const t = seq.take();
     loading = true;
     error = "";
