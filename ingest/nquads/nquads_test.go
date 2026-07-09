@@ -456,3 +456,67 @@ title = ["http://purl.org/dc/terms/title", "http://example.org/title"]`
 		t.Fatalf("fieldFor = %v", ff)
 	}
 }
+
+// TestContributionJunkGate covers the tasks/186 policy: both contribution
+// paths drop copyright-line debris and overlong non-agent "names" (the
+// coll:32780 conference heading), a record whose every agent is junk yields
+// no contributions, and the raw creator literal still feeds the identity
+// author key.
+func TestContributionJunkGate(t *testing.T) {
+	longName := strings.Repeat("Zhendėrėės u̇u̇dėltėĭ ", 8) // > 100 bytes, the conference-heading shape
+	exactly100 := strings.Repeat("a", 100)
+
+	// Creator fallback: junk creators drop; the first SURVIVOR is primary.
+	r := record{w: &work{creators: []string{"© 2011 Somebody", longName, "Ada Author", exactly100}}}
+	got := r.contributions()
+	if len(got) != 2 || got[0].Label != "Author, Ada" || !got[0].Primary || got[1].Primary {
+		t.Fatalf("creator fallback = %+v", got)
+	}
+
+	// Every fallback junk pattern drops; an all-junk record has no
+	// contributions at all.
+	for _, junk := range []string{
+		longName,
+		"© 2011 EMI Records",
+		"1999 EMI Records Ltd.",
+		"All Rights Reserved",
+		"c",
+	} {
+		r := record{w: &work{creators: []string{junk}}}
+		if got := r.contributions(); len(got) != 0 {
+			t.Errorf("creator %q not dropped: %+v", junk, got)
+		}
+	}
+
+	// Mapped-contributor path: same gate, plus the copyright-holder role;
+	// all-junk contributors fall through to a clean creator.
+	r = record{w: &work{
+		contributors: []string{"Jane Doe (Copyright Holder)", longName + " (Author)", "Doe, Jane (Narrator)"},
+	}}
+	got = r.contributions()
+	if len(got) != 1 || got[0].Label != "Doe, Jane" || got[0].Roles[0].Term != "narrator" || !got[0].Primary {
+		t.Fatalf("mapped contributors = %+v", got)
+	}
+	r = record{w: &work{
+		contributors: []string{"Jane Doe (Copyright Holder)"},
+		creators:     []string{"Ada Author"},
+	}}
+	got = r.contributions()
+	if len(got) != 1 || got[0].Label != "Author, Ada" {
+		t.Fatalf("all-junk contributors did not fall back to creator: %+v", got)
+	}
+
+	// The identity author key keeps reading the raw creator literal even
+	// when the gate drops it as a contribution (tasks/186: the drop must
+	// not re-merge distinct works or orphan the key).
+	junkOnly := record{
+		w: &work{group: "32780", creators: []string{longName}},
+		m: &Mapping{}, idScheme: "coll",
+	}
+	if id := junkOnly.Identity(); !strings.Contains(id.Author, "Zhendėrėės") {
+		t.Fatalf("identity author lost the creator literal: %q", id.Author)
+	}
+	if got := junkOnly.contributions(); len(got) != 0 {
+		t.Fatalf("junk-only record grew contributions: %+v", got)
+	}
+}

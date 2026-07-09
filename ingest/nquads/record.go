@@ -2,6 +2,7 @@ package nquads
 
 import (
 	"maps"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -135,12 +136,15 @@ func (r record) Work() codexbf.Work {
 // contributions builds the Work's agents: mapped contributor literals
 // ("Last, First (role)"; first statement primary, role lowercased, default
 // author) when the export carries them, else one author per creator literal
-// as before (tasks/182).
+// as before (tasks/182). Both paths run the junk/length gate (tasks/186): a
+// record whose every agent is debris yields a Work with no contributions --
+// the raw creator literal still feeds the identity author key regardless
+// (Identity reads it directly).
 func (r record) contributions() []codexbf.Contribution {
 	var out []codexbf.Contribution
 	for _, entry := range r.w.contributors {
 		name, role := splitNameRole(strings.TrimSpace(entry))
-		if name == "" {
+		if name == "" || isJunkContributor(name, role) {
 			continue
 		}
 		if role == "" {
@@ -156,19 +160,45 @@ func (r record) contributions() []codexbf.Contribution {
 	if len(out) > 0 {
 		return out
 	}
-	for i, c := range r.w.creators {
+	for _, c := range r.w.creators {
 		c = strings.TrimSpace(c)
-		if c == "" {
+		if c == "" || isJunkContributor(c, "") {
 			continue
 		}
 		out = append(out, codexbf.Contribution{
-			Primary: i == 0,
+			Primary: len(out) == 0,
 			Class:   "Person",
 			Label:   lastFirst(c),
 			Roles:   []codexbf.Role{{Term: "author"}},
 		})
 	}
 	return out
+}
+
+// yearLed matches an agent entry that opens with a bare 4-digit year ("1999",
+// "2011 EMI Records Ltd."), which is copyright-line debris, not an agent.
+var yearLed = regexp.MustCompile(`^\d{4}\b`)
+
+// maxContributorName bounds a single agent label in bytes. A "name" past this
+// bound is a credit list that escaped splitting or a transcribed access point
+// (a 158-byte conference heading, coll:32780), not an agent -- and downstream
+// it becomes a contributor term slug that overflows the 255-byte filename
+// limit when Hugo mints the term page. Mirrors the coll provider's policy
+// (coll-support parse.go), so a feed flip does not grow contributions the old
+// pipeline dropped (tasks/186).
+const maxContributorName = 100
+
+// isJunkContributor reports a "name" that is copyright-line debris or an
+// overlong non-agent rather than a person: a © line, an "All rights
+// reserved" fragment, a copyright-holder credit, or a year-led remnant.
+func isJunkContributor(name, role string) bool {
+	lower := strings.ToLower(name)
+	return role == "copyright holder" ||
+		len(name) > maxContributorName ||
+		strings.Contains(name, "©") ||
+		strings.Contains(lower, "all rights reserved") ||
+		lower == "c" ||
+		yearLed.MatchString(name)
 }
 
 // Instance returns this record's Instance: title, the format's RDA media
