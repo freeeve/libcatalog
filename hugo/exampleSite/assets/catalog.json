@@ -1,212 +1,232 @@
 {
-  "version": 10,
-  "works": [
+ "version": 11,
+ "works": [
+  {
+   "id": "wexampleone",
+   "title": "Herculine",
+   "subtitle": "A Novel",
+   "summary": "An unnamed narrator retreats to a queer commune in the Catskills after a breakup, only to find the property haunted by demons both literal and personal.\n\nA sharp, funny debut about gender, faith, and exorcising what refuses to leave.",
+   "contributors": [
     {
-      "id": "wexampleone",
-      "title": "Herculine",
-      "subtitle": "A Novel",
-      "summary": "An unnamed narrator retreats to a queer commune in the Catskills after a breakup, only to find the property haunted by demons both literal and personal.\n\nA sharp, funny debut about gender, faith, and exorcising what refuses to leave.",
-      "contributors": [
-        {
-          "name": "Byron, Grace",
-          "role": "author"
-        },
-        {
-          "name": "Endres, Nicky",
-          "role": "narrator"
-        }
-      ],
-      "subjects": [
-        {
-          "id": "https://homosaurus.org/v3/homoit0000282",
-          "labels": {
-            "en": "Gender identity"
-          },
-          "scheme": "homosaurus"
-        },
-        {
-          "id": "https://homosaurus.org/v3/homoit0000669",
-          "labels": {
-            "en": "Transgender people",
-            "es": "Personas trans"
-          },
-          "broader": [
-            "https://homosaurus.org/v3/homoit0000282"
-          ],
-          "scheme": "homosaurus"
-        }
-      ],
-      "tags": [
-        "Fiction",
-        "LGBTQ+ books"
-      ],
-      "languages": [
-        "eng"
-      ],
-      "classifications": [
-        {
-          "value": "FIC073000",
-          "label": "Fiction / LGBTQ+ / Transgender"
-        }
-      ],
-      "formats": [
-        "audiobook",
-        "ebook"
-      ],
-      "instances": [
-        {
-          "id": "iexoneaudio",
-          "format": "audiobook",
-          "isbns": [
-            "9781668128251"
-          ],
-          "providerIds": [
-            {
-              "source": "overdrive",
-              "value": "11682058"
-            },
-            {
-              "source": "overdrive-reserve",
-              "value": "24760f5d-028e-4749-968f-85a458a79ad2"
-            }
-          ],
-          "held": true
-        },
-        {
-          "id": "iexoneebook",
-          "format": "ebook",
-          "isbns": [
-            "9781668128244"
-          ],
-          "providerIds": [
-            {
-              "source": "overdrive-reserve",
-              "value": "bbbb2222-cccc-3333-dddd-444455556666"
-            }
-          ],
-          "held": true
-        }
-      ],
-      "held": true,
-      "extra": {
-        "sources": "Mombian, Queer Lit"
-      }
+     "name": "Byron, Grace",
+     "role": "author"
     },
     {
-      "id": "wexampletwo",
-      "title": "The House of the Spirits",
-      "contributors": [
-        {
-          "name": "Allende, Isabel",
-          "role": "author"
-        },
-        {
-          "name": "Kuang, R.F.",
-          "role": "translator"
-        }
-      ],
-      "subjects": [
-        {
-          "id": "https://homosaurus.org/v3/homoit0000669",
-          "labels": {
-            "en": "Transgender people",
-            "es": "Personas trans"
-          },
-          "broader": [
-            "https://homosaurus.org/v3/homoit0000282"
-          ],
-          "scheme": "homosaurus"
-        },
-        {
-          "id": "http://id.worldcat.org/fast/1735592",
-          "labels": {
-            "en": "Transgender people"
-          },
-          "scheme": "fast"
-        }
-      ],
-      "tags": [
-        "Fiction",
-        "Family"
-      ],
-      "languages": [
-        "spa"
-      ],
-      "classifications": [
-        {
-          "value": "FIC000000",
-          "label": "Fiction / General"
-        }
-      ],
-      "formats": [
-        "ebook"
-      ],
-      "instances": [
-        {
-          "id": "iextwoebook",
-          "format": "ebook",
-          "isbns": [
-            "9780553383805"
-          ],
-          "providerIds": [
-            {
-              "source": "overdrive-reserve",
-              "value": "aaaa1111-bbbb-2222-cccc-333344445555"
-            }
-          ],
-          "held": true
-        }
-      ],
-      "held": true,
-      "extra": {
-        "sources": "Mombian"
-      }
-    },
-    {
-      "id": "wexamplethree",
-      "title": "雪国",
-      "subtitle": "Snow Country",
-      "contributors": [
-        {
-          "name": "Kawabata, Yasunari",
-          "role": "author"
-        }
-      ],
-      "tags": [
-        "Fiction"
-      ],
-      "languages": [
-        "jpn"
-      ],
-      "classifications": [
-        {
-          "value": "FIC019000",
-          "label": "Fiction / Literary"
-        }
-      ],
-      "formats": [
-        "ebook"
-      ],
-      "instances": [
-        {
-          "id": "iexthreeebook",
-          "format": "ebook",
-          "isbns": [
-            "9780679761044"
-          ],
-          "providerIds": [
-            {
-              "source": "overdrive-reserve",
-              "value": "cccc3333-dddd-4444-eeee-555566667777"
-            }
-          ],
-          "held": true
-        }
-      ],
-      "held": true,
-      "extra": {
-        "sources": "Queer Books Database, Queer Lit"
-      }
+     "name": "Endres, Nicky",
+     "role": "narrator"
     }
-  ]
+   ],
+   "subjects": [
+    {
+     "id": "https://homosaurus.org/v3/homoit0000282",
+     "labels": {
+      "en": "Gender identity"
+     },
+     "scheme": "homosaurus"
+    },
+    {
+     "id": "https://homosaurus.org/v3/homoit0000669",
+     "labels": {
+      "en": "Transgender people",
+      "es": "Personas trans"
+     },
+     "broader": [
+      "https://homosaurus.org/v3/homoit0000282"
+     ],
+     "scheme": "homosaurus"
+    }
+   ],
+   "tags": [
+    "Fiction",
+    "LGBTQ+ books"
+   ],
+   "languages": [
+    "eng"
+   ],
+   "classifications": [
+    {
+     "value": "FIC073000",
+     "label": "Fiction / LGBTQ+ / Transgender"
+    }
+   ],
+   "formats": [
+    "audiobook",
+    "ebook"
+   ],
+   "instances": [
+    {
+     "id": "iexoneaudio",
+     "format": "audiobook",
+     "isbns": [
+      "9781668128251"
+     ],
+     "providerIds": [
+      {
+       "source": "overdrive",
+       "value": "11682058"
+      },
+      {
+       "source": "overdrive-reserve",
+       "value": "24760f5d-028e-4749-968f-85a458a79ad2"
+      }
+     ],
+     "held": true,
+     "series": [
+      "Example Audio Series"
+     ],
+     "seriesEnumeration": "v. 2"
+    },
+    {
+     "id": "iexoneebook",
+     "format": "ebook",
+     "isbns": [
+      "9781668128244"
+     ],
+     "providerIds": [
+      {
+       "source": "overdrive-reserve",
+       "value": "bbbb2222-cccc-3333-dddd-444455556666"
+      }
+     ],
+     "held": true
+    }
+   ],
+   "held": true,
+   "extra": {
+    "sources": "Mombian, Queer Lit"
+   },
+   "relations": {
+    "hasPart": [
+     {
+      "id": "wexampletwo",
+      "title": "The House of the Spirits"
+     }
+    ]
+   }
+  },
+  {
+   "id": "wexampletwo",
+   "title": "The House of the Spirits",
+   "contributors": [
+    {
+     "name": "Allende, Isabel",
+     "role": "author"
+    },
+    {
+     "name": "Kuang, R.F.",
+     "role": "translator"
+    }
+   ],
+   "subjects": [
+    {
+     "id": "https://homosaurus.org/v3/homoit0000669",
+     "labels": {
+      "en": "Transgender people",
+      "es": "Personas trans"
+     },
+     "broader": [
+      "https://homosaurus.org/v3/homoit0000282"
+     ],
+     "scheme": "homosaurus"
+    },
+    {
+     "id": "http://id.worldcat.org/fast/1735592",
+     "labels": {
+      "en": "Transgender people"
+     },
+     "scheme": "fast"
+    }
+   ],
+   "tags": [
+    "Fiction",
+    "Family"
+   ],
+   "languages": [
+    "spa"
+   ],
+   "classifications": [
+    {
+     "value": "FIC000000",
+     "label": "Fiction / General"
+    }
+   ],
+   "formats": [
+    "ebook"
+   ],
+   "instances": [
+    {
+     "id": "iextwoebook",
+     "format": "ebook",
+     "isbns": [
+      "9780553383805"
+     ],
+     "providerIds": [
+      {
+       "source": "overdrive-reserve",
+       "value": "aaaa1111-bbbb-2222-cccc-333344445555"
+      }
+     ],
+     "held": true
+    }
+   ],
+   "held": true,
+   "extra": {
+    "sources": "Mombian"
+   },
+   "relations": {
+    "partOf": [
+     {
+      "id": "wexampleone",
+      "title": "Herculine"
+     }
+    ]
+   }
+  },
+  {
+   "id": "wexamplethree",
+   "title": "雪国",
+   "subtitle": "Snow Country",
+   "contributors": [
+    {
+     "name": "Kawabata, Yasunari",
+     "role": "author"
+    }
+   ],
+   "tags": [
+    "Fiction"
+   ],
+   "languages": [
+    "jpn"
+   ],
+   "classifications": [
+    {
+     "value": "FIC019000",
+     "label": "Fiction / Literary"
+    }
+   ],
+   "formats": [
+    "ebook"
+   ],
+   "instances": [
+    {
+     "id": "iexthreeebook",
+     "format": "ebook",
+     "isbns": [
+      "9780679761044"
+     ],
+     "providerIds": [
+      {
+       "source": "overdrive-reserve",
+       "value": "cccc3333-dddd-4444-eeee-555566667777"
+      }
+     ],
+     "held": true
+    }
+   ],
+   "held": true,
+   "extra": {
+    "sources": "Queer Books Database, Queer Lit"
+   }
+  }
+ ]
 }

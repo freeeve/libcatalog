@@ -30,6 +30,13 @@ var CoreFields = []string{
 var KnownLoss = map[string]string{
 	"037": "source of acquisition decodes as an 024-shaped identifier (vendor convention)",
 	"084": "other classification number decodes as 072",
+	// Editorial whole/part links (tasks/221/222) have no MARC emission yet:
+	// 773/774 need host-item shaping (title plus a $w record id) that the
+	// grain's bare {#idWork} references do not carry per target. The OPAC
+	// and catalog.json carry the links; MARC exports omit them until a
+	// mapping is designed.
+	"773": "editorial hasPart/partOf links are not yet shaped as host-item entries",
+	"774": "editorial hasPart/partOf links are not yet shaped as constituent-unit entries",
 }
 
 // LossyTag reports whether a tag is on the known-loss table, with the

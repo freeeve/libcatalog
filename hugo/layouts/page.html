@@ -67,6 +67,17 @@
          work-extra.html to render its passthrough extras here. */ -}}
   {{ partial "work-extra.html" . }}
 
+  {{- /* Whole/part cross-links (schema v11, tasks/222): the projector only
+         emits links whose target is in this projection, so every href here
+         resolves to a minted Work page. */ -}}
+  {{ with .Params.relations }}
+  <section class="lcat-relations" aria-labelledby="lcat-rel"><h2 id="lcat-rel">{{ i18n "relatedWorks" }}</h2>
+    <dl class="lcat-meta">
+      {{ with .partOf }}<dt>{{ i18n "partOf" }}</dt><dd>{{ range $i, $r := . }}{{ if $i }}; {{ end }}<a href="{{ printf "/works/%s/" $r.id | relLangURL }}">{{ or $r.title $r.id }}</a>{{ end }}</dd>{{ end }}
+      {{ with .hasPart }}<dt>{{ i18n "contains" }}</dt><dd>{{ range $i, $r := . }}{{ if $i }}; {{ end }}<a href="{{ printf "/works/%s/" $r.id | relLangURL }}">{{ or $r.title $r.id }}</a>{{ end }}</dd>{{ end }}
+    </dl>
+  </section>
+  {{ end }}
 
   {{ with .Params.instances }}
   <section aria-labelledby="lcat-ed"><h2 id="lcat-ed">{{ i18n "editionsAndFormats" }}</h2>
@@ -75,6 +86,8 @@
       <li class="lcat-edition" data-instance="{{ .id }}"{{ with .format }} data-format="{{ . }}"{{ end }}{{ range .providerIds }}{{ if eq .source "overdrive-reserve" }} data-overdrive-reserve="{{ .value }}"{{ end }}{{ end }}>
         {{ with .format }}<span class="lcat-format">{{ . }}</span>{{ end }}
         {{ with .isbns }}<span class="lcat-isbn">{{ i18n "isbn" }} {{ index . 0 }}</span>{{ end }}
+        {{- /* Series statement(s) + enumeration (schema v11, tasks/222). */}}
+        {{ if .series }}<span class="lcat-series">{{ delimit .series "; " }}{{ with .seriesEnumeration }}, {{ . }}{{ end }}</span>{{ end }}
         {{/* Availability is fetched client-side at view time by lcat-availability.js
              (libcat tasks/004), keyed on data-overdrive-reserve above; it fills
              this placeholder in when the site enables [params.availability]. Without

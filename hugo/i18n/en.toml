@@ -44,6 +44,15 @@ other = "Editions & formats"
 [isbn]
 other = "ISBN"
 
+[relatedWorks]
+other = "Related works"
+
+[partOf]
+other = "Part of"
+
+[contains]
+other = "Contains"
+
 [backToAllWorks]
 other = "Back to all works"
 

@@ -41,6 +41,10 @@ const (
 	pMedia            = bfNS + "media"
 	pCarrier          = bfNS + "carrier"
 	pSource           = bfNS + "source"
+	pSeriesStatement  = bfNS + "seriesStatement"
+	pSeriesEnum       = bfNS + "seriesEnumeration"
+	pHasPart          = bfNS + "hasPart"
+	pPartOf           = bfNS + "partOf"
 	classIsbn         = bfNS + "Isbn"
 	pLabel            = rdfsNS + "label"
 	pPrefLabel        = skosNS + "prefLabel"
@@ -80,7 +84,12 @@ const (
 // term plus its transitive skos:broader ancestors, with whatever labels and
 // broader edges the graph carries -- so a consumer can label hierarchy nodes
 // no Work carries directly instead of minting them label-less (tasks/178).
-const SchemaVersion = 10
+// v11 added Work.Relations -- the editorial whole/part links (hasPart/partOf
+// as {id, title}, restricted to works present in this projection) -- and the
+// Instance series statement/enumeration (bf:seriesStatement 490$a,
+// bf:seriesEnumeration 490$v), so the site cross-links parts and shows
+// series lines (tasks/221/222).
+const SchemaVersion = 11
 
 // Catalog is the projected corpus: one record per Work, sorted by id.
 type Catalog struct {
@@ -133,6 +142,23 @@ type Work struct {
 	// (tasks/026). The Hugo module forwards it to page params (tasks/022). Omitted (nil)
 	// when the corpus carries none, so a catalog without extras is unchanged.
 	Extra map[string]string `json:"extra,omitempty"`
+	// Relations are the Work's editorial whole/part links (tasks/221/222),
+	// restricted to works present in this projection -- a link to a
+	// suppressed, tombstoned, or foreign work is omitted rather than
+	// rendered as a dead cross-link.
+	Relations *Relations `json:"relations,omitempty"`
+}
+
+// Relations are a Work's whole/part cross-links (schema v11).
+type Relations struct {
+	HasPart []RelatedWork `json:"hasPart,omitempty"`
+	PartOf  []RelatedWork `json:"partOf,omitempty"`
+}
+
+// RelatedWork is one linked work: its catalog id and display title.
+type RelatedWork struct {
+	ID    string `json:"id"`
+	Title string `json:"title,omitempty"`
 }
 
 // Contributor is an agent's display name and role.
@@ -217,6 +243,11 @@ type Instance struct {
 	// live-availability identifier whose feed still lists the Work (digital,
 	// unless the reconciliation flagged the Work withdrawn) -- tasks/078.
 	Held bool `json:"held,omitempty"`
+	// Series carries the Instance's transcribed series statements
+	// (bf:seriesStatement, 490$a) and SeriesEnumeration its volume/part
+	// within the series (bf:seriesEnumeration, 490$v) -- tasks/221/222.
+	Series            []string `json:"series,omitempty"`
+	SeriesEnumeration string   `json:"seriesEnumeration,omitempty"`
 }
 
 // Item is one holding of an Instance (the minimal bf:Item model, tasks/051).
@@ -547,6 +578,7 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 		cat.Works = append(cat.Works, p.work(w))
 	}
 	sort.Slice(cat.Works, func(i, j int) bool { return cat.Works[i].ID < cat.Works[j].ID })
+	resolveRelations(cat.Works)
 	cat.Terms = p.termSideband(cat.Works)
 	return cat, nil
 }
@@ -651,6 +683,7 @@ func (p *projector) work(w rdf.Term) Work {
 	wk.Instances = p.instances(w)
 	wk.Formats = formatUnion(wk.Instances)
 	wk.Extra = p.extras[w.Value]
+	wk.Relations = p.relations(w)
 	for _, inst := range wk.Instances {
 		if inst.Held {
 			wk.Held = true
@@ -736,6 +769,61 @@ func (p *projector) contributors(w rdf.Term) []Contributor {
 		out[i] = e.c
 	}
 	return out
+}
+
+// relations collects the Work's editorial whole/part link targets as raw
+// ids (tasks/221/222); Project() resolves display titles and drops targets
+// absent from the projection in a post-pass over the built catalog, so a
+// link to a suppressed or tombstoned work never renders as a dead
+// cross-link.
+func (p *projector) relations(w rdf.Term) *Relations {
+	collect := func(pred string) []RelatedWork {
+		var out []RelatedWork
+		for _, t := range p.view.Objects(w, pred) {
+			if !t.IsIRI() || !strings.HasPrefix(t.Value, "#") || !strings.HasSuffix(t.Value, "Work") {
+				continue
+			}
+			if id := fragID(t.Value, "Work"); id != "" {
+				out = append(out, RelatedWork{ID: id})
+			}
+		}
+		sort.Slice(out, func(a, b int) bool { return out[a].ID < out[b].ID })
+		return out
+	}
+	hasPart, partOf := collect(pHasPart), collect(pPartOf)
+	if len(hasPart)+len(partOf) == 0 {
+		return nil
+	}
+	return &Relations{HasPart: hasPart, PartOf: partOf}
+}
+
+// resolveRelations is the post-pass: titles from the projection itself, and
+// links to works outside it dropped.
+func resolveRelations(works []Work) {
+	titles := make(map[string]string, len(works))
+	for _, w := range works {
+		titles[w.ID] = w.Title
+	}
+	keep := func(links []RelatedWork) []RelatedWork {
+		var out []RelatedWork
+		for _, l := range links {
+			if title, ok := titles[l.ID]; ok {
+				l.Title = title
+				out = append(out, l)
+			}
+		}
+		return out
+	}
+	for i := range works {
+		r := works[i].Relations
+		if r == nil {
+			continue
+		}
+		r.HasPart, r.PartOf = keep(r.HasPart), keep(r.PartOf)
+		if len(r.HasPart)+len(r.PartOf) == 0 {
+			works[i].Relations = nil
+		}
+	}
 }
 
 // subjectsAndTags splits a Work's bf:subject objects (across the feed and editorial
@@ -1006,6 +1094,13 @@ func (p *projector) instances(w rdf.Term) []Instance {
 			return pids[a].Value < pids[b].Value
 		})
 		i.ISBNs, i.ProviderIDs = isbns, pids
+		for _, s := range p.view.Objects(inst, pSeriesStatement) {
+			if s.IsLiteral() && s.Value != "" {
+				i.Series = append(i.Series, s.Value)
+			}
+		}
+		sort.Strings(i.Series)
+		i.SeriesEnumeration, _ = p.view.Literal(inst, pSeriesEnum)
 		i.Items = p.items(inst)
 		i.Held = len(i.Items) > 0
 		if !i.Held && !withdrawn {

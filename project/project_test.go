@@ -461,6 +461,54 @@ _:s1 <http://www.w3.org/2000/01/rdf-schema#label> "A haunting debut novel." <fee
 	}
 }
 
+// TestRelationsAndSeries covers tasks/222 (schema v11): editorial
+// whole/part links project as {id, title} restricted to the projection --
+// a link to a suppressed work is dropped -- and instance series
+// statement/enumeration carry through.
+func TestRelationsAndSeries(t *testing.T) {
+	const nq = `<#waaWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+<#waaWork> <http://id.loc.gov/ontologies/bibframe/title> _:ta <feed:overdrive> .
+_:ta <http://id.loc.gov/ontologies/bibframe/mainTitle> "The Whole" <feed:overdrive> .
+<#waaWork> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#iaaInstance> <feed:overdrive> .
+<#iaaInstance> <http://id.loc.gov/ontologies/bibframe/instanceOf> <#waaWork> <feed:overdrive> .
+<#iaaInstance> <http://id.loc.gov/ontologies/bibframe/seriesStatement> "Big Series" <editorial:> .
+<#iaaInstance> <http://id.loc.gov/ontologies/bibframe/seriesEnumeration> "v. 2" <editorial:> .
+<#waaWork> <http://id.loc.gov/ontologies/bibframe/hasPart> <#wbbWork> <editorial:> .
+<#waaWork> <http://id.loc.gov/ontologies/bibframe/hasPart> <#whiddenWork> <editorial:> .
+<#wbbWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+<#wbbWork> <http://id.loc.gov/ontologies/bibframe/title> _:tb <feed:overdrive> .
+_:tb <http://id.loc.gov/ontologies/bibframe/mainTitle> "The Part" <feed:overdrive> .
+<#wbbWork> <http://id.loc.gov/ontologies/bibframe/partOf> <#waaWork> <editorial:> .
+<#whiddenWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+<#whiddenWork> <https://github.com/freeeve/libcat/ns#suppressed> "true" <editorial:> .
+`
+	cat, err := Project([]byte(nq), "overdrive")
+	if err != nil {
+		t.Fatalf("Project: %v", err)
+	}
+	byID := map[string]Work{}
+	for _, w := range cat.Works {
+		byID[w.ID] = w
+	}
+	whole := byID["waa"]
+	if whole.Relations == nil || len(whole.Relations.HasPart) != 1 ||
+		whole.Relations.HasPart[0] != (RelatedWork{ID: "wbb", Title: "The Part"}) {
+		t.Fatalf("whole relations = %+v (suppressed target must drop, title must resolve)", whole.Relations)
+	}
+	part := byID["wbb"]
+	if part.Relations == nil || len(part.Relations.PartOf) != 1 ||
+		part.Relations.PartOf[0] != (RelatedWork{ID: "waa", Title: "The Whole"}) {
+		t.Fatalf("part relations = %+v", part.Relations)
+	}
+	inst := whole.Instances[0]
+	if !reflect.DeepEqual(inst.Series, []string{"Big Series"}) || inst.SeriesEnumeration != "v. 2" {
+		t.Fatalf("series = %v / %q", inst.Series, inst.SeriesEnumeration)
+	}
+	if _, ok := byID["whidden"]; ok {
+		t.Fatal("suppressed work projected")
+	}
+}
+
 // TestSkolemSubjectIsTag covers tasks/218: a labeled grain-local fragment
 // node under bf:subject (the editor's -ed- skolem write shape) projects as
 // an uncontrolled tag, never as a controlled subject with a forged URI.
