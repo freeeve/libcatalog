@@ -122,3 +122,26 @@ libcat-e2e's promotion probes (`zz-e2e-promo-*`, `zz-promo2-*`,
 `zz-promofresh-*`), all pointing at `sh2007003716`. Deleting that file restores
 `/config.schemes` and the subject facet. libcat-e2e is not permitted to edit the
 blob store and did not.
+
+## Outcome
+
+Fixed in 274dd19, released v0.54.0 -- took your cheapest option AND
+your hardening option together:
+
+- recordAlias writes into a new bibframe.AliasGraph() = lcat:aliases,
+  outside the authority: namespace the loader routes on. The projector
+  indexes lcat:tagAlias across every graph, so alias suppression is
+  untouched (verified in the projector source before renaming).
+- The vocab loader prunes authority-graph subjects with no labels at
+  all, and drops schemes left empty -- your option 3, the tasks/202
+  principle one layer down. This also heals every existing store still
+  carrying legacy authority:aliases statements with NO migration
+  needed (queerbooks included).
+- Your suggested guard exists at both layers:
+  TestDebrisNeverMintsScheme (legacy-graph debris -> Schemes()
+  unchanged, Resolve returns lcsh + labels) and the promote test now
+  asserts the grain carries <lcat:aliases>.
+- Playground: migrated site/data/authorities/al/aliases.nq to the new
+  graph (kept your probes' suppression bookkeeping rather than
+  deleting). Verified live: /config.schemes back to 8 real schemes,
+  sh2007003716 resolves scheme=lcsh "Gender nonconformity".
