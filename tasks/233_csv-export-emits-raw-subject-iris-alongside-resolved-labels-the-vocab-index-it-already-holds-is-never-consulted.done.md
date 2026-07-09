@@ -112,3 +112,55 @@ Expect `X3` (no raw IRIs in the subjects column) to flip to PASS, with `X4`
 (unresolvable IRIs still emitted, not dropped) staying green. The probe only
 issues an export and reads it back; it writes nothing to the catalog.
 `harness/retest.mjs` carries the same check as `t233`.
+
+## Outcome
+
+Shipped in **v0.83.0**. The diagnosis was exact, down to the line numbers, and
+the recommended resolution order is what shipped.
+
+### The fix
+
+`backend/export/run.go` -- `emitCSV`'s inline label pick becomes
+`(*Service).subjectLabel(subj)`, a three-step fallback:
+
+1. `vocab.PickLabel(subj.Labels)` -- the grain's own `skos:prefLabel`.
+2. `s.Vocab.Resolve(subj.ID)` then `PickLabel` on the term's labels -- the
+   loaded index, the same lookup `GET /v1/terms/resolve` performs, so the
+   homosaurus release-variant handling (tasks/188) comes along for free.
+3. `subj.ID` -- the IRI, as the last resort rather than the default.
+
+Step 3 is the decision the task left open, taken as recommended: **an
+unresolvable term stays visible as its URL rather than being dropped.** A
+subject that no index knows is a gap in the vocabulary load, and hiding it
+from the export would hide the gap. `s.Vocab` stays optional throughout -- nil
+skips step 2, so a deployment with no vocabulary loaded exports exactly as it
+did before, which the test pins explicitly rather than assuming.
+
+The machine-readable formats are untouched: N-Quads and JSON-LD still carry
+IRIs, as `X5` asserts.
+
+### Contributors: no leak to fix
+
+The task flagged `contributors` as an unchecked path. Checked: it cannot leak
+an IRI. `project.Contributor` carries `Name`/`Role` and no ID field, and the
+projector (`project.go:738-741`) reads the agent's `rdfs:label` and **skips
+the contributor entirely when that literal is empty** -- so an unlabeled agent
+produces no cell content rather than a URL. Classifications are likewise safe:
+they fall back to `cl.Value`, a scheme code, never an IRI. `subjects` was the
+only column that could render a URI, because it is the only one projected as a
+reference rather than a resolved literal.
+
+### Verification
+
+- `TestExportCSVResolvesSubjectLabels` (new, `backend/export/csv_subjects_test.go`):
+  a grain with three controlled subjects -- one labeled in the grain, one
+  labeled only in the index, one labeled nowhere -- exports as
+  `Zines; Graphic novels; https://example.org/auth/unknown`. The same service
+  with `Vocab = nil` re-exports and asserts the index-only label does *not*
+  appear while the grain's own label does, so the test fails if the resolution
+  branch is removed **or** if the nil-index path regresses.
+- `go test ./...` green in both modules.
+- The filer's `harness/probe_export_csv.mjs` against the rebuilt 8481:
+  **5/5**, `X3` flipped -- `0 raw IRI value(s) vs 17 label(s); 0 row(s) mix
+  both` (was 15 IRIs vs 2 labels, 1 mixed row).
+- `harness/retest.mjs`: **233 FIXED**, no regressions.
