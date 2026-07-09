@@ -68,6 +68,15 @@ export class ApiError extends Error {
   }
 }
 
+/** A cataloger-facing message for a failed call: service-internal prefixes
+ *  ("batch: invalid request:") never escape to the UI (tasks/197); anything
+ *  that is not an ApiError gets the caller's fallback copy. */
+export function humanApiMessage(e: unknown, fallback: string): string {
+  if (!(e instanceof ApiError)) return fallback;
+  const msg = e.message.replace(/^[a-z]+: (invalid request: )?/, "").trim();
+  return msg ? msg.charAt(0).toUpperCase() + msg.slice(1) : fallback;
+}
+
 /** A 412 from an If-Match write: the record moved underneath the client.
  *  Carries the fresh state so the editor can rebase deliberately. */
 export class ConflictError extends ApiError {

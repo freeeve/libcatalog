@@ -6,7 +6,7 @@
   // success/failure reporting.
   import { onMount } from "svelte";
   import {
-    ApiError,
+    humanApiMessage,
     createSavedQuery,
     deleteSavedQuery,
     fetchMacros,
@@ -124,7 +124,7 @@
     } catch (e) {
       matched = null;
       preview = [];
-      error = e instanceof ApiError ? e.message : "resolve failed";
+      error = humanApiMessage(e, "resolve failed");
     } finally {
       busy = false;
     }
@@ -150,7 +150,7 @@
       }
     } catch (e) {
       result = null;
-      error = e instanceof ApiError ? e.message : "batch run failed";
+      error = humanApiMessage(e, "batch run failed");
     } finally {
       busy = false;
     }

@@ -5,7 +5,7 @@
   // and the batch screen deep-link here with the selection prefilled
   // (#/exports?kind=search&q=…).
   import { onMount } from "svelte";
-  import { ApiError, createAuthorityExport, createExport, fetchSavedQueries, resolveBatch, fetchExports } from "../lib/api";
+  import { humanApiMessage, createAuthorityExport, createExport, fetchSavedQueries, resolveBatch, fetchExports } from "../lib/api";
   import { getConfig } from "../lib/config";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import type { ExportFormat, ExportJob, SavedQuery, Selection } from "../lib/types";
@@ -34,7 +34,12 @@
   // Prefill props are deliberately consumed once at mount (the route keys a
   // fresh mount per deep link).
   // svelte-ignore state_referenced_locally
-  let kind = $state<Selection["kind"]>(initialKind === "ids" || initialKind === "all" || initialKind === "savedQuery" ? initialKind : "search");
+  // Entire catalog is the default: valid by construction, matching how
+  // "Export these results…" arrives with no query (tasks/197). Deep links
+  // still pick their own kind.
+  let kind = $state<Selection["kind"]>(
+    initialKind === "ids" || initialKind === "search" || initialKind === "savedQuery" ? initialKind : "all",
+  );
   // svelte-ignore state_referenced_locally
   let query = $state(initialQuery);
   // svelte-ignore state_referenced_locally
@@ -59,6 +64,21 @@
   const SCOPE = "exports";
 
   const formatNote = $derived(FORMATS.find((f) => f.value === format)?.note ?? "");
+  // The reason the current selection cannot run, or "" when it can --
+  // Preview/Export disable on it instead of round-tripping a 400 (tasks/197).
+  const selectionGap = $derived.by(() => {
+    if (target === "authorities") return "";
+    switch (kind) {
+      case "search":
+        return query.trim() === "" ? "enter a search, or choose Entire catalog" : "";
+      case "ids":
+        return idsText.trim() === "" ? "paste one or more work ids" : "";
+      case "savedQuery":
+        return savedQueryId === "" ? "pick a saved query" : "";
+      default:
+        return "";
+    }
+  });
   const hasActive = $derived(jobs.some((j) => j.status === "QUEUED" || j.status === "RUNNING"));
 
   // CSV has no authority shape; switching targets steers off it.
@@ -127,7 +147,7 @@
       matched = (await resolveBatch(selection())).matched;
     } catch (e) {
       matched = null;
-      error = e instanceof ApiError ? e.message : "selection preview failed";
+      error = humanApiMessage(e, "selection preview failed");
     }
   }
 
@@ -154,7 +174,7 @@
           : "export queued -- the worker picks it up shortly";
       await refresh();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "creating the export failed";
+      error = humanApiMessage(e, "creating the export failed");
     } finally {
       busy = false;
     }
@@ -234,9 +254,9 @@
           {/each}
         </select>
       {/if}
-      <button class="button button--quiet" onclick={() => void preview()}>Preview</button>
+      <button class="button button--quiet" onclick={() => void preview()} disabled={selectionGap !== ""}>Preview</button>
       <span class="muted" aria-live="polite">
-        {#if matched !== null}{matched} work{matched === 1 ? "" : "s"}{/if}
+        {#if selectionGap}{selectionGap}{:else if matched !== null}{matched} work{matched === 1 ? "" : "s"}{/if}
       </span>
     </div>
     {#if kind === "ids"}
@@ -261,7 +281,7 @@
     </p>
 
     <p class="actions">
-      <button class="button" onclick={() => void submit()} disabled={busy}>Export</button>
+      <button class="button" onclick={() => void submit()} disabled={busy || selectionGap !== ""}>Export</button>
       <span aria-live="polite">
         {#if status}<span class="ok">{status}</span>{/if}
         {#if error}<span class="error">{error}</span>{/if}
