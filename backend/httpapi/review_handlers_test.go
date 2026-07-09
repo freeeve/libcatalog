@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/freeeve/libcat/backend/auth"
 	"github.com/freeeve/libcat/backend/store"
@@ -126,6 +128,43 @@ func TestModerationFlow(t *testing.T) {
 	_ = json.Unmarshal(rec.Body.Bytes(), &audit)
 	if len(audit.Entries) != 2 {
 		t.Fatalf("audit entries = %+v", audit.Entries)
+	}
+}
+
+// TestMonthDefaultsToCurrentUTC covers tasks/234: on the month-keyed staff
+// reports an absent month means "this month", while a malformed one still
+// refuses. Absent and wrong are different answers, not the same 400.
+func TestMonthDefaultsToCurrentUTC(t *testing.T) {
+	h, _ := newModerationAPI(t)
+	now := time.Now().UTC().Format("2006-01")
+
+	for _, path := range []string{"/v1/stats", "/v1/audit"} {
+		rec := doJSON(t, h, http.MethodGet, path, "lib-token", nil)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET %s with no month = %d %s", path, rec.Code, rec.Body)
+		}
+		var body struct {
+			Month string `json:"month"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+			t.Fatal(err)
+		}
+		if body.Month != now {
+			t.Errorf("GET %s defaulted to month %q, want the current UTC month %q", path, body.Month, now)
+		}
+		// Wrong is still wrong, and the message shows the shape.
+		rec = doJSON(t, h, http.MethodGet, path+"?month=nope", "lib-token", nil)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("GET %s?month=nope = %d, want 400", path, rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "month=2026-07") {
+			t.Errorf("GET %s?month=nope error names no example: %s", path, rec.Body)
+		}
+		// An empty value reads as absent -- ?month= is what a form with a
+		// cleared field sends, and it means the same thing as omitting it.
+		if rec := doJSON(t, h, http.MethodGet, path+"?month=", "lib-token", nil); rec.Code != http.StatusOK {
+			t.Errorf("GET %s?month= (empty) = %d, want the default", path, rec.Code)
+		}
 	}
 }
 

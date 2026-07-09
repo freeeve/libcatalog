@@ -6,6 +6,7 @@ import (
 	"maps"
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/freeeve/libcat/backend/auth"
 	"github.com/freeeve/libcat/backend/publish"
@@ -14,6 +15,23 @@ import (
 )
 
 var monthPattern = regexp.MustCompile(`^\d{4}-\d{2}$`)
+
+// requestMonth reads the month=YYYY-MM query parameter shared by the audit
+// and stats reports, defaulting to the current UTC month when it is absent
+// (tasks/234). A month-keyed staff report almost always wants "this month",
+// and requiring the parameter bought nothing but a round trip to a 400. The
+// distinction is between absent and wrong: a malformed value still refuses,
+// naming the format and an example.
+func requestMonth(r *http.Request) (string, bool) {
+	switch month := r.URL.Query().Get("month"); {
+	case month == "":
+		return time.Now().UTC().Format("2006-01"), true
+	case monthPattern.MatchString(month):
+		return month, true
+	default:
+		return "", false
+	}
+}
 
 // registerReview mounts the staff moderation surface: the queue, batch
 // review, manual/folk term governance, publishing, and the audit trail.
@@ -150,9 +168,9 @@ func registerReview(mux *http.ServeMux, svc *suggest.Service, verifier auth.Toke
 	})))
 
 	mux.Handle("GET /v1/audit", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		month := r.URL.Query().Get("month")
-		if !monthPattern.MatchString(month) {
-			writeError(w, http.StatusBadRequest, "month must be YYYY-MM")
+		month, ok := requestMonth(r)
+		if !ok {
+			writeError(w, http.StatusBadRequest, "month must be YYYY-MM, e.g. month=2026-07")
 			return
 		}
 		entries, err := svc.Audit(r.Context(), month)
@@ -176,9 +194,9 @@ func registerReview(mux *http.ServeMux, svc *suggest.Service, verifier auth.Toke
 	})))
 
 	mux.Handle("GET /v1/stats", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		month := r.URL.Query().Get("month")
-		if !monthPattern.MatchString(month) {
-			writeError(w, http.StatusBadRequest, "month must be YYYY-MM")
+		month, ok := requestMonth(r)
+		if !ok {
+			writeError(w, http.StatusBadRequest, "month must be YYYY-MM, e.g. month=2026-07")
 			return
 		}
 		stats, err := svc.Stats(r.Context(), month)

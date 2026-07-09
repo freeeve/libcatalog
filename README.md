@@ -57,8 +57,9 @@ Because the BIBFRAME graph is the contract between them, **Tier 1 runs with zero
 Tier 2.**
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
-[docs/ROADMAP.md](docs/ROADMAP.md). For building a catalog from a
-[Hardcover](https://hardcover.app) reading shelf, see
+[docs/ROADMAP.md](docs/ROADMAP.md). The Tier 2 HTTP surface is enumerated in
+[docs/api.md](docs/api.md), generated from the router. For building a catalog
+from a [Hardcover](https://hardcover.app) reading shelf, see
 [docs/hardcover-provider.md](docs/hardcover-provider.md).
 
 **Adopters don't write Go.** One `lcat.toml` describes the whole build --
