@@ -156,7 +156,12 @@
       "/": { description: "focus the search box", legend: "search", handler: focusSearch },
       m: { description: "load more results", legend: "more", handler: () => void loadMore() },
     });
+    // A fresh-enough list is reused without refetching, but the subject
+    // label and scheme-hierarchy maps are component state and reset on
+    // every mount -- re-resolve them from the persisted facets or the rail
+    // shows raw term ids after returning from a work (tasks/191).
     if (Date.now() - st.loadedAt > FRESH_MS) void search(st.q, true);
+    else void labelSubjects(st.facets);
     return () => {
       unbind();
       popScope(SCOPE);
