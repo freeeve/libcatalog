@@ -2,6 +2,21 @@
 
 Filed from libcat on 2026-07-09 (cross-repo ask).
 
+## Outcome
+
+Fixed in v0.74.0 (commit 779644d), exactly per the diagnosis: pick()
+and the clipboard readers snapshot before cloning (clipPush too,
+defensively -- callers can hand a proxy), and loadTemplates no longer
+reports a load failure for an error thrown after a 200 (pick() moved
+out of the fetch's try). Regression tests: clipboard push/peek/at
+round-trip including a real $state-proxy push (via screenState).
+
+Verified with the filer's probe_newrecord.mjs against the rebuilt
+8481: 8/8 PASS, including N8's cut-then-paste restoring the 008. (An
+initial N4 fail was a batch-count race against this session's own
+leftover verification batch, not the server: a refused stage was
+confirmed batch-less by direct API check, and the rerun passes.)
+
 ## Symptom
 
 Two cataloger-facing surfaces are dead, both from the same call. Measured on the
