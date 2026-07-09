@@ -10,9 +10,9 @@ package bibframe
 // publication, extent, carrier, summary, subjects, genre, and access link an
 // adopter judges fidelity by. A regression breaks the build.
 var CoreFields = []string{
-	"001", "006", "007", "008", "020", "100", "245", "250", "260", "300",
-	"306", "336", "337", "338", "347", "490", "500", "511", "520", "521",
-	"533", "538", "650", "655", "700", "776", "856",
+	"001", "006", "007", "008", "020", "040", "100", "245", "250", "260",
+	"300", "306", "336", "337", "338", "347", "490", "500", "511", "520",
+	"521", "533", "538", "650", "655", "700", "776", "856",
 }
 
 // KnownLoss maps each tag that does NOT survive the round-trip to why --
@@ -23,9 +23,12 @@ var CoreFields = []string{
 // (tasks/055), and v0.12.0 finished 006/007 (tasks/056). These tags are what
 // the lcat:marcVerbatim sidecar stores at MARC ingest so exports and the
 // MARC view can reproduce the original forms (tasks/049).
+// (libcodex v0.18.0 moved 040 to CoreFields: bf:AdminMetadata models the
+// agency chain and an internal marcKey note carries the field exactly, so
+// cataloging source is a modeled field again -- record-level provenance
+// beside, not instead of, the named graphs; tasks/192/194.)
 var KnownLoss = map[string]string{
 	"037": "source of acquisition decodes as an 024-shaped identifier (vendor convention)",
-	"040": "cataloging source is carried as out-of-band provenance, not a field",
 	"084": "other classification number decodes as 072",
 }
 

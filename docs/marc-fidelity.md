@@ -51,6 +51,7 @@ changes.
 | 650 | Topical subject | controlled (SKOS-shaped) subjects export as `650 _7 $a label $2 code $0 authority-iri` since tasks/136 -- see below |
 | 655 | Genre/form | |
 | 856 | Electronic location (access URL) | |
+| 040 | Cataloging source | since libcodex v0.18.0 (tasks/192/194): `bf:AdminMetadata` models $a (`bf:assigner`), $b (`bf:descriptionLanguage`), $d (`bf:descriptionModifier`, one per agency), $e (`bf:descriptionConventions`); an internal marcKey `bf:Note` carries the field exactly, so $c survives too. See "Cataloging source" below for the derived export behavior. |
 
 These are the identifiers, agents, title, publication, extent, carrier, summary,
 subjects, genre, and access link -- the fields discovery is built on.
@@ -60,8 +61,25 @@ subjects, genre, and access link -- the fields discovery is built on.
 | Tag | Field | Why it is lost / where it lives instead |
 |-----|-------|------------------------------------------|
 | 037 | Source of acquisition / **Reserve ID** | **the OverDrive availability key** -- decodes as an 024-shaped identifier, not 037; the *direct* JSON→BIBFRAME path keeps it as a `bf:source`-tagged identifier (`tasks/008`) |
-| 040 | Cataloging source | provenance is modeled as named graphs, not a 040 |
 | 084 | Other classification (**BISAC** in MARC Express) | decodes to 072, not 084; the direct path keeps BISAC as a `bf:Classification` with `bf:source "bisacsh"` |
+
+### Cataloging source (040): modeled, and derived at export (tasks/192)
+
+Until libcodex v0.18.0 this table said "provenance is modeled as named
+graphs, not a 040". That conflated two orthogonal axes: named graphs carry
+**statement-level data provenance** (merging, overrides, the public-sources
+allowlist), while 040 is **record-level cataloging-agency provenance** other
+systems parse. Both are now carried:
+
+- **Arrived 040s** are modeled (`bf:AdminMetadata` + the field-exact
+  internal note) and decode back field-exact.
+- **The deployment's own agency** joins at decode time, never in storage,
+  so the field cannot drift from the graph: with a MARC organization code
+  configured (`LCATD_ORG_CODE` for lcatd, `org-code` in `lcat.toml`'s
+  `[export]` or `lcat export -org-code`), a record whose grain carries
+  editorial statements gains the deployment as a trailing `$d` (modifying
+  agency), and a record with no 040 at all -- the born-digital feeds --
+  synthesizes `040 $a<org>$c<org>`. No code configured = no derivation.
 
 ### Relocated, not lost
 
