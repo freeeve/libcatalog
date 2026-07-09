@@ -160,8 +160,56 @@ secrets arrive as a `secretRef` and need no file mounts.
 | `LCATD_BLOB_DIR` | a local directory grain store |
 | `LCATD_S3_BUCKET` | an S3-compatible grain store (takes precedence) |
 | `LCATD_DYNAMO_TABLE` | the document store |
-| `LCATD_AWS_ENDPOINT` | redirects both S3 and DynamoDB clients |
+| `LCATD_AWS_ENDPOINT` | redirects every AWS client at once |
+| `LCATD_S3_ENDPOINT` | redirects only S3, overriding the above |
+| `LCATD_DYNAMO_ENDPOINT` | redirects only DynamoDB, overriding the above |
 
-`LCATD_AWS_ENDPOINT` is the seam for running off AWS: it points the S3 and
-DynamoDB clients at any compatible endpoint (MinIO, ScyllaDB Alternator). The
-S3 client already uses path-style addressing, which MinIO requires.
+These are the seam for running off AWS. `LCATD_AWS_ENDPOINT` suits a single
+compatible endpoint (LocalStack); the off-AWS stack is two unrelated servers --
+MinIO or Garage for blobs, ScyllaDB Alternator for documents -- so it takes the
+per-service overrides. The S3 client uses path-style addressing whenever an
+endpoint is set, which MinIO requires.
+
+### Running the document store on ScyllaDB Alternator
+
+Alternator is ScyllaDB's DynamoDB-compatible API. `lcatd` needs no code change
+to use it: point `LCATD_DYNAMO_ENDPOINT` at it. The shared store conformance
+suite passes against it unmodified.
+
+**Set `--alternator-write-isolation` to `always` or `only_rmw_uses_lwt`, and
+never to `unsafe_rmw`.**
+
+Alternator's read-modify-write isolation is a startup flag, and the unsafe
+setting is not loud about it:
+
+| Policy | Conformance suite | What actually happens |
+|---|---|---|
+| `always` | passes | correct |
+| `only_rmw_uses_lwt` | passes | correct; conditional writes use Paxos, plain writes stay fast |
+| `unsafe_rmw` | **passes** | **conditional writes report success without being atomic -- concurrent edits are lost** |
+| `forbid_rmw` | fails every write | conditional writes are refused outright |
+
+`forbid_rmw` is safe by being useless: it rejects the writes with a
+`ValidationException` and `lcatd` cannot start doing useful work. `unsafe_rmw`
+is the dangerous one. Measured on 8 writers compare-and-swapping one counter,
+it silently dropped 3 of the 8 increments.
+
+libcat's suggestion queue transitions, its ingest lease, and the record
+editor's `If-Match` are all compare-and-swap over `CondIfVersion`. Under
+`unsafe_rmw` two catalogers saving the same record concurrently can both pass
+the version check and one edit disappears, with no error anywhere.
+
+`storetest`'s `ConcurrentCAS` case exists to catch exactly this, and it is the
+one test in that suite that races two writers -- a single-threaded conformance
+run cannot tell an atomic store from a store that merely says "ok". To check a
+candidate backend:
+
+```sh
+docker run -d -p 8000:8000 scylladb/scylla \
+  --alternator-port=8000 --alternator-write-isolation=only_rmw_uses_lwt \
+  --smp 1 --memory 1G --overprovisioned 1
+DYNAMO_ENDPOINT=http://localhost:8000 go test ./store/dynamo/   # from backend/
+```
+
+(Run one Scylla node at a time: two exhaust the host's `fs.aio-max-nr` and the
+second fails to boot, which looks like a test failure.)
