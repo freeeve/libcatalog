@@ -297,3 +297,32 @@ func TestMergeSelfGuard(t *testing.T) {
 		t.Fatalf("short-id winner not canonicalized: %+v", res)
 	}
 }
+
+// TestMergeRefusesNamespaceMismatch covers tasks/202 at the service layer:
+// a grain stored under one short id but describing a different IRI base
+// (pre-rename or imported namespaces) errors as validation instead of
+// gaining a phantom labelless node.
+func TestMergeRefusesNamespaceMismatch(t *testing.T) {
+	svc, st, _, _ := newService(t)
+	// Seed a grain by hand under the short-id path, with a pre-rename base.
+	foreign := []byte(`<https://github.com/freeeve/libcatalog/authority/a0d7go0nob80r8> <http://www.w3.org/2004/02/skos/core#prefLabel> "author"@en <authority:local> .` + "\n")
+	path := "data/authorities/6a/a0d7go0nob80r8.nq"
+	if _, err := st.Put(t.Context(), path, foreign, blob.PutOptions{}); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := svc.Merge(t.Context(), "a0d7go0nob80r8", vocab.TermRef{
+		Scheme: "homosaurus", ID: homoTransPeople,
+	}, "lib@example.org")
+	if !errors.Is(err, authoritiesvc.ErrValidation) {
+		t.Fatalf("err = %v, want ErrValidation", err)
+	}
+	// The grain is untouched: one quad, no phantom.
+	grain, _, err := st.Get(t.Context(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(grain) != string(foreign) {
+		t.Fatalf("grain mutated:\n%s", grain)
+	}
+}

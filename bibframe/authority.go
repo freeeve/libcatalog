@@ -166,13 +166,49 @@ func ParseAuthorityGrain(grainNQ []byte, uri, vocab string) (AuthorityTerm, erro
 	return t, nil
 }
 
+// AuthorityGrainDescribes reports whether the grain carries any statement
+// about uri -- the tasks/202 pre-check a merge runs before asserting a
+// marker, so a namespace-mismatched grain errors instead of gaining a
+// phantom node.
+func AuthorityGrainDescribes(grainNQ []byte, uri string) bool {
+	ds, err := rdf.ParseNQuads(grainNQ)
+	if err != nil {
+		return false
+	}
+	subject := rdf.NewIRI(uri)
+	for _, q := range ds.Quads {
+		if q.S == subject {
+			return true
+		}
+	}
+	return false
+}
+
 // AddAuthorityMergeMarker retires an authority term: <loser> lcat:mergedInto
 // <winner> lands in the loser grain's authority:<vocab> graph, so the vocab
 // index sees the retirement on reload and the decision survives description
-// edits. Idempotent.
+// edits. Idempotent. A loser the grain does not describe is refused: the
+// marker would otherwise mint a phantom labelless node instead of retiring
+// anything (tasks/202 -- reachable when a grain's subject IRI base differs
+// from the id-derived one, e.g. pre-rename or imported namespaces).
 func AddAuthorityMergeMarker(grainNQ []byte, loserURI, winnerURI, vocab string) ([]byte, error) {
+	ds, err := rdf.ParseNQuads(grainNQ)
+	if err != nil {
+		return nil, err
+	}
+	loser := rdf.NewIRI(loserURI)
+	described := false
+	for _, q := range ds.Quads {
+		if q.S == loser {
+			described = true
+			break
+		}
+	}
+	if !described {
+		return nil, fmt.Errorf("bibframe: authority grain does not describe %s", loserURI)
+	}
 	return ApplyPatch(grainNQ, AuthorityGraph(vocab), Patch{Add: []rdf.Quad{{
-		S: rdf.NewIRI(loserURI),
+		S: loser,
 		P: rdf.NewIRI(PredMergedInto),
 		O: rdf.NewIRI(winnerURI),
 	}}})

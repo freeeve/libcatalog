@@ -184,8 +184,16 @@ func (s *Service) Merge(ctx context.Context, loserID string, winner vocab.TermRe
 		return MergeResult{}, fmt.Errorf("%w: merge needs a distinct winner term", ErrValidation)
 	}
 	loserPath := s.grainPath(loserID)
-	if _, _, err := s.Blob.Get(ctx, loserPath); err != nil {
+	loserGrain, _, err := s.Blob.Get(ctx, loserPath)
+	if err != nil {
 		return MergeResult{}, err
+	}
+	// The grain is keyed by short id, so Get succeeds for any minted id --
+	// but the marker must land on a subject the grain actually describes,
+	// or the merge mints a phantom labelless node (tasks/202: pre-rename /
+	// imported grains carry a different IRI base than the id-derived one).
+	if !bibframe.AuthorityGrainDescribes(loserGrain, loserURI) {
+		return MergeResult{}, fmt.Errorf("%w: authority grain for %s does not describe %s -- namespace mismatch", ErrValidation, loserID, loserURI)
 	}
 	subject := s.winnerSubject(winner)
 	if _, err := publish.MutateGrain(ctx, s.Blob, loserPath, func(old []byte) ([]byte, error) {

@@ -48,14 +48,21 @@ func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, prof *p
 		var terms []*vocab.Term
 		if q == "" {
 			terms = svc.Vocab.Terms(authoritiesvc.LocalScheme)
-			if len(terms) > limit {
-				terms = terms[:limit]
-			}
 		} else {
 			terms = svc.Vocab.Search(authoritiesvc.LocalScheme, q, limit)
 		}
-		if terms == nil {
-			terms = []*vocab.Term{}
+		// A node with no labels is not a heading -- it is grain debris (a
+		// marker asserted on a subject nothing describes, tasks/202) and
+		// must not render as a blank row in the Authorities screen.
+		kept := make([]*vocab.Term, 0, len(terms))
+		for _, t := range terms {
+			if len(t.Labels) > 0 {
+				kept = append(kept, t)
+			}
+		}
+		terms = kept
+		if q == "" && len(terms) > limit {
+			terms = terms[:limit]
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"terms": terms})
 	})))
