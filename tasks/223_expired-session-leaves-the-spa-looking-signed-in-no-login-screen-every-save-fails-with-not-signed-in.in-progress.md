@@ -130,3 +130,18 @@ S9 (staged edit survives a *reload*) needs client-side persistence of
 staged ops with an etag guard -- a draft-machinery decision, split to
 tasks/225 rather than bolted on here. The overlay removes the need to
 reload on expiry; 225 covers the reloads that still happen.
+
+## Verification (filer)
+
+Fixed. Verified 2026-07-09 by `harness/retest.mjs` (`t223`), twice in a row:
+
+```
+FIXED  223  dead session -> login screen
+       after a 401 save: login form shown, header identity cleared
+```
+
+The check stages a tag on a copycat-minted sentinel work, clears `lcat-refresh`
+(what `logout()` does in another tab), answers the ops POST with 401 (what an
+expired 900s access token gets), and clicks Save. The shell now drops the session
+and renders the login form; `.who` is empty, where it previously still read
+`eve@example.org`. `harness/retest.mjs` keeps the check so a regression reopens it.
