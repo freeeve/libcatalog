@@ -2,7 +2,7 @@ module github.com/freeeve/libcat/backend
 
 go 1.25.0
 
-require github.com/freeeve/libcat v0.68.0
+require github.com/freeeve/libcat v0.69.0
 
 require (
 	github.com/aws/aws-lambda-go v1.54.0
