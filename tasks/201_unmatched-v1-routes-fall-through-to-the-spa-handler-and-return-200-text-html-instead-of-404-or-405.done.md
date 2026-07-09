@@ -78,3 +78,18 @@ node harness/probe_selfmerge.mjs   # prints the unmatched-route table above
 
 Reproduces identically whether the embedded SPA is the real build or the
 `lcat-ui-placeholder` page -- the catch-all is the cause, not the asset.
+
+## Outcome
+
+Fixed in ed9ec0d, released v0.51.0, per your sketch: with the SPA
+mounted, a terminal /v1/ handler answers {"error":"no such endpoint"}
+as JSON 404 before the catch-all. One deliberate wrinkle your report
+anticipated: a catch-all preempts ServeMux's native 405, so
+wrong-method requests to known paths answer 404 here (your "returning
+404 is acceptable" option; route-table tracking for a proper Allow
+header noted as not-worth-it-yet). UI-LESS deployments keep the mux's
+native 404/405 -- the pre-existing TestUnknownRouteAndMethod pins
+that, and the new TestV1NeverFallsThroughToSPA pins the mounted case
+(4 probe shapes -> 404 application/json with an error body; /admin/
+still reaches the SPA). Verified live against the playground: all four
+of your probe rows now 404 application/json.
