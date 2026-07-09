@@ -12,8 +12,10 @@
     fetchMacros,
     fetchProfiles,
     fetchSavedQueries,
+    postCoverBatch,
     resolveBatch,
     runBatch,
+    type CoverBatchResult,
   } from "../lib/api";
   import Modal from "../components/Modal.svelte";
   import { isReadOnly } from "../lib/config";
@@ -23,6 +25,26 @@
   let { initialMacro = "" }: { initialMacro?: string } = $props();
 
   const readOnly = isReadOnly();
+
+  let coverZip = $state<File | null>(null);
+  let coversBusy = $state(false);
+  let coversError = $state("");
+  let coversResult = $state<{ applied: number; results: CoverBatchResult[] } | null>(null);
+
+  /** Uploads the picked zip of covers keyed by workId/ISBN (tasks/220). */
+  async function uploadCovers(): Promise<void> {
+    if (!coverZip) return;
+    coversBusy = true;
+    coversError = "";
+    coversResult = null;
+    try {
+      coversResult = await postCoverBatch(coverZip);
+    } catch (e) {
+      coversError = humanApiMessage(e, "cover upload failed");
+    } finally {
+      coversBusy = false;
+    }
+  }
 
   interface OpRow {
     path: string;
@@ -344,6 +366,40 @@
       </ul>
     {/if}
   </section>
+
+  {#if !readOnly}
+    <section aria-label="Batch covers">
+      <h2>Batch covers</h2>
+      <p class="muted">
+        Upload a zip of cover images named <code>&lt;workId&gt;.jpg</code> or <code>&lt;isbn&gt;.png</code> (jpg/png/webp, 2MB each). ISBNs
+        resolve against the catalog; hyphens don't matter.
+      </p>
+      <p class="actions">
+        <input id="cover-zip" type="file" accept=".zip,application/zip" onchange={(ev) => (coverZip = (ev.currentTarget as HTMLInputElement).files?.[0] ?? null)} />
+        <button class="button" onclick={() => void uploadCovers()} disabled={!coverZip || coversBusy}>Upload covers</button>
+      </p>
+      <p aria-live="polite">
+        {#if coversBusy}<span class="muted">Uploading…</span>{/if}
+        {#if coversError}<span class="error">{coversError}</span>{/if}
+        {#if coversResult}<span class="ok">{coversResult.applied} cover{coversResult.applied === 1 ? "" : "s"} applied · {coversResult.results.length - coversResult.applied} skipped</span>{/if}
+      </p>
+      {#if coversResult}
+        <ul class="results">
+          {#each coversResult.results as item (item.file)}
+            <li class:failed={!!item.skipped}>
+              <code>{item.file}</code>
+              {#if item.skipped}
+                <span class="error">{item.skipped}</span>
+              {:else}
+                <a href={"#/works/" + encodeURIComponent(item.workId ?? "")}>{item.workId}</a>
+                <span class="ok">applied</span>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+  {/if}
 </main>
 
 {#if namingQuery}

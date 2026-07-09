@@ -748,6 +748,20 @@ export function deleteCover(workId: string): Promise<void> {
   return call("DELETE", `/v1/works/${encodeURIComponent(workId)}/cover`);
 }
 
+/** One zip entry's fate in a batch cover upload (tasks/220). */
+export interface CoverBatchResult {
+  file: string;
+  workId?: string;
+  cover?: string;
+  skipped?: string;
+}
+
+/** Uploads a zip of covers named <workId>.<ext> or <isbn>.<ext>; returns
+ *  per-entry results (librarian, tasks/220). */
+export async function postCoverBatch(file: File): Promise<{ applied: number; results: CoverBatchResult[] }> {
+  return callRaw("POST", "/v1/covers/batch", file, "application/zip");
+}
+
 /** Batch scheme-agnostic term resolve: stored subject URIs to full terms;
  *  unresolvable URIs are absent from the map (tasks/071). */
 export function resolveTermURIs(ids: string[]): Promise<{ terms: Record<string, Term> }> {
