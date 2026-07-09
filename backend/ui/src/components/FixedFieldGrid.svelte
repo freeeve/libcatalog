@@ -17,9 +17,11 @@
     onchange: (value: string) => void;
   } = $props();
 
-  // The tag is fixed for a mounted grid (the grid remounts per field row).
-  // svelte-ignore state_referenced_locally
-  const slots = fixedSlots(tag);
+  // Derived, NOT computed once: the mounted instance survives a tag change
+  // (a row's tag edited in place, keyed lists shifting which field lands
+  // here), and a stale slot table mislabels every position and writes runs
+  // at the wrong byte offsets (tasks/228).
+  const slots = $derived(fixedSlots(tag));
   const listId = (i: number): string => `ffg-${tag}-${i}`;
 </script>
 
