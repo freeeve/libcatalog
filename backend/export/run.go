@@ -10,6 +10,7 @@ import (
 	"io"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 
 	codexbf "github.com/freeeve/libcodex/bibframe"
@@ -295,6 +296,35 @@ func (s *Service) subjectLabel(subj project.Subject) string {
 	return subj.ID
 }
 
+// workHoldings summarizes a Work's items across all its instances for the CSV
+// (tasks/058 item 5): how many holdings it has, and the distinct call numbers,
+// shelving locations and barcodes among them. Distinct rather than positional
+// -- a spreadsheet sorts and pivots on these, and two copies on one shelf
+// should read as one location, not two. Item notes are deliberately absent:
+// they are free text, they would carry the "; " separator, and they are not a
+// dimension anyone sorts by. The record remains the place to read them.
+func workHoldings(w project.Work) (count int, callNumbers, locations, barcodes []string) {
+	seenCall, seenLoc := map[string]bool{}, map[string]bool{}
+	add := func(v string, seen map[string]bool, out *[]string) {
+		if v == "" || seen[v] {
+			return
+		}
+		seen[v] = true
+		*out = append(*out, v)
+	}
+	for _, inst := range w.Instances {
+		for _, it := range inst.Items {
+			count++
+			add(it.CallNumber, seenCall, &callNumbers)
+			add(it.Location, seenLoc, &locations)
+			if it.Barcode != "" {
+				barcodes = append(barcodes, it.Barcode)
+			}
+		}
+	}
+	return count, callNumbers, locations, barcodes
+}
+
 // emitCSV projects each grain with the real projector and writes one row per
 // Work -- the Koha "export search results" analog over the projected shape.
 // Projection is per grain (tasks/108): a grain carries all of its works'
@@ -303,7 +333,11 @@ func (s *Service) subjectLabel(subj project.Subject) string {
 // -- the old three-copies-in-RAM behavior priced that in.
 func (s *Service) emitCSV(ctx context.Context, w io.Writer, paths []string) (int, error) {
 	cw := csv.NewWriter(w)
-	_ = cw.Write([]string{"id", "title", "subtitle", "contributors", "subjects", "tags", "languages", "formats", "classifications", "isbns"})
+	_ = cw.Write([]string{
+		"id", "title", "subtitle", "contributors", "subjects", "tags", "languages",
+		"formats", "classifications", "isbns",
+		"itemCount", "callNumbers", "locations", "barcodes",
+	})
 	count := 0
 	err := s.eachGrain(ctx, paths, func(_ string, grain []byte) error {
 		catalog, err := project.Project(grain, s.Provider)
@@ -331,12 +365,15 @@ func (s *Service) emitCSV(ctx context.Context, w io.Writer, paths []string) (int
 			for _, inst := range work.Instances {
 				isbns = append(isbns, inst.ISBNs...)
 			}
+			itemCount, callNumbers, locations, barcodes := workHoldings(work)
 			_ = cw.Write([]string{
 				work.ID, work.Title, work.Subtitle,
 				strings.Join(contributors, "; "), strings.Join(subjects, "; "),
 				strings.Join(work.Tags, "; "), strings.Join(work.Languages, "; "),
 				strings.Join(work.Formats, "; "), strings.Join(classifications, "; "),
 				strings.Join(isbns, "; "),
+				strconv.Itoa(itemCount), strings.Join(callNumbers, "; "),
+				strings.Join(locations, "; "), strings.Join(barcodes, "; "),
 			})
 			count++
 		}

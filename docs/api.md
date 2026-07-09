@@ -88,6 +88,15 @@ through the loaded term index (tasks/233); the machine-readable formats carry
 authority IRIs. See [marc-fidelity](marc-fidelity.md) for what survives a MARC
 round trip.
 
+One CSV row per Work. Alongside the bibliographic columns it summarizes the
+Work's holdings across all its instances (tasks/058): `itemCount`, and the
+distinct `callNumbers`, `locations` and `barcodes` among its items. Call
+numbers and locations are deduplicated -- two copies on one shelf are one
+location -- while barcodes, unique by definition, all appear. An item's free-text
+note is not a column: it would carry the `; ` separator the columns join on, and
+it is not a dimension anyone sorts by. `itemCount` is `0` rather than blank for
+a Work with no holdings, so "what have we not received?" is a sort.
+
 ### Attachments
 
 `POST /v1/works/{id}/attachments?name=<filename>` stores a staff working file

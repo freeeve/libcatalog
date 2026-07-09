@@ -80,6 +80,101 @@ func exportedSubjects(t *testing.T, svc *Service) []string {
 	return strings.Split(rows[1][csvSubjectsCell], "; ")
 }
 
+// csvHoldingsWorkID is a work with one instance carrying three holdings: two
+// on the same shelf, one of them with no barcode.
+const csvHoldingsWorkID = "wcsv123hold456"
+
+// seedCSVHoldingsGrain writes a work whose instance has items, so the CSV's
+// holdings columns have something to summarize.
+func seedCSVHoldingsGrain(t *testing.T, bs blob.Store) {
+	t.Helper()
+	const instID = "icsv123hold456"
+	ds := &rdf.Dataset{}
+	feed := bibframe.FeedGraph("overdrive")
+	work := rdf.NewIRI(bibframe.WorkIRI(csvHoldingsWorkID))
+	inst := rdf.NewIRI(bibframe.InstanceIRI(instID))
+	ds.Add(work, rdf.NewIRI(rdfTypeIRI), rdf.NewIRI(bfNS+"Work"), feed)
+	titleNode := rdf.NewBlank("t0")
+	ds.Add(work, rdf.NewIRI(bfNS+"title"), titleNode, feed)
+	ds.Add(titleNode, rdf.NewIRI(bfNS+"mainTitle"), rdf.NewLiteral("Shelved Twice", "", ""), feed)
+	ds.Add(work, rdf.NewIRI(bfNS+"hasInstance"), inst, feed)
+	ds.Add(inst, rdf.NewIRI(rdfTypeIRI), rdf.NewIRI(bfNS+"Instance"), feed)
+	nq, err := ds.Canonical()
+	if err != nil {
+		t.Fatal(err)
+	}
+	nq, err = bibframe.SetItems(nq, instID, []bibframe.Item{
+		{CallNumber: "PZ7 .S55", Location: "Main stacks", Barcode: "39072000000001", Note: "spine; taped"},
+		{CallNumber: "PZ7 .S55", Location: "Main stacks", Barcode: "39072000000002"},
+		{CallNumber: "PZ7 .S55", Location: "Branch", Barcode: ""},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bs.Put(t.Context(), bibframe.GrainPath(csvHoldingsWorkID), nq, blob.PutOptions{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestExportCSVHoldingsColumns covers tasks/058 item 5: the CSV summarizes a
+// work's holdings so a cataloger can sort a shelflist or find works with none.
+// Call numbers and locations are distinct -- two copies on one shelf are one
+// location -- while barcodes, which are unique by definition, all appear.
+func TestExportCSVHoldingsColumns(t *testing.T) {
+	bs := blob.NewMem()
+	seedCSVHoldingsGrain(t, bs)
+	seedCSVSubjectGrain(t, bs) // a work with no instances at all
+	svc, err := New(store.NewMem(), bs, "overdrive", []byte("0123456789abcdef"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cells := func(workID string) map[string]string {
+		job, err := svc.Create(t.Context(), "lib@example.org", FormatCSV, Selection{WorkIDs: []string{workID}})
+		if err != nil || job.Status != StatusDone {
+			t.Fatalf("csv job = %+v, %v", job, err)
+		}
+		out, err := svc.Open(t.Context(), job)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rows, err := csv.NewReader(bytes.NewReader(out)).ReadAll()
+		if err != nil || len(rows) != 2 {
+			t.Fatalf("csv rows = %d, %v", len(rows), err)
+		}
+		byName := map[string]string{}
+		for i, name := range rows[0] {
+			byName[name] = rows[1][i]
+		}
+		return byName
+	}
+
+	got := cells(csvHoldingsWorkID)
+	for name, want := range map[string]string{
+		"itemCount":   "3",
+		"callNumbers": "PZ7 .S55",
+		"locations":   "Main stacks; Branch",
+		"barcodes":    "39072000000001; 39072000000002",
+	} {
+		if got[name] != want {
+			t.Errorf("%s = %q, want %q", name, got[name], want)
+		}
+	}
+	// The item note is not a CSV dimension: it is free text carrying the very
+	// separator the columns join on.
+	for name, v := range got {
+		if strings.Contains(v, "taped") {
+			t.Errorf("column %q leaked the item note: %q", name, v)
+		}
+	}
+
+	// A work with no holdings reports zero rather than an empty cell, so
+	// "which works lack items" is a sort, not a search for blanks.
+	if bare := cells(csvSubjWorkID); bare["itemCount"] != "0" || bare["callNumbers"] != "" {
+		t.Errorf("itemless work = count %q, callNumbers %q", bare["itemCount"], bare["callNumbers"])
+	}
+}
+
 // TestExportCSVResolvesSubjectLabels covers tasks/233: the human-facing CSV
 // renders a controlled subject as a word whether its label rides the grain or
 // only the loaded term index, and an unresolvable term stays visible as its
