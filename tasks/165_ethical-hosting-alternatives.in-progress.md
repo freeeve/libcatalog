@@ -87,3 +87,73 @@ add ~EUR 5/mo fixed (flexible IPv4 EUR 0.004/h + ~20GB block storage OS disk).
 
 Deliverable: pick a provider, stand up a prototype deploy of the candidate
 stack, document the recipe (compose file or small k8s manifest) under docs/.
+
+## Progress (2026-07-09)
+
+Two of the open questions are closed, and one premise above turned out to be
+wrong. **Picking a provider is still open and is the maintainer's call** -- it
+trades latency against ethics against price, and nothing in the code decides it.
+
+### The `LCATD_AWS_ENDPOINT` premise was wrong
+
+> `LCATD_AWS_ENDPOINT` redirects both the S3 and DynamoDB clients to any
+> compatible endpoint
+
+It redirects *every AWS client at once*, to *one* endpoint. That suits
+LocalStack. It cannot express the candidate stack above, which is two unrelated
+servers: MinIO on one host, Alternator on another. Nobody had tried it.
+
+Fixed in **v0.98.0** (tasks/054) with `LCATD_S3_ENDPOINT` and
+`LCATD_DYNAMO_ENDPOINT`, per-service, falling back to `LCATD_AWS_ENDPOINT`.
+`compose.yaml` now runs lcatd against MinIO + DynamoDB-local, which is the
+candidate stack minus the provider.
+
+### Alternator satisfies the store contract -- with one flag that must be right
+
+> Verify Alternator against the store contract: run `store/storetest` against a
+> local ScyllaDB Alternator container.
+
+Done. The suite passes unmodified, no code change, `LCATD_DYNAMO_ENDPOINT`
+pointed at Alternator. The task's reasoning was right: `store/dynamo` uses
+conditional puts and version checks but no `TransactWriteItems`, and that stays
+inside what Alternator supports.
+
+But the suite passing is not sufficient, which is the finding:
+
+| `--alternator-write-isolation` | conformance suite | reality |
+|---|---|---|
+| `always` | passes | correct |
+| `only_rmw_uses_lwt` | passes | correct (recommended) |
+| `unsafe_rmw` | **passes** | **CondIfVersion is not atomic; concurrent edits are lost** |
+| `forbid_rmw` | fails every write | conditional writes refused outright |
+
+`unsafe_rmw` passed all eleven conformance tests while dropping **3 of 8**
+concurrent compare-and-swap increments. Every test in the suite was
+single-threaded, and a lost update needs two writers racing, so nothing could
+see it. A deployment could set that flag, watch conformance go green, and
+silently lose a cataloger's edit whenever two saves collided -- the queue's
+state transitions, the ingest lease and the editor's `If-Match` are all
+compare-and-swap over `CondIfVersion`.
+
+`storetest.ConcurrentCAS` now races eight writers through `CondIfVersion`
+(`19df3e1`). It passes on the mem store under `-race`, on DynamoDB-local, and on
+Alternator under `always` and `only_rmw_uses_lwt`; it fails on `unsafe_rmw` with
+the count of lost updates. `docs/deploy.md` carries the operator-facing table
+and the one-line command to check a candidate backend.
+
+`forbid_rmw` is safe by being useless: it rejects conditional writes with a
+`ValidationException`, so lcatd cannot get far enough to lose anything.
+
+Trap for whoever picks this up: **run one Scylla node at a time.** Two exhaust
+the host's `fs.aio-max-nr` and the second exits during boot while its Alternator
+port still accepts connections -- which reads as a conformance failure. That
+cost me a wrong result before I checked `docker logs`.
+
+### Still open
+
+- Provider choice (latency vs ethics vs price). Maintainer's call.
+- Backup/restore for MinIO/Garage + Scylla off-AWS.
+- Egress comparison vs the current AWS bill.
+- The ~57KB/work sizing proxy is still unmeasured against real lcatd RSS
+  (queerbooks-demo tasks/017).
+- Garage is untested; only MinIO has been run.
