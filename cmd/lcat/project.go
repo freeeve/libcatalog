@@ -29,6 +29,8 @@ func runProject(args []string) error {
 		"comma-separated extra.sources names allowed on the public face; others are stripped (tasks/172). Empty (default) keeps everything.")
 	schemeMap := fs.String("subject-scheme", "",
 		"extra authority namespace -> scheme entries, comma-separated prefix=code pairs (prepended, so they override the built-in table; tasks/141)")
+	allowEmpty := fs.Bool("allow-empty", false,
+		"write a catalog with zero works instead of failing (a fresh deployment before its first ingest; tasks/246)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -38,7 +40,7 @@ func runProject(args []string) error {
 	if err := applySubjectSchemes(splitList(*schemeMap)); err != nil {
 		return err
 	}
-	return projectCatalog(*catalogNQ, splitList(*provider), splitList(*publicSources), *out)
+	return projectCatalog(*catalogNQ, splitList(*provider), splitList(*publicSources), *out, *allowEmpty)
 }
 
 // applySubjectSchemes prepends deployment prefix=code entries to the
@@ -63,7 +65,7 @@ func applySubjectSchemes(pairs []string) error {
 // build`: it projects each named feed from the catalog.nq at catalogPath,
 // merges first-feed-wins, applies the public-sources allowlist when one is
 // given, and writes catalog.json + facets.json + redirects.json to out.
-func projectCatalog(catalogPath string, providers, publicSources []string, out string) error {
+func projectCatalog(catalogPath string, providers, publicSources []string, out string, allowEmpty bool) error {
 	b, err := os.ReadFile(catalogPath)
 	if err != nil {
 		return err
@@ -79,7 +81,19 @@ func projectCatalog(catalogPath string, providers, publicSources []string, out s
 	if len(cats) == 0 {
 		return fmt.Errorf("no feeds to project")
 	}
+	present, err := project.Feeds(b)
+	if err != nil {
+		return err
+	}
+	warnMissingFeeds(providers, present)
 	cat := project.Merge(cats)
+	// Refuse to publish an empty catalog over a populated one. This function is
+	// what LCATD_REBUILD_CMD runs on every publish, so a provider that names no
+	// feed -- a typo, a renamed feed -- would otherwise overwrite catalog.json
+	// with zero works, exit 0, and quietly empty the discovery site (tasks/246).
+	if len(cat.Works) == 0 && !allowEmpty {
+		return emptyProjectionError(providers, present)
+	}
 	if len(publicSources) > 0 {
 		allow := project.SourceSet(strings.Join(publicSources, ","))
 		if stripped := project.SanitizeSources(cat, allow); stripped > 0 {
@@ -107,6 +121,39 @@ func projectCatalog(catalogPath string, providers, publicSources []string, out s
 		len(cat.Works), out, project.SchemaVersion,
 		len(facets.Languages), len(facets.Subjects), len(facets.Contributors), len(redirects.Redirects))
 	return nil
+}
+
+// warnMissingFeeds names requested providers the catalog does not carry. A
+// missing feed among several contributes nothing to the merge, which is easy to
+// miss when the others still project works.
+func warnMissingFeeds(providers, present []string) {
+	have := make(map[string]bool, len(present))
+	for _, p := range present {
+		have[p] = true
+	}
+	var missing []string
+	for _, p := range providers {
+		if !have[p] {
+			missing = append(missing, p)
+		}
+	}
+	if len(missing) > 0 && len(missing) < len(providers) {
+		fmt.Fprintf(os.Stderr, "project: no feed named %s in the catalog (it carries %s); projecting the rest\n",
+			strings.Join(missing, ", "), strings.Join(present, ", "))
+	}
+}
+
+// emptyProjectionError explains why nothing projected, distinguishing a catalog
+// whose feeds were not the ones asked for from one that carries no feeds at all.
+func emptyProjectionError(providers, present []string) error {
+	if len(present) == 0 {
+		return fmt.Errorf("projected 0 works: the catalog carries no feed graphs at all. "+
+			"Pass --allow-empty if projecting an empty catalog is intended (provider %s)",
+			strings.Join(providers, ", "))
+	}
+	return fmt.Errorf("projected 0 works: --provider %s matches no feed in the catalog, which carries %s. "+
+		"Refusing to overwrite %s with an empty catalog; pass --allow-empty to do it anyway",
+		strings.Join(providers, ", "), strings.Join(present, ", "), "catalog.json")
 }
 
 // writeJSON marshals v as indented JSON to path.

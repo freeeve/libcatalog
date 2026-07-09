@@ -82,10 +82,11 @@ Three details that are easy to get wrong:
   `data/works/`), not the grain directory itself, and it writes `catalog.nq`
   into that root.
 - `lcat project --provider` must name a feed graph the catalog actually carries
-  (`marc`, `overdrive`, ...), matching `LCATD_PROVIDER`. **A provider that
-  matches nothing projects zero works, writes an empty `catalog.json`, and exits
-  successfully** -- in a rebuild loop that quietly empties the discovery site.
-  Check the count in the command's own output: `projected N works`.
+  (`marc`, `overdrive`, ...), matching `LCATD_PROVIDER`. A provider matching no
+  feed fails, names the feeds the catalog does carry, and leaves the published
+  `catalog.json` alone rather than replacing it with an empty one -- pass
+  `--allow-empty` if a zero-work catalog is genuinely what you want
+  (tasks/246).
 - `LCATD_REBUILD_DEBOUNCE` coalesces a burst of publishes into one rebuild -- a
   projection is not cheap and it is not reentrant. The changed grain paths
   arrive in `$LCAT_CHANGED_PATHS`, newline-joined, if you want a narrower

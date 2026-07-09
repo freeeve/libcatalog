@@ -102,6 +102,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  lcat build [--config lcat.toml] [--only step,step]")
 	fmt.Fprintln(os.Stderr, "      whole pipeline from one deployment config: ingest -> serialize -> project -> export -> index -> hugo")
 	fmt.Fprintln(os.Stderr, "  lcat project --catalog <catalog.nq> [--out <dir>] [--provider <a,b,...>] [--public-sources <a,b,...>]")
+	fmt.Fprintln(os.Stderr, "              [--allow-empty]   (else projecting 0 works fails rather than publishing an empty catalog)")
 	fmt.Fprintln(os.Stderr, "  lcat export [--in <dir>] [--out <dir>] [--manifest <file>] [--public-sources <a,b,...>]")
 	fmt.Fprintln(os.Stderr, "              (downloads: catalog.nq.gz + catalog.mrc.gz + catalog.xml.gz + integrity manifest)")
 	fmt.Fprintln(os.Stderr, "  lcat serialize --dir <grains>   (regenerate catalog.nq from committed grains)")

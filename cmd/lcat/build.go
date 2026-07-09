@@ -58,7 +58,9 @@ func runBuild(args []string) error {
 		if len(providers) == 0 {
 			providers = cfg.feeds()
 		}
-		if err := projectCatalog(filepath.Join(cfg.Out, "catalog.nq"), providers, cfg.Project.PublicSources, cfg.Project.Out); err != nil {
+		// A build ingests before it projects, so zero works means the pipeline
+		// produced nothing -- fail rather than publish an empty site (tasks/246).
+		if err := projectCatalog(filepath.Join(cfg.Out, "catalog.nq"), providers, cfg.Project.PublicSources, cfg.Project.Out, false); err != nil {
 			return fmt.Errorf("project: %w", err)
 		}
 	}
