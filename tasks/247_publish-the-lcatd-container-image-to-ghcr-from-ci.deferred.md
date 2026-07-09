@@ -3,15 +3,11 @@
 Opened 2026-07-09. Split out of tasks/054, which decided the repo owns the
 `Dockerfile` but that registry publishing is a CI concern.
 
-**DEFERRED (2026-07-09, maintainer's call).** GHCR is GitHub's container
-registry: publishing puts `docker run ghcr.io/freeeve/libcat:vX.Y.Z` within
-anyone's reach without building it, tied to the maintainer's GitHub account,
-public by default, and a pulled tag cannot be recalled by deleting it. That is
-an outward-facing, hard-to-reverse decision and it is not being taken now. Do
-not add a workflow with an `on: push: tags:` trigger while this notice stands.
-
-When it is picked up, the safe first step is a `workflow_dispatch`-only
-workflow: nothing publishes until someone runs it by hand.
+When this is picked up, the safe first step is a `workflow_dispatch`-only
+workflow: nothing publishes until someone runs it by hand. Do not add an
+`on: push: tags:` trigger in the same change -- publishing to GHCR puts
+`docker run ghcr.io/freeeve/libcat:vX.Y.Z` within anyone's reach, and a pulled
+tag cannot be recalled by deleting it.
 
 `docs/deploy.md` accordingly says the image is not published and tells operators
 to build and push to their own registry.
