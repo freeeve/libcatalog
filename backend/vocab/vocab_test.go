@@ -420,3 +420,30 @@ func FuzzNormalizeFolk(f *testing.F) {
 		}
 	})
 }
+
+// TestResolveHomosaurusRelease covers the tasks/188 IRI-version bridging:
+// feed data minted against one Homosaurus release resolves against the
+// installed one through the version-stable homoit id, while Lookup (the
+// write-side validation gate) stays exact.
+func TestResolveHomosaurusRelease(t *testing.T) {
+	ix := loadFixture(t, nil)
+	for _, id := range []string{
+		"https://homosaurus.org/v4/homoit0001235", // installed release: exact
+		"https://homosaurus.org/v2/homoit0001235", // older release
+		"https://homosaurus.org/v6/homoit0001235", // newer release
+	} {
+		term, ok := ix.Resolve(id)
+		if !ok || term.Labels["en"] != "Transgender people" {
+			t.Errorf("Resolve(%s) = %+v, %v", id, term, ok)
+		}
+	}
+	if _, ok := ix.Resolve("https://homosaurus.org/v6/homoit9999999"); ok {
+		t.Error("unknown homoit id resolved")
+	}
+	if _, ok := ix.Resolve("https://example.org/v6/homoit0001235"); ok {
+		t.Error("non-homosaurus host resolved through the variant probe")
+	}
+	if _, ok := ix.Lookup("homosaurus", "https://homosaurus.org/v6/homoit0001235"); ok {
+		t.Error("Lookup accepted a non-installed release IRI (must stay exact)")
+	}
+}

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -560,7 +561,24 @@ func (ix *Index) LabelResolver() func(iri string) (string, map[string]string, bo
 // Resolve returns the term for a URI regardless of scheme (schemes checked
 // in sorted order for determinism) -- the editor's chip renderer resolves
 // stored subject references without knowing where they came from (tasks/071).
+// A Homosaurus IRI whose release segment differs from the installed
+// release's resolves through its version-stable homoit id (tasks/188);
+// Lookup, the write-side validation gate, stays exact so edits store the
+// installed release's canonical IRI.
 func (ix *Index) Resolve(id string) (*Term, bool) {
+	if t, ok := ix.resolveExact(id); ok {
+		return t, true
+	}
+	for _, variant := range homosaurusVariants(id) {
+		if t, ok := ix.resolveExact(variant); ok {
+			return t, true
+		}
+	}
+	return nil, false
+}
+
+// resolveExact is Resolve's exact-IRI pass across every scheme.
+func (ix *Index) resolveExact(id string) (*Term, bool) {
 	snap := ix.load()
 	schemes := make([]string, 0, len(snap.schemes)+len(snap.sidecar))
 	for s := range snap.schemes {
@@ -581,6 +599,32 @@ func (ix *Index) Resolve(id string) (*Term, bool) {
 		}
 	}
 	return nil, false
+}
+
+// homosaurusIRI captures a Homosaurus term IRI's release segment and its
+// version-stable homoit id. Homosaurus mints a new /vN/ IRI family every
+// release while the homoit ids persist, so feed data referencing an older
+// release must still resolve against the installed one.
+var homosaurusIRI = regexp.MustCompile(`^(https?://homosaurus\.org/)v(\d+)/(homoit\d+)$`)
+
+// homosaurusVersionCap bounds the release-variant probe comfortably above
+// Homosaurus's current release number.
+const homosaurusVersionCap = 12
+
+// homosaurusVariants returns the id rewritten to every other plausible
+// Homosaurus release segment (empty for non-Homosaurus ids).
+func homosaurusVariants(id string) []string {
+	m := homosaurusIRI.FindStringSubmatch(id)
+	if m == nil {
+		return nil
+	}
+	variants := make([]string, 0, homosaurusVersionCap-1)
+	for v := 1; v <= homosaurusVersionCap; v++ {
+		if cand := fmt.Sprintf("%sv%d/%s", m[1], v, m[3]); cand != id {
+			variants = append(variants, cand)
+		}
+	}
+	return variants
 }
 
 // Terms returns every term of a scheme ordered by label -- the authorities

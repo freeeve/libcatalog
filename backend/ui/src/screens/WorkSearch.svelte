@@ -248,7 +248,7 @@
     <aside class="facet-rail" aria-label="Filter results">
       {#each railGroups as group (group.key)}
         <fieldset class="facet-group">
-          <legend>{group.title}</legend>
+          <legend title={group.title}>{group.title}</legend>
           {#if group.counts.length > 10}
             <input type="search" class="facet-filter" placeholder="Filter…" aria-label={"Filter " + group.title} bind:value={railFilter[group.key]} />
           {/if}
@@ -315,6 +315,9 @@
     border-radius: 6px;
     padding: 0.35rem 0.55rem 0.5rem;
     margin: 0;
+    /* fieldsets default to min-inline-size: min-content, so a long legend
+       forces the box past the rail column and under the results list */
+    min-inline-size: 0;
   }
   .facet-group legend {
     font-weight: 650;
@@ -323,6 +326,10 @@
     text-transform: uppercase;
     font-size: 0.68rem;
     letter-spacing: 0.04em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .facet-value {
     display: flex;
@@ -345,6 +352,7 @@
   }
   .facet-count {
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
   }
   .link-button {
     background: none;
