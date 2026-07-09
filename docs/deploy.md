@@ -85,22 +85,54 @@ Give the pod a `terminationGracePeriodSeconds` larger than
 
 ## Kubernetes
 
-The API is stateless: all state lives in the blob store and the document store,
-and the ingest lease provides single-flight coordination for the pipeline, so
-replicas scale horizontally.
+The API keeps no request state: it lives in the blob store and the document
+store, and the ingest lease provides single-flight coordination for the
+pipeline. Replicas therefore scale horizontally **once every replica shares the
+same token-signing key** -- see below.
+
+### Scaling past one replica needs a shared signing key
+
+With `LCATD_LOCAL_AUTH=1` and no `LCATD_LOCAL_SIGNING_KEY`, each process mints
+an **ephemeral Ed25519 key at boot**. Two replicas then sign tokens the other
+rejects: behind a round-robin load balancer a cataloger's session fails with
+`401` on roughly half of its requests, and the failure looks intermittent rather
+than configured.
+
+Generate one key, mount it as a Secret, give it to every replica:
+
+```sh
+openssl rand -base64 32     # a 32-byte Ed25519 seed; raw-url base64 also accepted
+```
+
+```yaml
+- name: LCATD_LOCAL_SIGNING_KEY
+  valueFrom:
+    secretKeyRef: { name: lcatd-secrets, key: signing-key }
+```
+
+Verified against two replicas over one MinIO and one DynamoDB Local: without the
+shared key a token minted by A is `401` at B; with it, A's token is accepted at
+B and a draft written on A is read back on B.
+
+A single replica needs none of this -- the ephemeral key is fine, and only
+restarts invalidate sessions. With external SSO (`LCATD_OIDC_ISSUER`) tokens are
+signed by the issuer, so the question does not arise.
 
 ```yaml
 spec:
   terminationGracePeriodSeconds: 30   # > LCATD_SHUTDOWN_DELAY + 10s drain
   containers:
     - name: lcatd
-      image: ghcr.io/freeeve/libcat:v0.97.0
+      # Not published yet (tasks/247) -- build and push to your own registry.
+      image: ghcr.io/freeeve/libcat:v0.98.0
       ports: [{ containerPort: 8080 }]
       env:
         - name: LCATD_SHUTDOWN_DELAY
           value: "5s"
       envFrom:
-        - secretRef: { name: lcatd-secrets }   # LCATD_ABUSE_SECRET, OIDC client secret
+        # LCATD_ABUSE_SECRET, LCATD_LOCAL_SIGNING_KEY, OIDC client secret.
+        # The signing key must be identical across replicas -- see above.
+        - secretRef: { name: lcatd-secrets }
         - configMapRef: { name: lcatd-config }
       livenessProbe:
         httpGet: { path: /v1/healthz, port: 8080 }
