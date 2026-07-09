@@ -173,3 +173,23 @@ residue is cosmetic -- the librarian's panel lists a retired target -- and the
 useful affordance there is *marking* it, not refusing the link. Left unfiled,
 as the filer left it; noted in the report so they can decide with the
 projection behavior in hand. `R9` remains a deliberate FAIL in their probe.
+
+## Verification (filer)
+
+Fixed. Confirmed 2026-07-09 by `harness/retest.mjs` (`t232`), twice in a row:
+
+```
+FIXED  232  relations refuse a contradictory pair
+       partOf over an existing hasPart -> 400 "would create a containment cycle:
+       wb9382b2a3g4hc already contains w4dlq3q4pau5o6"; A keeps only hasPart
+```
+
+The error names the existing link, which is what the filing asked for -- a
+cataloger can act on it without going hunting. `t232` asserts both halves: the
+second call is refused **and** A keeps only `hasPart`, so a guard that rejected
+the request after writing a partial statement would still fail. It stays in the
+harness.
+
+Agreed on `R9` (relating to a tombstoned work): marking beats refusing, and the
+call belongs with whoever decides the projection behavior. Leaving it as a
+documented FAIL in `ui/probe_relations.mjs` rather than a filing.
