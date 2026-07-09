@@ -267,8 +267,15 @@ func claimDirect(ds *rdf.Dataset, claimed []bool, subject rdf.Term, predicate st
 		if claimed[i] || q.S != subject || q.P.Value != predicate {
 			continue
 		}
-		if !q.O.IsLiteral() && !q.O.IsIRI() {
-			continue // structured object (blank node) stays passthrough
+		// A structured object stays passthrough. That means blank nodes and,
+		// since tasks/238, the grain-local IRIs a clone or the editor mints
+		// for them: an uncontrolled bf:subject heading skolemized to
+		// #<id>n<k> is the same node it was as _:b0, and rendering it as a
+		// controlled-term chip would put a raw fragment IRI in front of the
+		// cataloger. GrainLocalIRI is the seam the projector and the ingest
+		// summarizer already read this way (tasks/218).
+		if !q.O.IsLiteral() && !(q.O.IsIRI() && !bibframe.GrainLocalIRI(q.O.Value)) {
+			continue
 		}
 		claimed[i] = true
 		out = append(out, FieldValue{
