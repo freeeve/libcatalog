@@ -58,3 +58,53 @@ If anything in libcat asserts on the *blankness* of those positions --
 a snapshot test of exported MARC, say -- it will need updating. Worth a
 grep before you bump; the workindex snapshot compare is the likely
 place.
+
+## Outcome
+
+Adopted in **v0.86.0**. Bumped root and backend to libcodex v0.22.0; both
+suites green with no test churn -- their warning about snapshot assertions on
+008 blankness turned out not to apply. Nothing in libcat asserted on those
+positions; the only 008 assertion is `copycat/templates_test.go` checking the
+template's length is 40, which is unaffected.
+
+Confirmed live on the exact record from tasks/230:
+
+    008 "      s2010    nyu                 eng  "
+    260 $a Ashland $b Blackstone Audio… $c 2010
+
+06 = `s`, 07-10 = `2010`, 15-17 = `nyu`, 35-37 = `eng`, and the 260 $c still
+carries the date. The fixed-field builder no longer looks like it discarded a
+saved edit -- which was the whole complaint behind e2e's 228 footnote.
+
+### The gate
+
+`TestMARCRoundTrip008PositionsSurvive` pins the parity *positionally*, which
+the three existing round-trip gates structurally cannot: they compare field-tag
+presence, and the 008 was never absent -- only hollow. The new test encodes and
+decodes each vendored MARC Express sample and compares the date, country and
+language slots, asserting nothing where the input slot is blank or the date is
+not a bare year (their documented boundaries: `c2010`, `2010-2012`, and
+disagreeing provisions stay in 260 $c).
+
+**Verified to fail against v0.21.0** rather than assumed to bite -- it
+reproduces tasks/230's finding exactly:
+
+    008 date 07-10 = "    " after the round trip, want "2005"
+     in: "140607s2005    nyu     s     000 0 eng d"
+    out: "               nyu                      "
+
+Worth recording, because it nearly produced a false green: `go.work` unifies
+the root and backend modules, so MVS picks the **maximum** libcodex
+requirement across the workspace. Downgrading only the root module left the
+build on v0.22.0 and the new gate passed vacuously. Both modules must be
+downgraded to test against an older dependency.
+
+### Docs
+
+`docs/marc-fidelity.md`: the 008 row's tasks/230 caveat is replaced by the
+positional-parity statement plus the boundaries. The "Relocated, not lost" note
+on 041 was also stale -- language now lands in both 041 and 008/35-37, so it is
+an addition rather than a move, and `041 $h` (language of the original) never
+reaches the 008 slot.
+
+Closes the loop opened by tasks/230 -> libcodex tasks/103.
