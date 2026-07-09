@@ -67,8 +67,16 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 			writeError(w, http.StatusInternalServerError, "doc mapping failed")
 			return
 		}
+		// The cover is not a profile field, so it is not in doc.work.fields.
+		// The editor's Cover panel needs it at load time to show what the record
+		// has and to offer Remove (tasks/242).
+		cover, err := bibframe.CoverOf(grain, workID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "doc mapping failed")
+			return
+		}
 		w.Header().Set("ETag", etag)
-		writeJSON(w, http.StatusOK, map[string]any{"etag": etag, "doc": doc})
+		writeJSON(w, http.StatusOK, map[string]any{"etag": etag, "doc": doc, "cover": cover})
 	})))
 
 	// PUT applies an editorial patch under the client's If-Match token. No

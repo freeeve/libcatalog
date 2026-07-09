@@ -25,6 +25,10 @@ export interface EditorState {
   loadError: string;
   doc: WorkDoc | null;
   etag: string;
+  /** The work's cover URL, or "". Not a profile field, so it does not live in
+   *  doc.work.fields; the Cover panel needs it at load time to show what the
+   *  record has and to offer Remove at all (tasks/242). */
+  cover: string;
   ops: Op[];
   /** A save, preview, or conflict reload in flight. */
   busy: boolean;
@@ -77,6 +81,7 @@ export function createEditorSession(workId: string): EditorSession {
     loadError: "",
     doc: null,
     etag: "",
+    cover: "",
     ops: [],
     busy: false,
     diff: null,
@@ -155,7 +160,7 @@ export function createEditorSession(workId: string): EditorSession {
       if (local) {
         pendingDraft = { id: pendingDraft?.id ?? "", workId, body: local.body, updatedAt: local.savedAt };
       }
-      patch({ loading: false, doc: res.doc, etag: res.etag, pendingDraft });
+      patch({ loading: false, doc: res.doc, etag: res.etag, cover: res.cover ?? "", pendingDraft });
     } catch (e) {
       patch({
         loading: false,
@@ -233,7 +238,7 @@ export function createEditorSession(workId: string): EditorSession {
       if (draftId) await deleteDraft(draftId).catch(() => undefined);
       try {
         const fresh = await fetchWorkDoc(workId); // overrides now show struck through
-        patch({ doc: fresh.doc, etag: fresh.etag });
+        patch({ doc: fresh.doc, etag: fresh.etag, cover: fresh.cover ?? "" });
       } catch {
         // The save landed; a failed refetch just leaves the stale view.
       }
@@ -252,7 +257,7 @@ export function createEditorSession(workId: string): EditorSession {
     patch({ busy: true, opError: "", diff: null });
     try {
       const res = await fetchWorkDoc(workId);
-      patch({ busy: false, doc: res.doc, etag: res.etag, conflict: false });
+      patch({ busy: false, doc: res.doc, etag: res.etag, cover: res.cover ?? "", conflict: false });
     } catch {
       patch({ busy: false, opError: "reload failed" });
       return;
@@ -272,7 +277,7 @@ export function createEditorSession(workId: string): EditorSession {
       sandboxOps = [];
       try {
         const fresh = await fetchWorkDoc(workId);
-        patch({ doc: fresh.doc, etag: fresh.etag });
+        patch({ doc: fresh.doc, etag: fresh.etag, cover: fresh.cover ?? "" });
       } catch {
         // Best effort; the next refresh resets anyway.
       }

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -203,6 +204,55 @@ func TestCoverContentTypeIsCaseInsensitive(t *testing.T) {
 		t.Fatalf("the 415 does not say what was sent: %s", rec.Body)
 	}
 	_ = bs
+}
+
+// tasks/242: the editor's Cover panel read the cover out of doc.work.fields,
+// where no profile declares it, so every reloaded page reported "none" -- and
+// Remove renders only when the panel knows a cover exists. A cataloger facing a
+// rights complaint had no control to click.
+func TestWorkDocCarriesTheCover(t *testing.T) {
+	h, bs := newRecordsAPI(t)
+	seedWorkGrain(t, bs)
+
+	docCover := func() string {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/v1/works/"+editWorkID+"/doc", nil)
+		req.Header.Set("Authorization", "Bearer lib-token")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("doc = %d %s", rec.Code, rec.Body)
+		}
+		var out struct {
+			Cover string `json:"cover"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+			t.Fatal(err)
+		}
+		return out.Cover
+	}
+
+	if got := docCover(); got != "" {
+		t.Fatalf("a work with no cover reports %q", got)
+	}
+	if rec := putCover(t, h, editWorkID, pngBytes, "image/png"); rec.Code != http.StatusOK {
+		t.Fatalf("upload = %d", rec.Code)
+	}
+	if got, want := docCover(), "covers/"+editWorkID+".png"; got != want {
+		t.Fatalf("doc cover = %q, want %q", got, want)
+	}
+	// And it disappears when the cover is removed, so the panel stops offering
+	// Remove for a cover that is gone.
+	req := httptest.NewRequest(http.MethodDelete, "/v1/works/"+editWorkID+"/cover", nil)
+	req.Header.Set("Authorization", "Bearer lib-token")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("delete = %d", rec.Code)
+	}
+	if got := docCover(); got != "" {
+		t.Fatalf("doc still reports a removed cover: %q", got)
+	}
 }
 
 // DELETE still clears every stored format (the report's V13, which must not

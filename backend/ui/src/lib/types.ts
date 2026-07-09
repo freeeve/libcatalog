@@ -88,6 +88,9 @@ export interface WorkDoc {
 export interface WorkDocResponse {
   etag: string;
   doc: WorkDoc;
+  /** The work's cover URL, or "". Not a profile field, so it is not in
+   *  doc.work.fields -- the Cover panel reads it here (tasks/242). */
+  cover?: string;
 }
 
 /** editor.OpValue -- one value in a field operation. */

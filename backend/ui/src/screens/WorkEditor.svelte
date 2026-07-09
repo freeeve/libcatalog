@@ -179,7 +179,7 @@
       <details class="vis">
         <summary>Visibility</summary>
         <VisibilityPanel {workId} />
-        <CoverPanel {workId} cover={$session.doc?.work.fields["extra/cover"]?.[0]?.v ?? ""} />
+        <CoverPanel {workId} cover={$session.cover} />
       </details>
       <details class="vis">
         <summary>Relationships</summary>
