@@ -7,7 +7,7 @@
   import { onMount } from "svelte";
   import { ApiError, createMacro, deleteMacro, fetchMacros, updateMacro } from "../lib/api";
   import { isReadOnly } from "../lib/config";
-  import { bindKeys, popScope, pushScope } from "../lib/keyboard";
+  import { SUGGESTED_SHORTCUT_KEY, bindKeys, popScope, pushScope, shortcutKeyError } from "../lib/keyboard";
   import { sessionStore } from "../lib/stores";
   import type { Macro, MacroParam, Op } from "../lib/types";
 
@@ -28,6 +28,12 @@
   let status = $state("");
 
   const me = $derived($sessionStore?.email ?? "");
+  // The shortcut is checked where it is chosen: the editor's chords and the
+  // other macros' keys are both known here, and the cataloger is the only one
+  // who can pick a different key (tasks/237). The server refuses the same
+  // collisions; this is so nobody has to discover them by being refused.
+  const otherMacroKeys = $derived(macros.filter((m) => m.id !== editing?.id && m.keys).map((m) => m.keys!));
+  const keyError = $derived(shortcutKeyError(keys.trim(), otherMacroKeys));
 
   onMount(() => {
     pushScope(SCOPE);
@@ -117,6 +123,10 @@
 
   async function save(): Promise<void> {
     error = "";
+    if (keyError) {
+      error = keyError;
+      return;
+    }
     const ops = parseOps();
     if (!ops) return;
     const body = { label, keys: keys.trim(), shared, ops, params: params.filter((p) => p.name) };
@@ -197,9 +207,21 @@
         </div>
         <div class="row">
           <label for="m-keys">Shortcut key</label>
-          <input id="m-keys" class="keys" bind:value={keys} maxlength="1" placeholder="1" />
+          <input
+            id="m-keys"
+            class="keys"
+            class:invalid={!!keyError}
+            bind:value={keys}
+            maxlength="1"
+            placeholder={SUGGESTED_SHORTCUT_KEY}
+            aria-invalid={!!keyError}
+            aria-describedby={keyError ? "m-keys-error" : undefined}
+          />
           <label class="check"><input type="checkbox" bind:checked={shared} /> Shared with the library</label>
         </div>
+        {#if keyError}
+          <p id="m-keys-error" class="error" role="alert">{keyError}</p>
+        {/if}
 
         <h3>Parameters</h3>
         {#each params as p, i (i)}
@@ -221,7 +243,7 @@
         <textarea aria-label="Operations JSON" bind:value={opsJSON} rows="10" spellcheck="false"></textarea>
 
         <p class="actions">
-          <button class="button" onclick={() => void save()}>{editing ? "Save changes" : "Create macro"}</button>
+          <button class="button" disabled={!!keyError} onclick={() => void save()}>{editing ? "Save changes" : "Create macro"}</button>
           <button class="button button--quiet" onclick={cancel}>Cancel</button>
         </p>
       </section>
@@ -308,6 +330,9 @@
   }
   .keys {
     width: 3.5rem;
+  }
+  .keys.invalid {
+    border-color: var(--danger);
   }
   .keys.wide {
     width: 8rem;

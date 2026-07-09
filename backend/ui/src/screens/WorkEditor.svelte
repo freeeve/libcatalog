@@ -24,7 +24,7 @@
   import type { SubjectCandidate } from "../lib/types";
   import { isReadOnly } from "../lib/config";
   import { createEditorSession } from "../lib/editor";
-  import { bindKeys, popScope, pushScope } from "../lib/keyboard";
+  import { EDITOR_CHORDS, bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { navigate, setLeaveGuard } from "../lib/router";
 
   let { workId }: { workId: string } = $props();
@@ -105,12 +105,17 @@
 
   onMount(() => {
     pushScope(SCOPE);
+    // Keys come from EDITOR_CHORDS, the table the macro screen validates
+    // against, so a shortcut can never be offered for a chord bound here.
     const unbind = bindKeys(SCOPE, {
-      "1": { description: "Native tab", legend: "tabs", keyLabel: "1/2/3", handler: () => (tab = "native") },
-      "2": { description: "MARC tab", hidden: true, handler: () => (tab = "marc") },
-      "3": { description: "History tab", hidden: true, handler: () => (tab = "history") },
-      p: { description: "preview staged changes", legend: "preview", handler: () => void session.preview() },
-      m: { description: "toggle the live MARC preview pane", legend: "marc pane", handler: () => (marcPane = !marcPane) },
+      "1": { description: EDITOR_CHORDS["1"], legend: "tabs", keyLabel: "1/2/3", handler: () => (tab = "native") },
+      // legendHidden, not hidden: the footer rail shows one "1/2/3 tabs" row,
+      // but the "?" overlay -- the only place to look up what a key does --
+      // must name each tab. These were invisible there (tasks/237).
+      "2": { description: EDITOR_CHORDS["2"], legendHidden: true, handler: () => (tab = "marc") },
+      "3": { description: EDITOR_CHORDS["3"], legendHidden: true, handler: () => (tab = "history") },
+      p: { description: EDITOR_CHORDS.p, legend: "preview", handler: () => void session.preview() },
+      m: { description: EDITOR_CHORDS.m, legend: "marc pane", handler: () => (marcPane = !marcPane) },
       "mod+s": { description: "save staged changes", legend: "save", handler: () => void session.save() },
     });
     void session.load();

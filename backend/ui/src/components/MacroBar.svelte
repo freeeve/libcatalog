@@ -62,7 +62,12 @@
         };
       }
     }
-    unbindKeys = Object.keys(map).length > 0 ? bindKeys("editor", map) : null;
+    // "macro:" namespaces these ids: a macro on "2" is "editor:macro:2", not
+    // "editor:2", so bindKeys sees a genuine collision and drops it rather
+    // than silently replacing the MARC-tab chord (tasks/237). Server-side
+    // validation means a colliding macro should not exist; this is the guard
+    // for the ones stored before that landed.
+    unbindKeys = Object.keys(map).length > 0 ? bindKeys("editor", map, "macro:") : null;
   }
 
   function replay(m: Macro): void {

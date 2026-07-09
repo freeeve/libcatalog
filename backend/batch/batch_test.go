@@ -205,7 +205,7 @@ func TestMacroCRUDAndParams(t *testing.T) {
 
 	m, err := svc.CreateMacro(ctx, batch.Macro{
 		OwnedMeta: batch.OwnedMeta{Label: "Stamp summary"},
-		Keys:      "1",
+		Keys:      "4", // "1" is the editor's Native-tab chord (tasks/237)
 		Ops: []editor.Op{{
 			Resource: "work", Path: "summary", Action: "set",
 			Values: []editor.OpValue{{V: "${text} (stamped)", Lang: "en"}},

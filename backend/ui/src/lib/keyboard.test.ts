@@ -4,6 +4,10 @@ import {
   activeBindings,
   bindKeys,
   conflictingBinding,
+  EDITOR_CHORDS,
+  RESERVED_SHORTCUT_KEYS,
+  SUGGESTED_SHORTCUT_KEY,
+  shortcutKeyError,
   GLOBAL_SCOPE,
   installKeyboard,
   keymapVersion,
@@ -280,5 +284,71 @@ describe("remap layer (tasks/075)", () => {
     const b = legendBindings().find((x) => x.key === "mod+shift+c");
     expect(b).toBeDefined();
     expect(b?.keyLabel).toBeUndefined();
+  });
+});
+
+// tasks/237: a later registrant must not evict an existing binding. A macro
+// keyed "2" used to replace the MARC-tab chord in the dispatcher AND in the
+// "?" overlay, then outlive the editor's own unbind.
+describe("binding collisions", () => {
+  afterEach(() => resetKeyboard());
+
+  it("keeps the first binding and drops the later one", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const tab = vi.fn();
+    const macro = vi.fn();
+    pushScope("editor");
+    bindKeys("editor", { "2": { description: "the MARC tab", handler: tab } });
+    const unbindMacro = bindKeys("editor", { "2": { description: "apply macro: Stamp", handler: macro } }, "macro:");
+
+    const held = activeBindings().filter((b) => b.key === "2");
+    expect(held).toHaveLength(1);
+    expect(held[0].description).toBe("the MARC tab");
+    expect(warn).toHaveBeenCalled();
+
+    // The overlay still lists the chord it never lost.
+    expect(legendBindings().some((b) => b.description === "the MARC tab")).toBe(true);
+
+    // ...and the dropped registration's unbind cannot take the survivor with it.
+    unbindMacro();
+    expect(activeBindings().filter((b) => b.key === "2")).toHaveLength(1);
+  });
+
+  it("still replaces a re-registration of the same action", () => {
+    pushScope("editor");
+    const first = vi.fn();
+    const second = vi.fn();
+    bindKeys("editor", { "2": { description: "the MARC tab", handler: first } });
+    bindKeys("editor", { "2": { description: "the MARC tab", handler: second } });
+    const held = activeBindings().filter((b) => b.key === "2");
+    expect(held).toHaveLength(1);
+    held[0].handler(new KeyboardEvent("keydown"));
+    expect(second).toHaveBeenCalled();
+    expect(first).not.toHaveBeenCalled();
+  });
+});
+
+// The reserved table is mirrored in backend/batch/macros.go
+// (ReservedShortcutKeys); TestReservedShortcutKeysMatchUI pins the Go side to
+// these same keys. Update both together.
+describe("shortcutKeyError", () => {
+  it("reserves every editor chord plus the shell's two", () => {
+    expect(Object.keys(RESERVED_SHORTCUT_KEYS).sort()).toEqual(["1", "2", "3", "?", "g", "m", "p"].sort());
+    for (const key of Object.keys(EDITOR_CHORDS)) {
+      expect(RESERVED_SHORTCUT_KEYS[key]).toBeDefined();
+    }
+  });
+
+  it("refuses reserved, multi-character and duplicate keys", () => {
+    expect(shortcutKeyError("2")).toMatch(/reserved for the MARC tab/);
+    expect(shortcutKeyError("?")).toMatch(/reserved for the help overlay/);
+    expect(shortcutKeyError("zz")).toMatch(/single character/);
+    expect(shortcutKeyError("7", ["7"])).toMatch(/already used by another macro/);
+  });
+
+  it("accepts a free key, an empty key, and its own suggestion", () => {
+    expect(shortcutKeyError("")).toBeUndefined();
+    expect(shortcutKeyError("7", ["8"])).toBeUndefined();
+    expect(shortcutKeyError(SUGGESTED_SHORTCUT_KEY)).toBeUndefined();
   });
 });

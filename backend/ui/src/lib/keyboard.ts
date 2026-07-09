@@ -71,6 +71,45 @@ const RESERVED: Record<string, string> = {
   "?": "opens this help overlay",
 };
 
+/** The single-character chords the work editor claims, and what each does.
+    WorkEditor binds its handlers onto exactly these keys, so the editor and
+    the macro screen cannot disagree about which are spoken for (tasks/237).
+    "mod+s" is not here: it is not one character, so no macro shortcut can
+    reach it. */
+export const EDITOR_CHORDS: Record<string, string> = {
+  "1": "the Native tab",
+  "2": "the MARC tab",
+  "3": "the History tab",
+  p: "preview staged changes",
+  m: "the live MARC preview pane",
+};
+
+/** Every single character a macro shortcut may not claim: the editor's
+    chords, plus the two the shell owns everywhere. Mirrored in
+    backend/batch/macros.go (ReservedShortcutKeys); keyboard.test.ts and
+    TestReservedShortcutKeysMatchUI pin the two tables together. */
+export const RESERVED_SHORTCUT_KEYS: Record<string, string> = {
+  ...EDITOR_CHORDS,
+  "?": "the help overlay",
+  g: "the go-to-screen prefix",
+};
+
+/** A key a macro may safely take -- the placeholder and the suggestion the
+    macro screen offers. */
+export const SUGGESTED_SHORTCUT_KEY = "4";
+
+/** Why `key` cannot be a macro shortcut, or undefined when it is free.
+    `macros` are the other macros' keys, which may not be doubled up either:
+    two macros on one key means one of them can never fire, and which one is
+    an accident of registration order. */
+export function shortcutKeyError(key: string, macros: string[] = []): string | undefined {
+  if (!key) return undefined;
+  if ([...key].length !== 1) return "a shortcut key must be a single character";
+  if (RESERVED_SHORTCUT_KEYS[key]) return `"${key}" is reserved for ${RESERVED_SHORTCUT_KEYS[key]}`;
+  if (macros.includes(key)) return `"${key}" is already used by another macro`;
+  return undefined;
+}
+
 /** Bumped on every push/pop/bind/unbind; the legend footer subscribes. */
 export const keymapVersion = writable(0);
 
@@ -141,16 +180,33 @@ export function topScope(): string {
 }
 
 /** Registers bindings in a scope; returns the unbind function. Each binding
-    gets the stable action id "scope:default-key"; a user keymap entry for
-    that id re-keys it here, so remaps propagate everywhere with no call-site
-    changes. A remapped binding drops its keyLabel (it described the default
-    key's aliases). */
-export function bindKeys(scope: string, map: Record<string, BindingSpec>): () => void {
+    gets the stable action id "scope:<idPrefix><default-key>"; a user keymap
+    entry for that id re-keys it here, so remaps propagate everywhere with no
+    call-site changes. A remapped binding drops its keyLabel (it described the
+    default key's aliases).
+
+    `idPrefix` namespaces registrants that share a scope but are not the same
+    action -- macro shortcuts live in the editor scope, but "editor:macro:2"
+    is not "editor:2".
+
+    A key already held by a *different* action is left alone: the first
+    registration wins, the later one is dropped with a warning, and its
+    unbind is a no-op for that key. Overwriting silently is what let a macro
+    keyed "2" delete the MARC-tab binding -- from the dispatcher and from the
+    "?" overlay, which renders from this same registry -- and then leak, since
+    the evicted owner's unbind deletes by identity and no longer matched
+    (tasks/237). Re-registering the same id (a remount) still replaces. */
+export function bindKeys(scope: string, map: Record<string, BindingSpec>, idPrefix = ""): () => void {
   const m = scopeMap(scope);
   const registered: Binding[] = [];
   for (const [defaultKey, spec] of Object.entries(map)) {
-    const id = `${scope}:${defaultKey}`;
+    const id = `${scope}:${idPrefix}${defaultKey}`;
     const key = keymap[id] ?? defaultKey;
+    const held = m.get(key);
+    if (held && held.id !== id) {
+      console.warn(`keyboard: "${key}" is already bound to ${held.description} in scope "${scope}"; ignoring ${spec.description}`);
+      continue;
+    }
     const b: Binding = { ...spec, key, scope, id, defaultKey };
     if (key !== defaultKey) b.keyLabel = undefined;
     m.set(key, b);

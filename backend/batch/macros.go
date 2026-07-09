@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/freeeve/libcat/backend/editor"
 	"github.com/freeeve/libcat/backend/store"
@@ -73,15 +74,42 @@ func mintID() string {
 var paramRef = regexp.MustCompile(`\$\{([A-Za-z0-9_-]+)\}`)
 
 // CreateMacro validates and stores a macro for owner (in the shared
-// partition when m.Shared). The id is minted server-side.
+// partition when m.Shared). The id is minted server-side. A shortcut key
+// already held by another macro visible to this owner refuses (tasks/237).
 func (s *Service) CreateMacro(ctx context.Context, m Macro, owner string) (Macro, error) {
+	if err := s.shortcutFree(ctx, m.Keys, "", owner); err != nil {
+		return Macro{}, err
+	}
 	return createOwned(ctx, s.DB, macroKind, m, owner)
 }
 
 // UpdateMacro replaces a macro's definition. Only the owner may update, and
 // flipping Shared moves the record between partitions.
 func (s *Service) UpdateMacro(ctx context.Context, id string, m Macro, owner string) (Macro, error) {
+	if err := s.shortcutFree(ctx, m.Keys, id, owner); err != nil {
+		return Macro{}, err
+	}
 	return updateOwned(ctx, s.DB, macroKind, id, m, owner)
+}
+
+// shortcutFree refuses a shortcut another macro in the owner's visible set
+// (their own plus shared) already holds. The isolated checks run first so a
+// bad key is reported as bad rather than as taken.
+func (s *Service) shortcutFree(ctx context.Context, keys, selfID, owner string) error {
+	if keys == "" {
+		return nil
+	}
+	if err := validateShortcutKey(keys); err != nil {
+		return err
+	}
+	existing, err := s.ListMacros(ctx, owner)
+	if err != nil {
+		return err
+	}
+	if label := shortcutTaken(existing, keys, selfID); label != "" {
+		return fmt.Errorf("%w: shortcut key %q is already used by the macro %q", ErrValidation, keys, label)
+	}
+	return nil
 }
 
 // DeleteMacro removes an owned macro (shared or personal).
@@ -164,12 +192,67 @@ func ApplyParams(m Macro, values map[string]string) ([]editor.Op, error) {
 	return ops, nil
 }
 
+// ReservedShortcutKeys are the single-character chords the editor already
+// claims, mapped to the action that holds each (tasks/237). A macro keyed to
+// one of them used to win by registering later, silently disabling the chord
+// -- and the "?" overlay, which renders from the same registry, stopped
+// listing it. Rejecting the macro at the source is the only place the
+// cataloger can be told which action they would have broken.
+//
+// This table is mirrored in backend/ui/src/lib/keyboard.ts (EDITOR_CHORDS),
+// and TestReservedShortcutKeysMatchUI / keyboard.test.ts pin them together.
+// "mod+s" is absent because a shortcut key is one character and can never
+// collide with it.
+var ReservedShortcutKeys = map[string]string{
+	"1": "the Native tab",
+	"2": "the MARC tab",
+	"3": "the History tab",
+	"p": "preview staged changes",
+	"m": "the live MARC preview pane",
+	"?": "the help overlay",
+	"g": "the go-to-screen prefix",
+}
+
+// validateShortcutKey checks a macro's shortcut in isolation: absent, or one
+// character that the editor does not already claim. Uniqueness across macros
+// needs the caller's macro list and is checked in CreateMacro/UpdateMacro.
+func validateShortcutKey(keys string) error {
+	if keys == "" {
+		return nil
+	}
+	if utf8.RuneCountInString(keys) != 1 {
+		return fmt.Errorf("%w: shortcut key %q must be a single character", ErrValidation, keys)
+	}
+	if held, ok := ReservedShortcutKeys[keys]; ok {
+		return fmt.Errorf("%w: shortcut key %q is reserved for %s", ErrValidation, keys, held)
+	}
+	return nil
+}
+
+// shortcutTaken reports the label of another macro already bound to keys,
+// ignoring the macro being updated. Two macros on one key means one of them
+// can never fire, and which one is an accident of registration order.
+func shortcutTaken(macros []Macro, keys, selfID string) string {
+	if keys == "" {
+		return ""
+	}
+	for _, other := range macros {
+		if other.ID != selfID && other.Keys == keys {
+			return other.Label
+		}
+	}
+	return ""
+}
+
 func validateMacro(m Macro) error {
 	if m.Label == "" {
 		return fmt.Errorf("%w: macro needs a label", ErrValidation)
 	}
 	if len(m.Ops) == 0 || len(m.Ops) > maxOps {
 		return fmt.Errorf("%w: macro needs 1-%d ops", ErrValidation, maxOps)
+	}
+	if err := validateShortcutKey(m.Keys); err != nil {
+		return err
 	}
 	seen := map[string]bool{}
 	for _, p := range m.Params {

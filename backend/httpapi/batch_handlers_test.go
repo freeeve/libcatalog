@@ -152,7 +152,7 @@ func TestMacroEndpoints(t *testing.T) {
 
 	// Create a shared parameterized macro.
 	rec := request(t, h, http.MethodPost, "/v1/macros", "lib-token", "", map[string]any{
-		"label": "Series summary", "shared": true, "keys": "1",
+		"label": "Series summary", "shared": true, "keys": "4", // "1" is the editor's Native-tab chord (tasks/237)
 		"ops": []map[string]any{{
 			"resource": "work", "path": "summary", "action": "set",
 			"values": []map[string]any{{"v": "${series} book.", "lang": "en"}},
@@ -165,6 +165,21 @@ func TestMacroEndpoints(t *testing.T) {
 	var m batch.Macro
 	if err := json.Unmarshal(rec.Body.Bytes(), &m); err != nil {
 		t.Fatal(err)
+	}
+
+	// tasks/237: a shortcut colliding with an editor chord, or with the macro
+	// just created, refuses at the endpoint rather than silently disabling it.
+	for _, keys := range []string{"2", "4", "zz"} {
+		rec := doJSON(t, h, http.MethodPost, "/v1/macros", "lib-token", map[string]any{
+			"label": "Colliding " + keys, "keys": keys,
+			"ops": []map[string]any{{
+				"resource": "work", "path": "summary", "action": "set",
+				"values": []map[string]any{{"v": "x", "lang": "en"}},
+			}},
+		})
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("create macro keyed %q = %d %s, want 400", keys, rec.Code, rec.Body.String())
+		}
 	}
 
 	// Another librarian sees it and runs it over a selection with params --
