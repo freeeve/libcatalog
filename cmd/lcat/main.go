@@ -81,6 +81,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lcat serve:", err)
 			os.Exit(1)
 		}
+	case "covers":
+		if err := runCovers(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "lcat covers:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -107,6 +112,8 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  lcat vocab-subset --catalog <catalog.json> --out <lcsh.nq> [--scheme lcsh] [--namespace <uri-prefix>]")
 	fmt.Fprintln(os.Stderr, "                    [--fetch-suffix .nt] [--dump <url-or-file> [--all]]   (non-LoC authorities, e.g. Homosaurus)")
 	fmt.Fprintln(os.Stderr, "                    [--from-catalog]   (no network: snapshot from catalog.json's own labels, e.g. FAST)")
+	fmt.Fprintln(os.Stderr, "  lcat covers --store <blob-root> [--reap] [--json]")
+	fmt.Fprintln(os.Stderr, "              (cover blobs no grain references; they keep serving publicly until reaped)")
 	fmt.Fprintln(os.Stderr, "  lcat merge --dir <grains> --from <workid> --to <workid>")
 	fmt.Fprintln(os.Stderr, "  lcat split --dir <grains> --from <workid> --instances <instid,instid,...>")
 }
