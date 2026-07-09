@@ -4,7 +4,7 @@
   // land on #/login.
   import { onMount } from "svelte";
   import { loadConfig } from "./lib/config";
-  import { CALLBACK_PATH, canAdmin, getToken, handleOidcCallback, logout, session } from "./lib/auth";
+  import { CALLBACK_PATH, canAdmin, getToken, handleOidcCallback, logout, onSessionExpired, session } from "./lib/auth";
   import { initTheme, toggleTheme, type Theme } from "./lib/theme";
   import { resolve, navigate, type RouteDef, confirmLeave } from "./lib/router";
   import { configStore, sessionStore } from "./lib/stores";
@@ -30,6 +30,7 @@
   import Withdrawals from "./screens/Withdrawals.svelte";
   import Profiles from "./screens/Profiles.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
+  import ReauthDialog from "./components/ReauthDialog.svelte";
 
   const routes: RouteDef[] = [
     { name: "dashboard", pattern: "/" },
@@ -56,11 +57,33 @@
   let theme = $state<Theme>(initTheme());
   let ready = $state(false);
   let paletteOpen = $state(false);
+  // Session-expiry re-auth (tasks/223): when the live session dies, the
+  // screen stays mounted (staged edits survive) under a sign-in overlay;
+  // the header identity clears immediately. expiredEmail prefills the form.
+  let reauth = $state(false);
+  let expiredEmail = $state("");
 
   onMount(() => {
     void boot();
-    return bindGlobalKeys();
+    const offExpired = onSessionExpired(() => {
+      if (!$sessionStore || reauth) return;
+      expiredEmail = $sessionStore.email;
+      sessionStore.set(null);
+      reauth = true;
+    });
+    const unbind = bindGlobalKeys();
+    return () => {
+      offExpired();
+      unbind();
+    };
   });
+
+  /** A successful re-auth resumes in place: identity back, overlay gone,
+   *  no navigation and no screen-state reset. */
+  function resumeSession(): void {
+    sessionStore.set(session());
+    reauth = false;
+  }
 
   // Signed-in-only global keys: the palette chord plus "g <letter>" jumps to
   // every screen, including the ones the top nav leaves out.
@@ -134,9 +157,11 @@
   }
 
   // Auth gate: signed-out users go to the login screen, signed-in users
-  // never see it. Callback stays untouched while the exchange completes.
+  // never see it. Callback stays untouched while the exchange completes,
+  // and an expired session mid-screen re-auths in place instead of routing
+  // away (tasks/223).
   $effect(() => {
-    if (!ready || route.name === "callback") return;
+    if (!ready || route.name === "callback" || reauth) return;
     if (!$sessionStore && route.name !== "login") navigate("/login");
     else if ($sessionStore && route.name === "login") navigate("/");
   });
@@ -144,6 +169,7 @@
   async function signOut(): Promise<void> {
     await logout();
     sessionStore.set(null);
+    reauth = false;
     resetScreenStates();
     navigate("/login");
   }
@@ -153,7 +179,7 @@
   <main><p class="muted">Loading…</p></main>
 {:else if route.name === "callback"}
   <main><p class="muted">Completing sign-in…</p></main>
-{:else if !$sessionStore || route.name === "login"}
+{:else if (!$sessionStore && !reauth) || route.name === "login"}
   <Login config={$configStore} />
 {:else}
   <header class="top">
@@ -174,7 +200,13 @@
       {/if}
     </nav>
     <span class="side">
-      <span class="who">{$sessionStore.email}</span>
+      {#if $sessionStore}
+        <span class="who">{$sessionStore.email}</span>
+      {:else}
+        <!-- Deliberately NOT .who: nothing may read as a signed-in identity
+             once the session died (tasks/223). -->
+        <span class="expired">session expired</span>
+      {/if}
       <button
         class="button button--quiet"
         onclick={() => (theme = toggleTheme())}
@@ -236,8 +268,11 @@
     <Promotions />
   {:else if route.name === "profiles"}
     <Profiles />
-  {:else}
+  {:else if $sessionStore}
     <Dashboard session={$sessionStore} />
+  {/if}
+  {#if reauth}
+    <ReauthDialog config={$configStore} email={expiredEmail} onresume={resumeSession} onsignout={() => void signOut()} />
   {/if}
 {/if}
 
@@ -299,5 +334,10 @@
   .who {
     color: var(--ink-muted);
     font-size: 0.9rem;
+  }
+  .expired {
+    color: var(--danger);
+    font-size: 0.9rem;
+    font-weight: 600;
   }
 </style>

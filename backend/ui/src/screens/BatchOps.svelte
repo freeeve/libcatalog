@@ -375,7 +375,7 @@
         resolve against the catalog; hyphens don't matter.
       </p>
       <p class="actions">
-        <input id="cover-zip" type="file" accept=".zip,application/zip" onchange={(ev) => (coverZip = (ev.currentTarget as HTMLInputElement).files?.[0] ?? null)} />
+        <input id="cover-zip" type="file" accept=".zip,application/zip" aria-label="Cover zip file" onchange={(ev) => (coverZip = (ev.currentTarget as HTMLInputElement).files?.[0] ?? null)} />
         <button class="button" onclick={() => void uploadCovers()} disabled={!coverZip || coversBusy}>Upload covers</button>
       </p>
       <p aria-live="polite">

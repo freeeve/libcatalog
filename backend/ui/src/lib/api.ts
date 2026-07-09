@@ -2,7 +2,7 @@
 // once through a refresh on 401; a second 401 surfaces as an ApiError the
 // shell turns into the login screen.
 import { apiBase } from "./config";
-import { getToken, invalidateAccess } from "./auth";
+import { expireSession, getToken, invalidateAccess } from "./auth";
 import type {
   AuditPage,
   AuthorityMergeResult,
@@ -117,6 +117,7 @@ async function callRaw<T>(method: string, path: string, body: BodyInit, contentT
     }
     return (await res.json()) as T;
   }
+  expireSession();
   throw new ApiError(401, "session expired");
 }
 
@@ -151,6 +152,9 @@ async function call<T>(method: string, path: string, body?: unknown, headers?: R
     if (res.status === 204) return undefined as T; // e.g. folk governance
     return (await res.json()) as T;
   }
+  // A refreshed token that still 401s: the session is dead server-side.
+  // expireSession swaps the shell into its re-auth prompt (tasks/223).
+  expireSession();
   throw new ApiError(401, "authentication failed");
 }
 

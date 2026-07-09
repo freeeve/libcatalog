@@ -2,7 +2,7 @@
 // tokens, refresh is single-flight and rotates the stored refresh token, a
 // definitive refresh failure clears the session. No network.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getToken, handleOidcCallback, invalidateAccess, loginLocal, session, startOidcLogin } from "./auth";
+import { expireSession, getToken, handleOidcCallback, invalidateAccess, loginLocal, onSessionExpired, session, startOidcLogin } from "./auth";
 import { setConfig } from "./config";
 
 const REFRESH_KEY = "lcat-refresh";
@@ -97,6 +97,50 @@ describe("refresh", () => {
     await loginLocal("a@b.co", "pw");
     await expect(getToken()).resolves.toBe("");
     expect(localStorage.getItem(REFRESH_KEY)).toBe("r1");
+  });
+});
+
+// tasks/223: the shell learns the session died through onSessionExpired --
+// on a terminal refresh failure or a sibling tab's sign-out, never on a
+// fresh visit that simply has no session.
+describe("session expiry notification", () => {
+  it("notifies once on a terminal refresh failure", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(tokenResponse(staffJwt, "r1", 30))
+      .mockResolvedValueOnce(new Response("{}", { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const expired = vi.fn();
+    const off = onSessionExpired(expired);
+
+    await loginLocal("a@b.co", "pw");
+    await expect(getToken()).resolves.toBe("");
+    expect(expired).toHaveBeenCalledTimes(1);
+    // Declaring an already-cleared session dead again is silent.
+    expireSession();
+    expect(expired).toHaveBeenCalledTimes(1);
+    off();
+  });
+
+  it("notifies when a sibling tab removed the refresh token", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(tokenResponse(staffJwt, "r1", 30));
+    vi.stubGlobal("fetch", fetchMock);
+    const expired = vi.fn();
+    const off = onSessionExpired(expired);
+
+    await loginLocal("a@b.co", "pw");
+    localStorage.removeItem(REFRESH_KEY); // the other tab signed out
+    await expect(getToken()).resolves.toBe("");
+    expect(expired).toHaveBeenCalledTimes(1);
+    off();
+  });
+
+  it("stays silent for a fresh visitor with no session", async () => {
+    const expired = vi.fn();
+    const off = onSessionExpired(expired);
+    await expect(getToken()).resolves.toBe("");
+    expect(expired).not.toHaveBeenCalled();
+    off();
   });
 });
 

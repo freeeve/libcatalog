@@ -16,6 +16,11 @@ type Mode = "local" | "oidc";
 
 let accessToken = "";
 let expiresAt = 0;
+// True from token adoption until clearSession: "this tab believes it is
+// signed in". expireSession keys its notification on this rather than on
+// the token fields, which the 401-retry path clears before the refresh
+// attempt runs (tasks/223).
+let sessionLive = false;
 
 export interface Session {
   email: string;
@@ -62,6 +67,7 @@ function adopt(raw: Record<string, unknown>, mode: Mode): void {
   const tok = normalize(raw);
   accessToken = tok.accessToken;
   expiresAt = Date.now() + tok.expiresIn * 1000;
+  sessionLive = true;
   localStorage.setItem(MODE_KEY, mode);
   if (tok.refreshToken) localStorage.setItem(REFRESH_KEY, tok.refreshToken);
 }
@@ -140,6 +146,29 @@ function exchange(grant: Record<string, string>): Promise<Response> {
   });
 }
 
+// Session-expiry listeners (tasks/223): fired when a session that was
+// believed alive turns out to be gone -- a terminal refresh failure or a
+// sibling tab's sign-out -- never on a fresh visit with no session. The
+// shell subscribes and swaps the header identity for a re-auth prompt
+// without unmounting the screen underneath, so staged work survives.
+const expiryListeners = new Set<() => void>();
+
+/** Registers fn to run when the live session dies; returns unregister. */
+export function onSessionExpired(fn: () => void): () => void {
+  expiryListeners.add(fn);
+  return () => expiryListeners.delete(fn);
+}
+
+/** Declares the session dead: clears it and notifies the shell. api.ts
+ *  calls this when a refreshed request still 401s; auth calls it when the
+ *  refresh token is rejected or has vanished. */
+export function expireSession(): void {
+  const hadSession = sessionLive;
+  clearSession();
+  if (!hadSession) return;
+  for (const fn of expiryListeners) fn();
+}
+
 let refreshing: Promise<string> | null = null;
 
 /** Returns a live access token, refreshing when within a minute of expiry.
@@ -169,7 +198,12 @@ async function doRefresh(): Promise<string> {
 async function refreshExclusive(): Promise<string> {
   if (accessToken && Date.now() < expiresAt - 60_000) return accessToken;
   const refresh = localStorage.getItem(REFRESH_KEY);
-  if (!refresh) return "";
+  if (!refresh) {
+    // A sibling tab's sign-out removes the shared key; expireSession tells
+    // the shell only if this tab still believed it was signed in.
+    expireSession();
+    return "";
+  }
   const mode = (localStorage.getItem(MODE_KEY) as Mode) || "local";
   try {
     const res =
@@ -183,7 +217,7 @@ async function refreshExclusive(): Promise<string> {
     if (!res.ok) {
       // An invalid or rotated-away token means the session is truly gone;
       // transient server trouble (5xx) keeps it for a later attempt.
-      if (res.status === 400 || res.status === 401) clearSession();
+      if (res.status === 400 || res.status === 401) expireSession();
       return "";
     }
     adopt(await res.json(), mode);
@@ -236,6 +270,7 @@ export function canAdmin(s: Session | null): boolean {
 function clearSession(): void {
   accessToken = "";
   expiresAt = 0;
+  sessionLive = false;
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(MODE_KEY);
 }
