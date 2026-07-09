@@ -112,6 +112,20 @@ type Service struct {
 	// Labels, when set, writes vocabulary label companions next to term
 	// IRIs a batch edit asserts (editor.ApplyOps, tasks/145).
 	Labels editor.LabelResolver
+	// Index, when set, is kept exact for this run's own writes -- the same
+	// read-your-writes contract the single-record path holds (tasks/195).
+	// Without it, batch edits wait out the workindex refresh TTL: invisible
+	// to work search for up to 30s, and a chained batch selection resolves
+	// against the stale index.
+	Index IndexUpdater
+}
+
+// IndexUpdater is the workindex.Index surface batch writes keep exact:
+// Apply folds one written grain in, AppendFeed publishes the changed paths
+// so other containers read-their-writes without a corpus List.
+type IndexUpdater interface {
+	Apply(grainPath, etag string, grain []byte)
+	AppendFeed(ctx context.Context, paths ...string) error
 }
 
 // Resolve expands a selection to its targets, owner-scoped for saved
@@ -229,6 +243,12 @@ func (s *Service) Run(ctx context.Context, sel Selection, ops []editor.Op, dryRu
 	// writable, so an unconditional audit here would durably record demo
 	// clicks despite the "nothing is saved" contract (tasks/111).
 	if !dryRun && result.Applied > 0 {
+		// Publish every written path to the index feed in one append, so
+		// other containers read-their-writes too; best-effort, the refresh
+		// backstop covers a miss (tasks/195).
+		if s.Index != nil && len(changed) > 0 {
+			_ = s.Index.AppendFeed(ctx, changed...)
+		}
 		if s.Queue != nil {
 			s.Queue.WriteAudit(ctx, suggest.AuditEntry{
 				Action: "BATCH_OPS", Actor: actor,
@@ -272,6 +292,7 @@ func (s *Service) runOne(ctx context.Context, t Target, ops []editor.Op, dryRun 
 		return item
 	}
 	var diff editor.Diff
+	var written []byte
 	etag, err := publish.MutateGrain(ctx, s.Blob, t.path, func(old []byte) ([]byte, error) {
 		if len(old) == 0 {
 			return nil, errors.New("no such work")
@@ -281,11 +302,15 @@ func (s *Service) runOne(ctx context.Context, t Target, ops []editor.Op, dryRun 
 			return nil, err
 		}
 		diff = editor.DiffLines(old, updated)
+		written = updated
 		return updated, nil
 	})
 	if err != nil {
 		item.Error = err.Error()
 		return item
+	}
+	if s.Index != nil {
+		s.Index.Apply(t.path, etag, written)
 	}
 	item.ETag = etag
 	item.Diff = &diff

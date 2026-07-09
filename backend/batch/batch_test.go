@@ -318,3 +318,75 @@ func TestSharedMacroOverSelection(t *testing.T) {
 		t.Fatalf("template not applied: %v\n%s", err, grain)
 	}
 }
+
+// fakeIndex records the read-your-writes calls Run must make (tasks/195).
+type fakeIndex struct {
+	applied map[string]string // grain path -> etag
+	grains  map[string]int    // grain path -> written bytes
+	feeds   [][]string
+}
+
+func (f *fakeIndex) Apply(path, etag string, grain []byte) {
+	if f.applied == nil {
+		f.applied = map[string]string{}
+		f.grains = map[string]int{}
+	}
+	f.applied[path] = etag
+	f.grains[path] = len(grain)
+}
+
+func (f *fakeIndex) AppendFeed(_ context.Context, paths ...string) error {
+	f.feeds = append(f.feeds, paths)
+	return nil
+}
+
+// TestRunUpdatesIndex covers tasks/195: an executed batch keeps the shared
+// work index exact for its own writes -- Apply per written grain with the
+// reported etag, one AppendFeed over the changed paths -- while a dry run
+// touches nothing. Before this, batch edits stayed invisible to work search
+// for up to the 30s refresh TTL.
+func TestRunUpdatesIndex(t *testing.T) {
+	svc, _, _, _ := newService(t)
+	ix := &fakeIndex{}
+	svc.Index = ix
+	ctx := t.Context()
+	sel := batch.Selection{Kind: batch.KindSearch, Query: "ninth"}
+	ops := summarySetOps("Indexed immediately.")
+
+	if _, err := svc.Run(ctx, sel, ops, true, "lib@example.org"); err != nil {
+		t.Fatal(err)
+	}
+	if len(ix.applied) != 0 || len(ix.feeds) != 0 {
+		t.Fatalf("dry run touched the index: %+v %+v", ix.applied, ix.feeds)
+	}
+
+	run, err := svc.Run(ctx, sel, ops, false, "lib@example.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.Applied != 2 {
+		t.Fatalf("run = %+v", run)
+	}
+	for _, item := range run.Results {
+		path := bibframe.GrainPath(item.WorkID)
+		if ix.applied[path] != item.ETag {
+			t.Fatalf("%s: index etag %q, run etag %q", item.WorkID, ix.applied[path], item.ETag)
+		}
+		if ix.grains[path] == 0 {
+			t.Fatalf("%s: Apply saw no grain bytes", item.WorkID)
+		}
+	}
+	if len(ix.feeds) != 1 || len(ix.feeds[0]) != 2 {
+		t.Fatalf("feed appends = %+v, want one call with both paths", ix.feeds)
+	}
+
+	// A failed record never reaches the index.
+	before := len(ix.applied)
+	mixed, err := svc.Run(ctx, batch.Selection{Kind: batch.KindIDs, IDs: []string{"wmissing00001"}}, ops, false, "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mixed.Failed != 1 || len(ix.applied) != before {
+		t.Fatalf("failed record indexed: %+v (applied %d -> %d)", mixed, before, len(ix.applied))
+	}
+}

@@ -242,6 +242,12 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			Queue: deps.Suggest, Trigger: notifier, Summaries: deps.WorkIndex,
 			Labels: deps.Vocab.LabelResolver(),
 		}
+		// Keep the shared index exact for batch writes, like the
+		// single-record path (tasks/195). Guarded: a typed-nil
+		// *workindex.Index must not masquerade as an updater.
+		if deps.WorkIndex != nil {
+			deps.Batch.Index = deps.WorkIndex
+		}
 		deps.Copycat = &copycat.Service{
 			Blob: deps.Blob, DB: db, Queue: deps.Suggest, Trigger: notifier,
 			Index: deps.WorkIndex,
