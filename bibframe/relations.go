@@ -57,14 +57,33 @@ func WorkRelationsOf(grainNQ []byte, workID string) (WorkRelations, error) {
 
 // SetWorkRelation adds or removes one editorial relation statement on the
 // grain, guarded on the grain describing the work (the 202/211/214 family:
-// a typo'd id must not assert links into a foreign grain). Adds are
-// idempotent through canonicalization.
+// a typo'd id must not assert links into a foreign grain). An add is also
+// refused when the grain already asserts the inverse predicate to the same
+// target, so no caller can write the contradiction "A contains B and A is a
+// part of B" (tasks/232); the handler catches the same pair (and longer
+// cycles) first, this is the backstop that keeps it out of any grain.
+// Adds are idempotent through canonicalization.
 func SetWorkRelation(grainNQ []byte, workID, pred, targetID string, add bool) ([]byte, error) {
 	if pred != PredHasPart && pred != PredPartOf {
 		return nil, fmt.Errorf("unknown relation predicate %q", pred)
 	}
 	if !grainDescribesWork(grainNQ, workID) {
 		return nil, fmt.Errorf("grain does not describe work %s", workID)
+	}
+	if add {
+		held, err := WorkRelationsOf(grainNQ, workID)
+		if err != nil {
+			return nil, err
+		}
+		opposite := held.PartOf
+		if pred == PredPartOf {
+			opposite = held.HasPart
+		}
+		for _, t := range opposite {
+			if t == targetID {
+				return nil, fmt.Errorf("work %s already asserts the inverse relation to %s", workID, targetID)
+			}
+		}
 	}
 	q := rdf.Quad{S: rdf.NewIRI(WorkIRI(workID)), P: rdf.NewIRI(pred), O: rdf.NewIRI(WorkIRI(targetID))}
 	patch := Patch{Add: []rdf.Quad{q}}

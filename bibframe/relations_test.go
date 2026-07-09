@@ -42,6 +42,19 @@ func TestWorkRelations(t *testing.T) {
 		t.Fatalf("after remove = %+v", rel)
 	}
 
+	// tasks/232: the grain refuses to hold both directions between one pair,
+	// whichever side is asserted second, and removal is unaffected.
+	if _, err := SetWorkRelation(grain, "w1", PredHasPart, "w0ccc000ccc00", true); err == nil {
+		t.Fatal("hasPart accepted over an existing partOf to the same work")
+	}
+	inverted, err := SetWorkRelation(grain, "w1", PredPartOf, "w0bbb000bbb00", true)
+	if err == nil {
+		t.Fatalf("partOf accepted over an existing hasPart to the same work: %s", inverted)
+	}
+	if _, err := SetWorkRelation(grain, "w1", PredPartOf, "w0bbb000bbb00", false); err != nil {
+		t.Fatalf("removing an absent inverse should stay a no-op: %v", err)
+	}
+
 	// Describes-guard and predicate check refuse.
 	if _, err := SetWorkRelation(grain, "wzzz999zzz999z", PredHasPart, "w1", true); err == nil {
 		t.Fatal("undescribed work accepted a relation")
