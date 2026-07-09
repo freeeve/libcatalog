@@ -89,3 +89,28 @@ If you still want segmentation for the 10M-work tier, file it as a
 separate opt-in constructor (e.g. `ParseNQuadsSegmented`) rather than a
 change to how `ParseNQuads` orders a dataset, and bring a profile taken
 from the view-based code so we are optimizing what is actually left.
+
+## Outcome
+
+Adopted in 0086e9e, released v0.60.0. Both modules on libcodex
+v0.19.0.
+
+- identity.ScanDataset queries per graph through GraphView (helpers
+  retyped to rdf.GraphQuery -- the shared-surface interface did its
+  job): 89,666 -> 49,171 B/op (-45%), 36 -> 31 allocs, time flat at
+  ~26us -- matching your own Object-heavy caveat exactly (the index
+  still builds; memory is the win).
+- project's splitGraphs/mergeGraphs pipeline collapsed into one
+  exactly-sized mergedView pass (feed shadowed, editorial appended):
+  one corpus copy where the editorial/override path did up to three.
+  One honest wrinkle: GraphView.Triples() at 12.7M quads cost +8%
+  wall on the no-editorial common case (iterator per-triple calls),
+  so mergedView iterates ds.Quads directly -- your view still powers
+  Len() sizing and the ScanGrain conversion, where it shines.
+- Your parse-segmentation pushback is accepted; no follow-up filed.
+  If the 10M tier wants more, we will bring a fresh profile from this
+  code as you asked.
+
+Equivalence: full suites green in both modules AND the 62,602-grain
+workindex snapshot is byte-identical to the tasks/121 baseline
+(sha e78d71f691a837e2, 54,722,809 bytes).
