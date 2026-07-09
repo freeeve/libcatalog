@@ -56,9 +56,11 @@
     { path: "subtitle", label: "Subtitle", kind: "single" },
     { path: "contributors", label: "Contributors", kind: "readonly" },
     { path: "summary", label: "Summary", kind: "langLiteral", wide: true },
+    // Language pairs with the (short) subject-headings list; the tall
+    // subjects block shares a full-width row with tags below (tasks/193).
     { path: "language", label: "Language", kind: "iri", options: termOptions(LANGUAGES) },
-    { path: "subjects", label: "Subjects", kind: "vocab" },
     { path: "subjectLabels", label: "Subject headings", kind: "readonly" },
+    { path: "subjects", label: "Subjects", kind: "vocab" },
     { path: "tags", label: "Tags", kind: "tag" },
     { path: "genreForm", label: "Genre / form", kind: "readonly", section: "more" },
     { path: "content", label: "Content type", kind: "iri", options: termOptions(CONTENT_TYPES), section: "more" },
@@ -121,7 +123,11 @@
   const specs = kind === "work" ? WORK_FIELDS : INSTANCE_FIELDS;
   // svelte-ignore state_referenced_locally
   const heading = kind === "work" ? "h2" : "h4";
-  const primarySpecs = specs.filter((s) => !s.section);
+  // Subjects and tags render side by side in one full-width row (tasks/193);
+  // everything else flows the two-column worksheet as before.
+  const pairedPaths = new Set(["subjects", "tags"]);
+  const pairedSpecs = specs.filter((s) => !s.section && pairedPaths.has(s.path));
+  const primarySpecs = specs.filter((s) => !s.section && !(pairedSpecs.length === 2 && pairedPaths.has(s.path)));
   const moreSpecs = specs.filter((s) => s.section === "more");
   const moreCount = $derived(moreSpecs.reduce((n, s) => n + (res.fields[s.path]?.length ?? 0), 0));
 
@@ -160,6 +166,135 @@
       () => {},
     );
   });
+
+  // tasks/193: every resolved term's broader parents resolve too, one
+  // batched call per level (breadth-first; `attempted` bounds the calls and
+  // breaks vocabulary cycles), so SKOS chips can show a root-first path.
+  $effect(() => {
+    const missing: string[] = [];
+    for (const t of Object.values(resolved)) {
+      for (const b of t.broader ?? []) {
+        if (!attempted.has(b)) {
+          attempted.add(b);
+          missing.push(b);
+        }
+      }
+    }
+    if (missing.length === 0) return;
+    resolveTermURIs(missing).then(
+      (r) => (resolved = { ...resolved, ...r.terms }),
+      () => {},
+    );
+  });
+
+  // Scheme -> whether any resolved term of it carries hierarchy links:
+  // SKOS-shaped vocabularies group by root with a path on each chip, flat
+  // ones (FAST) stack in compact columns -- the same distinction the
+  // work-search rail draws (tasks/176, tasks/193).
+  const schemeHierarchy = $derived.by(() => {
+    const h: Record<string, boolean> = {};
+    for (const t of Object.values(resolved)) {
+      if (t.scheme && ((t.broader?.length ?? 0) > 0 || (t.narrower?.length ?? 0) > 0)) h[t.scheme] = true;
+    }
+    return h;
+  });
+
+  interface MergedValue {
+    fv: FieldValue;
+    provs: string[];
+  }
+
+  /** Collapses identical values asserted by several feeds -- a multi-feed
+   *  cluster carries one statement per graph -- into one display row wearing
+   *  every provenance badge (tasks/196). Ops key on the value, not the
+   *  graph, so acting on the merged row acts on every assertion. */
+  function mergeProv(values: FieldValue[]): MergedValue[] {
+    const out: MergedValue[] = [];
+    const idx = new Map<string, MergedValue>();
+    for (const fv of values) {
+      const key =
+        valueKey({ v: fv.v, lang: fv.lang, iri: fv.iri }) + "|" + (fv.annotation ?? "") + "|" + (fv.overridden ? "o" : "");
+      const m = idx.get(key);
+      if (m) {
+        if (!m.provs.includes(fv.prov)) m.provs.push(fv.prov);
+        continue;
+      }
+      const nm = { fv, provs: [fv.prov] };
+      idx.set(key, nm);
+      out.push(nm);
+    }
+    return out;
+  }
+
+  interface VocabEntry {
+    fv: FieldValue;
+    provs: string[];
+    pathPrefix: string;
+  }
+  interface SkosGroup {
+    rootId: string;
+    rootLabel: string;
+    scheme: string;
+    entries: VocabEntry[];
+  }
+  interface FlatGroup {
+    scheme: string;
+    entries: VocabEntry[];
+  }
+
+  /** Root-first broader chain ending at the term itself: first parent when
+   *  a term has several, cycle-safe, depth-capped like the projector. */
+  function ancestorChain(term: Term): Term[] {
+    const out = [term];
+    const seen = new Set([term.id]);
+    let cur = term;
+    for (let d = 0; d < 12; d++) {
+      const up = (cur.broader ?? []).map((b) => resolved[b]).find(Boolean);
+      if (!up || seen.has(up.id)) break;
+      seen.add(up.id);
+      out.unshift(up);
+      cur = up;
+    }
+    return out;
+  }
+
+  /** Groups a vocab field's stored values for display (tasks/193): SKOS
+   *  terms by their root ancestor (chips carry the intermediate path), flat
+   *  schemes' terms per scheme for the column stacks, unresolved values
+   *  left to the generic list. Entries sort by label for scanability. */
+  function subjectGroups(values: FieldValue[]): { skos: SkosGroup[]; flat: FlatGroup[]; rest: MergedValue[] } {
+    const skos = new Map<string, SkosGroup>();
+    const flat = new Map<string, FlatGroup>();
+    const rest: MergedValue[] = [];
+    for (const m of mergeProv(values)) {
+      const { fv, provs } = m;
+      const term = fv.iri ? resolved[fv.v] : undefined;
+      if (!term) {
+        rest.push(m);
+        continue;
+      }
+      if (schemeHierarchy[term.scheme ?? ""]) {
+        const c = ancestorChain(term);
+        const root = c[0];
+        const g = skos.get(root.id) ?? { rootId: root.id, rootLabel: bestLabel(root), scheme: term.scheme ?? "", entries: [] };
+        g.entries.push({ fv, provs, pathPrefix: c.slice(1, -1).map((t) => bestLabel(t)).join(" › ") });
+        skos.set(root.id, g);
+      } else {
+        const key = term.scheme ?? "";
+        const g = flat.get(key) ?? { scheme: key, entries: [] };
+        g.entries.push({ fv, provs, pathPrefix: "" });
+        flat.set(key, g);
+      }
+    }
+    const label = (e: VocabEntry) => bestLabel(resolved[e.fv.v]);
+    for (const g of skos.values()) g.entries.sort((a, b) => label(a).localeCompare(label(b)));
+    for (const g of flat.values()) g.entries.sort((a, b) => label(a).localeCompare(label(b)));
+    return {
+      skos: [...skos.values()].sort((a, b) => a.rootLabel.localeCompare(b.rootLabel)),
+      flat: [...flat.values()].sort((a, b) => a.scheme.localeCompare(b.scheme)),
+      rest,
+    };
+  }
 
   function toggleExpand(path: string, uri: string): void {
     const key = path + "|" + uri;
@@ -270,30 +405,26 @@
 </script>
 
 <div class="profileform">
-  {#snippet fieldBlock(spec: FieldSpec)}
-    {@const values = res.fields[spec.path] ?? []}
-    {@const adds = pendingAdds(spec.path)}
-    <div class="field" class:wide={spec.wide}>
-      <svelte:element this={heading} class="fieldhead">{spec.label}</svelte:element>
-      <ul class="vals">
-        {#each values as fv, i (fv.node + i)}
-          {@const removal = removalOf(spec.path, fv)}
-          {@const term = spec.kind === "vocab" && fv.iri ? resolved[fv.v] : undefined}
-          {@const expKey = spec.path + "|" + fv.v}
-          <li class="value" class:overridden={fv.overridden} class:pending-removed={!!removal}>
-            {#if term}
-              <button
-                class="chip"
-                class:open={expanded === expKey}
-                title={fv.v}
-                aria-expanded={expanded === expKey}
-                onclick={() => toggleExpand(spec.path, fv.v)}
-              >
-                <span class="v chip-label">{bestLabel(term)}</span>
-                <span class="chip-scheme">{term.scheme}</span>
-                <span class="chip-caret" aria-hidden="true">{expanded === expKey ? "▾" : "▸"}</span>
-              </button>
-            {:else if fv.iri && spec.kind === "vocab" && fv.annotation}
+  {#snippet valueRow(spec: FieldSpec, fv: FieldValue, pathPrefix: string, provs: string[])}
+    {@const removal = removalOf(spec.path, fv)}
+    {@const term = spec.kind === "vocab" && fv.iri ? resolved[fv.v] : undefined}
+    {@const expKey = spec.path + "|" + fv.v}
+    <li class="value" class:overridden={fv.overridden} class:pending-removed={!!removal}>
+      {#if term}
+        <button
+          class="chip"
+          class:open={expanded === expKey}
+          title={fv.v}
+          aria-expanded={expanded === expKey}
+          onclick={() => toggleExpand(spec.path, fv.v)}
+        >
+          <span class="v chip-label">
+            {#if pathPrefix}<span class="pathpre">{pathPrefix} › </span>{/if}{bestLabel(term)}
+          </span>
+          <span class="chip-scheme">{term.scheme}</span>
+          <span class="chip-caret" aria-hidden="true">{expanded === expKey ? "▾" : "▸"}</span>
+        </button>
+      {:else if fv.iri && spec.kind === "vocab" && fv.annotation}
               {@const p = iriParts(fv.v)}
               <!-- Vocab-index miss, but the grain carries the term's own
                    skos:prefLabel (tasks/137): show the name; the hint still
@@ -356,7 +487,9 @@
               {/if}
             {/if}
             {#if fv.lang}<span class="lang">@{fv.lang}</span>{/if}
-            <ProvenanceBadge prov={fv.prov} />
+            {#each provs as p (p)}
+              <ProvenanceBadge prov={p} />
+            {/each}
             {#if fv.overridden}<span class="ov-note">overridden</span>{/if}
             {#if removal}
               <span class="pend-note">removes on save</span>
@@ -367,18 +500,19 @@
               <button class="button button--quiet act" onclick={() => stageRemove(spec.path, fv)}>Remove</button>
             {/if}
           </li>
-          {#if term && expanded === expKey && !removal}
-            <li class="hoodrow">
-              <SubjectNeighborhood
-                {term}
-                onreplace={(t) => replaceSubject(spec.path, fv, t)}
-                onadd={(t) => addSubject(spec.path, t)}
-              />
-            </li>
-          {/if}
-        {/each}
-        {#each adds as p, i (i)}
-          <li class="value pending-added">
+    {#if term && expanded === expKey && !removal}
+      <li class="hoodrow">
+        <SubjectNeighborhood
+          {term}
+          onreplace={(t) => replaceSubject(spec.path, fv, t)}
+          onadd={(t) => addSubject(spec.path, t)}
+        />
+      </li>
+    {/if}
+  {/snippet}
+
+  {#snippet pendingRow(p: PendingValue)}
+    <li class="value pending-added">
             {#if p.value.iri && iriTerm(p.value.v)}
               {@const rt = iriTerm(p.value.v)!}
               <span class="v" title={p.value.v}>{rt.label}</span>
@@ -403,11 +537,64 @@
               ✕ undo
             </button>
           </li>
+  {/snippet}
+
+  {#snippet fieldBlock(spec: FieldSpec)}
+    {@const values = res.fields[spec.path] ?? []}
+    {@const adds = pendingAdds(spec.path)}
+    <div class="field" class:wide={spec.wide}>
+      <svelte:element this={heading} class="fieldhead">{spec.label}</svelte:element>
+      {#if spec.kind === "vocab" && values.length > 0}
+        <!-- tasks/193: SKOS terms group under their root ancestor with the
+             intermediate path on each chip; flat schemes (FAST) stack in
+             columns; unresolved values fall through to the plain list. -->
+        {@const g = subjectGroups(values)}
+        {#each g.skos as grp (grp.rootId)}
+          <div class="vgroup">
+            <div class="vgrouphead">
+              <span class="vgroupname">{grp.rootLabel}</span>
+              <span class="chip-scheme">{grp.scheme}</span>
+            </div>
+            <ul class="vals">
+              {#each grp.entries as e, i (e.fv.node + i)}
+                {@render valueRow(spec, e.fv, e.pathPrefix, e.provs)}
+              {/each}
+            </ul>
+          </div>
         {/each}
-        {#if values.length === 0 && adds.length === 0}
-          <li class="muted none">none</li>
+        {#each g.flat as grp (grp.scheme)}
+          <div class="vgroup">
+            <div class="vgrouphead"><span class="chip-scheme">{grp.scheme || "other"}</span></div>
+            <ul class="vals flatcols">
+              {#each grp.entries as e, i (e.fv.node + i)}
+                {@render valueRow(spec, e.fv, "", e.provs)}
+              {/each}
+            </ul>
+          </div>
+        {/each}
+        {#if g.rest.length > 0 || adds.length > 0}
+          <ul class="vals">
+            {#each g.rest as m, i (m.fv.node + i)}
+              {@render valueRow(spec, m.fv, "", m.provs)}
+            {/each}
+            {#each adds as p, i (i)}
+              {@render pendingRow(p)}
+            {/each}
+          </ul>
         {/if}
-      </ul>
+      {:else}
+        <ul class="vals">
+          {#each mergeProv(values) as m, i (m.fv.node + i)}
+            {@render valueRow(spec, m.fv, "", m.provs)}
+          {/each}
+          {#each adds as p, i (i)}
+            {@render pendingRow(p)}
+          {/each}
+          {#if values.length === 0 && adds.length === 0}
+            <li class="muted none">none</li>
+          {/if}
+        </ul>
+      {/if}
 
       {#if spec.kind === "single"}
         <form
@@ -493,6 +680,14 @@
     {@render fieldBlock(spec)}
   {/each}
 
+  {#if pairedSpecs.length === 2}
+    <div class="pairrow">
+      {#each pairedSpecs as spec (spec.path)}
+        {@render fieldBlock(spec)}
+      {/each}
+    </div>
+  {/if}
+
   {#if moreSpecs.length > 0}
     <details class="morefields">
       <summary>Additional details{#if moreCount > 0}&nbsp;({moreCount}){/if}</summary>
@@ -508,19 +703,21 @@
     <div class="field">
       <svelte:element this={heading} class="fieldhead">{prettify(path)}</svelte:element>
       <ul class="vals">
-        {#each values as fv, i (fv.node + i)}
-          <li class="value" class:overridden={fv.overridden}>
-            {#if fv.iri}
-              {@const p = iriParts(fv.v)}
-              <span class="v iri" title={fv.v}>
+        {#each mergeProv(values) as m, i (m.fv.node + i)}
+          <li class="value" class:overridden={m.fv.overridden}>
+            {#if m.fv.iri}
+              {@const p = iriParts(m.fv.v)}
+              <span class="v iri" title={m.fv.v}>
                 {#if p.host}<span class="iri-host">{p.host}</span>{/if}{p.tail}
               </span>
             {:else}
-              <span class="v">{fv.v}</span>
+              <span class="v">{m.fv.v}</span>
             {/if}
-            {#if fv.lang}<span class="lang">@{fv.lang}</span>{/if}
-            <ProvenanceBadge prov={fv.prov} />
-            {#if fv.overridden}<span class="ov-note">overridden</span>{/if}
+            {#if m.fv.lang}<span class="lang">@{m.fv.lang}</span>{/if}
+            {#each m.provs as p (p)}
+              <ProvenanceBadge prov={p} />
+            {/each}
+            {#if m.fv.overridden}<span class="ov-note">overridden</span>{/if}
           </li>
         {/each}
       </ul>
@@ -575,6 +772,53 @@
      the full line so paragraph text is written where it will be read. */
   .field.wide {
     grid-column: 1 / -1;
+  }
+  /* tasks/193: subjects and tags share one full-width row -- subjects takes
+     the flexible width for its vocabulary groups, tags a fixed rail. */
+  .pairrow {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+    gap: 0 2.5rem;
+    align-items: start;
+  }
+  @media (max-width: 52rem) {
+    .pairrow {
+      grid-template-columns: 1fr;
+    }
+  }
+  /* tasks/193: vocabulary display groups. A SKOS group is headed by its
+     root term; a flat scheme (FAST) stacks its chips in columns. */
+  .field > .vgroup {
+    justify-self: stretch;
+  }
+  .vgroup {
+    margin: 0.1rem 0 0.45rem;
+  }
+  .vgrouphead {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.1rem;
+  }
+  .vgroupname {
+    font-size: 0.78rem;
+    font-weight: 650;
+    color: var(--ink-muted);
+  }
+  .vals.flatcols {
+    column-width: 17rem;
+    column-gap: 2rem;
+  }
+  .vals.flatcols > :global(li) {
+    break-inside: avoid;
+  }
+  .vals.flatcols > :global(li.hoodrow) {
+    column-span: all;
+  }
+  .pathpre {
+    font-weight: 400;
+    color: var(--ink-muted);
   }
   .field.wide .addrow input[type="text"]:first-child {
     flex: 1 1 16rem;
