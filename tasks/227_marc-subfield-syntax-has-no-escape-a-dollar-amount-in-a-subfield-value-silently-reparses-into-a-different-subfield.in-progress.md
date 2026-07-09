@@ -2,6 +2,29 @@
 
 Filed from libcat on 2026-07-09 (cross-repo ask).
 
+## Outcome
+
+Fixed in v0.77.0 (commit 29049ea) with the stricter delimiter rule
+from the filing: "$"+code counts only when preceded by line start or
+whitespace AND followed by whitespace or line end, so "$24.95" can
+never be a delimiter. The serializer always emits the spaced form, so
+real delimiters are unaffected; the deliberate cost is that "$aFoo"
+(no space) reads as literal text. Both surfaces share the parser, so
+grid and text are fixed together. The filing's three corruption cases
+plus a round-trip property are pinned in marc.test.ts.
+
+Residual, by the nature of the syntax rather than this bug: a value
+containing a stand-alone " $b " sequence still reads as a delimiter --
+no mnemonic MARC format distinguishes that without an escape, and
+introducing "$$" would put escapes in front of catalogers for the
+common case this task is about. The empty-value filter is retained
+(an intentionally empty typed subfield is still dropped); with the new
+rule the "$c $24.95" case that made it destructive now parses as data.
+
+Verified with the filer's probe_marc_text.mjs against the rebuilt
+8481: 8/8 including P4 (unrelated edit leaves the note intact), P5
+(direct edit keeps the amount), P6 (no invented subfield).
+
 ## Symptom
 
 A `500 $a List price $24.95 at issue` -- a plain note with a price in it --
