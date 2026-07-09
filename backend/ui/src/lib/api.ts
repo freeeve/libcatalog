@@ -766,6 +766,50 @@ export async function postCoverBatch(file: File): Promise<{ applied: number; res
   return callRaw("POST", "/v1/covers/batch", file, "application/zip");
 }
 
+/** A work's staff attachments (librarian, tasks/229). */
+export function fetchAttachments(workId: string): Promise<{ attachments: string[] }> {
+  return call("GET", `/v1/works/${encodeURIComponent(workId)}/attachments`);
+}
+
+/** Uploads one staff attachment (raw body; the name rides the query). */
+export async function putAttachment(workId: string, file: File, name = file.name): Promise<{ workId: string; name: string; etag: string }> {
+  return callRaw(
+    "POST",
+    `/v1/works/${encodeURIComponent(workId)}/attachments?name=${encodeURIComponent(name)}`,
+    file,
+    file.type || "application/octet-stream",
+  );
+}
+
+/** Folds an arbitrary filename onto the server's safe-name shape: ASCII
+ *  letters/digits/dot/dash/underscore, leading alphanumeric, <=100 chars.
+ *  Returns "" when nothing survivable remains. */
+export function safeAttachmentName(name: string): string {
+  const folded = name
+    .normalize("NFKD")
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/^[^A-Za-z0-9]+/, "")
+    .slice(0, 100);
+  return /^[A-Za-z0-9]/.test(folded) ? folded : "";
+}
+
+/** Removes one staff attachment: statement and bytes (librarian). */
+export function deleteAttachment(workId: string, name: string): Promise<void> {
+  return call("DELETE", `/v1/works/${encodeURIComponent(workId)}/attachments/${encodeURIComponent(name)}`);
+}
+
+/** Fetches an attachment's bytes with the bearer attached (an <a href>
+ *  cannot carry the Authorization header); caller object-URLs it. */
+export async function fetchAttachmentBlob(workId: string, name: string): Promise<Blob> {
+  const token = await getToken();
+  if (!token) throw new ApiError(401, "not signed in");
+  const res = await fetch(apiBase() + `/v1/works/${encodeURIComponent(workId)}/attachments/${encodeURIComponent(name)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new ApiError(res.status, "download failed");
+  return res.blob();
+}
+
 /** One linked work in a relations listing (tasks/221). */
 export interface RelationEntry {
   workId: string;
