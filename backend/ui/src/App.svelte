@@ -10,6 +10,7 @@
   import { configStore, sessionStore } from "./lib/stores";
   import { bindKeys, GLOBAL_SCOPE } from "./lib/keyboard";
   import { resetScreenStates } from "./lib/screenState.svelte";
+  import { clearAllLocalDrafts } from "./lib/localdraft";
   import KbdLegend from "./components/KbdLegend.svelte";
   import KeyboardHelp from "./components/KeyboardHelp.svelte";
   import Login from "./screens/Login.svelte";
@@ -159,11 +160,21 @@
   // Auth gate: signed-out users go to the login screen, signed-in users
   // never see it. Callback stays untouched while the exchange completes,
   // and an expired session mid-screen re-auths in place instead of routing
-  // away (tasks/223).
+  // away (tasks/223). The hash the gate bounced is stashed so signing in
+  // returns there -- a reload mid-record must not strand the cataloger on
+  // the dashboard (tasks/225).
   $effect(() => {
     if (!ready || route.name === "callback" || reauth) return;
-    if (!$sessionStore && route.name !== "login") navigate("/login");
-    else if ($sessionStore && route.name === "login") navigate("/");
+    if (!$sessionStore && route.name !== "login") {
+      if (location.hash && location.hash !== "#/" && !location.hash.startsWith("#/login")) {
+        sessionStorage.setItem("lcat-return-to", location.hash);
+      }
+      navigate("/login");
+    } else if ($sessionStore && route.name === "login") {
+      const back = sessionStorage.getItem("lcat-return-to");
+      sessionStorage.removeItem("lcat-return-to");
+      navigate(back ?? "/");
+    }
   });
 
   async function signOut(): Promise<void> {
@@ -171,6 +182,9 @@
     sessionStore.set(null);
     reauth = false;
     resetScreenStates();
+    // Shared terminals: an explicit sign-out must not leak one cataloger's
+    // staged work into the next session (tasks/225).
+    clearAllLocalDrafts();
     navigate("/login");
   }
 </script>

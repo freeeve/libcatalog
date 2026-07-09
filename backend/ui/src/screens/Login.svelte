@@ -2,7 +2,6 @@
   // Sign-in: local email/password when the deployment has built-in users,
   // an SSO button when an OIDC issuer is configured -- or both.
   import { loginLocal, startOidcLogin, session } from "../lib/auth";
-  import { navigate } from "../lib/router";
   import { sessionStore } from "../lib/stores";
   import type { ClientConfig } from "../lib/types";
 
@@ -20,7 +19,8 @@
     try {
       await loginLocal(email, password);
       sessionStore.set(session());
-      navigate("/");
+      // No navigate here: the shell's auth gate routes to the stashed
+      // pre-login hash (tasks/225), falling back to the dashboard.
     } catch (e) {
       error = e instanceof Error ? e.message : "login failed";
     } finally {

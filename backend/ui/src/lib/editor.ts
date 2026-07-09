@@ -14,6 +14,7 @@ import {
   updateDraft,
 } from "./api";
 import { isSandbox } from "./config";
+import { clearLocalDraft, loadLocalDraft, saveLocalDraft } from "./localdraft";
 import { createOpsStore } from "./ops";
 import type { Diff, Draft, DuplicateMatch, Op, WorkDoc } from "./types";
 
@@ -147,6 +148,13 @@ export function createEditorSession(workId: string): EditorSession {
       } catch {
         // Drafts are a convenience; the editor works without them.
       }
+      // The local mirror wins over the server draft in this browser: it is
+      // written on every edit, while the autosave lags 3s and dies with the
+      // session (tasks/225). Resuming it re-adopts the server draft slot.
+      const local = isSandbox() ? null : loadLocalDraft(workId);
+      if (local) {
+        pendingDraft = { id: pendingDraft?.id ?? "", workId, body: local.body, updatedAt: local.savedAt };
+      }
       patch({ loading: false, doc: res.doc, etag: res.etag, pendingDraft });
     } catch (e) {
       patch({
@@ -158,6 +166,9 @@ export function createEditorSession(workId: string): EditorSession {
 
   function afterEdit(): void {
     patch({ diff: null, opError: "", notice: "", duplicate: null });
+    // Mirror synchronously: the point is surviving an abrupt reload, which
+    // the 3s autosave debounce would lose (tasks/225).
+    if (!isSandbox()) saveLocalDraft(workId, { baseEtag: state.etag, ops: ops.payload() });
     scheduleAutosave();
   }
 
@@ -209,6 +220,7 @@ export function createEditorSession(workId: string): EditorSession {
       clearTimeout(timer);
       const draftId = state.draftId;
       ops.clear();
+      clearLocalDraft(workId);
       patch({
         busy: false,
         etag: res.etag,
@@ -251,6 +263,7 @@ export function createEditorSession(workId: string): EditorSession {
   async function discard(): Promise<void> {
     clearTimeout(timer);
     ops.clear();
+    clearLocalDraft(workId);
     const draftId = state.draftId;
     patch({ diff: null, opError: "", conflict: false, draftId: "" });
     if (draftId) await deleteDraft(draftId).catch(() => undefined);
@@ -283,7 +296,8 @@ export function createEditorSession(workId: string): EditorSession {
   async function discardDraft(): Promise<void> {
     const d = state.pendingDraft;
     patch({ pendingDraft: null });
-    if (d) await deleteDraft(d.id).catch(() => undefined);
+    clearLocalDraft(workId);
+    if (d?.id) await deleteDraft(d.id).catch(() => undefined);
   }
 
   return {
