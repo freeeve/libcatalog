@@ -48,7 +48,22 @@ type Publisher struct {
 	// (workindex, tasks/109) tag promotion scans instead of a per-run
 	// corpus walk; nil falls back to ScanSummaries.
 	Summaries ingest.SummarySource
-	Logger    *slog.Logger
+	// Index, when set, is kept exact for this publisher's own grain writes
+	// -- the read-your-writes contract the single-record and batch paths
+	// hold (tasks/195, tasks/203). Without it, tag promotions and approved
+	// publishes wait out the workindex refresh TTL: invisible to work
+	// search for up to 30s, and batch selections resolve against the
+	// stale index meanwhile.
+	Index  IndexUpdater
+	Logger *slog.Logger
+}
+
+// IndexUpdater is the workindex.Index surface publish writes keep exact:
+// Apply folds one written grain in, AppendFeed publishes the changed paths
+// so other containers read-their-writes (mirrors batch.IndexUpdater).
+type IndexUpdater interface {
+	Apply(grainPath, etag string, grain []byte)
+	AppendFeed(ctx context.Context, paths ...string) error
 }
 
 // Result summarizes one publish run.
@@ -116,11 +131,17 @@ func (p *Publisher) PublishApproved(ctx context.Context, actor string) (Result, 
 	result := Result{}
 	for workID, group := range byWork {
 		path := p.Prefix + bibframe.GrainPath(workID)
+		var updated []byte
 		etag, err := MutateGrain(ctx, p.Blob, path, func(old []byte) ([]byte, error) {
 			if len(old) == 0 {
 				return nil, fmt.Errorf("no grain for work %s", workID)
 			}
-			return p.applyGroup(old, workID, group)
+			out, err := p.applyGroup(old, workID, group)
+			if err != nil {
+				return nil, err
+			}
+			updated = out
+			return out, nil
 		})
 		if err != nil {
 			// A missing grain (retired work, stale queue item) skips;
@@ -128,6 +149,9 @@ func (p *Publisher) PublishApproved(ctx context.Context, actor string) (Result, 
 			p.logf("publish skip", "work", workID, "err", err)
 			result.Skipped += len(group)
 			continue
+		}
+		if p.Index != nil {
+			p.Index.Apply(path, etag, updated)
 		}
 		if err := p.Queue.MarkPublished(ctx, group, etag); err != nil {
 			return result, err
@@ -141,6 +165,11 @@ func (p *Publisher) PublishApproved(ctx context.Context, actor string) (Result, 
 		})
 		result.Published += len(group)
 		result.Paths = append(result.Paths, path)
+	}
+	// Publish the writes to the index feed so other containers
+	// read-their-writes; best-effort, the refresh backstop covers a miss.
+	if p.Index != nil && len(result.Paths) > 0 {
+		_ = p.Index.AppendFeed(ctx, result.Paths...)
 	}
 	if p.Trigger != nil && len(result.Paths) > 0 {
 		if err := p.Trigger.Notify(ctx, trigger.Event{Kind: "grains-changed", Paths: result.Paths, At: time.Now().UTC()}); err != nil {

@@ -215,11 +215,18 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		logger.Info("trigger", "debounce", cfg.RebuildDebounce)
 	}
 	if deps.Suggest != nil && deps.Blob != nil {
-		deps.Publisher = &publish.Publisher{
+		pub := &publish.Publisher{
 			Blob: deps.Blob, Queue: deps.Suggest, Vocab: deps.Vocab,
 			Trigger: notifier, Lease: publish.NewLease(db, "ingest", 15*time.Minute),
 			Summaries: deps.WorkIndex, Logger: logger,
 		}
+		// Keep the shared index exact for publish writes, like the
+		// single-record and batch paths (tasks/195/203). Guarded: a
+		// typed-nil *workindex.Index must not masquerade as an updater.
+		if deps.WorkIndex != nil {
+			pub.Index = deps.WorkIndex
+		}
+		deps.Publisher = pub
 	}
 	if deps.Blob != nil {
 		// The live editing-profile set: shipped defaults overlaid with the

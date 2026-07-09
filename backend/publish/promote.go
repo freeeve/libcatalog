@@ -41,33 +41,51 @@ func (p *Publisher) PromoteTag(ctx context.Context, promo suggest.Promotion, act
 	}
 	subject := p.authoritySubject(promo.Term)
 	rewritten := 0
-	var changed []string
+	// changed drives the rebuild trigger (works + the alias grain);
+	// changedWorks feeds the index, which projects work grains only.
+	var changed, changedWorks []string
 	for _, summary := range summaries {
 		if !slices.Contains(summary.Tags, promo.Tag) {
 			continue
 		}
 		path := paths[summary.WorkID]
-		_, err := MutateGrain(ctx, p.Blob, path, func(old []byte) ([]byte, error) {
+		var written []byte
+		etag, err := MutateGrain(ctx, p.Blob, path, func(old []byte) ([]byte, error) {
 			updated, err := bibframe.AppendAuthoritySubject(old, summary.WorkID, subject, promo.Term.Scheme)
 			if err != nil {
 				return nil, err
 			}
 			// Retract the editorial-side tag if present; a feed-side tag
 			// stays and the projector's alias suppression hides it.
-			return bibframe.ApplyEditorialPatch(updated, bibframe.Patch{
+			out, err := bibframe.ApplyEditorialPatch(updated, bibframe.Patch{
 				Remove: []rdf.Quad{bibframe.TagQuad(summary.WorkID, promo.Tag)},
 			})
+			if err != nil {
+				return nil, err
+			}
+			written = out
+			return out, nil
 		})
 		if err != nil {
 			return rewritten, fmt.Errorf("promote %q on %s: %w", promo.Tag, summary.WorkID, err)
 		}
+		// Keep the shared index exact for this write (tasks/203, the
+		// tasks/195 contract): searches reflect the promotion immediately
+		// instead of after the refresh TTL.
+		if p.Index != nil {
+			p.Index.Apply(path, etag, written)
+		}
 		rewritten++
 		changed = append(changed, path)
+		changedWorks = append(changedWorks, path)
 	}
 	if err := p.recordAlias(ctx, promo); err != nil {
 		return rewritten, err
 	}
 	changed = append(changed, p.Prefix+aliasGrainPath)
+	if p.Index != nil && len(changedWorks) > 0 {
+		_ = p.Index.AppendFeed(ctx, changedWorks...)
+	}
 	p.Queue.WriteAudit(ctx, suggest.AuditEntry{
 		Action: "PROMOTION_DONE", Actor: actor,
 		Terms: []string{vocab.FolkScheme + ":" + promo.Tag, promo.Term.Scheme + ":" + promo.Term.ID},
