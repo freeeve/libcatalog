@@ -104,8 +104,9 @@ Both are invisible to server-side tests: the API is healthy in both cases.
 cd ~/libcat-e2e && node ui/probe_newrecord.mjs
 ```
 
-Expect `N1` (grid renders) and `N11`/`N12` (clipboard copy/paste, cut/paste) to
-pass; the staging and draft-guard checks behind them are blocked until the grid
-mounts. The probe stages into a copycat batch and deletes it; nothing is ever
-committed, so no work enters the catalog. `harness/retest.mjs` carries the same
-check as `t224`.
+Expect `N1` (the grid mounts), `N2` (the error text stops blaming the fetch), and
+`N7`/`N8` (clipboard copy/paste and cut/paste) to flip to PASS; `N3`-`N6` (the
+viability gate and staging) currently SKIP because they are blocked behind the
+grid, and should start running once it mounts. The probe stages into a copycat
+batch and deletes it; nothing is ever committed, so no work enters the catalog.
+`harness/retest.mjs` carries the same check as `t224`.
