@@ -71,7 +71,7 @@ func New(ctx context.Context, cfg Config) (*Verifier, error) {
 	}
 	jwksURL := cfg.JWKSURL
 	if jwksURL == "" {
-		if disc, err := discover(ctx, client, cfg.Issuer); err == nil && disc.JWKSURI != "" {
+		if disc, err := Discover(ctx, client, cfg.Issuer); err == nil && disc.JWKSURI != "" {
 			jwksURL = disc.JWKSURI
 		} else {
 			jwksURL = strings.TrimSuffix(cfg.Issuer, "/") + "/jwks.json"
@@ -156,28 +156,37 @@ func (v *Verifier) roles(tok jwt.Token) []auth.Role {
 	return roles
 }
 
-type discovery struct {
-	JWKSURI       string `json:"jwks_uri"`
-	TokenEndpoint string `json:"token_endpoint"`
+// Discovery is the subset of the issuer's OIDC discovery document the
+// backend consumes; auth/sitegate additionally needs the interactive
+// endpoints.
+type Discovery struct {
+	AuthorizationEndpoint string `json:"authorization_endpoint"`
+	TokenEndpoint         string `json:"token_endpoint"`
+	JWKSURI               string `json:"jwks_uri"`
 }
 
-func discover(ctx context.Context, client *http.Client, issuer string) (discovery, error) {
+// Discover fetches {issuer}/.well-known/openid-configuration. A nil client
+// uses http.DefaultClient.
+func Discover(ctx context.Context, client *http.Client, issuer string) (Discovery, error) {
+	if client == nil {
+		client = http.DefaultClient
+	}
 	url := strings.TrimSuffix(issuer, "/") + "/.well-known/openid-configuration"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return discovery{}, err
+		return Discovery{}, err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return discovery{}, err
+		return Discovery{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return discovery{}, fmt.Errorf("oidc: discovery status %d", resp.StatusCode)
+		return Discovery{}, fmt.Errorf("oidc: discovery status %d", resp.StatusCode)
 	}
-	var d discovery
+	var d Discovery
 	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
-		return discovery{}, err
+		return Discovery{}, err
 	}
 	return d, nil
 }

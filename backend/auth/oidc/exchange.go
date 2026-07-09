@@ -113,7 +113,7 @@ func tokenEndpoint(ctx context.Context, client *http.Client, cfg ExchangeConfig)
 	if cfg.TokenEndpoint != "" {
 		return cfg.TokenEndpoint, nil
 	}
-	disc, err := discover(ctx, client, cfg.Issuer)
+	disc, err := Discover(ctx, client, cfg.Issuer)
 	if err != nil {
 		return "", err
 	}
