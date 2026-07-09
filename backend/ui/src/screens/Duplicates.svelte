@@ -7,7 +7,7 @@
   // uses the same endpoint (and lcat:mergedInto semantics) as the CLI
   // markers; field cleanup happens in the survivor's editor afterward.
   import { onDestroy, onMount } from "svelte";
-  import { ApiError, fetchDuplicates, fetchWorkDoc, mergeWorks } from "../lib/api";
+  import { ApiError, fetchDuplicates, fetchProfile, fetchWorkDoc, mergeWorks, postOps } from "../lib/api";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { screenState } from "../lib/screenState.svelte";
   import Modal from "../components/Modal.svelte";
@@ -15,7 +15,8 @@
   import { isReadOnly } from "../lib/config";
   import { languageTerm } from "../lib/languages";
   import { rdaTerm } from "../lib/rdaterms";
-  import type { DuplicateGroup, WorkDoc } from "../lib/types";
+  import { adoptionChanges, adoptionOps } from "../lib/mergeadopt";
+  import type { DuplicateGroup, FieldValue, Op, Profile, WorkDoc } from "../lib/types";
 
   const SCOPE = "duplicates";
   const COMPARE_SCOPE = "duplicates-compare";
@@ -28,6 +29,11 @@
     openKey: null as string | null,
     survivor: "",
     docs: {} as Record<string, WorkDoc | null>,
+    etags: {} as Record<string, string>,
+    // path -> the losing work whose values the survivor should take (058
+    // item 6). One source per field: adopting twice replaces, so the table
+    // can never stage two contradictory values for one path.
+    adopted: {} as Record<string, string>,
     loadedAt: 0,
   }));
 
@@ -35,6 +41,7 @@
   let confirming = $state(false);
   let status = $state("");
   let error = $state("");
+  let profile = $state<Profile | null>(null);
 
   const openGroup = $derived(st.groups.find((g) => g.key === st.openKey) ?? null);
 
@@ -88,26 +95,54 @@
     if (!st.openKey) pushScope(COMPARE_SCOPE);
     st.openKey = g.key;
     st.survivor = g.works[0]?.workId ?? "";
+    st.adopted = {};
     for (const w of g.works) {
       if (st.docs[w.workId] !== undefined) continue;
       try {
-        st.docs = { ...st.docs, [w.workId]: (await fetchWorkDoc(w.workId)).doc };
+        const res = await fetchWorkDoc(w.workId);
+        st.docs = { ...st.docs, [w.workId]: res.doc };
+        st.etags = { ...st.etags, [w.workId]: res.etag };
       } catch {
         st.docs = { ...st.docs, [w.workId]: null };
       }
+    }
+    await loadProfile();
+  }
+
+  /** The survivor's profile, for each field's cardinality: max 1 means an
+   *  adopted value replaces, otherwise it joins. Without it, adoption is
+   *  offered on no field rather than guessed at. */
+  async function loadProfile(): Promise<void> {
+    const id = st.docs[st.survivor]?.profileId;
+    if (!id || profile?.id === id) return;
+    try {
+      profile = (await fetchProfile(id)).profile;
+    } catch {
+      profile = null;
     }
   }
 
   function collapse(): void {
     if (st.openKey) popScope(COMPARE_SCOPE);
     st.openKey = null;
+    st.adopted = {};
     confirming = false;
   }
 
   /** 1-9 pick the survivor by column ordinal in the open group. */
   function pickByOrdinal(n: number): void {
     const w = openGroup?.works[n - 1];
-    if (w) st.survivor = w.workId;
+    if (w) setSurvivor(w.workId);
+  }
+
+  /** Changing the survivor drops the staged adoptions: they were expressed
+   *  as "take that column's value", and the column they would land on has
+   *  moved. Silently re-pointing them would stage edits nobody chose. */
+  function setSurvivor(workId: string): void {
+    if (workId === st.survivor) return;
+    st.survivor = workId;
+    st.adopted = {};
+    void loadProfile();
   }
 
   onMount(() => {
@@ -155,6 +190,44 @@
     });
   }
 
+  /** The survivor's profile entry for a path, or undefined when the field is
+   *  outside it (another profile's field, or a passthrough path). */
+  function field(path: string) {
+    return profile?.fields.find((f) => f.path === path);
+  }
+
+  /** Raw doc values for a work's field, the shape the adoption helpers take. */
+  function fieldsOf(workId: string, path: string): FieldValue[] {
+    return st.docs[workId]?.work.fields[path] ?? [];
+  }
+
+  /** A cell can be adopted when the field is in the survivor's profile, the
+   *  column is not the survivor, and adopting it would actually change
+   *  something. */
+  function adoptable(path: string, workId: string): boolean {
+    if (readOnly || workId === st.survivor || !st.survivor || !field(path)) return false;
+    return adoptionChanges(fieldsOf(st.survivor, path), fieldsOf(workId, path), fieldMax(path));
+  }
+
+  function fieldMax(path: string): number | undefined {
+    return field(path)?.max;
+  }
+
+  function toggleAdopt(path: string, workId: string): void {
+    st.adopted = st.adopted[path] === workId ? omit(st.adopted, path) : { ...st.adopted, [path]: workId };
+  }
+
+  function omit(map: Record<string, string>, key: string): Record<string, string> {
+    const { [key]: _drop, ...rest } = map;
+    return rest;
+  }
+
+  function adoptOps(): Op[] {
+    return adoptionOps(st.adopted, fieldsOf, st.survivor, fieldMax);
+  }
+
+  const stagedCount = $derived(Object.keys(st.adopted).length);
+
   async function merge(g: DuplicateGroup): Promise<void> {
     if (!st.survivor) return;
     confirming = false;
@@ -162,10 +235,24 @@
     busy = true;
     error = "";
     try {
+      // Adoptions land on the survivor before the merge markers, so a failed
+      // write leaves the group intact and re-mergeable rather than merged
+      // without the fields the cataloger chose.
+      const ops = adoptOps();
+      // Count fields, not ops: a repeatable field adopts as one add per value.
+      const fields = new Set(ops.map((o) => o.path)).size;
+      if (ops.length > 0) {
+        await postOps(st.survivor, ops, { ifMatch: st.etags[st.survivor] });
+      }
       for (const l of losers) {
         await mergeWorks(l.workId, st.survivor);
       }
-      status = `merged ${losers.map((l) => l.workId).join(", ")} into ${st.survivor} -- the retired ids redirect after the next ingest`;
+      const adopted = fields > 0 ? ` after adopting ${fields} field${fields === 1 ? "" : "s"}` : "";
+      status = `merged ${losers.map((l) => l.workId).join(", ")} into ${st.survivor}${adopted} -- the retired ids redirect after the next ingest`;
+      // The survivor's etag moved and the losers are retired: nothing cached
+      // about this group is still true.
+      st.docs = {};
+      st.etags = {};
       collapse();
       await load();
     } catch (e) {
@@ -215,7 +302,13 @@
                     <th scope="col">
                       <label class="pick">
                         {#if wi < 9}<kbd class="ord">{wi + 1}</kbd>{/if}
-                        <input type="radio" name={"surv-" + g.key} value={w.workId} bind:group={st.survivor} />
+                        <input
+                          type="radio"
+                          name={"surv-" + g.key}
+                          value={w.workId}
+                          checked={st.survivor === w.workId}
+                          onchange={() => setSurvivor(w.workId)}
+                        />
                         keep <a href={"#/works/" + encodeURIComponent(w.workId)}>{w.title || w.workId}</a>
                         {#if w.title}<span class="wid">{w.workId}</span>{/if}
                       </label>
@@ -240,13 +333,30 @@
                 {/if}
                 {#each paths(g) as p (p)}
                   <tr>
-                    <th scope="row">{p}</th>
+                    <th scope="row">
+                      {field(p)?.label ?? p}
+                      {#if st.adopted[p]}<span class="staged" title="staged: this field will take the marked column's value">staged</span>{/if}
+                    </th>
                     {#each g.works as w (w.workId)}
-                      <td class:survivor={w.workId === st.survivor}>
+                      <td class:survivor={w.workId === st.survivor} class:taking={st.adopted[p] === w.workId}>
                         {#each values(w.workId, p) as val, vi (val.raw + vi)}
                           {#if vi > 0}<span class="sep" aria-hidden="true">·</span>{/if}
                           <span title={val.raw !== val.text ? val.raw : undefined}>{val.text}</span>
+                        {:else}
+                          <span class="muted">—</span>
                         {/each}
+                        {#if adoptable(p, w.workId)}
+                          <button
+                            class="button button--quiet adopt"
+                            aria-pressed={st.adopted[p] === w.workId}
+                            title={fieldMax(p) === 1
+                              ? `stage: the survivor's ${field(p)?.label ?? p} is replaced by this value`
+                              : `stage: this value joins the survivor's ${field(p)?.label ?? p}`}
+                            onclick={() => toggleAdopt(p, w.workId)}
+                          >
+                            {st.adopted[p] === w.workId ? "staged ✓" : "adopt"}
+                          </button>
+                        {/if}
                       </td>
                     {/each}
                   </tr>
@@ -264,7 +374,13 @@
                 <button class="button" onclick={() => (confirming = true)} disabled={busy || !st.survivor}>
                   Merge into {st.survivor || "…"}
                 </button>
-                <span class="muted">then tidy fields in the survivor's editor</span>
+                <span class="muted">
+                  {#if stagedCount > 0}
+                    {stagedCount} field{stagedCount === 1 ? "" : "s"} staged onto the survivor
+                  {:else}
+                    adopt a losing record's field before merging, or tidy afterwards in the survivor's editor
+                  {/if}
+                </span>
               </p>
             {/if}
           </div>
@@ -281,6 +397,12 @@
       {openGroup.works.length - 1} work{openGroup.works.length === 2 ? "" : "s"} retire and redirect:
       <code>{openGroup.works.filter((w) => w.workId !== st.survivor).map((w) => w.workId).join(", ")}</code>
     </p>
+    {#if stagedCount > 0}
+      <p>
+        First, {stagedCount} field{stagedCount === 1 ? "" : "s"} adopted onto the survivor:
+        <code>{Object.keys(st.adopted).map((p) => field(p)?.label ?? p).join(", ")}</code>
+      </p>
+    {/if}
     <p class="confirm-acts">
       <button class="button button--quiet" onclick={() => (confirming = false)}>Cancel</button>
       <button class="button" data-autofocus onclick={() => openGroup && void merge(openGroup)} disabled={busy}>
@@ -325,6 +447,20 @@
   }
   td.survivor {
     background: var(--tint-ok);
+  }
+  td.taking {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .adopt {
+    margin-left: 0.4rem;
+    font-size: var(--fs-meta);
+  }
+  .staged {
+    margin-left: 0.4rem;
+    font-size: var(--fs-meta);
+    font-weight: 400;
+    color: var(--accent);
   }
   .pick {
     display: inline-flex;
