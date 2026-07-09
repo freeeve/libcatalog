@@ -14,6 +14,7 @@
   import { bisacTerm, type BisacTerm } from "../lib/bisac";
   import { linkInfo } from "../lib/links";
   import { valueKey } from "../lib/ops";
+  import { presentIRIs, wouldChange } from "../lib/subjects";
   import { LANGUAGES, LANG_TAGS, languageTerm } from "../lib/languages";
   import { CARRIER_TYPES, CONTENT_TYPES, MEDIA_TYPES, rdaTerm, type RdaTerm } from "../lib/rdaterms";
   import { bestLabel } from "../lib/vocab";
@@ -301,18 +302,34 @@
     expanded = expanded === key ? null : key;
   }
 
+  /** The IRIs a field currently holds, after staged removals -- what the
+   *  neighborhood needs in order not to offer Add for a term already there. */
+  function currentIRIs(path: string): Set<string> {
+    return presentIRIs(res.fields[path] ?? [], fieldOps(path));
+  }
+
   /** Neighborhood "Replace": remove the expanded subject, add the neighbor
-   *  -- two ordinary staged ops, so preview/drafts/undo work unchanged. */
+   *  -- two ordinary staged ops, so preview/drafts/undo work unchanged.
+   *  Replacing with a term the record already carries is just the removal:
+   *  the add would stage an edit that changes nothing (tasks/248). */
   function replaceSubject(path: string, fv: FieldValue, next: Term): void {
+    // Read the field's state before staging the removal: the ops prop updates
+    // through the store, not within this call.
+    const present = currentIRIs(path);
     pickedLabels[next.id] = bestLabel(next);
     stageRemove(path, fv);
-    onstage({ resource, path, action: "add", value: { v: next.id, iri: true } });
+    if (wouldChange(next.id, present)) {
+      onstage({ resource, path, action: "add", value: { v: next.id, iri: true } });
+    }
     expanded = null;
   }
 
   /** Neighborhood "Add": the neighbor joins the subjects; the panel stays
-   *  open so a cataloger can pull in several narrower terms in a row. */
+   *  open so a cataloger can pull in several narrower terms in a row. A term
+   *  the record already carries is not added: the button for it is disabled,
+   *  and this is the guard behind the button (tasks/248). */
   function addSubject(path: string, next: Term): void {
+    if (!wouldChange(next.id, currentIRIs(path))) return;
     pickedLabels[next.id] = bestLabel(next);
     onstage({ resource, path, action: "add", value: { v: next.id, iri: true } });
   }
@@ -504,6 +521,7 @@
       <li class="hoodrow">
         <SubjectNeighborhood
           {term}
+          present={currentIRIs(spec.path)}
           onreplace={(t) => replaceSubject(spec.path, fv, t)}
           onadd={(t) => addSubject(spec.path, t)}
         />

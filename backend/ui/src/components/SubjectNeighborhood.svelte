@@ -11,10 +11,16 @@
 
   let {
     term,
+    present,
     onreplace,
     onadd,
   }: {
     term: Term;
+    /** IRIs the record's field already carries. A neighbor in this set cannot
+     *  be added again -- the panel exists to crosswalk terms onto a record, and
+     *  on a record where that was already done, Add would stage an edit that
+     *  changes nothing (tasks/248). */
+    present: Set<string>;
     onreplace: (t: Term) => void;
     onadd: (t: Term) => void;
   } = $props();
@@ -77,6 +83,30 @@
   }
 </script>
 
+<!-- Replace stays offered for a term the record already has: it still removes
+     the expanded subject, which is how a cataloger drops the source term once
+     the crosswalk target is on the record. Add does not, because it would do
+     nothing. -->
+{#snippet actions(t: Term)}
+  {@const has = present.has(t.id)}
+  <button
+    class="button act"
+    onclick={() => onreplace(t)}
+    title={has
+      ? "Remove " + bestLabel(term) + " (this record already has " + bestLabel(t) + ")"
+      : "Replace this subject with " + bestLabel(t)}
+  >
+    Replace
+  </button>
+  {#if has}
+    <span class="have" title="this record already has this subject">already a subject</span>
+  {:else}
+    <button class="button button--quiet act" onclick={() => onadd(t)} title={"Also add " + bestLabel(t)}>
+      Add
+    </button>
+  {/if}
+{/snippet}
+
 <div class="hood" aria-label={"Neighborhood of " + bestLabel(term)}>
   {#if allAltLabels(term).length > 0}
     <p class="aka"><span class="muted">Also known as:</span> {allAltLabels(term).join("; ")}</p>
@@ -98,16 +128,7 @@
             <li>
               <span class="nlabel" title={bestDefinition(t) || t.id}>{bestLabel(t)}</span>
               <span class="eq-scheme">{t.scheme}</span>
-              <button
-                class="button act"
-                onclick={() => onreplace(t)}
-                title={"Replace this subject with " + bestLabel(t)}
-              >
-                Replace
-              </button>
-              <button class="button button--quiet act" onclick={() => onadd(t)} title={"Also add " + bestLabel(t)}>
-                Add
-              </button>
+              {@render actions(t)}
             </li>
           {/each}
           {#each unresolvedEq as id (id)}
@@ -125,16 +146,7 @@
           {#each g.terms as t (t.id)}
             <li>
               <span class="nlabel" title={bestDefinition(t) || t.id}>{bestLabel(t)}</span>
-              <button
-                class="button act"
-                onclick={() => onreplace(t)}
-                title={"Replace this subject with " + bestLabel(t)}
-              >
-                Replace
-              </button>
-              <button class="button button--quiet act" onclick={() => onadd(t)} title={"Also add " + bestLabel(t)}>
-                Add
-              </button>
+              {@render actions(t)}
             </li>
           {/each}
         </ul>
@@ -188,6 +200,16 @@
     font-size: 0.75rem;
     word-break: break-all;
   }
+  /* Occupies the Add button's slot, so the row does not reflow between a
+     term the record has and one it does not. */
+  .have {
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    padding: 0.05em 0.55em;
+  }
+
   .eq-scheme {
     font-size: 0.66rem;
     font-weight: 650;
