@@ -60,5 +60,3 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 )
-
-replace github.com/freeeve/libcat => ../

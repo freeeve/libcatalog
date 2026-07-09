@@ -4,6 +4,10 @@
 *.test
 *.out
 coverage.*
+# Local-dev workspace (tasks/185): backend <-> root working-tree wiring
+# stays out of the published modules.
+/go.work
+/go.work.sum
 
 # Hugo (module consumers)
 /public/

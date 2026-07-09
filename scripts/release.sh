@@ -5,11 +5,13 @@
 # drifted after v0.7.2, leaving consumers to maintain pairing tables by hand.
 # One release = one number everywhere: this script verifies the tree, runs
 # the Go suites and the exampleSite build (the schema-pin compatibility
-# gate), syncs backend/go.mod's root requirement to the release version (so
-# a proxy consumer of the backend module resolves the matching root by
-# construction; the local `replace ../` keeps in-repo dev on the working
-# tree), then tags v<V>, hugo/v<V>, backend/v<V> at HEAD and pushes them
-# with main in a single command.
+# gate), then releases in two phases (tasks/185): root and hugo tag at
+# HEAD and push first, because backend/go.mod carries no replace directive
+# (it would break `go install pkg@version` for adopters; in-repo dev rides
+# an untracked go.work instead) and so backend's go.sum needs the real
+# hash of the published root module -- which only exists once the v<V> tag
+# is fetchable. Phase two points backend at the fresh root release,
+# commits, tags backend/v<V> one commit later, and pushes.
 #
 # SKIP_TESTS=1 skips the test gate (rerelease of an already-green commit).
 set -euo pipefail
@@ -59,18 +61,23 @@ if [[ "${SKIP_TESTS:-}" != "1" ]]; then
   fi
 fi
 
-# Lockstep by construction: the published backend module requires the root
-# module at this same version.
-(cd backend && go mod edit -require="github.com/freeeve/libcat@v$V")
-if ! git diff --quiet backend/go.mod; then
-  git commit -m "release(backend): require root v$V in lockstep (tasks/146)" backend/go.mod
-fi
-
-for fam in "" "hugo/" "backend/"; do
+# Phase one: root and hugo. Their tags must be public before backend can
+# require the new root version with a real go.sum entry.
+for fam in "" "hugo/"; do
   git tag -a "${fam}v$V" -m "lockstep release v$V (root + hugo + backend)"
 done
+git push origin main "v$V" "hugo/v$V"
 
-git push origin main "v$V" "hugo/v$V" "backend/v$V"
+# Phase two: lockstep by construction -- the published backend module
+# requires the root module at this same version. GOPROXY=direct fetches
+# the seconds-old tag straight from origin (the proxy lags new tags);
+# GOSUMDB=off likewise, the go.sum hash comes from the download itself.
+(cd backend && GOWORK=off GOPROXY=direct GOSUMDB=off go get "github.com/freeeve/libcat@v$V" && GOWORK=off go mod tidy)
+if ! git diff --quiet backend/go.mod backend/go.sum; then
+  git commit -m "release(backend): require root v$V in lockstep (tasks/146)" backend/go.mod backend/go.sum
+fi
+git tag -a "backend/v$V" -m "lockstep release v$V (root + hugo + backend)"
+git push origin main "backend/v$V"
 
 # Three releases shipped with local-only tags (tasks/139, 145, 152), so don't
 # trust the push's exit status alone: confirm each tag ref is actually visible
