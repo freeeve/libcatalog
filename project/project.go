@@ -512,8 +512,7 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 		return nil, err
 	}
 	overrides := bibframe.ScanOverrides(ds)
-	feedG, edG := splitGraphs(ds, bibframe.FeedGraph(provider), bibframe.EditorialGraph())
-	view := mergeGraphs(bibframe.ApplyShadow(feedG, overrides), edG)
+	view := mergedView(ds, bibframe.FeedGraph(provider), bibframe.EditorialGraph(), overrides)
 	p := &projector{
 		view:    view,
 		labels:  buildLabelIndex(ds),
@@ -611,56 +610,46 @@ type projector struct {
 	extras  map[string]map[string]string // Work node IRI -> extra key -> value (tasks/026)
 }
 
-// splitGraphs extracts two named graphs from the dataset in one preallocated
-// pass (the generic Dataset.Graph appends with growth per call; on a
-// 300k-quad corpus those re-copies dominated the allocation profile).
-func splitGraphs(ds *rdf.Dataset, aTerm, bTerm rdf.Term) (a, b *rdf.Graph) {
-	na, nb := 0, 0
+// mergedView builds the projector's feed+editorial view in one pass over
+// the dataset's quads: feed triples with overridden statements shadowed,
+// then editorial triples -- replacing the former split/shadow/merge
+// pipeline's up-to-three corpus copies with a single exactly-sized
+// allocation (tasks/209). Direct quad iteration rather than
+// GraphView.Triples(): at 12M+ quads the iterator's per-triple call
+// overhead measurably slows the no-editorial common case that this
+// function otherwise ties. Triple order matches the old pipeline: feed
+// first, editorial appended.
+func mergedView(ds *rdf.Dataset, feed, editorial rdf.Term, overrides bibframe.Overrides) *rdf.Graph {
+	nf, ne := 0, 0
 	for i := range ds.Quads {
 		switch ds.Quads[i].G {
-		case aTerm:
-			na++
-		case bTerm:
-			nb++
+		case feed:
+			nf++
+		case editorial:
+			ne++
 		}
 	}
-	if na > 0 {
-		a = &rdf.Graph{Triples: make([]rdf.Triple, 0, na)}
+	if nf+ne == 0 {
+		return nil
 	}
-	if nb > 0 {
-		b = &rdf.Graph{Triples: make([]rdf.Triple, 0, nb)}
-	}
+	merged := &rdf.Graph{Triples: make([]rdf.Triple, 0, nf+ne)}
 	for i := range ds.Quads {
 		q := &ds.Quads[i]
-		switch q.G {
-		case aTerm:
-			a.Triples = append(a.Triples, rdf.Triple{S: q.S, P: q.P, O: q.O})
-		case bTerm:
-			b.Triples = append(b.Triples, rdf.Triple{S: q.S, P: q.P, O: q.O})
+		if q.G != feed {
+			continue
+		}
+		if q.S.IsIRI() && overrides.Shadows(q.S.Value, q.P.Value) {
+			continue
+		}
+		merged.Triples = append(merged.Triples, rdf.Triple{S: q.S, P: q.P, O: q.O})
+	}
+	if ne > 0 {
+		for i := range ds.Quads {
+			if q := &ds.Quads[i]; q.G == editorial {
+				merged.Triples = append(merged.Triples, rdf.Triple{S: q.S, P: q.P, O: q.O})
+			}
 		}
 	}
-	return a, b
-}
-
-// mergeGraphs unions two graphs (either may be nil). When one side is empty
-// the other is returned as-is -- the common no-editorial corpus skips the
-// copy and the duplicate lookup-index build entirely. The merged slice is
-// built at exact capacity in two bulk appends rather than per-triple Add
-// calls (Add's append growth re-copied the ~300k-triple corpus log2(n)
-// times and dominated the allocation profile).
-func mergeGraphs(a, b *rdf.Graph) *rdf.Graph {
-	switch {
-	case a == nil && b == nil:
-		return nil
-	case b == nil || len(b.Triples) == 0:
-		return a
-	case a == nil || len(a.Triples) == 0:
-		return b
-	}
-	merged := &rdf.Graph{}
-	merged.Triples = make([]rdf.Triple, 0, len(a.Triples)+len(b.Triples))
-	merged.Triples = append(merged.Triples, a.Triples...)
-	merged.Triples = append(merged.Triples, b.Triples...)
 	return merged
 }
 

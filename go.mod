@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/RoaringBitmap/roaring/v2 v2.14.4
-	github.com/freeeve/libcodex v0.18.0
+	github.com/freeeve/libcodex v0.19.0
 	github.com/freeeve/roaringrange v0.30.0
 )
 

@@ -86,7 +86,10 @@ func ScanGrain(nq []byte) (GrainIdentity, error) {
 func ScanDataset(ds *rdf.Dataset) GrainIdentity {
 	var gi GrainIdentity
 	for _, gt := range ds.Graphs() {
-		g := ds.Graph(gt)
+		// Zero-copy per-graph view (libcodex v0.19.0, tasks/209): the
+		// per-graph query semantics -- feed vs editorial separation -- are
+		// unchanged; only the materialized []Triple copy per graph is gone.
+		g := ds.GraphView(gt)
 		for _, work := range g.SubjectsOfType(bfWork) {
 			if !minted(work, "Work") {
 				continue
@@ -142,7 +145,7 @@ func fragID(iri, suffix string) string {
 
 // identifierScheme namespaces an identifier by its BIBFRAME type: bf:Isbn ->
 // isbn, bf:Issn -> issn, anything else -> id.
-func identifierScheme(g *rdf.Graph, node rdf.Term) string {
+func identifierScheme(g rdf.GraphQuery, node rdf.Term) string {
 	switch {
 	case g.HasType(node, bfIsbn):
 		return SchemeISBN
@@ -154,7 +157,7 @@ func identifierScheme(g *rdf.Graph, node rdf.Term) string {
 }
 
 // workAuthor returns the label of a Work's primary contribution agent, or "".
-func workAuthor(g *rdf.Graph, work rdf.Term) string {
+func workAuthor(g rdf.GraphQuery, work rdf.Term) string {
 	for _, c := range g.Objects(work, bfContribution) {
 		if !g.HasType(c, bflcPrimaryContrib) {
 			continue
@@ -169,7 +172,7 @@ func workAuthor(g *rdf.Graph, work rdf.Term) string {
 }
 
 // workTitle returns a Work's main title, or "".
-func workTitle(g *rdf.Graph, work rdf.Term) string {
+func workTitle(g rdf.GraphQuery, work rdf.Term) string {
 	for _, t := range g.Objects(work, bfTitle) {
 		if mt, ok := g.Literal(t, bfMainTitle); ok {
 			return mt
@@ -180,7 +183,7 @@ func workTitle(g *rdf.Graph, work rdf.Term) string {
 
 // workLang returns a Work's language code (the local name of its language URI),
 // or "".
-func workLang(g *rdf.Graph, work rdf.Term) string {
+func workLang(g rdf.GraphQuery, work rdf.Term) string {
 	if l, ok := g.Object(work, bfLanguage); ok {
 		return rdf.LocalName(l.Value)
 	}
