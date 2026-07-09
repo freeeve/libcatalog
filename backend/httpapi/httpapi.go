@@ -189,6 +189,18 @@ func New(deps Deps) http.Handler {
 		})
 	}
 	if deps.UI != nil {
+		// /v1/ is an API namespace: with the SPA catch-all mounted, an
+		// unmatched path or method must answer as an API (JSON 404), never
+		// fall through to index.html with 200 text/html -- which made route
+		// typos and unsupported methods read as successes (tasks/201).
+		// ServeMux prefers this over "/" and every registered /v1 route
+		// over this; a catch-all also preempts the mux's native 405, so
+		// wrong-method requests answer 404 here (route-table tracking
+		// would buy a proper Allow header; not worth it yet). Without a
+		// UI the mux's own 404/405 behavior stands.
+		mux.HandleFunc("/v1/", func(w http.ResponseWriter, r *http.Request) {
+			writeError(w, http.StatusNotFound, "no such endpoint")
+		})
 		mux.Handle("/", deps.UI)
 	}
 	var handler http.Handler = mux
