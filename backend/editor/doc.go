@@ -86,9 +86,15 @@ func (m *Mapper) ToDoc(grainNQ []byte, workID string) (*WorkDoc, error) {
 	if err != nil {
 		return nil, err
 	}
+	// A multi-feed cluster describes the same instance IRI in several
+	// graphs, and ScanGrain reports it once per graph -- deduped here or
+	// the doc grows empty husk entries (the first claims every quad) whose
+	// duplicate ids crash the editor's keyed tab list (tasks/196).
 	var instanceIDs []string
+	seenInst := map[string]bool{}
 	for _, inst := range gi.Instances {
-		if inst.WorkID == workID {
+		if inst.WorkID == workID && !seenInst[inst.InstanceID] {
+			seenInst[inst.InstanceID] = true
 			instanceIDs = append(instanceIDs, inst.InstanceID)
 		}
 	}

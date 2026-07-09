@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/freeeve/libcodex/rdf"
+
 	"github.com/freeeve/libcat/bibframe"
 	"github.com/freeeve/libcat/identity"
 	"github.com/freeeve/libcat/ingest"
@@ -406,6 +408,46 @@ func TestLinksAnnotatedFromLocatorLabels(t *testing.T) {
 	for _, want := range []string{"Image", "Thumbnail", "Excerpt"} {
 		if !annotations[want] {
 			t.Errorf("no links value annotated %q (got %v)", want, annotations)
+		}
+	}
+}
+
+// TestMultiFeedClusterInstances covers tasks/196: a cluster whose feeds each
+// assert the same instance yields ONE instance entry per id (duplicate ids
+// crashed the editor's keyed tab list; the extras were empty husks anyway),
+// and the two-graph grain still round-trips byte-identical.
+func TestMultiFeedClusterInstances(t *testing.T) {
+	m := newMapper(t)
+	for workID, grain := range realGrains(t) {
+		doubled := strings.ReplaceAll(string(grain), " <feed:marc> .", " <feed:copycat> .")
+		ds, err := rdf.ParseNQuads(append(append([]byte{}, grain...), []byte(doubled)...))
+		if err != nil {
+			t.Fatal(err)
+		}
+		canon, err := ds.Canonical()
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc, err := m.ToDoc(canon, workID)
+		if err != nil {
+			t.Fatalf("%s: ToDoc: %v", workID, err)
+		}
+		seen := map[string]bool{}
+		for _, inst := range doc.Instances {
+			if seen[inst.ID] {
+				t.Fatalf("%s: duplicate instance entry %s", workID, inst.ID)
+			}
+			seen[inst.ID] = true
+			if len(inst.Fields) == 0 {
+				t.Fatalf("%s: instance %s claimed no fields", workID, inst.ID)
+			}
+		}
+		back, err := m.ToGrain(doc)
+		if err != nil {
+			t.Fatalf("%s: ToGrain: %v", workID, err)
+		}
+		if !bytes.Equal(back, canon) {
+			t.Fatalf("%s: two-graph round-trip diverged", workID)
 		}
 	}
 }
