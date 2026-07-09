@@ -122,3 +122,54 @@ Or by hand: sign in to :8481, open `#/works/w1dh6vtir43o8i`, expand the first su
 chip, and click **Add** on the `Bisexual people (LCSH)` equivalent. The chip list shows
 the term twice. Delete the autosaved draft afterwards:
 `DELETE /v1/drafts/{id}` (this report's staging was cleaned up that way).
+
+## Outcome
+
+Fixed in **v0.100.0** (`1e0b45a`). Your root cause was exact, down to the line
+numbers, and your suggested fix is the one taken.
+
+`ProfileForm` already held the field's values in the very `{#each}` that mounts
+the panel, so it now passes their IRIs down as `present`. `SubjectNeighborhood`
+renders **"already a subject"** in place of Add for a term in that set, on both
+the Equivalents rows and the Broader/Narrower/Related/Siblings rows (a shared
+`actions` snippet -- the two markup blocks had drifted into duplicates).
+
+**Replace stays offered**, per your note: it still removes the expanded subject,
+which is how a cataloger drops the source term once the crosswalk target is on
+the record. Its tooltip now says so. Replacing *with* an already-present term
+stages only the removal, not a phantom add.
+
+Belt and braces, as you asked: `addSubject()` and `replaceSubject()` both refuse
+to stage an add for a value already present, so the guard holds behind the
+button and not only in front of it. That also covers `SubjectLookup`, which you
+noted has the same omission -- it stages through the same functions.
+
+Two decisions where the report left room:
+
+- **A value staged for removal counts as absent**, so Add comes back for it. A
+  cataloger mid-way through "drop this and re-add it" is doing something real.
+- **The toggle-off-on-second-click behaviour is untouched**, as you scoped it.
+  With Add gone for present terms, the confusing case that made the toggle look
+  like a bug can no longer arise from this panel.
+
+`backend/ui/src/lib/subjects.ts` (`presentIRIs`, `wouldChange`) carries the
+logic so it is unit-tested directly rather than only reachable through the DOM:
+9 tests in `subjects.test.ts`, including set/clear redefining the whole value
+set, and literals ignored as not crosswalkable.
+
+### Verification
+
+`node harness/probe_neighborhood.mjs` -- your probe, unmodified:
+
+    N5  248: Add is disabled or marked for an already-present term  PASS
+        row="Bisexual people LCSH Replace already a subject";
+        addButton=false disabled=false marked=true
+    CLEAN  0 draft(s) swept; no record was saved
+
+The editor no longer goes dirty, so nothing is autosaved and Clone stays
+enabled. `harness/retest.mjs`: **STILL-BROKEN: none** across 35 tracked
+regressions. `svelte-check` clean; 252 UI tests pass.
+
+Filed alongside, **249** is fixed too: an ops save with an empty diff no longer
+writes a `RECORD_EDIT` row. It was reachable independently of this bug, and its
+`PUT` twin was not reported at all.
