@@ -100,3 +100,76 @@ The handler checks that the target's grain exists, and a tombstone leaves the
 grain in place, so a retired work can be linked as a part. Whether that should be
 refused depends on what the public projection does with a part that is gone --
 I did not chase it, and it is a separate question from the contradiction above.
+
+## Outcome
+
+Shipped in **v0.82.0**. The guard generalizes past the reported pair: the
+handler refuses any add that would close a **containment cycle**, of which
+"A contains B and A is a part of B" is the depth-1 case.
+
+### The shape
+
+`bf:hasPart` and `bf:partOf` are inverses and every link writes its inverse on
+the target, so the containment graph is fully readable off `hasPart` edges
+alone -- `A partOf B` is stored as `B hasPart A` on B's grain. Adding "whole
+contains part" therefore closes a cycle exactly when *whole* is already
+reachable from *part* by walking `hasPart` down. That single walk subsumes
+both the reported contradiction and the self-relation the handler already
+refused.
+
+- `backend/httpapi/relations_handlers.go` -- `containmentCycle(ctx, bs, whole,
+  part)`: BFS down `hasPart` from *part* looking for *whole*, visited set,
+  capped at `relationWalkLimit = 512` grains. It runs **before either write**,
+  alongside the existing both-grains-must-exist check, so no half-link is left.
+  A target whose grain has vanished ends its branch rather than failing the
+  write: a dangling link is not a cycle.
+- `bibframe/relations.go` -- `SetWorkRelation` independently refuses an add
+  when the grain already asserts the inverse predicate to the same target
+  (the 202/211/214 both-layers pattern). The handler catches the pair first
+  with a 400; this keeps the contradiction out of any grain regardless of
+  caller, and surfaces as a 409 through `writeMutateError`.
+- Removal is untouched: `remove` of an absent quad is still a no-op, asserted
+  at both layers.
+
+The refusal message names the existing link -- `400 "would create a containment
+cycle: <part> already contains <whole>"` -- and `RelationsPanel.svelte` already
+renders the server's message through `humanApiMessage`, so no UI change was
+needed.
+
+### Longer cycles: in scope
+
+The task left this open ("may not be worth it"). It turned out to be free: the
+two-work case *is* the walk at depth 1, so refusing only the pair would have
+meant writing the same traversal and then truncating it. The cap is the only
+concession -- a hand-built containment tree (a set, its volumes, their parts)
+is orders of magnitude under 512, and the cap exists to stop a pathological
+corpus from turning one link into an unbounded read, not to bound correctness.
+A diamond (two routes to the same part) is **not** a cycle and stays allowed;
+`TestWorkRelationCycles` pins that alongside the three-work cycle, the
+idempotent re-add, and the absent-link removal.
+
+### Verification
+
+- `TestWorkRelations` (bibframe) and `TestWorkRelationsAPI` +
+  `TestWorkRelationCycles` (httpapi); full `go test ./...` green in both
+  modules.
+- The filer's `ui/probe_relations.mjs` against the rebuilt 8481: **11/12**,
+  with `R6` and `R6b` flipped (`R6 -> 400 "would create a containment cycle:
+  … already contains …"`) and `R1`-`R5`, `R7`, `R8` still passing.
+- `harness/retest.mjs`: **232 FIXED, STILL-BROKEN: none** across all 22 checks.
+
+### R9 (the tombstone note): no change, and it is already safe
+
+The filer's open question -- "whether that should be refused depends on what
+the public projection does with a part that is gone" -- has an answer already
+in the code: `project.go:568` drops a tombstoned work from the projection
+entirely, and `resolveRelations` (tasks/222) drops relation targets absent
+from the projection. **The OPAC never renders a dead part.**
+
+So refusing the link buys no invariant: a work can always be tombstoned
+*after* being linked, and that ordering is unpreventable, which is exactly why
+the projection-side guard is the real defense and was written first. The
+residue is cosmetic -- the librarian's panel lists a retired target -- and the
+useful affordance there is *marking* it, not refusing the link. Left unfiled,
+as the filer left it; noted in the report so they can decide with the
+projection behavior in hand. `R9` remains a deliberate FAIL in their probe.
