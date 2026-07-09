@@ -128,7 +128,7 @@ func New(deps Deps) http.Handler {
 		mux.Handle("POST /v1/auth/exchange", deps.AuthExchange)
 	}
 	if deps.Local != nil {
-		registerLocalAuth(mux, deps.Local, deps.Verifier)
+		registerLocalAuth(mux, deps.Local, deps.Verifier, deps.Suggest)
 	}
 	if deps.Vocab != nil {
 		registerTerms(mux, deps.Vocab, deps.Suggest)

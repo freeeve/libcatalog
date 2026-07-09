@@ -35,7 +35,7 @@ func newAuthedAPI(t *testing.T) (http.Handler, *local.Service) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.Bootstrap(t.Context(), "root@example.org:changeme123"); err != nil {
+	if _, err := svc.Bootstrap(t.Context(), "root@example.org:changeme123"); err != nil {
 		t.Fatal(err)
 	}
 	verifier := auth.NewMulti(map[string]auth.TokenVerifier{
@@ -154,7 +154,7 @@ func TestLoginFlowEndToEnd(t *testing.T) {
 func TestMultiVerifierCoexistence(t *testing.T) {
 	_, key, _ := ed25519.GenerateKey(rand.Reader)
 	svc, _ := local.New(store.NewMem(), key, "lcatd-test")
-	_ = svc.Bootstrap(t.Context(), "root@example.org:changeme123")
+	_, _ = svc.Bootstrap(t.Context(), "root@example.org:changeme123")
 	tokens, err := svc.Login(t.Context(), "root@example.org", "changeme123")
 	if err != nil {
 		t.Fatal(err)
