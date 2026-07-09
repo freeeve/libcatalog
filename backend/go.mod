@@ -13,6 +13,7 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/RoaringBitmap/roaring/v2 v2.14.4
 	github.com/aws/aws-sdk-go-v2/config v1.32.27
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.46.8
