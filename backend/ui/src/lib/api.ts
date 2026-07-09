@@ -96,6 +96,30 @@ export class FieldedApiError extends ApiError {
   }
 }
 
+// callRaw is call for non-JSON request bodies (cover uploads): the body
+// passes through untouched under its own content type (tasks/215).
+async function callRaw<T>(method: string, path: string, body: BodyInit, contentType: string): Promise<T> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const token = await getToken();
+    if (!token) throw new ApiError(401, "not signed in");
+    const res = await fetch(apiBase() + path, {
+      method,
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": contentType },
+      body,
+    });
+    if (res.status === 401 && attempt === 0) {
+      invalidateAccess();
+      continue;
+    }
+    if (!res.ok) {
+      const msg = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new ApiError(res.status, msg?.error ?? res.statusText);
+    }
+    return (await res.json()) as T;
+  }
+  throw new ApiError(401, "session expired");
+}
+
 async function call<T>(method: string, path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const token = await getToken();
@@ -706,6 +730,17 @@ export function createAuthorityExport(format: ExportFormat, authorities: Authori
  *  state (librarian, tasks/070). */
 export function marcPreview(workId: string, ops: Op[]): Promise<MarcResponse> {
   return call("POST", `/v1/works/${encodeURIComponent(workId)}/marc/preview`, { ops });
+}
+
+/** Uploads a work's cover image (raw body, typed); returns the cover URL
+ *  the editorial extra now points at (tasks/215). */
+export async function putCover(workId: string, file: File): Promise<{ workId: string; cover: string; etag: string }> {
+  return callRaw("PUT", `/v1/works/${encodeURIComponent(workId)}/cover`, file, file.type || "image/jpeg");
+}
+
+/** Removes a work's editorial cover and its stored bytes (tasks/215). */
+export function deleteCover(workId: string): Promise<void> {
+  return call("DELETE", `/v1/works/${encodeURIComponent(workId)}/cover`);
 }
 
 /** Batch scheme-agnostic term resolve: stored subject URIs to full terms;

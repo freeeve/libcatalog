@@ -48,6 +48,11 @@ type Options struct {
 	// MARC download derives each record's 040 from graph facts at decode
 	// time (tasks/192).
 	OrgCode string
+	// CoversOut, when set, copies uploaded cover images (data/covers/ under
+	// In) to this directory as flat files, the site-relative covers/ URLs
+	// the editorial lcat:extra/cover statements point at (tasks/215).
+	// Empty skips the copy.
+	CoversOut string
 }
 
 // Manifest is the downloads-page data file: what was generated when, from how
@@ -92,6 +97,9 @@ func Run(opts Options) (*Manifest, error) {
 	nq.Records = len(grains) // one Work per grain
 	files = append(files, nq)
 
+	if err := copyCovers(opts.In, opts.CoversOut); err != nil {
+		return nil, err
+	}
 	mrc, xml, err := emitMARC(grains, opts.Out, opts.Log, opts.OrgCode)
 	if err != nil {
 		return nil, err
@@ -300,4 +308,30 @@ func emitRecord(mw *iso2709.Writer, xw *marcxml.Writer, path string, rec *codex.
 		return false, fmt.Errorf("%s: xml: %w", path, err)
 	}
 	return true, nil
+}
+
+// copyCovers flattens data/covers/<shard>/<file> under in to out/<file>,
+// matching the covers/ URLs the OPAC's cover slot loads (tasks/215). A
+// missing covers tree is a no-op -- most catalogs have no uploads.
+func copyCovers(in, out string) error {
+	if out == "" {
+		return nil
+	}
+	root := filepath.Join(in, "data", "covers")
+	if _, err := os.Stat(root); err != nil {
+		return nil
+	}
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		return err
+	}
+	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(out, filepath.Base(path)), data, 0o644)
+	})
 }

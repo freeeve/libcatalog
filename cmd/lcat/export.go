@@ -24,10 +24,12 @@ func runExport(args []string) error {
 		"comma-separated extra.sources names allowed in the nq download; others are stripped (tasks/172). Empty (default) keeps everything.")
 	orgCode := fs.String("org-code", "",
 		"deployment MARC organization code: derives each record's 040 from graph facts in the MARC downloads (tasks/192). Empty disables.")
+	coversOut := fs.String("covers-out", "",
+		"directory uploaded cover images are copied to (the site's covers/ dir, tasks/215). Empty skips.")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	opts := export.Options{In: *in, Out: *out, OrgCode: *orgCode}
+	opts := export.Options{In: *in, Out: *out, OrgCode: *orgCode, CoversOut: *coversOut}
 	if *publicSources != "" {
 		opts.PublicSources = project.SourceSet(*publicSources)
 	}

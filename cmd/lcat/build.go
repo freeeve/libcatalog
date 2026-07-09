@@ -135,6 +135,8 @@ type exportStep struct {
 	// OrgCode is the deployment's MARC organization code: the MARC
 	// downloads derive each record's 040 from graph facts (tasks/192).
 	OrgCode string `toml:"org-code"`
+	// CoversOut is where uploaded covers are copied (tasks/215).
+	CoversOut string `toml:"covers-out"`
 }
 
 type indexStep struct {
@@ -221,7 +223,7 @@ func buildIngest(cfg *buildConfig, src buildSource) error {
 // buildExportStep derives the download artifacts, inheriting the [project]
 // public-sources allowlist unless [export] sets its own.
 func buildExportStep(cfg *buildConfig) error {
-	opts := export.Options{In: cfg.Out, Out: cfg.Export.Out, OrgCode: cfg.Export.OrgCode}
+	opts := export.Options{In: cfg.Out, Out: cfg.Export.Out, OrgCode: cfg.Export.OrgCode, CoversOut: cfg.Export.CoversOut}
 	publicSources := cfg.Export.PublicSources
 	if publicSources == nil && cfg.Project != nil {
 		publicSources = cfg.Project.PublicSources

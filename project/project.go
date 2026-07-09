@@ -518,7 +518,7 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 		labels:  buildLabelIndex(ds),
 		broader: buildBroaderIndex(ds),
 		aliases: buildTagAliasIndex(ds),
-		extras:  buildExtraIndex(ds, bibframe.FeedGraph(provider)),
+		extras:  buildExtraIndex(ds, bibframe.FeedGraph(provider), bibframe.EditorialGraph()),
 	}
 	cat := &Catalog{Version: SchemaVersion}
 	if p.view == nil {
@@ -907,25 +907,30 @@ func buildBroaderIndex(ds *rdf.Dataset) map[string][]string {
 // Restricting to the feed graph keeps the read provenance-scoped, mirroring how extras
 // were emitted. The result is nil when the corpus carries none, so existing catalogs are
 // unchanged (Work.Extra stays omitted).
-func buildExtraIndex(ds *rdf.Dataset, feed rdf.Term) map[string]map[string]string {
+func buildExtraIndex(ds *rdf.Dataset, feed, editorial rdf.Term) map[string]map[string]string {
 	idx := map[string]map[string]string{}
-	for _, q := range ds.Quads {
-		if q.G != feed || !q.S.IsIRI() || !q.O.IsLiteral() {
-			continue
+	// Feed pass first, editorial pass second: an editorial extra (an
+	// uploaded cover, tasks/215) overlays the feed's value for the same
+	// key, matching the override model everywhere else.
+	for _, graph := range []rdf.Term{feed, editorial} {
+		for _, q := range ds.Quads {
+			if q.G != graph || !q.S.IsIRI() || !q.O.IsLiteral() {
+				continue
+			}
+			if !strings.HasPrefix(q.P.Value, bibframe.ExtraPred) {
+				continue
+			}
+			key := q.P.Value[len(bibframe.ExtraPred):]
+			if key == "" {
+				continue
+			}
+			m := idx[q.S.Value]
+			if m == nil {
+				m = map[string]string{}
+				idx[q.S.Value] = m
+			}
+			m[key] = q.O.Value
 		}
-		if !strings.HasPrefix(q.P.Value, bibframe.ExtraPred) {
-			continue
-		}
-		key := q.P.Value[len(bibframe.ExtraPred):]
-		if key == "" {
-			continue
-		}
-		m := idx[q.S.Value]
-		if m == nil {
-			m = map[string]string{}
-			idx[q.S.Value] = m
-		}
-		m[key] = q.O.Value
 	}
 	if len(idx) == 0 {
 		return nil

@@ -17,6 +17,7 @@
   import SaveBar from "../components/SaveBar.svelte";
   import SubjectLookup from "../components/SubjectLookup.svelte";
   import VisibilityPanel from "../components/VisibilityPanel.svelte";
+  import CoverPanel from "../components/CoverPanel.svelte";
   import { fetchIdentifierKinds, fetchItems, splitWork, ApiError } from "../lib/api";
   import type { SubjectCandidate } from "../lib/types";
   import { isReadOnly } from "../lib/config";
@@ -141,6 +142,7 @@
       <details class="vis">
         <summary>Visibility</summary>
         <VisibilityPanel {workId} />
+        <CoverPanel {workId} cover={$session.doc?.work.fields["extra/cover"]?.[0]?.v ?? ""} />
       </details>
 
       {#if $session.pendingDraft}
