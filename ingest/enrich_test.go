@@ -3,6 +3,7 @@ package ingest_test
 import (
 	"bytes"
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -122,6 +123,37 @@ func TestSummarizeGrainControlledSubjects(t *testing.T) {
 	}
 	if len(s.Tags) != 2 {
 		t.Fatalf("tags disturbed = %v", s.Tags)
+	}
+}
+
+// TestSummarizeGrainSkolemHeading covers tasks/218: a labeled grain-local
+// fragment node under bf:subject (the editor's -ed- skolem write shape) is
+// an uncontrolled heading -- its label joins Tags and no forged subject IRI
+// appears.
+func TestSummarizeGrainSkolemHeading(t *testing.T) {
+	st := enrichFixture(t)
+	grain, _, err := st.Get(t.Context(), bibframe.GrainPath("wenrich000001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	skolem := rdf.NewIRI("#wenrich000001Work-ed-subjectLabels")
+	grain, err = bibframe.ApplyEditorialPatch(grain, bibframe.Patch{Add: []rdf.Quad{
+		{S: rdf.NewIRI(bibframe.WorkIRI("wenrich000001")), P: rdf.NewIRI("http://id.loc.gov/ontologies/bibframe/subject"), O: skolem},
+		{S: skolem, P: rdf.NewIRI("http://www.w3.org/2000/01/rdf-schema#label"), O: rdf.NewLiteral("Space necromancers", "", "")},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	summaries, err := ingest.SummarizeGrain(grain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := summaries[0]
+	if len(s.Subjects) != 0 {
+		t.Fatalf("skolem heading forged controlled subjects: %v", s.Subjects)
+	}
+	if !slices.Contains(s.Tags, "Space necromancers") {
+		t.Fatalf("skolem heading label missing from tags: %v", s.Tags)
 	}
 }
 

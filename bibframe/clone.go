@@ -120,6 +120,15 @@ func CloneGrain(src []byte, workID string) ([]byte, string, error) {
 	return nq, newID, nil
 }
 
+// GrainLocalIRI reports whether an IRI value is grain-local -- a fragment
+// node the grain itself minted (#<id>Work, #<id>Instance, an editor or
+// clone skolem) rather than a reference into an external vocabulary. The
+// subjects model keys on this (tasks/218): a bf:subject object that is a
+// grain-local node is an uncontrolled heading whose rdfs:label is the
+// value, never a controlled term, exactly like the blank nodes it stands
+// in for.
+func GrainLocalIRI(v string) bool { return strings.HasPrefix(v, "#") }
+
 // renameTerm maps a grain-local node (the Work and Instance fragment IRIs,
 // a skolemized blank node) onto the clone's freshly minted identity; every
 // other term passes through untouched.

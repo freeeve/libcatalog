@@ -397,12 +397,14 @@ func SummarizeDataset(ds *rdf.Dataset) []WorkSummary {
 			}
 		}
 		for _, subj := range merged.Objects(work, bfNS+"subject") {
-			if subj.IsBlank() {
+			// A grain-local node (blank or fragment IRI like an editor
+			// skolem) is an uncontrolled heading, not a controlled term
+			// (tasks/218).
+			if subj.IsBlank() || (subj.IsIRI() && bibframe.GrainLocalIRI(subj.Value)) {
 				if label, ok := merged.Literal(subj, rdfsLabel); ok {
 					s.Tags = append(s.Tags, label)
 				}
-			}
-			if subj.IsIRI() {
+			} else if subj.IsIRI() {
 				s.Subjects = append(s.Subjects, subj.Value)
 			}
 		}

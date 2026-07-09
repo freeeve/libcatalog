@@ -739,10 +739,12 @@ func (p *projector) contributors(w rdf.Term) []Contributor {
 }
 
 // subjectsAndTags splits a Work's bf:subject objects (across the feed and editorial
-// graphs) into two dimensions (tasks/012). An IRI object is a controlled-vocabulary
-// subject: its authority URI plus labels resolved from the graph (buildLabelIndex).
-// A labeled blank node is an uncontrolled feed tag: its label string. Subjects are
-// deduped by URI and sorted by URI; tags are deduped and sorted.
+// graphs) into two dimensions (tasks/012). An external IRI object is a controlled-
+// vocabulary subject: its authority URI plus labels resolved from the graph
+// (buildLabelIndex). A labeled blank node -- or a labeled grain-local fragment
+// node like an editor skolem (tasks/218) -- is an uncontrolled tag: its label
+// string. Subjects are deduped by URI and sorted by URI; tags are deduped and
+// sorted.
 //
 // Consequence for authority-less feeds: a Work whose bf:subject objects are all
 // labeled blank nodes contributes zero controlled subjects, so a corpus built
@@ -761,11 +763,13 @@ func (p *projector) subjectsAndTags(w rdf.Term) ([]Subject, []string) {
 			return
 		}
 		for _, s := range g.Objects(w, pSubject) {
-			if s.IsIRI() {
+			if s.IsIRI() && !bibframe.GrainLocalIRI(s.Value) {
 				if _, ok := subj[s.Value]; !ok {
 					subj[s.Value] = Subject{ID: s.Value, Labels: p.labels[s.Value], Broader: p.broader[s.Value], Scheme: SchemeForURI(s.Value)}
 				}
 			} else if label, ok := g.Literal(s, pLabel); ok && label != "" {
+				// Blank or grain-local heading node: an uncontrolled
+				// heading's label is a tag (tasks/218).
 				tags[label] = true
 			}
 		}

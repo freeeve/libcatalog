@@ -460,3 +460,27 @@ _:s1 <http://www.w3.org/2000/01/rdf-schema#label> "A haunting debut novel." <fee
 		t.Errorf("wn summary = %q, want empty (omitted)", got)
 	}
 }
+
+// TestSkolemSubjectIsTag covers tasks/218: a labeled grain-local fragment
+// node under bf:subject (the editor's -ed- skolem write shape) projects as
+// an uncontrolled tag, never as a controlled subject with a forged URI.
+func TestSkolemSubjectIsTag(t *testing.T) {
+	const nq = `<#wkWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+<#wkWork> <http://id.loc.gov/ontologies/bibframe/subject> <#wkWork-ed-subjectLabels> <editorial:> .
+<#wkWork-ed-subjectLabels> <http://www.w3.org/2000/01/rdf-schema#label> "Space necromancers" <editorial:> .
+`
+	cat, err := Project([]byte(nq), "overdrive")
+	if err != nil {
+		t.Fatalf("Project: %v", err)
+	}
+	if len(cat.Works) != 1 {
+		t.Fatalf("got %d works, want 1", len(cat.Works))
+	}
+	w := cat.Works[0]
+	if len(w.Subjects) != 0 {
+		t.Errorf("skolem heading forged controlled subjects: %+v", w.Subjects)
+	}
+	if !reflect.DeepEqual(w.Tags, []string{"Space necromancers"}) {
+		t.Errorf("tags = %v, want [Space necromancers]", w.Tags)
+	}
+}
