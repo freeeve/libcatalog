@@ -1,6 +1,7 @@
 package bibframe
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -80,6 +81,10 @@ func ItemsOf(grainNQ []byte, instanceID string) ([]Item, error) {
 	return out, nil
 }
 
+// ErrNoSuchInstance refuses an item write against an instance id the grain
+// does not describe (tasks/211); handlers map it to a 400.
+var ErrNoSuchInstance = errors.New("no such instance on this work")
+
 // SetItems replaces an Instance's holdings wholesale: every editorial item
 // statement under the Instance's item namespace is dropped and the given
 // items re-asserted on freshly numbered skolem nodes. Returns the
@@ -88,6 +93,22 @@ func SetItems(grainNQ []byte, instanceID string, items []Item) ([]byte, error) {
 	ds, err := rdf.ParseNQuads(grainNQ)
 	if err != nil {
 		return nil, err
+	}
+	// The Instance must actually exist in this grain: SetItems used to mint
+	// the IRI from whatever id it was handed, grafting holdings onto a
+	// phantom node that no reader enumerates -- consuming real barcodes and
+	// asserting bf:hasItem on another work's Instance when the id was
+	// copied from the wrong record (tasks/211).
+	inst := rdf.NewIRI(InstanceIRI(instanceID))
+	described := false
+	for i := range ds.Quads {
+		if ds.Quads[i].S == inst {
+			described = true
+			break
+		}
+	}
+	if !described {
+		return nil, fmt.Errorf("bibframe: %w: no instance %s in this grain", ErrNoSuchInstance, instanceID)
 	}
 	ed := EditorialGraph()
 	prefix := itemPrefix(instanceID)
@@ -106,7 +127,6 @@ func SetItems(grainNQ []byte, instanceID string, items []Item) ([]byte, error) {
 		return nil, err
 	}
 	patch := Patch{}
-	inst := rdf.NewIRI(InstanceIRI(instanceID))
 	for n, item := range items {
 		node := rdf.NewIRI(itemIRI(instanceID, n))
 		patch.Add = append(patch.Add,

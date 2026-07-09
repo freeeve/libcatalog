@@ -3,7 +3,9 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/freeeve/libcat/identity"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -63,6 +65,20 @@ func registerItemsBulk(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, q
 		}
 		grain, _, _, ok := readWorkGrain(w, r, bs)
 		if !ok {
+			return
+		}
+		// The instance must belong to THIS work (tasks/211): an id typo or a
+		// copy-paste from another record used to graft holdings onto a
+		// phantom IRI no reader enumerates -- consuming real barcodes.
+		// Rejected on dryRun too, so the preview cannot promise barcodes an
+		// instance cannot receive.
+		gi, err := identity.ScanGrain(grain)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "grain parse failed")
+			return
+		}
+		if !slices.ContainsFunc(gi.Instances, func(i identity.InstanceIdentity) bool { return i.InstanceID == req.InstanceID }) {
+			writeError(w, http.StatusBadRequest, "no such instance on this work")
 			return
 		}
 		existing, err := bibframe.ItemsOf(grain, req.InstanceID)

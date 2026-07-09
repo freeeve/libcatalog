@@ -381,6 +381,8 @@ func writeMutateError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, errWorkNotFound):
 		writeError(w, http.StatusNotFound, "no such work")
+	case errors.Is(err, bibframe.ErrNoSuchInstance):
+		writeError(w, http.StatusBadRequest, "no such instance on this work")
 	case errors.Is(err, errGrainStore):
 		writeError(w, http.StatusInternalServerError, "grain store unavailable")
 	default:

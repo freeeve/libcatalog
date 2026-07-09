@@ -231,3 +231,53 @@ func TestDuplicatesWorklist(t *testing.T) {
 		t.Fatalf("titles missing: %+v", got.Groups[0].Works)
 	}
 }
+
+// TestItemWritesRejectPhantomInstance covers tasks/211: both item write
+// routes refuse an instanceId the work's grain does not describe -- a typo
+// or an id copied from another record used to graft holdings onto a
+// phantom IRI no reader enumerates, consuming real barcodes.
+func TestItemWritesRejectPhantomInstance(t *testing.T) {
+	h, bs := newMaintenanceAPI(t)
+	const workID = "wvis00000001"
+	grain, _, _ := bs.Get(t.Context(), bibframe.GrainPath(workID))
+	withInst := string(grain) +
+		`<#wvis00000001Work> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#ivis00000001Instance> <feed:overdrive> .` + "\n" +
+		`<#ivis00000001Instance> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Instance> <feed:overdrive> .` + "\n"
+	if _, err := bs.Put(t.Context(), bibframe.GrainPath(workID), []byte(withInst), blob.PutOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	before, _, _ := bs.Get(t.Context(), bibframe.GrainPath(workID))
+
+	// PUT items with a phantom instance -> 400, grain untouched.
+	rec := request(t, h, http.MethodPut, "/v1/works/"+workID+"/items", "lib-token", "", map[string]any{
+		"instanceId": "izzzzzzphantom",
+		"items":      []map[string]string{{"barcode": "999001"}},
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("put phantom = %d %s", rec.Code, rec.Body.String())
+	}
+
+	// Bulk add with a phantom instance -> 400, dryRun included.
+	for _, dry := range []bool{true, false} {
+		rec = request(t, h, http.MethodPost, "/v1/works/"+workID+"/items/bulk", "lib-token", "", map[string]any{
+			"instanceId": "izzzzzzphantom", "count": 2, "barcodePrefix": "ZZ", "dryRun": dry,
+		})
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("bulk phantom (dry=%v) = %d %s", dry, rec.Code, rec.Body.String())
+		}
+	}
+
+	after, _, _ := bs.Get(t.Context(), bibframe.GrainPath(workID))
+	if string(before) != string(after) {
+		t.Fatalf("grain mutated by rejected writes:\n%s", after)
+	}
+
+	// The real instance still accepts writes.
+	rec = request(t, h, http.MethodPut, "/v1/works/"+workID+"/items", "lib-token", "", map[string]any{
+		"instanceId": "ivis00000001",
+		"items":      []map[string]string{{"barcode": "300456"}},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("put real instance = %d %s", rec.Code, rec.Body.String())
+	}
+}
