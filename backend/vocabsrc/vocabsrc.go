@@ -379,29 +379,31 @@ func (s *Service) Reload(ctx context.Context) error {
 // behind (tasks/252). The sidecar goes first: its manifest is what arms the scheme,
 // so an interrupted removal degrades the scheme to the map loader instead of arming
 // it on an index whose snapshot has been deleted.
-func (s *Service) RemoveSnapshot(ctx context.Context, name string) error {
+// It returns the removed snapshot's InstallInfo so a caller can record what was
+// uninstalled (its scheme and term count) in an audit note (tasks/259).
+func (s *Service) RemoveSnapshot(ctx context.Context, name string) (InstallInfo, error) {
 	meta, _, err := s.Blob.Get(ctx, s.metaPath(name))
 	if errors.Is(err, blob.ErrNotFound) {
-		return ErrNotFound
+		return InstallInfo{}, ErrNotFound
 	} else if err != nil {
-		return err
+		return InstallInfo{}, err
 	}
 	var info InstallInfo
 	if err := json.Unmarshal(meta, &info); err != nil {
-		return fmt.Errorf("vocabsrc: install meta for %q is unreadable, so its sidecar cannot be located: %w", name, err)
+		return InstallInfo{}, fmt.Errorf("vocabsrc: install meta for %q is unreadable, so its sidecar cannot be located: %w", name, err)
 	}
 	if info.Scheme != "" {
 		if err := vocab.RemoveSidecar(ctx, s.Blob, s.prefix(), info.Scheme); err != nil {
-			return err
+			return InstallInfo{}, err
 		}
 	}
 	if err := s.Blob.Delete(ctx, s.snapshotPath(name)); err != nil && !errors.Is(err, blob.ErrNotFound) {
-		return err
+		return InstallInfo{}, err
 	}
 	if err := s.Blob.Delete(ctx, s.metaPath(name)); err != nil {
-		return err
+		return InstallInfo{}, err
 	}
-	return s.Reload(ctx)
+	return info, s.Reload(ctx)
 }
 
 // SourceView is the list surface: a source plus its install state and its

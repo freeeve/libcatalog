@@ -4,20 +4,38 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/freeeve/libcat/backend/auth"
 	"github.com/freeeve/libcat/backend/copycat"
 	"github.com/freeeve/libcat/backend/marcview"
+	"github.com/freeeve/libcat/backend/suggest"
 )
 
 // registerCopycat mounts the copy-cataloging surface (tasks/050): external
 // target search (librarian), staged batches with match review and commit
-// (librarian), and target configuration (admin).
-func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.TokenVerifier) {
+// (librarian), and target configuration (admin). queue, when set, receives an
+// audit entry per target-configuration change -- a target decides which server
+// records are copied from, so who repointed or removed one must be legible
+// (tasks/259).
+func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.TokenVerifier, queue *suggest.Service) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 	admin := auth.Require(verifier, auth.RoleAdmin)
+	// audit names the acting admin and the configuration change, mirroring the
+	// user surface (auth_handlers.go). No WorkID: config entries partition by
+	// month, not by work.
+	audit := func(r *http.Request, action, note string) {
+		if queue == nil {
+			return
+		}
+		actor := ""
+		if id, ok := auth.FromContext(r.Context()); ok {
+			actor = id.Email
+		}
+		queue.WriteAudit(r.Context(), suggest.AuditEntry{Action: action, Actor: actor, Note: note})
+	}
 
 	mux.Handle("GET /v1/copycat/targets", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		targets, err := svc.Targets(r.Context())
@@ -36,13 +54,18 @@ func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.Tok
 		if writeCopycatError(w, svc.PutTarget(r.Context(), t)) {
 			return
 		}
+		// PutTarget is an upsert with CondNone, so this covers repointing a
+		// seeded target at a new host -- the silent overwrite the audit answers.
+		audit(r, "COPYCAT_TARGET_SET", fmt.Sprintf("%s -> %s (%s)", t.Name, t.URL, t.Protocol))
 		writeJSON(w, http.StatusOK, t)
 	})))
 
 	mux.Handle("DELETE /v1/copycat/targets/{name}", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if writeCopycatError(w, svc.DeleteTarget(r.Context(), r.PathValue("name"))) {
+		name := r.PathValue("name")
+		if writeCopycatError(w, svc.DeleteTarget(r.Context(), name)) {
 			return
 		}
+		audit(r, "COPYCAT_TARGET_DELETE", name)
 		w.WriteHeader(http.StatusNoContent)
 	})))
 

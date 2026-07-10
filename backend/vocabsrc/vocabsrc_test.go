@@ -98,7 +98,7 @@ func TestViewsListsOrphanInstalls(t *testing.T) {
 		t.Fatalf("orphan view = %+v", orphan)
 	}
 	// Still removable through the normal path.
-	if err := s.RemoveSnapshot(ctx, "homosaurus"); err != nil {
+	if _, err := s.RemoveSnapshot(ctx, "homosaurus"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -384,7 +384,7 @@ func TestDownloadInstallRemoveLifecycle(t *testing.T) {
 		t.Fatal("no sidecar artifacts to remove -- the removal check below would pass vacuously")
 	}
 	// Remove: snapshot, meta and sidecar go, terms drop out of the index.
-	if err := s.RemoveSnapshot(ctx, "lcgft"); err != nil {
+	if _, err := s.RemoveSnapshot(ctx, "lcgft"); err != nil {
 		t.Fatal(err)
 	}
 	if got := ix.Search("lcgft", "zin", 5); len(got) != 0 {
@@ -398,7 +398,7 @@ func TestDownloadInstallRemoveLifecycle(t *testing.T) {
 	if _, _, err := s.Blob.Get(ctx, s.snapshotPath("lcgft")); !errors.Is(err, blob.ErrNotFound) {
 		t.Errorf("snapshot survives removal: %v", err)
 	}
-	if err := s.RemoveSnapshot(ctx, "lcgft"); !errors.Is(err, ErrNotFound) {
+	if _, err := s.RemoveSnapshot(ctx, "lcgft"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("double remove: %v", err)
 	}
 }
@@ -454,7 +454,7 @@ func TestRemoveSnapshotCleansUpAfterAnOrphanedInstall(t *testing.T) {
 		t.Fatalf("the snapshot went with the registry record: %v", err)
 	}
 
-	if err := s.RemoveSnapshot(ctx, "zzleak"); err != nil {
+	if _, err := s.RemoveSnapshot(ctx, "zzleak"); err != nil {
 		t.Fatal(err)
 	}
 	if after := blobPaths(t, s.Blob, s.prefix()+"sidecar/"); len(after) != 0 {
@@ -505,7 +505,7 @@ func TestDeleteSourceRefusesWhileASnapshotIsInstalled(t *testing.T) {
 	}
 
 	// The documented order works.
-	if err := s.RemoveSnapshot(ctx, "zzorph"); err != nil {
+	if _, err := s.RemoveSnapshot(ctx, "zzorph"); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.DeleteSource(ctx, "zzorph"); err != nil {

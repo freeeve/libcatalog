@@ -176,7 +176,7 @@ func New(deps Deps) http.Handler {
 		registerBatch(mux, deps.Batch, deps.Verifier)
 	}
 	if deps.Copycat != nil && deps.Verifier != nil {
-		registerCopycat(mux, deps.Copycat, deps.Verifier)
+		registerCopycat(mux, deps.Copycat, deps.Verifier, deps.Suggest)
 	}
 	if deps.Copycat != nil && deps.Blob != nil && deps.Verifier != nil {
 		registerSubjectLookup(mux, deps.Copycat, deps.Blob, deps.Vocab, deps.Verifier)
@@ -191,7 +191,7 @@ func New(deps Deps) http.Handler {
 		registerEnrich(mux, deps.Enrich, deps.Verifier)
 	}
 	if deps.VocabSources != nil && deps.Verifier != nil {
-		registerVocabSources(mux, deps.VocabSources, deps.Verifier, deps.VocabUploadCapMB)
+		registerVocabSources(mux, deps.VocabSources, deps.Verifier, deps.VocabUploadCapMB, deps.Suggest)
 	}
 	if deps.ClientConfig != nil {
 		mux.HandleFunc("GET /config", func(w http.ResponseWriter, r *http.Request) {

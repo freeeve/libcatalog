@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/freeeve/libcat/backend/auth"
+	"github.com/freeeve/libcat/backend/suggest"
 	"github.com/freeeve/libcat/backend/vocabsrc"
 )
 
@@ -22,13 +23,28 @@ const defaultUploadCapMB = 512
 // remove actions (admin), and the live typeahead proxy the picker uses
 // (librarian -- the backend proxies so browser CORS and third-party endpoints
 // stay out of the SPA).
-func registerVocabSources(mux *http.ServeMux, svc *vocabsrc.Service, verifier auth.TokenVerifier, uploadCapMB int) {
+func registerVocabSources(mux *http.ServeMux, svc *vocabsrc.Service, verifier auth.TokenVerifier, uploadCapMB int, queue *suggest.Service) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 	admin := auth.Require(verifier, auth.RoleAdmin)
 	if uploadCapMB <= 0 {
 		uploadCapMB = defaultUploadCapMB
 	}
 	uploadCap := int64(uploadCapMB) << 20
+	// audit names the acting admin and the configuration change. Installing or
+	// removing a vocabulary rewrites what every subject heading resolves through
+	// -- the highest-blast-radius controls on this surface, and the ones that
+	// kept no record of who pulled them (tasks/259). No WorkID: config entries
+	// partition by month, not by work.
+	audit := func(r *http.Request, action, note string) {
+		if queue == nil {
+			return
+		}
+		actor := ""
+		if id, ok := auth.FromContext(r.Context()); ok {
+			actor = id.Email
+		}
+		queue.WriteAudit(r.Context(), suggest.AuditEntry{Action: action, Actor: actor, Note: note})
+	}
 
 	mux.Handle("GET /v1/vocabsources", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		views, err := svc.Views(r.Context())
@@ -49,32 +65,42 @@ func registerVocabSources(mux *http.ServeMux, svc *vocabsrc.Service, verifier au
 			writeVocabSrcError(w, err)
 			return
 		}
+		audit(r, "VOCAB_SOURCE_CREATE", fmt.Sprintf("%s (%s)", src.Name, src.Scheme))
 		writeJSON(w, http.StatusOK, src)
 	})))
 
 	mux.Handle("DELETE /v1/vocabsources/{name}", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := svc.DeleteSource(r.Context(), r.PathValue("name")); err != nil {
+		name := r.PathValue("name")
+		if err := svc.DeleteSource(r.Context(), name); err != nil {
 			writeVocabSrcError(w, err)
 			return
 		}
+		audit(r, "VOCAB_SOURCE_DELETE", name)
 		writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 	})))
 
 	mux.Handle("POST /v1/vocabsources/{name}/download", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
-		job, err := svc.CreateDownload(r.Context(), id.Email, r.PathValue("name"))
+		name := r.PathValue("name")
+		job, err := svc.CreateDownload(r.Context(), id.Email, name)
 		if err != nil {
 			writeVocabSrcError(w, err)
 			return
 		}
+		audit(r, "VOCAB_DOWNLOAD_START", fmt.Sprintf("%s (%s), job %s", name, job.Scheme, job.ID))
 		writeJSON(w, http.StatusAccepted, job)
 	})))
 
 	mux.Handle("DELETE /v1/vocabsources/{name}/snapshot", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := svc.RemoveSnapshot(r.Context(), r.PathValue("name")); err != nil {
+		name := r.PathValue("name")
+		info, err := svc.RemoveSnapshot(r.Context(), name)
+		if err != nil {
 			writeVocabSrcError(w, err)
 			return
 		}
+		// Record the transition, not just the act: "lcsh: 513125 terms -> removed"
+		// answers "who uninstalled LCSH, and how much did it take with it".
+		audit(r, "VOCAB_SNAPSHOT_REMOVE", fmt.Sprintf("%s: %d terms -> removed", name, info.Terms))
 		writeJSON(w, http.StatusOK, map[string]bool{"removed": true})
 	})))
 
@@ -82,7 +108,8 @@ func registerVocabSources(mux *http.ServeMux, svc *vocabsrc.Service, verifier au
 	// N-Triples/N-Quads (optionally gzipped, sniffed) -- the escape hatch
 	// when a publisher's download URL is unreachable. Installs synchronously.
 	mux.Handle("PUT /v1/vocabsources/{name}/snapshot", admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		terms, err := svc.InstallUpload(r.Context(), r.PathValue("name"), http.MaxBytesReader(w, r.Body, uploadCap))
+		name := r.PathValue("name")
+		terms, err := svc.InstallUpload(r.Context(), name, http.MaxBytesReader(w, r.Body, uploadCap))
 		var tooBig *http.MaxBytesError
 		if errors.As(err, &tooBig) {
 			writeError(w, http.StatusRequestEntityTooLarge,
@@ -93,6 +120,9 @@ func registerVocabSources(mux *http.ServeMux, svc *vocabsrc.Service, verifier au
 			writeVocabSrcError(w, err)
 			return
 		}
+		// "upload" distinguishes this hand-supplied dump from a URL download; the
+		// term count is the size of what entered the live index.
+		audit(r, "VOCAB_SNAPSHOT_INSTALL", fmt.Sprintf("%s: installed %d terms (upload)", name, terms))
 		writeJSON(w, http.StatusOK, map[string]any{"installed": true, "terms": terms})
 	})))
 
