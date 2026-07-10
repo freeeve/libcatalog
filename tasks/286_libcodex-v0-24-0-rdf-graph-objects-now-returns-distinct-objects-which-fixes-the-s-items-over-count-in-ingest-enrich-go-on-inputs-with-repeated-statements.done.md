@@ -68,3 +68,64 @@ when 110 lands, and that release will say so.
 ## Bump
 
 `go get github.com/freeeve/libcodex@v0.24.0`, both modules together.
+
+## Outcome
+
+Adopted in **v0.116.1** (`b00986c`). Both modules together, because `go.work`
+takes the max across root and backend -- a one-module `go get` builds the newer
+version anyway and the regression gate passes vacuously.
+
+Whole suite green on the bump with no code change. The only thing needed was a
+test, because nothing in the repo could see the bug: every fixture stated each
+triple once.
+
+### It was worse than the report says
+
+The report predicts a restated `bf:hasItem` double-counts. It compounds. `s.Items`
+sums item counts across the Work's instances, and `bf:hasInstance` was restated
+too, so the same instance was visited twice and its (already doubled) items were
+added twice.
+
+A grain stating everything in two feed graphs, one Work, one Instance, one Item:
+
+```
+v0.23.0   Items = 4    Subjects = [sh85077507 sh85077507]    Tags = [poetry poetry]
+v0.24.0   Items = 1    Subjects = [sh85077507]               Tags = [poetry]
+```
+
+`ingest/repeated_statements_test.go` pins this. Verified non-vacuous by
+downgrading both modules to v0.23.0 and watching it fail, rather than trusting
+that it would.
+
+Two graphs restating one statement is not a contrived fixture -- it is what a feed
+re-ingest plus an editorial edit produces, which is the normal state of a grain.
+
+### The two call sites the report flagged, checked
+
+`project`'s `bf:seriesEnumeration` read is **safe**. It takes the first non-empty
+value rather than pairing enumerations to statements positionally, so collapsing
+libcodex's EMPTY padding literals changes nothing. That is the one pattern the
+report warns about, and it is worth recording that we do not have it -- when
+libcodex 110 lands and moves the enumeration onto a `bf:Relation` node, this is
+the code that has to move.
+
+`Series` and `Languages` (added in tasks/284, the same day) keep their
+`sortedUnique`. `Objects` now dedupes per `(subject, predicate)`, but Series is
+collected across *several* Instances of one Work, which routinely transcribe the
+same 490. That dedupe is cross-instance and still earns its keep.
+
+`merged.Dedupe()` was not added. Nothing counts `len(merged.Triples)`, so it would
+be a pass over the corpus buying nothing.
+
+### Adoption
+
+Rebuild and restart. Patch: no API change, no config change.
+
+- `ingest.WorkSummary.Items` is now the number of distinct items. A deployment
+  whose grains restate `bf:hasItem` will see holdings counts **drop** to the truth,
+  and the works rail's `holdings` facet will re-bucket accordingly.
+- `Subjects` and `Tags` lose duplicate entries, and **the facet rail's counts move
+  with them**. `facetCounter.add` increments once per value with no per-work
+  dedupe, so a Work whose subject was restated contributed 2 to that heading's
+  count. It now contributes 1. I asserted the opposite before checking the
+  counter; the rail was over-counting exactly as the item count was.
