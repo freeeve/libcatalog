@@ -157,3 +157,71 @@ curl -s -H "Authorization: Bearer $TOK" \
 # 797
 # null      <- the selected value is not in its own facet list
 ```
+
+## Outcome
+
+Fixed at the server in **v0.114.0** (`1b44fff`), as the report recommended. Both
+diagnoses were exactly right, including the two distinct disappearances and the
+observation that `visibleCounts`'s `|| filterActive(...)` was the right instinct
+applied to the wrong filter.
+
+`result()` now appends any selected value the scan missed, with its true count.
+No client change was needed: `WorkSearch.svelte` renders whatever the group
+contains, and `visibleCounts` already keeps a selected value through the rail's
+type-to-filter box.
+
+### Why the client half was not also done
+
+The report offers the client union as a smaller alternative. It is, but it would
+have to synthesize `count: 0` for a value the server declined to describe -- and
+that count is a guess. It is only right because the server happens to have found
+no matches; the client cannot distinguish "zero" from "truncated at 20", which
+are the two cases here and carry different counts. Fixing it where the counts
+live keeps the rail's numbers earned rather than assumed.
+
+### Verified live
+
+On the playground (59 tags, 20 shown), against the fixed binary:
+
+```
+selected truncated tag 'business.' -> matched=1, pinned in rail=True [{'value': 'business.', 'count': 1}]
+rail size with one pinned selection = 21
+
+?tag=poetry            -> matched=0, facets.tag contains {'value': 'poetry', 'count': 0}
+?tag=poetry&tag=zzz-nope -> ...20 real values..., ('poetry', 0), ('zzz-nope', 0)
+```
+
+The first is the truncation case, the second the never-counted case. A pinned
+value does not consume a cap slot, so a group may return 21 values.
+
+### Mutation-proven
+
+| mutation | result |
+|---|---|
+| `appendMissingSelections` removed | **all 6 selection tests fail** |
+| selections not folded before keying | a duplicate `{T23, 0}` row appears beside `{t23, 3}` -- two checkboxes, one filter |
+| `sort.Strings(missing)` removed | the appended order follows Go's map iteration; fails under `-count=20` |
+| cap made selection-aware | **passes** -- see below |
+
+That last row is the interesting one. I first wrote the cap to exempt selected
+values *and* appended the missing ones. The exemption is dead code: a truncated
+selection is put back by the append, which has to run anyway for the zero-count
+case. Two mechanisms each half-covering the bug is how a later deletion of either
+looks safe. Deleted the exemption; `capPerScheme` is unchanged from before, and
+its doc comment now says why it stays selection-blind.
+
+### `t253` will not flip yet
+
+`retest.mjs`'s `t253` and `probe_opac_facets.mjs` both read **8501**, the
+queerbooks admin, which is running an older binary. They will keep reporting
+STILL-BROKEN until that deployment is rebuilt past v0.114.0. Not restarted from
+here: it is a live service and not this repo's to bounce. The API-only repro in
+the report reproduces the fix directly once it is.
+
+### Adoption
+
+Server only; no SPA change, no API shape change. Rebuild and restart.
+
+- `facets.<group>` may now contain a value with `"count": 0` -- a client that
+  filters out zero-count values will re-hide exactly the filter this fixes.
+- A capped group may return `20 + len(selected)` values rather than at most 20.
