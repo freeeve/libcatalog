@@ -1,6 +1,7 @@
 package bibframe
 
 import (
+	"io"
 	"path"
 	"strings"
 )
@@ -113,3 +114,30 @@ func RelabelGrainBlanks(grain []byte, prefix string) []byte {
 }
 
 func isNQuadsSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
+
+// grainEntry is one grain a corpus builder has already written, held for the
+// bulk merge: its work id and the canonical bytes that went to disk. The builders
+// keep these rather than the records or graphs they came from, so catalog.nq is
+// the merge of exactly what the grain files contain.
+type grainEntry struct {
+	id    string
+	grain []byte
+}
+
+// WriteMergedGrain writes one grain's contribution to a merged N-Quads document:
+// its own canonical bytes, with its blank-node labels namespaced by work id.
+//
+// Every writer of a merged catalog.nq goes through here -- the ingest builders and
+// SerializeGrains alike -- so the file means the same thing whichever wrote it
+// last. It did not: ingest re-encoded the grains through one rdf.Encoder and
+// emitted traversal-order `_:b1, _:b2, …` labels, so a build that ran ingest
+// without serialize exported the unstable dump tasks/291 had just fixed
+// (tasks/298). Callers must emit grains in work-id order.
+func WriteMergedGrain(w io.Writer, workID string, grain []byte) error {
+	out := RelabelGrainBlanks(grain, GrainBlankPrefix(GrainPath(workID)))
+	if len(out) > 0 && out[len(out)-1] != '\n' {
+		out = append(out, '\n')
+	}
+	_, err := w.Write(out)
+	return err
+}

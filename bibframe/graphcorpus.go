@@ -230,15 +230,9 @@ func BuildWorks(sink storage.Sink, works []WorkGroup, provider string) (BuildSta
 	feed := FeedGraph(provider)
 	stats := BuildStats{}
 
-	type built struct {
-		id        string
-		g         *rdf.Graph
-		editorial []byte
-	}
-	graphs := make([]built, 0, len(works))
+	entries := make([]grainEntry, 0, len(works))
 	for _, wg := range works {
-		g := wg.graph()
-		grain, err := grainWithEditorial(g, feed, wg.Editorial)
+		grain, err := grainWithEditorial(wg.graph(), feed, wg.Editorial)
 		if err != nil {
 			return stats, fmt.Errorf("grain %s: %w", wg.WorkID, err)
 		}
@@ -247,33 +241,14 @@ func BuildWorks(sink storage.Sink, works []WorkGroup, provider string) (BuildSta
 		}
 		stats.Grains++
 		stats.Records += len(wg.Instances)
-		graphs = append(graphs, built{wg.WorkID, g, wg.Editorial})
+		entries = append(entries, grainEntry{wg.WorkID, grain})
 	}
 
-	sort.Slice(graphs, func(i, j int) bool { return graphs[i].id < graphs[j].id })
-	w, err := sink.Create("catalog.nq")
-	if err != nil {
-		return stats, fmt.Errorf("create catalog.nq: %w", err)
-	}
-	// One shared encoder across the corpus keeps feed blank-node labels unique, so
-	// the bulk file is a valid merge of the grains rather than a collision-prone
-	// concatenation (ARCHITECTURE §3). Editorial lines are IRI-based, so they are
-	// appended verbatim after each Work's feed lines.
-	var enc rdf.Encoder
-	for _, b := range graphs {
-		if _, err := w.Write(enc.AppendNQuads(nil, b.g, feed)); err != nil {
-			w.Close()
-			return stats, fmt.Errorf("write catalog.nq: %w", err)
-		}
-		if len(b.editorial) > 0 {
-			if _, err := w.Write(b.editorial); err != nil {
-				w.Close()
-				return stats, fmt.Errorf("write catalog.nq: %w", err)
-			}
-		}
-	}
-	if err := w.Close(); err != nil {
-		return stats, fmt.Errorf("close catalog.nq: %w", err)
+	// The bulk file is the merge of the grains just written, not a second
+	// serialization of the graphs they came from -- see writeCatalog (tasks/298).
+	sort.Slice(entries, func(i, j int) bool { return entries[i].id < entries[j].id })
+	if err := writeCatalog(sink, entries); err != nil {
+		return stats, err
 	}
 	return stats, nil
 }

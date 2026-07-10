@@ -17,7 +17,7 @@ import (
 // to catalog.json; the on-disk graph of record stays complete.
 func runExport(args []string) error {
 	fs := flag.NewFlagSet("export", flag.ExitOnError)
-	in := fs.String("in", "data/out", "ingest output root (contains catalog.nq and data/works)")
+	in := fs.String("in", "data/out", "grain root (contains data/works and the catalog.nq derived from it)")
 	out := fs.String("out", "public/downloads", "output directory for the gzipped artifacts")
 	manifest := fs.String("manifest", "", "manifest path the downloads page reads (default <out>/downloads.json)")
 	publicSources := fs.String("public-sources", "",

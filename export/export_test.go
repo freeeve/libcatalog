@@ -203,3 +203,48 @@ func FuzzFilterSourcesQuad(f *testing.F) {
 		}
 	})
 }
+
+// tasks/298: export gzips a catalog.nq it did not write. Every writer now emits
+// grain-derived labels, but a tree left by an older lcat still holds the churning
+// dump, and exporting it silently republishes a moving sha256. Say so once.
+func TestExportWarnsAboutAStaleCatalogNQ(t *testing.T) {
+	in := corpus(t, bookRecord("c1", "9780000000011", "Author, A.", "First Book"))
+	// Overwrite catalog.nq the way a pre-v0.120 lcat left it: traversal labels.
+	stale := "<urn:test:w1> <http://ex.org/p> _:b1 <feed:marc> .\n_:b1 <http://ex.org/q> \"x\" <feed:marc> .\n"
+	if err := os.WriteFile(filepath.Join(in, "catalog.nq"), []byte(stale), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var log bytes.Buffer
+	if _, err := Run(Options{In: in, Out: t.TempDir(), Log: &log}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(log.String(), "traversal-order blank-node labels") {
+		t.Errorf("no warning for a stale catalog.nq; log was %q", log.String())
+	}
+	if !strings.Contains(log.String(), "lcat serialize") {
+		t.Errorf("the warning does not say how to fix it: %q", log.String())
+	}
+}
+
+// The warning must not fire on what ingest writes today, or it is noise that
+// teaches operators to ignore it.
+func TestExportDoesNotWarnAboutAFreshCatalogNQ(t *testing.T) {
+	in := corpus(t,
+		bookRecord("c1", "9780000000011", "Author, A.", "First Book"),
+		bookRecord("c2", "9780000000028", "Author, B.", "Second Book"),
+	)
+	nq, err := os.ReadFile(filepath.Join(in, "catalog.nq"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(nq, []byte("_:")) {
+		t.Skip("fixture corpus has no blank nodes, so this proves nothing")
+	}
+	var log bytes.Buffer
+	if _, err := Run(Options{In: in, Out: t.TempDir(), Log: &log}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(log.String(), "traversal-order") {
+		t.Errorf("warned about a catalog.nq ingest just wrote: %q", log.String())
+	}
+}

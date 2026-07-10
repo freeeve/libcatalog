@@ -11,9 +11,7 @@ import (
 
 	"github.com/freeeve/libcat/storage"
 	codex "github.com/freeeve/libcodex"
-	codexbf "github.com/freeeve/libcodex/bibframe"
 	"github.com/freeeve/libcodex/iso2709"
-	"github.com/freeeve/libcodex/rdf"
 )
 
 // BuildStats reports what a corpus build produced.
@@ -81,19 +79,18 @@ func BuildMARC(sink storage.Sink, marc io.Reader, provider string) (BuildStats, 
 // object storage, or a git tree unchanged.
 //
 // catalog.nq is not a byte-concatenation of the grain files: each grain
-// canonicalizes its blanks to _:c14nN independently, so it is re-serialized
-// through one shared encoder to keep blank labels unique across the corpus. All
-// records are held in memory for the sorted bulk write; at large scale
-// (ARCHITECTURE §3) that becomes an out-of-core / fan-out concern.
+// canonicalizes its blanks to _:c14nN independently, so a plain concatenation
+// would merge two grains' _:c14n0 into one node. It is the grains' own bytes with
+// each grain's labels namespaced by work id -- byte-identical to what
+// SerializeGrains produces from the same grains, which is the point: catalog.nq
+// means one thing whichever writer wrote it last (tasks/298). All grains are held
+// in memory for the sorted bulk write; at large scale (ARCHITECTURE §3) that
+// becomes an out-of-core / fan-out concern.
 func BuildCorpus(sink storage.Sink, records []*codex.Record, provider string) (BuildStats, error) {
 	feed := FeedGraph(provider)
 	stats := BuildStats{Records: len(records)}
 
-	type entry struct {
-		id  string
-		rec *codex.Record
-	}
-	entries := make([]entry, 0, len(records))
+	entries := make([]grainEntry, 0, len(records))
 	for _, rec := range records {
 		id, err := WorkID(rec)
 		if err != nil {
@@ -107,30 +104,28 @@ func BuildCorpus(sink storage.Sink, records []*codex.Record, provider string) (B
 			return stats, err
 		}
 		stats.Grains++
-		entries = append(entries, entry{id, rec})
+		entries = append(entries, grainEntry{id, grain})
 	}
 
 	sort.Slice(entries, func(i, j int) bool { return entries[i].id < entries[j].id })
-	sorted := make([]*codex.Record, len(entries))
-	for i, e := range entries {
-		sorted[i] = e.rec
-	}
-	if err := writeCatalog(sink, sorted, feed); err != nil {
+	if err := writeCatalog(sink, entries); err != nil {
 		return stats, err
 	}
 	return stats, nil
 }
 
-// writeCatalog streams the bulk catalog.nq through one shared encoder so blank
-// labels stay unique across the whole corpus.
-func writeCatalog(sink storage.Sink, records []*codex.Record, feed rdf.Term) error {
+// writeCatalog writes the bulk catalog.nq as the merge of the grains just
+// written: each grain's own canonical bytes, blank labels namespaced by work id.
+// Re-encoding the records a second time is what made ingest's catalog.nq differ
+// from serialize's (tasks/298); the grains are the source of truth and this file
+// is derived from them, here as everywhere else.
+func writeCatalog(sink storage.Sink, entries []grainEntry) error {
 	w, err := sink.Create("catalog.nq")
 	if err != nil {
 		return fmt.Errorf("create catalog.nq: %w", err)
 	}
-	nw := codexbf.NewNQuadsWriter(w, func(*codex.Record, int) rdf.Term { return feed })
-	for _, rec := range records {
-		if err := nw.Write(rec); err != nil {
+	for _, e := range entries {
+		if err := WriteMergedGrain(w, e.id, e.grain); err != nil {
 			w.Close()
 			return fmt.Errorf("write catalog.nq: %w", err)
 		}

@@ -1,6 +1,7 @@
 // Package export derives the downloadable catalog artifacts from an ingest
-// output root (tasks/172): catalog.nq.gz is the corpus itself (the ingest
-// serialization, blank-node labels already unique across grains), and
+// output root (tasks/172): catalog.nq.gz is the corpus itself -- the catalog.nq
+// found there, which every writer now emits as the merge of the grains, with
+// blank labels namespaced by work id (tasks/291, tasks/298) -- and
 // catalog.mrc.gz / catalog.xml.gz are per-grain MARC round-trips via
 // bibframe.DecodeGrainMARC, which honors editorial override shadows and
 // verbatim sidecars (fidelity bounded by docs/marc-fidelity.md). A Manifest
@@ -20,6 +21,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -90,7 +92,7 @@ func Run(opts Options) (*Manifest, error) {
 	}
 
 	var files []File
-	nq, err := copyGzip(filepath.Join(opts.In, "catalog.nq"), filepath.Join(opts.Out, "catalog.nq.gz"), opts.PublicSources)
+	nq, err := copyGzip(filepath.Join(opts.In, "catalog.nq"), filepath.Join(opts.Out, "catalog.nq.gz"), opts.PublicSources, opts.Log)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +176,7 @@ func (g *gzFile) finish(records int) (File, error) {
 // allowlist on the way when one is set. Line-based: source names are plain
 // strings without quotes or escapes by convention, so the literal is the span
 // between the first and last '"'.
-func copyGzip(src, dst string, public map[string]bool) (File, error) {
+func copyGzip(src, dst string, public map[string]bool, log io.Writer) (File, error) {
 	in, err := os.Open(src)
 	if err != nil {
 		return File{}, err
@@ -188,8 +190,12 @@ func copyGzip(src, dst string, public map[string]bool) (File, error) {
 	sc := bufio.NewScanner(in)
 	sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
 	bw := bufio.NewWriter(w)
+	stale := false
 	for sc.Scan() {
 		line := sc.Text()
+		if !stale && traversalLabel.MatchString(line) {
+			stale = true
+		}
 		if public != nil && strings.Contains(line, sourcesPred) {
 			line = filterSourcesQuad(line, public)
 			if line == "" {
@@ -203,11 +209,24 @@ func copyGzip(src, dst string, public map[string]bool) (File, error) {
 	if err := sc.Err(); err != nil {
 		return File{}, err
 	}
+	// This file is one we did not write. Since tasks/298 every writer of
+	// catalog.nq emits grain-derived labels, so `_:b1`-style traversal labels mean
+	// the file predates that and its sha256 will move on the next rebuild for a
+	// corpus that has not changed -- the churn tasks/291 was filed about. Say so;
+	// the fix is one `lcat serialize` away.
+	if stale && log != nil {
+		fmt.Fprintf(log, "export: %s carries traversal-order blank-node labels, so its sha256 will move on the next rebuild even for a catalog that did not change. It was written by a pre-v0.120 lcat, or by an ingest step whose serialize never ran. Regenerate it from the grains: lcat serialize --dir %s\n", src, filepath.Dir(src))
+	}
 	if err := bw.Flush(); err != nil {
 		return File{}, err
 	}
 	return g.finish(0)
 }
+
+// traversalLabel matches the `_:b1, _:b2, …` labels a shared rdf.Encoder assigns
+// in traversal order. No writer emits them since tasks/298; a file that carries
+// them is stale.
+var traversalLabel = regexp.MustCompile(`(^|\s)_:b\d+(\s|\.)`)
 
 // filterSourcesQuad rewrites one extra/sources quad's literal to the public
 // allowlist, or returns "" to drop the quad when nothing public remains.

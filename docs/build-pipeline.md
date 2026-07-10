@@ -57,6 +57,22 @@ The same steps remain available as individual verbs (`lcat ingest`, `lcat
 serialize`, `lcat project`, `lcat export`, `lcat index`) with matching flags;
 the config file is the orchestration layer, not a different code path.
 
+### catalog.nq has more than one writer
+
+Ingest writes `catalog.nq` alongside the grains; `serialize` regenerates it from
+the committed grains, which is what a multi-source deployment needs (after
+several ingests, ingest's copy holds only the last run's works). Both emit the
+**same bytes** for the same grains: each grain's own canonical N-Quads, with its
+blank-node labels namespaced by work id (tasks/291, tasks/298).
+
+That matters because `export` gzips whichever `catalog.nq` it finds. Until
+v0.121.2 the two writers disagreed -- ingest re-encoded the graphs and emitted
+traversal-order `_:b1, _:b2, …` labels -- so a pipeline that ran ingest without
+serialize published a 60MB download whose sha256 moved on every rebuild of an
+unchanged catalog. Running `serialize` after a single-provider ingest is now a
+byte-for-byte no-op, and `export` warns if it finds a `catalog.nq` an older
+`lcat` left behind.
+
 ### Public provenance allowlist
 
 `public-sources` strips `lcat:extra/sources` attributions not in the allowlist

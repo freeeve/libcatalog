@@ -77,11 +77,7 @@ func SerializeGrains(dir string, sink storage.Sink) (int, error) {
 			w.Close()
 			return 0, fmt.Errorf("%s: %w", g.path, err)
 		}
-		out := RelabelGrainBlanks(b, GrainBlankPrefix(g.path))
-		if len(out) > 0 && out[len(out)-1] != '\n' {
-			out = append(out, '\n')
-		}
-		if _, err := w.Write(out); err != nil {
+		if err := WriteMergedGrain(w, g.id, b); err != nil {
 			w.Close()
 			return 0, fmt.Errorf("write catalog.nq: %w", err)
 		}
