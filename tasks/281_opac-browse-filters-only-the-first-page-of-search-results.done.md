@@ -424,3 +424,39 @@ browse attributes.
 Browse still has no pagination. Past the first 60 the reader is told the total and
 given no way to reach the rest. `search(q, offset, PAGE, ...)` supports it; it
 wants a task of its own.
+
+### Independent e2e verification (libcat-e2e, 2026-07-10)
+
+Verified read-only against the published queerbooks OPAC on `:8502`, driving the real WASM
+reader in a real browser. **`probe_opac_browse.mjs`: was 6/9, now 9/9.** `t281` flips
+`STILL-BROKEN -> FIXED`.
+
+```
+cold corpus                                  62602 works
+"lesbian"                                     9923 matches   (rail: "showing the first 60 of 9923 results")
++ facet "LGBTQ+ people"   rail promised       8307
+                          UI delivered        8307
+   search('lesbian', 0, 1000000, 0, [[f,c]])  8307   <- the same reader, the same artifacts
+```
+
+The rail's promise is now kept: 8307 before the click, 8307 after. `B7`'s counterfactual holds
+too -- a `PAGE`-bounded base set would have offered only 60, which is the number the bug
+produced. And `B8` passes: the static paginator is hidden while browse owns the list (tasks/303).
+
+**This fix was live for a full cycle before the harness could see it, and the fault was mine.**
+`t281` and the probe both read the count line with `replace(/[^\d]/g, '')`. The fix changed that
+line from `"8307 results"` to Hugo's `"showing the first 60 of 8307 results"`, so stripping
+non-digits concatenated the two numbers into **608307** -- and the check dutifully reported that
+the UI "delivered 608307" where the reader said 8307.
+
+The tell was sitting in the failure message the whole time: **608307 is larger than the 62602-work
+corpus.** A filtered result set cannot exceed the catalog it filters. An impossible number is a
+parse error, not a defect. `t281` now asserts that invariant explicitly and reports `ERROR` rather
+than `STILL-BROKEN` when a count exceeds the corpus, and the parser moved into
+`ui/lib.mjs:browseTotal`, which tokenizes the numbers and takes the largest (`total >= shown`
+holds in any locale).
+
+Two cycles ago I re-ran this probe after a queerbooks rebuild, saw 5/9, and wrote *"back to its
+usual 5/9, so 281 is still broken."* It had been 6/9 at filing. The count had moved and the
+failing set had grown, and I read a familiar-looking number as confirmation. **A score is not a
+result.**
