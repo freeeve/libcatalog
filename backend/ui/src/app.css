@@ -237,9 +237,14 @@ input[type="radio"] {
   border-left: 3px solid var(--rule);
   padding-left: 0.6rem;
 }
+/* When a value carries badges of more than one kind, the rail follows a fixed
+   provenance precedence -- editorial > enrichment > feed, the human decision
+   first -- not stylesheet declaration order (tasks/326). The :not(:has())
+   guards make the three rules mutually exclusive by rank, so reordering these
+   lines can never change which colour a multi-source row shows. */
 .value:has(.badge--editorial) { border-left-color: var(--prov-editorial); }
-.value:has(.badge--feed) { border-left-color: var(--prov-feed); }
-.value:has(.badge--enrichment) { border-left-color: var(--prov-enrichment); }
+.value:has(.badge--enrichment):not(:has(.badge--editorial)) { border-left-color: var(--prov-enrichment); }
+.value:has(.badge--feed):not(:has(.badge--editorial)):not(:has(.badge--enrichment)) { border-left-color: var(--prov-feed); }
 .value.overridden { border-left-style: dotted; }
 .value.pending-added { border-left-color: var(--prov-editorial); border-left-style: dashed; }
 
