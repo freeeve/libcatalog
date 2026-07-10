@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"path"
+	"strconv"
+	"strings"
 
 	"github.com/freeeve/libcat/backend/auth"
 	"github.com/freeeve/libcat/backend/batch"
@@ -146,13 +149,76 @@ func registerExportDownload(mux *http.ServeMux, svc *export.Service) {
 			writeError(w, http.StatusForbidden, "bad or expired token")
 			return
 		}
-		data, err := svc.Open(r.Context(), job)
+		data, gzipped, err := svc.OpenStored(r.Context(), job)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "output unavailable")
 			return
 		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Content-Disposition", `attachment; filename="`+job.ID+"."+string(job.Format)+`"`)
-		_, _ = w.Write(data)
+		writeExport(w, r, job, data, gzipped)
 	})
+}
+
+// writeExport serves a stored export, honouring the shape it was stored in
+// (tasks/282). Exports are gzipped at rest, and the format decides whether the
+// client is told so:
+//
+//   - a .gz artifact (nquads, jsonld, marc) goes out as application/gzip, bytes
+//     untouched -- the librarian keeps a 2GB dump at ~100MB;
+//   - CSV goes out as text/csv with Content-Encoding: gzip, so the browser saves
+//     an ordinary .csv and Excel opens it.
+//
+// A client that does not accept gzip gets CSV decompressed here. That branch is
+// why the response varies on Accept-Encoding, and it is not hypothetical: curl
+// sends no Accept-Encoding by default.
+//
+// Jobs written before tasks/282 hold plain bytes; they are served as they always
+// were rather than being compressed on the way out.
+func writeExport(w http.ResponseWriter, r *http.Request, job export.Job, data []byte, gzipped bool) {
+	w.Header().Set("Content-Disposition", `attachment; filename="`+path.Base(job.OutputPath)+`"`)
+	if !gzipped {
+		w.Header().Set("Content-Type", "application/octet-stream")
+		_, _ = w.Write(data)
+		return
+	}
+	del := export.DeliveryFor(job.ID, job.Format)
+	if del.ContentEncoding != "gzip" {
+		w.Header().Set("Content-Type", del.ContentType)
+		_, _ = w.Write(data)
+		return
+	}
+	w.Header().Set("Content-Type", del.ContentType)
+	w.Header().Add("Vary", "Accept-Encoding")
+	if acceptsGzip(r.Header.Get("Accept-Encoding")) {
+		w.Header().Set("Content-Encoding", "gzip")
+		_, _ = w.Write(data)
+		return
+	}
+	plain, err := export.Gunzip(data)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "output unavailable")
+		return
+	}
+	_, _ = w.Write(plain)
+}
+
+// acceptsGzip reports whether an Accept-Encoding header permits gzip. An
+// explicit q=0 is a refusal, not a preference, so "gzip;q=0" must not match a
+// bare substring search.
+func acceptsGzip(header string) bool {
+	for _, part := range strings.Split(header, ",") {
+		fields := strings.Split(strings.TrimSpace(part), ";")
+		name := strings.ToLower(strings.TrimSpace(fields[0]))
+		if name != "gzip" && name != "*" {
+			continue
+		}
+		for _, p := range fields[1:] {
+			if q, ok := strings.CutPrefix(strings.ToLower(strings.TrimSpace(p)), "q="); ok {
+				if v, err := strconv.ParseFloat(q, 64); err == nil && v == 0 {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	return false
 }

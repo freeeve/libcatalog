@@ -83,6 +83,34 @@ polls it. `GET /v1/exports/{id}/download` is **public by path but not by
 obscurity**: it takes a signed, expiring token in the query string, so a
 download link can be handed to a browser without a bearer header.
 
+#### Everything is gzipped at rest (tasks/282)
+
+An N-Quads dump of the catalog compresses about 20x, so the blob store, the wire
+and the librarian's disk each pay for the difference. What the client is told
+depends on the format:
+
+| format | filename | Content-Type | Content-Encoding |
+|---|---|---|---|
+| `csv` | `<id>.csv` | `text/csv` | `gzip` |
+| `nquads` | `<id>.nq.gz` | `application/gzip` | -- |
+| `jsonld` | `<id>.jsonld.gz` | `application/gzip` | -- |
+| `marc` | `<id>.mrc.gz` | `application/gzip` | -- |
+
+CSV is the human-facing format -- it goes into Excel and OpenRefine -- so the
+compression is transparent and the browser saves an ordinary `.csv`. The machine
+formats are real `.gz` artifacts, because a 2GB dump should stay ~100MB after it
+lands. A `.gz` artifact never also carries `Content-Encoding: gzip`; that would
+tell the browser to inflate it back.
+
+The CSV route varies on `Accept-Encoding` and decompresses for a client that does
+not accept gzip -- `curl` with no flags sends no `Accept-Encoding` and gets plain
+CSV. Pass `--compressed` to take the small one.
+
+These are properties of the **stored object's metadata**, not of the serving
+code, because `downloadUrl` is a presigned store URL when the blob store signs:
+on that path nothing of ours runs. Exports written before tasks/282 are stored
+uncompressed and still download -- the gzip magic number decides, not the path.
+
 CSV is the human-facing format and resolves controlled subjects to labels
 through the loaded term index (tasks/233); the machine-readable formats carry
 authority IRIs. See [marc-fidelity](marc-fidelity.md) for what survives a MARC

@@ -7,6 +7,8 @@
 package export
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -15,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/freeeve/libcat/storage/blob"
@@ -36,6 +39,49 @@ const (
 // Extensions per format.
 var extensions = map[Format]string{
 	FormatMARC: "mrc", FormatNQuads: "nq", FormatJSONLD: "jsonld", FormatCSV: "csv",
+}
+
+// Content types per format, naming what the bytes are once decompressed.
+var contentTypes = map[Format]string{
+	FormatMARC: "application/marc", FormatNQuads: "application/n-quads",
+	FormatJSONLD: "application/ld+json", FormatCSV: "text/csv",
+}
+
+// Every export is stored gzipped (tasks/282): a full-corpus N-Quads dump
+// compresses ~20x, and the store, the wire and the librarian's disk each pay for
+// the difference. Formats differ only in whether the compression is visible.
+//
+// CSV is the human-facing format -- it is opened in Excel and OpenRefine -- so it
+// is delivered transparently: Content-Type text/csv, Content-Encoding gzip, and
+// the browser saves an ordinary .csv. The machine formats are delivered as real
+// .gz artifacts, because a 2GB N-Quads dump should stay 100MB after it lands.
+//
+// This distinction is metadata on the stored object, not a serving-time decision,
+// because DownloadURL hands a presigned URL straight to the browser when the blob
+// store signs: nothing of ours runs on that path.
+func transparentGzip(f Format) bool { return f == FormatCSV }
+
+// Delivery describes how a format's stored object is named and labelled.
+type Delivery struct {
+	Path            string // blob path, and the download's filename
+	ContentType     string
+	ContentEncoding string // "gzip" when the compression is transparent
+}
+
+// DeliveryFor is the single source of truth for an export's stored shape. Run
+// writes it; the download handler reads it back off the job's OutputPath.
+func DeliveryFor(id string, f Format) Delivery {
+	if transparentGzip(f) {
+		return Delivery{
+			Path:            fmt.Sprintf("exports/%s.%s", id, extensions[f]),
+			ContentType:     contentTypes[f],
+			ContentEncoding: "gzip",
+		}
+	}
+	return Delivery{
+		Path:        fmt.Sprintf("exports/%s.%s.gz", id, extensions[f]),
+		ContentType: "application/gzip",
+	}
 }
 
 // Selection scopes an export: everything, or an explicit id list. Richer
@@ -247,9 +293,41 @@ func (s *Service) VerifyToken(job Job, token string) bool {
 	return hmac.Equal([]byte(s.Token(job)), []byte(token))
 }
 
-// Open streams a DONE job's output from the blob store (the fallback
-// download route's read side).
+// Open returns a DONE job's output decompressed, whatever form it is stored in.
+// Jobs written before tasks/282 hold plain bytes and still read back correctly:
+// the gzip magic number decides, not the path.
 func (s *Service) Open(ctx context.Context, job Job) ([]byte, error) {
-	data, _, err := s.blob.Get(ctx, job.OutputPath)
-	return data, err
+	data, gzipped, err := s.OpenStored(ctx, job)
+	if err != nil || !gzipped {
+		return data, err
+	}
+	return Gunzip(data)
+}
+
+// OpenStored returns a DONE job's output exactly as stored, reporting whether
+// those bytes are a gzip stream. The download handler needs the compressed form
+// so it can hand it to a client that accepts it without a decompress/recompress
+// round trip (the fallback download route's read side).
+func (s *Service) OpenStored(ctx context.Context, job Job) (data []byte, gzipped bool, err error) {
+	data, _, err = s.blob.Get(ctx, job.OutputPath)
+	if err != nil {
+		return nil, false, err
+	}
+	return data, isGzip(data), nil
+}
+
+// isGzip sniffs the RFC 1952 magic number.
+func isGzip(data []byte) bool {
+	return len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b
+}
+
+// Gunzip decompresses a gzip stream held in memory. Exported for the download
+// handler, which must undo the at-rest compression for a client that refuses it.
+func Gunzip(data []byte) ([]byte, error) {
+	zr, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer zr.Close()
+	return io.ReadAll(zr)
 }

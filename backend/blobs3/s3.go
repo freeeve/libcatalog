@@ -124,6 +124,9 @@ func (s *Store) Put(ctx context.Context, path string, data []byte, opts blob.Put
 	if opts.ContentType != "" {
 		in.ContentType = &opts.ContentType
 	}
+	if opts.ContentEncoding != "" {
+		in.ContentEncoding = &opts.ContentEncoding
+	}
 	if opts.IfMatch != "" {
 		in.IfMatch = aws.String(quote(opts.IfMatch))
 	}
@@ -177,6 +180,9 @@ func (s *Store) PutStream(ctx context.Context, path string, r io.Reader, opts bl
 	}
 	if opts.ContentType != "" {
 		in.ContentType = &opts.ContentType
+	}
+	if opts.ContentEncoding != "" {
+		in.ContentEncoding = &opts.ContentEncoding
 	}
 	if opts.IfMatch != "" {
 		in.IfMatch = aws.String(quote(opts.IfMatch))

@@ -40,10 +40,18 @@ type Entry struct {
 // to exist with exactly that ETag (a missing object fails the precondition);
 // IfNoneMatch requires that no object exists at the path (create-only).
 // ContentType is advisory; stores without metadata ignore it.
+//
+// ContentEncoding is advisory in the same way, and describes the bytes actually
+// stored: "gzip" means the object holds a gzip stream that a client is expected
+// to decompress transparently, with ContentType naming what it decompresses to.
+// It matters because a presigned URL hands the object straight to a browser
+// (see export.Service.DownloadURL), so the metadata, not the serving code, is
+// what tells that browser how to read it.
 type PutOptions struct {
-	IfMatch     string
-	IfNoneMatch bool
-	ContentType string
+	IfMatch         string
+	IfNoneMatch     bool
+	ContentType     string
+	ContentEncoding string
 }
 
 // Store is a path-addressed object store. Paths are relative, slash-separated,

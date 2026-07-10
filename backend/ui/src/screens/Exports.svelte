@@ -18,14 +18,17 @@
     initialSavedQuery = "",
   }: { initialKind?: string; initialQuery?: string; initialIds?: string; initialSavedQuery?: string } = $props();
 
+  // Labels name the file that actually lands (tasks/282): the machine formats
+  // download as gzip artifacts, while CSV is decompressed by the browser and
+  // saves as a plain .csv.
   const FORMATS: { value: ExportFormat; label: string; note: string }[] = [
     {
       value: "marc",
-      label: "MARC (.mrc)",
+      label: "MARC (.mrc.gz)",
       note: "Lossy: records travel BIBFRAME->MARC through the libcodex round-trip. See the fidelity table for exactly which fields survive.",
     },
-    { value: "nquads", label: "BIBFRAME N-Quads (.nq)", note: "Lossless: the canonical grain statements, merged corpus-style." },
-    { value: "jsonld", label: "JSON-LD (.jsonld)", note: "The record path's JSON-LD; fidelity-bounded like the MARC detour." },
+    { value: "nquads", label: "BIBFRAME N-Quads (.nq.gz)", note: "Lossless: the canonical grain statements, merged corpus-style." },
+    { value: "jsonld", label: "JSON-LD (.jsonld.gz)", note: "The record path's JSON-LD; fidelity-bounded like the MARC detour." },
     { value: "csv", label: "CSV (.csv)", note: "Projected rows: id, title, contributors, subjects, and friends." },
   ];
   const FIDELITY_URL = "https://github.com/freeeve/libcat/blob/main/docs/marc-fidelity.md";

@@ -2,6 +2,7 @@ package export
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -40,15 +41,29 @@ func (s *Service) Run(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	outPath := fmt.Sprintf("exports/%s.%s", job.ID, extensions[job.Format])
+	del := DeliveryFor(job.ID, job.Format)
 	pr, pw := io.Pipe()
 	var records int
 	go func() {
-		n, err := s.emitTo(ctx, pw, *job)
+		// The gzip writer sits inside the pipe, so the emitters still stream per
+		// grain and the compressor's window is the only added memory (tasks/282).
+		//
+		// Close flushes the compressor and writes the trailer; without it the
+		// object is a truncated gzip stream. On an aborted emit it is skipped and
+		// the emit error goes to the pipe instead -- PutStream then fails and
+		// stores nothing, so there is no object to have a trailer.
+		gz := gzip.NewWriter(pw)
+		n, err := s.emitTo(ctx, gz, *job)
 		records = n
+		if err == nil {
+			err = gz.Close()
+		}
 		pw.CloseWithError(err)
 	}()
-	_, runErr := blob.PutStream(ctx, s.blob, outPath, pr, blob.PutOptions{ContentType: contentTypes[job.Format]})
+	_, runErr := blob.PutStream(ctx, s.blob, del.Path, pr, blob.PutOptions{
+		ContentType:     del.ContentType,
+		ContentEncoding: del.ContentEncoding,
+	})
 	now := s.now().UTC()
 	job.FinishedAt = now
 	if runErr != nil {
@@ -58,16 +73,11 @@ func (s *Service) Run(ctx context.Context, id string) error {
 		job.Error = runErr.Error()
 		return s.put(ctx, job, store.CondIfVersion)
 	}
-	job.OutputPath = outPath
+	job.OutputPath = del.Path
 	job.Status = StatusDone
 	job.Records = records
 	job.ExpiresAt = now.Add(downloadTTL)
 	return s.put(ctx, job, store.CondIfVersion)
-}
-
-var contentTypes = map[Format]string{
-	FormatMARC: "application/marc", FormatNQuads: "application/n-quads",
-	FormatJSONLD: "application/ld+json", FormatCSV: "text/csv",
 }
 
 var errAlreadyClaimed = errors.New("export: already claimed")
