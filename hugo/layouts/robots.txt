@@ -1,0 +1,24 @@
+{{- /*
+  robots.txt (tasks/316). Rendered only when the SITE sets `enableRobotsTXT =
+  true` -- a Hugo module cannot set site config, so the README documents the
+  flag and the exampleSite turns it on.
+
+  This deliberately allows everything and adds only the Sitemap pointer, which
+  Hugo's built-in default omits.
+
+  Why no `Disallow` on the artifact directories: the browse/search files under
+  /search/ (browse-records.{idx,bin}, the trigram index, browse-subjects.json)
+  and the reader + facet fragments under /lcat/ are fetched by this site's own
+  JavaScript on an ordinary page view (assets/lcat-browse.js, lcat-sidebar.js,
+  /lcat/roaringrange.js). A `Disallow` on those paths would tell a rendering
+  crawler not to load the resources it needs to render the page -- which Google's
+  own guidance warns against -- while doing nothing to a crawler that runs the JS
+  anyway. The directory-listing enumeration those files once exposed is closed at
+  the server (lcat serve, tasks/278), and nothing links or sitemaps them, so
+  there is no crawl path left to block. A site that wants to bar a specific bot
+  or path should shadow this template.
+*/ -}}
+User-agent: *
+Disallow:
+
+Sitemap: {{ absURL "sitemap.xml" }}

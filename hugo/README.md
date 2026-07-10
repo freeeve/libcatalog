@@ -245,6 +245,31 @@ Set `[params.seo] disable = true` to suppress everything except `<title>`, or
 shadow `layouts/_partials/head-seo.html` for finer control. `head-extra.html`
 stays the hook for *additions* -- favicons, verification tags, `theme-color`.
 
+### robots.txt (opt-in, tasks/316)
+
+The module ships `layouts/robots.txt`, but Hugo renders it only when the **site**
+turns the output on -- a module cannot, because it is site config:
+
+```toml
+enableRobotsTXT = true
+```
+
+Without that flag there is no `/robots.txt` at all (a `404`); with it but without
+this module you get Hugo's built-in default (`User-agent: *` and nothing else).
+The shipped template **allows everything and adds the `Sitemap:` pointer** Hugo's
+default omits.
+
+It deliberately does **not** `Disallow` the browse/search artifacts under
+`/search/` or the reader and facet fragments under `/lcat/`. Those files are
+fetched by the site's own JavaScript on an ordinary page view, so a `Disallow`
+would stop a rendering crawler (Googlebot renders) from loading the resources it
+needs to render the page -- Google's own guidance is not to block resources
+required for rendering -- while doing nothing to a crawler that runs the JS
+anyway. The directory-listing enumeration those files once exposed is closed at
+the server (`lcat serve`), and nothing links or sitemaps them, so there is no
+crawl path left to block. To bar a specific bot or path, shadow
+`layouts/robots.txt`.
+
 ## Retired work ids (tasks/313)
 
 If `assets/redirects.json` is present -- `lcat project` writes it alongside

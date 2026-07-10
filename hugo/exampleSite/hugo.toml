@@ -2,6 +2,11 @@ baseURL = "https://example.org/"
 title = "libcat example catalog"
 languageCode = "en-us"
 
+# Serve /robots.txt from the module's layouts/robots.txt (tasks/316). A module
+# cannot set this -- it is site config -- so every adopter opts in here; without
+# it Hugo emits no robots.txt and the module's template never runs.
+enableRobotsTXT = true
+
 # Bilingual demo (tasks/016): the module's content adapter calls .EnableAllLanguages,
 # so a full Work-page set is minted for BOTH languages with no per-language content
 # mount and no local copy of _content.gotmpl. UI chrome localizes from the module's
