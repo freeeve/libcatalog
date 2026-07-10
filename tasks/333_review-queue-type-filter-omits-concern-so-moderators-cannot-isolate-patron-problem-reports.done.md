@@ -79,3 +79,24 @@ grep -n 'const TYPES' ~/libcat/backend/ui/src/screens/Queue.svelte   # -> ["ADD"
 Retest: `t330` in harness/retest.mjs drives the live Queue screen on :8481, opens the Type
 `<select>`, and asserts a CONCERN `<option>` exists (STILL-BROKEN until it does), with a
 backend control that `GET /v1/queue?type=CONCERN` answers 200.
+
+## Outcome
+
+Shipped in **libcat v0.146.2** (patch -- a filter option that was missing; the
+adoption note is rebuild-and-restart). The whole feature was built end to end
+except this one dropdown option, and the backend already served the filter.
+
+Fixed at the source of the drift rather than by adding a third string to a
+hand-kept array: `types.ts` now defines `SUGG_TYPES = ["ADD","REMOVE","CONCERN"]
+as const` and `SuggType` derives from it, and `Queue.svelte`'s `TYPES` is
+`SUGG_TYPES`. The filter list and the type union are now the same array, so a
+future type cannot be rendered by the queue yet be unselectable in its filter.
+
+### Verified
+
+- The Queue a11y test asserts the Type `<select>` offers a `CONCERN` option; UI
+  suite 325/325, `npm run check` clean.
+- Live on `:8481` (Playwright), the task's own shape: submitted a concern through
+  the anonymous endpoint (with an aged challenge token, `ChallengeMinAge` 3s);
+  `GET /v1/queue?type=CONCERN` returns it; the Queue screen's Type filter offers a
+  CONCERN option; selecting it issues a real `GET /v1/queue?type=CONCERN`.
