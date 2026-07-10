@@ -289,7 +289,7 @@ func TestMacroCRUDAndParams(t *testing.T) {
 		t.Fatalf("foreign personal get err = %v", err)
 	}
 	m.Shared = true
-	updated, err := svc.UpdateMacro(ctx, m.ID, m, "lib@example.org")
+	updated, err := svc.UpdateMacro(ctx, m.ID, m, "lib@example.org", false)
 	if err != nil || !updated.Shared {
 		t.Fatalf("share = %+v, %v", updated, err)
 	}
@@ -307,15 +307,24 @@ func TestMacroCRUDAndParams(t *testing.T) {
 		t.Fatalf("own list after share = %+v, %v", mine, err)
 	}
 
-	// Only the owner may update or delete.
-	if _, err := svc.UpdateMacro(ctx, m.ID, got, "other@example.org"); !errors.Is(err, batch.ErrForbidden) {
+	// A non-owner, non-admin librarian may not update or delete it.
+	if _, err := svc.UpdateMacro(ctx, m.ID, got, "other@example.org", false); !errors.Is(err, batch.ErrForbidden) {
 		t.Fatalf("foreign update err = %v", err)
 	}
-	if err := svc.DeleteMacro(ctx, "other@example.org", m.ID); !errors.Is(err, batch.ErrForbidden) {
+	if err := svc.DeleteMacro(ctx, "other@example.org", m.ID, false); !errors.Is(err, batch.ErrForbidden) {
 		t.Fatalf("foreign delete err = %v", err)
 	}
-	if err := svc.DeleteMacro(ctx, "lib@example.org", m.ID); err != nil {
-		t.Fatal(err)
+	// An admin is the shared macro's custodian: it may relabel it (staying
+	// shared, owner unchanged) and delete it -- the recovery path when the
+	// owner's account is gone (tasks/292).
+	relabel := got
+	relabel.Label = "Stamp summary (curated)"
+	curated, err := svc.UpdateMacro(ctx, m.ID, relabel, "boss@example.org", true)
+	if err != nil || curated.Label != "Stamp summary (curated)" || !curated.Shared || curated.Owner != "lib@example.org" {
+		t.Fatalf("admin relabel = %+v, %v", curated, err)
+	}
+	if err := svc.DeleteMacro(ctx, "boss@example.org", m.ID, true); err != nil {
+		t.Fatalf("admin delete of shared macro: %v", err)
 	}
 	if _, err := svc.GetMacro(ctx, "lib@example.org", m.ID); !errors.Is(err, batch.ErrNotFound) {
 		t.Fatalf("get after delete err = %v", err)

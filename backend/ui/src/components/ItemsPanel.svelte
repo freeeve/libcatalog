@@ -15,6 +15,7 @@
     putItems,
     updateItemTemplate,
   } from "../lib/api";
+  import { canAdmin } from "../lib/auth";
   import { isReadOnly } from "../lib/config";
   import { sessionStore } from "../lib/stores";
   import type { ItemTemplate, WorkItem } from "../lib/types";
@@ -23,6 +24,7 @@
 
   const readOnly = isReadOnly();
   const me = $derived($sessionStore?.email ?? "");
+  const isAdmin = $derived(canAdmin($sessionStore));
 
   let items = $state<WorkItem[]>([]);
   // The etag of the grain this list was read from. The save is a whole-list
@@ -41,10 +43,11 @@
   let bulkPreview = $state<WorkItem[]>([]);
 
   const template = $derived(templates.find((t) => t.id === templateId) ?? null);
-  // Only the owner may edit or remove a template; shared templates from a
-  // colleague are apply-only here (the server enforces it too; this hides the
-  // controls that would 403). Mirrors Macros.svelte.
-  const ownsTemplate = $derived(template != null && template.owner === me);
+  // The owner may edit or remove a template; an admin may manage a shared one
+  // as its custodian, so an orphaned library template stays reachable (the
+  // server enforces the same rule -- this shows only the controls it honours).
+  // A personal template from a colleague is apply-only. Mirrors Macros.svelte.
+  const canManageTemplate = $derived(template != null && (template.owner === me || (isAdmin && !!template.shared)));
 
   onMount(() => {
     void load();
@@ -123,7 +126,7 @@
 
   /** Renames the selected owned template (edit lifecycle, tasks/293). */
   async function renameTemplate(): Promise<void> {
-    if (!template || !ownsTemplate) return;
+    if (!template || !canManageTemplate) return;
     const label = prompt("Rename template", template.label)?.trim();
     if (!label || label === template.label) return;
     error = "";
@@ -132,14 +135,14 @@
       templates = templates.map((t) => (t.id === updated.id ? updated : t));
       status = `template renamed to "${label}"`;
     } catch (e) {
-      error = e instanceof ApiError ? (e.status === 403 ? "only the owner can edit a template" : e.message) : "rename failed";
+      error = e instanceof ApiError ? (e.status === 403 ? "only the owner or an admin can edit a shared template" : e.message) : "rename failed";
     }
   }
 
   /** Removes the selected owned template (tasks/293; calls the long-dead
       deleteItemTemplate). */
   async function removeTemplate(): Promise<void> {
-    if (!template || !ownsTemplate) return;
+    if (!template || !canManageTemplate) return;
     if (!confirm(`Delete the item template "${template.label}"?`)) return;
     const id = template.id ?? "";
     const label = template.label;
@@ -150,7 +153,7 @@
       templateId = "";
       status = `template "${label}" deleted`;
     } catch (e) {
-      error = e instanceof ApiError ? (e.status === 403 ? "only the owner can delete a template" : e.message) : "delete failed";
+      error = e instanceof ApiError ? (e.status === 403 ? "only the owner or an admin can delete a shared template" : e.message) : "delete failed";
     }
   }
 
@@ -251,7 +254,7 @@
           {/each}
         </select>
         <button class="button button--quiet mini" onclick={applyTemplate} disabled={!template}>Apply</button>
-        {#if ownsTemplate}
+        {#if canManageTemplate}
           <button class="button button--quiet mini" onclick={() => void renameTemplate()}>Rename</button>
           <button class="button button--quiet mini" onclick={() => void removeTemplate()}>Delete</button>
         {/if}

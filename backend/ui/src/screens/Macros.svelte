@@ -6,6 +6,7 @@
   // this screen is where recordings get parameterized and shared.
   import { onMount } from "svelte";
   import { ApiError, createMacro, deleteMacro, fetchMacros, updateMacro } from "../lib/api";
+  import { canAdmin } from "../lib/auth";
   import { isReadOnly } from "../lib/config";
   import { SUGGESTED_SHORTCUT_KEY, bindKeys, popScope, pushScope, shortcutKeyError } from "../lib/keyboard";
   import { sessionStore } from "../lib/stores";
@@ -28,6 +29,13 @@
   let status = $state("");
 
   const me = $derived($sessionStore?.email ?? "");
+  const isAdmin = $derived(canAdmin($sessionStore));
+  // A macro is manageable by its owner, and -- since a shared macro is library
+  // property -- by an admin acting as its custodian (tasks/292). The server
+  // enforces the same rule; this shows the controls it would honour.
+  function canManage(m: Macro): boolean {
+    return m.owner === me || (isAdmin && !!m.shared);
+  }
   // The shortcut is checked where it is chosen: the editor's chords and the
   // other macros' keys are both known here, and the cataloger is the only one
   // who can pick a different key (tasks/237). The server refuses the same
@@ -60,7 +68,7 @@
 
   function editSelected(): void {
     const m = macros[selected];
-    if (m && m.owner === me) startEdit(m);
+    if (m && canManage(m)) startEdit(m);
   }
 
   async function load(): Promise<void> {
@@ -153,7 +161,7 @@
       await load();
       status = `deleted "${m.label}"`;
     } catch (e) {
-      error = e instanceof ApiError && e.status === 403 ? "only the owner can delete a macro" : "delete failed";
+      error = e instanceof ApiError && e.status === 403 ? "only the owner or an admin can delete a shared macro" : "delete failed";
     }
   }
 </script>
@@ -186,7 +194,7 @@
             <span class="meta muted">{m.ops.length} op{m.ops.length === 1 ? "" : "s"} · {m.owner}</span>
             <span class="acts">
               <a class="button button--quiet" href={"#/batch?macro=" + encodeURIComponent(m.id)}>Run over selection…</a>
-              {#if m.owner === me && !readOnly}
+              {#if canManage(m) && !readOnly}
                 <button class="button button--quiet" onclick={() => startEdit(m)}>Edit</button>
                 <button class="button button--quiet" onclick={() => void remove(m)}>Delete</button>
               {/if}
@@ -217,7 +225,13 @@
             aria-invalid={!!keyError}
             aria-describedby={keyError ? "m-keys-error" : undefined}
           />
-          <label class="check"><input type="checkbox" bind:checked={shared} /> Shared with the library</label>
+          <label class="check">
+            <input type="checkbox" bind:checked={shared} disabled={editing != null && editing.owner !== me} />
+            Shared with the library
+            {#if editing != null && editing.owner !== me}
+              <span class="muted">(an admin cannot un-share another librarian's macro)</span>
+            {/if}
+          </label>
         </div>
         {#if keyError}
           <p id="m-keys-error" class="error" role="alert">{keyError}</p>

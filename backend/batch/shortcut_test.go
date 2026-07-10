@@ -87,12 +87,12 @@ func TestMacroShortcutValidation(t *testing.T) {
 	}
 	if _, err := svc.UpdateMacro(ctx, free.ID, batch.Macro{
 		OwnedMeta: batch.OwnedMeta{Label: "Free", ID: free.ID}, Keys: "7", Ops: stampOp(),
-	}, owner); err != nil {
+	}, owner, false); err != nil {
 		t.Fatalf("a macro keeping its own key was refused: %v", err)
 	}
 	if _, err := svc.UpdateMacro(ctx, free.ID, batch.Macro{
 		OwnedMeta: batch.OwnedMeta{Label: "Free", ID: free.ID}, Keys: "2", Ops: stampOp(),
-	}, owner); !errors.Is(err, batch.ErrValidation) {
+	}, owner, false); !errors.Is(err, batch.ErrValidation) {
 		t.Fatalf("update onto the MARC-tab chord = %v, want a validation error", err)
 	}
 }

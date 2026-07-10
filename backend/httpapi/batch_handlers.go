@@ -109,7 +109,7 @@ func registerBatch(mux *http.ServeMux, svc *batch.Service, verifier auth.TokenVe
 			writeError(w, http.StatusBadRequest, "bad request body")
 			return
 		}
-		updated, err := svc.UpdateMacro(r.Context(), r.PathValue("id"), m, id.Email)
+		updated, err := svc.UpdateMacro(r.Context(), r.PathValue("id"), m, id.Email, id.CanAdmin())
 		if writeBatchError(w, err) {
 			return
 		}
@@ -118,7 +118,7 @@ func registerBatch(mux *http.ServeMux, svc *batch.Service, verifier auth.TokenVe
 
 	mux.Handle("DELETE /v1/macros/{id}", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
-		if writeBatchError(w, svc.DeleteMacro(r.Context(), id.Email, r.PathValue("id"))) {
+		if writeBatchError(w, svc.DeleteMacro(r.Context(), id.Email, r.PathValue("id"), id.CanAdmin())) {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -156,7 +156,7 @@ func registerBatch(mux *http.ServeMux, svc *batch.Service, verifier auth.TokenVe
 			writeError(w, http.StatusBadRequest, "bad request body")
 			return
 		}
-		updated, err := svc.UpdateItemTemplate(r.Context(), r.PathValue("id"), t, id.Email)
+		updated, err := svc.UpdateItemTemplate(r.Context(), r.PathValue("id"), t, id.Email, id.CanAdmin())
 		if writeBatchError(w, err) {
 			return
 		}
@@ -165,7 +165,7 @@ func registerBatch(mux *http.ServeMux, svc *batch.Service, verifier auth.TokenVe
 
 	mux.Handle("DELETE /v1/item-templates/{id}", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
-		if writeBatchError(w, svc.DeleteItemTemplate(r.Context(), id.Email, r.PathValue("id"))) {
+		if writeBatchError(w, svc.DeleteItemTemplate(r.Context(), id.Email, r.PathValue("id"), id.CanAdmin())) {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)

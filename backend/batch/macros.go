@@ -84,13 +84,13 @@ func (s *Service) CreateMacro(ctx context.Context, m Macro, owner string) (Macro
 	return createOwned(ctx, s.DB, macroKind, m, owner)
 }
 
-// UpdateMacro replaces a macro's definition. Only the owner may update, and
-// flipping Shared moves the record between partitions.
-func (s *Service) UpdateMacro(ctx context.Context, id string, m Macro, owner string) (Macro, error) {
+// UpdateMacro replaces a macro's definition. The owner may update; an admin may
+// update a shared one. Flipping Shared moves the record between partitions.
+func (s *Service) UpdateMacro(ctx context.Context, id string, m Macro, owner string, isAdmin bool) (Macro, error) {
 	if err := s.shortcutFree(ctx, m.Keys, id, owner); err != nil {
 		return Macro{}, err
 	}
-	return updateOwned(ctx, s.DB, macroKind, id, m, owner)
+	return updateOwned(ctx, s.DB, macroKind, id, m, owner, isAdmin)
 }
 
 // shortcutFree refuses a shortcut another macro in the owner's visible set
@@ -113,9 +113,10 @@ func (s *Service) shortcutFree(ctx context.Context, keys, selfID, owner string) 
 	return nil
 }
 
-// DeleteMacro removes an owned macro (shared or personal).
-func (s *Service) DeleteMacro(ctx context.Context, owner, id string) error {
-	return deleteOwned(ctx, s.DB, macroKind, owner, id)
+// DeleteMacro removes a macro. The owner may delete; an admin may delete a
+// shared one (tasks/292).
+func (s *Service) DeleteMacro(ctx context.Context, owner, id string, isAdmin bool) error {
+	return deleteOwned(ctx, s.DB, macroKind, owner, id, isAdmin)
 }
 
 // GetMacro resolves a macro the caller can run: their own, or a shared one.

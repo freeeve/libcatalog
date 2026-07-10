@@ -33,15 +33,16 @@ func (s *Service) CreateItemTemplate(ctx context.Context, t ItemTemplate, owner 
 	return createOwned(ctx, s.DB, itemTemplateKind, t, owner)
 }
 
-// UpdateItemTemplate replaces a template's definition. Only the owner may
-// update; flipping Shared moves the record between partitions.
-func (s *Service) UpdateItemTemplate(ctx context.Context, id string, t ItemTemplate, owner string) (ItemTemplate, error) {
-	return updateOwned(ctx, s.DB, itemTemplateKind, id, t, owner)
+// UpdateItemTemplate replaces a template's definition. The owner may update; an
+// admin may update a shared one. Flipping Shared moves it between partitions.
+func (s *Service) UpdateItemTemplate(ctx context.Context, id string, t ItemTemplate, owner string, isAdmin bool) (ItemTemplate, error) {
+	return updateOwned(ctx, s.DB, itemTemplateKind, id, t, owner, isAdmin)
 }
 
-// DeleteItemTemplate removes an owned template (shared or personal).
-func (s *Service) DeleteItemTemplate(ctx context.Context, owner, id string) error {
-	return deleteOwned(ctx, s.DB, itemTemplateKind, owner, id)
+// DeleteItemTemplate removes a template. The owner may delete; an admin may
+// delete a shared one (tasks/292).
+func (s *Service) DeleteItemTemplate(ctx context.Context, owner, id string, isAdmin bool) error {
+	return deleteOwned(ctx, s.DB, itemTemplateKind, owner, id, isAdmin)
 }
 
 // GetItemTemplate resolves a template the caller can use: their own, or a
