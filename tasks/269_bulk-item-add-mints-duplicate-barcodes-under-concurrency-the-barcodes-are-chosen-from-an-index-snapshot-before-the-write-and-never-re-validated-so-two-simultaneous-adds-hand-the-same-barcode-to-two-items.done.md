@@ -203,3 +203,63 @@ curl -s -H "Authorization: Bearer $TOK" localhost:8470/v1/works/$W | jq -r .nqua
 
 Point the two curls at two *different* works to get the cross-work shape, where the CAS
 retry never fires and the two records each carry the same four barcodes.
+
+## Outcome
+
+Fixed in **v0.106.0** (`21953a1`). `probe_items_bulk_race.mjs` 5/5 against
+committed HEAD; `retest.mjs` **t269 FIXED**, nothing regressed.
+
+The diagnosis was exact, including the part that is easy to get wrong: the CAS
+loop is not broken, it is the wrong tool. It re-runs `mutate` on a fresh grain
+because that is what a concurrent *edit* needs, and it then faithfully launders
+an allocation made against the grain it just discarded.
+
+### Two fixes, because there are two races
+
+**Allocation moved inside the closure.** A retry now re-reads `ix.Barcodes()`,
+unions it with the items already on the fresh grain, and re-mints. This closes
+the CAS-retry race, and it closes it against *any* concurrent writer, not just
+another bulk add -- an item typed into the editor between the snapshot and the
+write would have poisoned the allocation the same way.
+
+**The whole span runs under a new allocation lock**, `workindex.AllocateBarcodes`.
+The cross-work case has no shared object to compare and swap on, so nothing in
+the write path can arbitrate it; serialization is the only thing that makes the
+generator's check mean anything. It is a mutex, deliberately not `ix.mu` (the
+allocator holds it across a grain read, a choice, and a grain write, and `ix.mu`
+is taken and released several times inside that span). Commented as the seam to
+replace with a per-barcode conditional write in the shared store the day libcat
+runs more than one process.
+
+The layering matters and both layers are separately proven. Removing the lock
+leaves `TestBulkAddConcurrentDifferentWorksMintNoDuplicates` failing while the
+same-work test still passes. Moving allocation back outside the closure leaves
+`TestBulkAddRetryReallocatesAgainstTheFreshGrain` failing while both concurrency
+tests still pass. Neither fix subsumes the other, and a suite with only the
+obvious concurrency tests would have let the second regress silently.
+
+### The related note was right too
+
+The `len(existing)+req.Count > 200` cap was read before the mutation and never
+re-checked, so two concurrent adds of 20 against 180 existing items produced 220.
+It is enforced inside the closure now and reported as the same 400. The test
+proves exactly one of the two adds fits.
+
+### Smaller things
+
+`dryRun` still previews without reserving, which is correct -- there is nothing to
+reserve -- and now says so in a comment. The response reports the barcodes that
+were *stored* rather than the ones first chosen, which matters once a retry can
+reallocate; `TestBulkAddResponseMatchesWhatWasPersisted` pins it.
+
+### Not done: the constraint
+
+The report's third bullet -- give the invariant a home, reject a duplicate on
+write -- is **not** in this release, and `registerItemsBulk`'s doc comment now
+says plainly what is checked and what is not. A cataloger can still type a
+duplicate into the item editor, and MARC import writes one straight through.
+That is a pre-existing gap on a different surface, it needs a decision about
+retired items reusing barcodes, and it needs a *report* before a constraint,
+since a deployment that ran this racy version may be carrying duplicates today
+and a new 409 would fail writes to records that were fine yesterday. Filed as
+**tasks/270**.
