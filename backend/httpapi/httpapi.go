@@ -159,7 +159,7 @@ func New(deps Deps) http.Handler {
 		registerMaintenance(mux, deps.Blob, ix, deps.Suggest, deps.Verifier)
 		registerCovers(mux, deps.Blob, ix, deps.Suggest, deps.Verifier, deps.Logger)
 		registerClone(mux, deps.Blob, ix, deps.Suggest, deps.Verifier)
-		registerCoverBatch(mux, deps.Blob, ix, deps.Suggest, deps.Verifier)
+		registerCoverBatch(mux, deps.Blob, ix, deps.Suggest, deps.Verifier, deps.Logger)
 		registerRelations(mux, deps.Blob, ix, deps.Suggest, deps.Verifier)
 		registerAttachments(mux, deps.Blob, ix, deps.Suggest, deps.Verifier, deps.Logger)
 		wl := registerWorksList(mux, ix, deps.Verifier, deps.ExtraFacets, deps.Vocab)

@@ -244,6 +244,35 @@ more than one readiness period) and `lcatd` will fail readiness immediately on
 drain in-flight requests. The default is `0` -- immediate drain -- which is what
 a local or single-process run wants.
 
+### `POST /v1/covers/batch`
+
+A zip whose entries are `<workId>.<ext>` or `<isbn>.<ext>`. The response counts
+three disjoint outcomes, and the counts are the report a librarian acts on:
+
+```json
+{
+  "applied": 460,
+  "skipped": 39,
+  "failed": 1,
+  "results": [
+    {"file": "w01….png", "workId": "w01…", "cover": "covers/w01….png"},
+    {"file": "nope.png", "skipped": "not a work id or known isbn"},
+    {"file": "w02….png", "workId": "w02…", "failed": "cover store failed"}
+  ]
+}
+```
+
+`skipped` means the entry was rejected before either store was touched: nothing
+happened, and the record is untouched. `failed` means the stores were asked to
+do the work and did not; the entry is worth retrying once the store recovers. A
+`failed` entry that also carries `"changed": true` wrote a cover statement that
+could not be rolled back -- that record claims an image whose bytes are missing,
+and it is the one entry a person has to repair. Those entries are in the audit
+log; compensated ones changed nothing and are not (tasks/268, compare tasks/249).
+
+Any `failed` entry makes the response **`207 Multi-Status`**. A `200` means every
+entry either applied or was skipped without touching a record.
+
 The remaining surfaces are grouped by path prefix and named plainly:
 `/v1/works` (records, MARC, items, covers, attachments, relations, clone,
 merge/split, visibility), `/v1/copycat` (SRU targets, search, import batches),

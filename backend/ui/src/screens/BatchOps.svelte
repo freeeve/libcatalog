@@ -15,7 +15,7 @@
     postCoverBatch,
     resolveBatch,
     runBatch,
-    type CoverBatchResult,
+    type CoverBatchResponse,
   } from "../lib/api";
   import Modal from "../components/Modal.svelte";
   import { isReadOnly } from "../lib/config";
@@ -30,7 +30,7 @@
   let coverZip = $state<File | null>(null);
   let coversBusy = $state(false);
   let coversError = $state("");
-  let coversResult = $state<{ applied: number; results: CoverBatchResult[] } | null>(null);
+  let coversResult = $state<CoverBatchResponse | null>(null);
 
   /** Uploads the picked zip of covers keyed by workId/ISBN (tasks/220). */
   async function uploadCovers(): Promise<void> {
@@ -451,15 +451,25 @@
       <p aria-live="polite">
         {#if coversBusy}<span class="muted">Uploading…</span>{/if}
         {#if coversError}<span class="error">{coversError}</span>{/if}
-        {#if coversResult}<span class="ok">{coversResult.applied} cover{coversResult.applied === 1 ? "" : "s"} applied · {coversResult.results.length - coversResult.applied} skipped</span>{/if}
+        {#if coversResult}
+          <span class="ok">{coversResult.applied} cover{coversResult.applied === 1 ? "" : "s"} applied</span>
+          <span class="muted"> · {coversResult.skipped} skipped</span>
+          {#if coversResult.failed}<span class="error"> · {coversResult.failed} failed</span>{/if}
+        {/if}
       </p>
       {#if coversResult}
         <ul class="results">
           {#each coversResult.results as item (item.file)}
-            <li class:failed={!!item.skipped}>
+            <li class:failed={!!item.skipped || !!item.failed}>
               <code>{item.file}</code>
-              {#if item.skipped}
-                <span class="error">{item.skipped}</span>
+              {#if item.failed}
+                {#if item.workId}<a href={"#/works/" + encodeURIComponent(item.workId)}>{item.workId}</a>{/if}
+                <span class="error">{item.failed}</span>
+                {#if item.changed}
+                  <strong class="error">the record was changed and needs fixing by hand</strong>
+                {/if}
+              {:else if item.skipped}
+                <span class="muted">{item.skipped}</span>
               {:else}
                 <a href={"#/works/" + encodeURIComponent(item.workId ?? "")}>{item.workId}</a>
                 <span class="ok">applied</span>

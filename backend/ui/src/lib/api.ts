@@ -756,17 +756,35 @@ export function deleteCover(workId: string): Promise<void> {
   return call("DELETE", `/v1/works/${encodeURIComponent(workId)}/cover`);
 }
 
-/** One zip entry's fate in a batch cover upload (tasks/220). */
+/** One zip entry's fate in a batch cover upload (tasks/220).
+ *
+ *  `skipped` and `failed` are different outcomes (tasks/268). A skipped entry
+ *  was rejected before anything was written -- a bad name, a wrong format. A
+ *  failed entry asked the stores to do the work and they did not, so it is
+ *  worth retrying. `changed` marks the entry whose cover statement was written
+ *  and could not be undone: that record claims an image whose bytes are
+ *  missing, and only a person can repair it. */
 export interface CoverBatchResult {
   file: string;
   workId?: string;
   cover?: string;
   skipped?: string;
+  failed?: string;
+  changed?: boolean;
+}
+
+/** The batch's own account of the run: the three counts are disjoint. */
+export interface CoverBatchResponse {
+  applied: number;
+  skipped: number;
+  failed: number;
+  results: CoverBatchResult[];
 }
 
 /** Uploads a zip of covers named <workId>.<ext> or <isbn>.<ext>; returns
- *  per-entry results (librarian, tasks/220). */
-export async function postCoverBatch(file: File): Promise<{ applied: number; results: CoverBatchResult[] }> {
+ *  per-entry results (librarian, tasks/220). A partial failure answers 207,
+ *  which `callRaw` treats as success -- the per-entry detail is the point. */
+export async function postCoverBatch(file: File): Promise<CoverBatchResponse> {
   return callRaw("POST", "/v1/covers/batch", file, "application/zip");
 }
 

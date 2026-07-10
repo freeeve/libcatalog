@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"io"
+	"log/slog"
 	"net/http"
 	"path"
 	"strings"
@@ -21,20 +22,38 @@ import (
 const coverBatchMaxBytes = 64 << 20
 
 // coverBatchResult reports one zip entry's fate.
+//
+// Skipped and Failed are not the same thing, and folding them together made the
+// batch report lie (tasks/268). Skipped means the entry was rejected before
+// either store was touched: nothing happened, and the operator can ignore it or
+// fix the name. Failed means the stores were asked to do the work and did not:
+// the entry is worth retrying. Changed marks the one case an operator has to
+// repair by hand -- the cover statement was written and could not be undone, so
+// the record claims an image whose bytes are not stored.
 type coverBatchResult struct {
 	File    string `json:"file"`
 	WorkID  string `json:"workId,omitempty"`
 	Cover   string `json:"cover,omitempty"`
 	Skipped string `json:"skipped,omitempty"`
+	Failed  string `json:"failed,omitempty"`
+	Changed bool   `json:"changed,omitempty"`
 }
 
 // registerCoverBatch mounts the zip batch cover upload (tasks/220, 058 item
 // 2 remainder): each entry is <workId>.<ext> or <isbn>.<ext>; ISBNs resolve
 // through the work index. Every applied cover goes through the same
 // grain-first SetCover path as the single PUT, so a bad name never strands
-// bytes.
-func registerCoverBatch(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue *suggest.Service, verifier auth.TokenVerifier) {
+// bytes -- and, since tasks/268, a failed byte write never strands a statement:
+// the danger of grain-first is the statement, not the bytes.
+//
+// The response counts applied, skipped and failed separately. A batch report is
+// the only account of the run a librarian ever sees, so an entry that changed a
+// record must never be filed under a word that promises nothing happened.
+func registerCoverBatch(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue *suggest.Service, verifier auth.TokenVerifier, logger *slog.Logger) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
+	}
 
 	mux.Handle("POST /v1/covers/batch", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
@@ -54,7 +73,7 @@ func registerCoverBatch(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, 
 			return
 		}
 		var results []coverBatchResult
-		applied := 0
+		applied, skipped, failed := 0, 0, 0
 		for _, f := range zr.File {
 			if f.FileInfo().IsDir() {
 				continue
@@ -64,17 +83,41 @@ func registerCoverBatch(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, 
 				continue
 			}
 			res := applyBatchCover(r, bs, ix, byISBN, f, name)
-			if res.Skipped == "" {
+			switch {
+			case res.Failed != "":
+				failed++
+				logger.Error("batch cover entry failed", "file", res.File, "workId", res.WorkID,
+					"actor", id.Email, "err", res.Failed, "recordChanged", res.Changed)
+			case res.Skipped != "":
+				skipped++
+			default:
 				applied++
-				if queue != nil {
-					queue.WriteAudit(r.Context(), suggest.AuditEntry{
-						WorkID: res.WorkID, Action: "COVER_SET", Actor: id.Email, Note: res.Cover + " (batch)",
-					})
+			}
+			// Audit every entry that left a cover statement on a record -- the
+			// applied ones, and the one whose statement could not be rolled
+			// back. Otherwise the single work that needs repair by hand is the
+			// single work nothing in the audit log names (tasks/268). A
+			// compensated entry changed nothing and is not audited, as in 249.
+			if queue != nil && res.Cover != "" {
+				note := res.Cover + " (batch)"
+				if res.Changed {
+					note = res.Cover + " (batch; bytes were not stored)"
 				}
+				queue.WriteAudit(r.Context(), suggest.AuditEntry{
+					WorkID: res.WorkID, Action: "COVER_SET", Actor: id.Email, Note: note,
+				})
 			}
 			results = append(results, res)
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"applied": applied, "results": results})
+		// A failed entry makes this a partial success, and a 200 would say the
+		// whole batch did what it was asked. 207 says some entries did not.
+		status := http.StatusOK
+		if failed > 0 {
+			status = http.StatusMultiStatus
+		}
+		writeJSON(w, status, map[string]any{
+			"applied": applied, "skipped": skipped, "failed": failed, "results": results,
+		})
 	})))
 }
 
@@ -164,18 +207,39 @@ func applyBatchCover(r *http.Request, bs blob.Store, ix *workindex.Index, byISBN
 		return res
 	}
 	url := "covers/" + workID + "." + ext
+	// Grain first, as the single PUT does. Every skip above returns before
+	// either store is touched; from here on a failure has already written
+	// something, so it is compensated and reported as failed, not skipped
+	// (tasks/268). previous is the cover this entry replaces.
+	var previous string
 	if _, err := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
+		cur, err := bibframe.CoverOf(g, workID)
+		if err != nil {
+			return nil, err
+		}
+		previous = cur
 		return bibframe.SetCover(g, workID, url)
 	}); err != nil {
 		res.Skipped = mutateSkipReason(err)
 		return res
 	}
 	if _, err := bs.Put(r.Context(), bibframe.CoverBlobPath(workID, ext), img, blob.PutOptions{}); err != nil {
-		res.Skipped = "cover store failed"
+		res.Failed = "cover store failed"
+		// Restore the cover this entry replaced, not "": the previous cover's
+		// bytes are still stored and still serving publicly.
+		if rerr := restoreCover(r, bs, ix, workID, previous); rerr != nil {
+			res.Cover, res.Changed = url, true
+			res.Failed = "cover store failed, and the record could not be rolled back: it claims " + url
+		}
 		return res
 	}
-	sweepStaleCovers(r, bs, workID, ext)
 	res.Cover = url
+	if err := sweepStaleCovers(r, bs, workID, ext); err != nil {
+		// The cover applied and the record is right. What survives is the blob
+		// it replaced, still serving from its own public URL, so the entry is
+		// not a clean success -- but it is not a phantom either.
+		res.Failed = "the cover applied, but the one it replaced could not be removed and is still being served"
+	}
 	return res
 }
 
