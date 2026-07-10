@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -300,7 +301,12 @@ func (s *Service) GetQuery(ctx context.Context, owner, id string) (SavedQuery, e
 	return sq, err
 }
 
-// ListQueries returns the owner's saved queries in creation order.
+// ListQueries returns the owner's saved queries sorted by label then id, matching
+// the macro and item-template lists (listOwned) the same dropdowns sit beside. The
+// store yields them in sort-key order, and the key embeds a crypto/rand id, so without
+// this they came back in an order the librarian never sees -- the one just saved landing
+// wherever its random id sorted, not last (tasks/294). Creation order was the older
+// contract; CreatedAt still carries it for a caller that wants the newest last.
 func (s *Service) ListQueries(ctx context.Context, owner string) ([]SavedQuery, error) {
 	out := []SavedQuery{}
 	for rec, err := range s.DB.Query(ctx, "SQUERY#"+owner, "Q#", store.QueryOpt{}) {
@@ -312,6 +318,12 @@ func (s *Service) ListQueries(ctx context.Context, owner string) ([]SavedQuery, 
 			out = append(out, sq)
 		}
 	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Label != out[j].Label {
+			return out[i].Label < out[j].Label
+		}
+		return out[i].ID < out[j].ID
+	})
 	return out, nil
 }
 

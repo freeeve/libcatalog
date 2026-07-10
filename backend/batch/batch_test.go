@@ -3,6 +3,7 @@ package batch_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -78,6 +79,37 @@ func summarySetOps(text string) []editor.Op {
 		Resource: "work", Path: "summary", Action: "set",
 		Values: []editor.OpValue{{V: text, Lang: "en"}},
 	}}
+}
+
+// TestListQueriesSortsByLabel is the first test to read ListQueries back (tasks/294):
+// it returned whatever the store's sort-key iterator yielded, and the key embeds a
+// crypto/rand id, so the order was arbitrary and the query just saved did not land last.
+// The labels are created in reverse-alphabetical order so that creation order, label
+// order, and (random) id order are all distinct -- only a label sort produces a, b, c.
+func TestListQueriesSortsByLabel(t *testing.T) {
+	svc, _, _, _ := newService(t)
+	ctx := t.Context()
+	const owner = "lib@example.org"
+	for _, label := range []string{"gamma", "beta", "alpha"} {
+		if _, err := svc.CreateQuery(ctx, label, "q "+label, owner); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := svc.ListQueries(ctx, owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	labels := make([]string, len(got))
+	for i, sq := range got {
+		labels[i] = sq.Label
+	}
+	if want := []string{"alpha", "beta", "gamma"}; !reflect.DeepEqual(labels, want) {
+		t.Errorf("ListQueries order = %v, want %v (sorted by label, not creation or id order)", labels, want)
+	}
+	// One owner's queries do not leak into another's list.
+	if other, err := svc.ListQueries(ctx, "someone@else.org"); err != nil || len(other) != 0 {
+		t.Errorf("foreign owner list = %v, %v, want empty", other, err)
+	}
 }
 
 func TestResolveKinds(t *testing.T) {
