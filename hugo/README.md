@@ -306,8 +306,17 @@ any Work's own subject labels.
 Two consequences worth knowing. A concept the catalog cannot label in any
 language is **dropped** from the line rather than shown as a bare URL -- a card
 whose only shared concepts are unlabelable shows no reason, which is the honest
-outcome. And the line is deduplicated by resolved label, so one concept carried
-in two schemes (a FAST and a Homosaurus IRI for "Gay men") reads once.
+outcome. And one concept carried in two schemes (a FAST and a Homosaurus IRI for
+"Gay men") reads once: the line collapses them by their **English** label, which
+is language-independent, and then renders whichever member has a label in the
+page's own language (tasks/302). Collapsing by the *displayed* label instead
+would fold them together only where both schemes happen to have that language.
+
+Each term is its own `<span class="lcat-similar-term">`, and CSS supplies the
+separator. Subject headings and contributor names carry commas of their own --
+`Lesbians' writings, Canadian` is one heading and `Elledge, Jim` is one person --
+so a comma-joined line names more things than it lists. Restyle the separator by
+overriding `.lcat-similar-term + .lcat-similar-term::before`.
 
 Nothing to configure. `lcat project --similar=0` (or `similar = 0` under
 `[project]`) removes the sidecar and the rail with it.

@@ -123,8 +123,14 @@
   {{ with .Params.similar }}
   {{- /* .shared arrives as display labels: the content adapter resolves the
          sidecar's authority IRIs against the catalog's Terms sideband, drops any
-         it cannot label, and dedupes cross-scheme synonyms (tasks/296). It cannot
-         be resolved here -- a shared concept need not be one this page carries. */ -}}
+         it cannot label, and collapses cross-scheme synonyms (tasks/296, 302). It
+         cannot be resolved here -- a shared concept need not be one this page
+         carries.
+
+         One element per term, with CSS supplying the separator (tasks/302). A
+         comma-joined line cannot be read: subject headings and contributor names
+         routinely contain commas -- "Lesbians' writings, Canadian" is one term
+         and "Elledge, Jim" is one person, and each read as two. */ -}}
   <section class="lcat-similar" aria-labelledby="lcat-sim" data-pagefind-ignore>
     <h2 id="lcat-sim">{{ i18n "moreLikeThis" }}</h2>
     <p class="lcat-similar-note">{{ i18n "moreLikeThisNote" }}</p>
@@ -133,7 +139,9 @@
       <li class="lcat-similar-item">
         <a href="{{ printf "/works/%s/" .id | relLangURL }}">{{ or .title .id }}</a>
         {{- with .shared }}
-        <span class="lcat-similar-why">{{ i18n "sharesLabel" }}: {{ delimit . ", " }}</span>
+        <span class="lcat-similar-why">{{ i18n "sharesLabel" }}:
+          {{- range . }} <span class="lcat-similar-term">{{ . }}</span>{{ end }}
+        </span>
         {{- end }}
       </li>
       {{ end }}

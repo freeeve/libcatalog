@@ -82,7 +82,13 @@
         <li>
           <a href="#/works/{n.workId}">{n.title || n.workId}</a>
           {#if n.shared?.length}
-            <span class="why">shares {n.shared.map(labelFor).join(", ")}</span>
+            <!-- One element per term, separated by CSS (tasks/302). Joining on a
+                 comma is unreadable: a subject heading ("Lesbians' writings,
+                 Canadian") and a contributor ("Elledge, Jim") each carry their own
+                 comma, so the line names more things than it lists. -->
+            <span class="why"
+              >shares {#each n.shared as s, i}{#if i}{" "}{/if}<span class="term">{labelFor(s)}</span>{/each}</span
+            >
           {/if}
         </li>
       {/each}
@@ -111,5 +117,9 @@
     display: block;
     color: var(--ink-muted);
     font-size: var(--fs-meta);
+  }
+  .term + .term::before {
+    content: " · ";
+    color: var(--rule);
   }
 </style>

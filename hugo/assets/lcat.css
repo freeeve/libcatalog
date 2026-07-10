@@ -479,6 +479,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .lcat-similar-list { list-style: none; padding: 0; margin: 0; }
 .lcat-similar-item { padding: 0.35rem 0; }
 .lcat-similar-why { display: block; color: var(--lcat-muted, #667); font-size: 0.8em; }
+/* One <span> per shared term, separated by CSS rather than by a comma in the text
+   (tasks/302). Subject headings and contributor names carry their own commas --
+   "Lesbians' writings, Canadian" is one heading, "Elledge, Jim" is one person --
+   so a comma-joined line reads as more terms than it names. */
+.lcat-similar-term + .lcat-similar-term::before { content: "· "; color: var(--lcat-border, #ccc); }
 /* Optional cover art (tasks/025): rendered by lcat-cover.html only when the site sets
    [params] covers = true. Set BOTH width and height in CSS per variant -- the <img>
    carries width/height HTML hints for CLS, and without an explicit CSS height that hint

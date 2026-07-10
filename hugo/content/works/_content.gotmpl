@@ -55,32 +55,59 @@
          (tasks/178), which is exactly what the tree hop reaches, so it wins ties.
 
          Built once per language into a scratch map -- `merge` in a loop copies the
-         whole map each time, which is quadratic over ten thousand terms. */ -}}
+         whole map each time, which is quadratic over ten thousand terms.
+
+         Three facts per concept, not one (tasks/302):
+
+           $termLabels  what to SHOW: the label in the site language, else English,
+                        else the lexically first tag the concept has.
+           $termKeys    what to GROUP BY: the English label, else the site-language
+                        one, else the lexically first. It must not depend on the
+                        page's language, or two IRIs for one concept collapse in
+                        English -- where both schemes happen to have a label -- and
+                        stutter in every locale whose coverage is partial.
+           $termNative  whether the concept has a label in the site language, so a
+                        collapsed group can render the member that actually speaks
+                        it rather than whichever the scorer ranked first.
+
+         Collected first, then derived once per DISTINCT concept: a corpus names
+         the same subject on thousands of Works. */ -}}
   {{- $termLabels := dict -}}
+  {{- $termKeys := dict -}}
+  {{- $termNative := dict -}}
   {{- if $similar -}}
-    {{- $sc := newScratch -}}
+    {{- $raw := newScratch -}}
     {{- range $data.works -}}
       {{- range .subjects -}}
         {{- $id := .id -}}
-        {{- with .labels -}}
-          {{- $l := or (index . $lang) (index . "en") -}}
-          {{- /* Neither the site language nor English: take the lexically first tag
-                 rather than none. A template ranges a map in sorted key order, so
-                 this is deterministic. Homosaurus has nl/sv-only concepts. */ -}}
-          {{- if not $l -}}{{- range $k, $v := . -}}{{- if not $l -}}{{- $l = $v -}}{{- end -}}{{- end -}}{{- end -}}
-          {{- if $l -}}{{- $sc.SetInMap "t" $id $l -}}{{- end -}}
-        {{- end -}}
+        {{- with .labels -}}{{- $raw.SetInMap "l" $id . -}}{{- end -}}
       {{- end -}}
     {{- end -}}
     {{- range $data.terms -}}
       {{- $id := .id -}}
-      {{- with .labels -}}
-        {{- $l := or (index . $lang) (index . "en") -}}
-        {{- if not $l -}}{{- range $k, $v := . -}}{{- if not $l -}}{{- $l = $v -}}{{- end -}}{{- end -}}{{- end -}}
-        {{- if $l -}}{{- $sc.SetInMap "t" $id $l -}}{{- end -}}
+      {{- with .labels -}}{{- $raw.SetInMap "l" $id . -}}{{- end -}}
+    {{- end -}}
+    {{- $sc := newScratch -}}
+    {{- range $id, $labels := ($raw.Get "l" | default dict) -}}
+      {{- $loc := index $labels $lang -}}
+      {{- $en := index $labels "en" -}}
+      {{- /* Neither the site language nor English: take the lexically first tag
+             rather than none. A template ranges a map in sorted key order, so
+             this is deterministic. Homosaurus has nl/sv-only concepts. */ -}}
+      {{- $any := "" -}}
+      {{- if not (or $loc $en) -}}
+        {{- range $k, $v := $labels -}}{{- if not $any -}}{{- $any = $v -}}{{- end -}}{{- end -}}
+      {{- end -}}
+      {{- $show := or $loc $en $any -}}
+      {{- if $show -}}
+        {{- $sc.SetInMap "t" $id $show -}}
+        {{- $sc.SetInMap "k" $id (or $en $loc $any) -}}
+        {{- if $loc -}}{{- $sc.SetInMap "n" $id true -}}{{- end -}}
       {{- end -}}
     {{- end -}}
     {{- $termLabels = $sc.Get "t" | default dict -}}
+    {{- $termKeys = $sc.Get "k" | default dict -}}
+    {{- $termNative = $sc.Get "n" | default dict -}}
   {{- end -}}
   {{- range $data.works -}}
     {{- /* Contributor names are free text and taxonomy-indexed as-is, so an
@@ -151,21 +178,48 @@
            a card that shares only unlabelable concepts then shows no reason,
            which is the honest outcome.
 
-           uniq collapses cross-scheme synonyms: one concept expressed as both a
-           FAST and a Homosaurus IRI resolves to one label and used to print
-           twice ("Gay men, Lesbians, Gay men, Lesbians"). Order is significance
-           order from the scorer, so uniq keeps the first occurrence. */ -}}
+           Cross-scheme synonyms collapse: one concept expressed as both a FAST and
+           a Homosaurus IRI used to print twice ("Gay men, Lesbians, Gay men,
+           Lesbians"). They group by $termKeys, which is language-independent --
+           deduping on the *displayed* label collapsed them in English, where both
+           schemes have one, and stuttered in Spanish, where only Homosaurus does
+           (tasks/302: 20.5% of spans on a 62.6k-work catalog listed more terms in
+           `es` than in `en`).
+
+           Of a group, the member with a label in the page's own language wins,
+           whatever the scorer's order: otherwise a Spanish reader gets "Personas
+           trans" or "Transgender people" depending on which IRI ranked first.
+           Failing that the first occurrence wins -- the scorer's order is
+           significance order.
+
+           Grouping by label rather than by skos:exactMatch is the same policy
+           tasks/141 applies to term pages: two vocabularies that agree on a string
+           are treated as one concept. It is wrong for a genuine cross-scheme
+           homograph, and right far more often. Free text keys on itself. */ -}}
     {{- $neighbors := slice -}}
     {{- range (index $similar .id) -}}
-      {{- $why := slice -}}
+      {{- $terms := slice -}}
       {{- range .shared -}}
+        {{- $iri := . -}}
         {{- if or (hasPrefix . "http://") (hasPrefix . "https://") -}}
-          {{- with index $termLabels . -}}{{- $why = $why | append . -}}{{- end -}}
+          {{- with index $termLabels $iri -}}
+            {{- $terms = $terms | append (dict "label" . "key" (index $termKeys $iri) "native" (index $termNative $iri | default false)) -}}
+          {{- end -}}
         {{- else -}}
-          {{- $why = $why | append . -}}
+          {{- $terms = $terms | append (dict "label" $iri "key" $iri "native" true) -}}
         {{- end -}}
       {{- end -}}
-      {{- $neighbors = $neighbors | append (dict "id" .id "title" .title "shared" (uniq $why)) -}}
+      {{- $spoken := slice -}}
+      {{- range $terms -}}{{- if .native -}}{{- $spoken = $spoken | append .key -}}{{- end -}}{{- end -}}
+      {{- $why := slice -}}
+      {{- $taken := slice -}}
+      {{- range $terms -}}
+        {{- if and (not (in $taken .key)) (or .native (not (in $spoken .key))) -}}
+          {{- $why = $why | append .label -}}
+          {{- $taken = $taken | append .key -}}
+        {{- end -}}
+      {{- end -}}
+      {{- $neighbors = $neighbors | append (dict "id" .id "title" .title "shared" $why) -}}
     {{- end -}}
     {{- $params := dict
       "subtitle" .subtitle

@@ -70,6 +70,36 @@ describe("SimilarPanel", () => {
     expect(resolveTermURIs).toHaveBeenCalledWith(["https://ex.org/homoit0000669"]);
   });
 
+  it("renders one element per shared term, so a comma inside a label is not a separator", async () => {
+    // tasks/302. "Lobel, Arnold." is one contributor and "Lesbians' writings,
+    // Canadian" is one subject heading; a comma-joined line names four things.
+    fetchSimilar.mockResolvedValue({
+      similar: [
+        {
+          workId: "wneighbour01",
+          title: "A Book",
+          score: 1.2,
+          shared: ["https://ex.org/fast996602", "Lobel, Arnold."],
+        },
+      ],
+    });
+    resolveTermURIs.mockResolvedValue({
+      terms: {
+        "https://ex.org/fast996602": {
+          id: "https://ex.org/fast996602",
+          scheme: "fast",
+          labels: { en: "Lesbians' writings, Canadian" },
+        },
+      },
+    });
+
+    const target = render();
+    await settle();
+
+    const terms = [...target.querySelectorAll(".why .term")].map((el) => el.textContent);
+    expect(terms).toEqual(["Lesbians' writings, Canadian", "Lobel, Arnold."]);
+  });
+
   it("falls back to the URI when the vocabulary cannot resolve it", async () => {
     fetchSimilar.mockResolvedValue({
       similar: [{ workId: "wn", title: "A Book", score: 1, shared: ["https://ex.org/unknown"] }],
