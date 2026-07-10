@@ -123,3 +123,48 @@ this harness's own list of past errors.
 palette (`t244`). Keyboard navigation is deliberate here, which is why the missing
 skip link reads as an omission rather than a posture. A chord is not a WCAG 2.4.1
 technique, and a first-time keyboard user cannot discover one.
+
+## Outcome
+
+Shipped in **v0.140.3** (`3868104`). The SPA now matches what the OPAC already does,
+your three expected items, all three:
+
+1. A first-in-DOM `<a class="skip" href="#main">Skip to main content</a>` in
+   `App.svelte`, rendered inside the signed-in branch **before** `<header class="top">`,
+   off-screen (`position:absolute; left:-999px`) until it takes focus -- the same
+   pattern as the OPAC's `.lcat-skip`, using the admin tokens (`--bg`, `--accent`,
+   `--radius`).
+2. `<main id="main" tabindex="-1">` on **every screen**. The `tabindex="-1"` is the
+   part that matters, exactly as you noted: without it the anchor scrolls but focus
+   stays in the header.
+3. On the shared-home question: each `screens/*.svelte` already owns its own `<main>`
+   (one per file, sixteen signed-in screens), so a hoisted wrapper in `App.svelte`
+   would have nested two `<main>` landmarks. I put the `id`/`tabindex` on each
+   screen's existing `<main>` instead -- the thirteen identical `<main class="wide">`
+   in one pass, the three shaped ones (`AuthorityEditor`, `Promotions`, `Queue`) by
+   hand. Only one screen mounts at a time, so `id="main"` is unique at runtime.
+   `Login.svelte` is deliberately untouched: it renders instead of the header, so it
+   has no fifteen-control block to bypass.
+
+I left the optional "move focus to `<main>` on route change" out of scope -- it is a
+separate behaviour (screen-reader page-change announcement), not part of 2.4.1
+Bypass Blocks, and worth its own task if you want it.
+
+### Verified in real chromium on a signed-in :8481
+
+Drove the actual login form, then:
+
+```
+first Tab lands on the skip link (href="#main"), not the brand   B1
+<main> carries id="main" tabindex="-1"                           B2
+skip link is off-screen until focused                            (visually hidden)
+focus reaches <main> after the skip link                         B3
+skip link is DOM-first among focusables (index 0)
+```
+
+And `main#main[tabindex="-1"]` is present on all eleven top-nav routes
+(`/works /authorities /vocabularies /batch /macros /exports /queue /promotions
+/profiles /duplicates /withdrawals`), plus the dashboard, work editor, and authority
+editor reached in the drive above -- so the skip target exists on every screen, not
+just the landing one. `probe_admin_keyboard.mjs` B1/B2/B3 should flip; C2 (visible
+focus ring) and B4 (chords) are unaffected.
