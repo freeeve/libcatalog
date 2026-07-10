@@ -164,6 +164,7 @@ func New(deps Deps) http.Handler {
 		registerAttachments(mux, deps.Blob, ix, deps.Suggest, deps.Verifier, deps.Logger)
 		wl := registerWorksList(mux, ix, deps.Verifier, deps.ExtraFacets, deps.Vocab)
 		registerTags(mux, wl, deps.Verifier)
+		registerWorksSimilar(mux, ix, deps.Verifier, deps.Vocab)
 	}
 	if deps.Authorities != nil && deps.Verifier != nil {
 		registerAuthorities(mux, deps.Authorities, deps.Profiles, deps.Verifier, deps.Logger)

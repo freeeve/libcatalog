@@ -895,6 +895,23 @@ export function removeRelation(workId: string, kind: "hasPart" | "partOf", targe
   return call("DELETE", `/v1/works/${encodeURIComponent(workId)}/relations`, { kind, target });
 }
 
+/** One computed neighbour of a work (tasks/284). `shared` names the attribute
+ *  values that put it on the list -- the answer to "why is this here?". */
+export interface SimilarNeighbor {
+  workId: string;
+  title: string;
+  score: number;
+  shared?: string[];
+}
+
+/** A work's computed neighbours, scored live over the admin corpus (librarian).
+ *  The OPAC precomputes the same rail at build time, so this is what a reader
+ *  will see after the next publish. */
+export function fetchSimilar(workId: string, limit?: number): Promise<{ similar: SimilarNeighbor[] }> {
+  const q = limit ? `?limit=${limit}` : "";
+  return call("GET", `/v1/works/${encodeURIComponent(workId)}/similar${q}`);
+}
+
 /** Batch scheme-agnostic term resolve: stored subject URIs to full terms;
  *  unresolvable URIs are absent from the map (tasks/071). */
 export function resolveTermURIs(ids: string[]): Promise<{ terms: Record<string, Term> }> {

@@ -19,6 +19,7 @@
   import VisibilityPanel from "../components/VisibilityPanel.svelte";
   import CoverPanel from "../components/CoverPanel.svelte";
   import RelationsPanel from "../components/RelationsPanel.svelte";
+  import SimilarPanel from "../components/SimilarPanel.svelte";
   import AttachmentsPanel from "../components/AttachmentsPanel.svelte";
   import { cloneWork, fetchIdentifierKinds, fetchItems, splitWork, ApiError } from "../lib/api";
   import type { SubjectCandidate } from "../lib/types";
@@ -184,6 +185,10 @@
       <details class="vis">
         <summary>Relationships</summary>
         <RelationsPanel {workId} />
+      </details>
+      <details class="vis">
+        <summary>More like this</summary>
+        <SimilarPanel {workId} />
       </details>
       <details class="vis">
         <summary>Attachments</summary>

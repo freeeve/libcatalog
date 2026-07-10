@@ -281,6 +281,41 @@ population the user could not see.
 
 A pinned value does not consume a cap slot, so a group can return 21 values.
 
+### `GET /v1/works/{id}/similar`: computed, not catalogued (tasks/284)
+
+```json
+{"similar": [
+  {"workId": "w…", "title": "The House of the Spirits", "score": 1.23,
+   "shared": ["https://homosaurus.org/v3/homoit0000669", "Allende, Isabel."]}
+]}
+```
+
+The same scorer `lcat project` runs to precompute the OPAC's rail, over the admin
+corpus instead of the projection, off an index cached against the work index's
+generation. So a cataloger sees the rail their edits are about to produce, and it
+moves as soon as they re-subject the record. `?limit=` defaults to 8, max 50.
+
+`shared` names the attribute values that put a work on the list -- the answer to
+"why is this here?", which is the only question anyone asks about a
+recommendation. Subjects arrive as authority IRIs (resolve them with
+`GET /v1/terms/resolve`); tags, contributor names and series statements are
+already display text.
+
+Three response distinctions that carry meaning:
+
+- **404** is "no such work". An id the index has never seen.
+- **200 with an empty list** is "this record resembles nothing you hold". Expected
+  on a thinly-subjected record, and a different fact from the above.
+- A **tombstoned** work is 200-empty: excluded from the scorer, so it has no
+  neighbours and is nobody's neighbour (tasks/280), but it still exists.
+
+Two differences from the OPAC's precomputed sidecar follow from the corpus, not
+from the code. **Suppressed** works are scored and recommended here and are absent
+from the projection entirely. And the concept tree comes from the installed
+vocabulary snapshots rather than `catalog.json`'s projected term sideband; those
+agree when the enrichers that wrote the graph read the same vocabulary, which is
+the normal case and not something the code asserts.
+
 ### Everything else
 
 ### `POST /v1/review`: `reviewed` means applied
@@ -568,6 +603,7 @@ of them: `/` serves the admin SPA, `/v1/` is the JSON-404 catch-all.
 | `DELETE` | `/v1/works/{id}/relations` | librarian | `relations_handlers.go` |
 | `GET` | `/v1/works/{id}/relations` | librarian | `relations_handlers.go` |
 | `POST` | `/v1/works/{id}/relations` | librarian | `relations_handlers.go` |
+| `GET` | `/v1/works/{id}/similar` | librarian | `works_similar_handler.go` |
 | `POST` | `/v1/works/{id}/subjects/lookup` | librarian | `subject_lookup.go` |
 | `GET` | `/v1/works/{id}/suggestions` | public | `suggest_handlers.go` |
 | `POST` | `/v1/works/{id}/validate` | librarian | `records_handlers.go` |

@@ -86,6 +86,10 @@ type Index struct {
 	barcodes   map[string]bool
 	summaries  []ingest.WorkSummary
 	paths      map[string]string
+	// generation counts derived-view rebuilds. A consumer that caches something
+	// expensive keyed on the corpus (the similarity index, tasks/284) reads it
+	// together with the summaries and rebuilds only when it moves.
+	generation uint64
 
 	// Snapshot prime drift (tasks/162): after a snapshot load, the first
 	// reconcile counts how many primed entries the ETag diff re-fetched
@@ -188,6 +192,19 @@ func (ix *Index) SummariesWithPaths(ctx context.Context) ([]ingest.WorkSummary, 
 		return nil, nil, err
 	}
 	return ix.summaries, ix.paths, nil
+}
+
+// SummariesWithGeneration returns every work's summary and the generation of the
+// derived view they came from. The pair is read under one lock: a caller that read
+// the summaries and the generation separately could cache a stale index under a
+// fresh generation and never rebuild it (tasks/284). The slice is shared: read-only.
+func (ix *Index) SummariesWithGeneration(ctx context.Context) ([]ingest.WorkSummary, uint64, error) {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	if err := ix.freshenLocked(ctx); err != nil {
+		return nil, 0, err
+	}
+	return ix.summaries, ix.generation, nil
 }
 
 // ProviderOwners returns the works whose instances carry the provider key
@@ -439,6 +456,7 @@ func (ix *Index) rebuildLocked() {
 	sort.Slice(summaries, func(i, j int) bool { return summaries[i].WorkID < summaries[j].WorkID })
 	ix.byProvider, ix.byCluster, ix.barcodes, ix.summaries, ix.paths = byProvider, byCluster, barcodes, summaries, workPaths
 	ix.dirty = false
+	ix.generation++
 }
 
 // scanEntry extracts everything the index keeps from one grain off a single
