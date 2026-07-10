@@ -168,3 +168,117 @@ grep -rn 'daia' ~/libcat/hugo/layouts/    # no output
 sed -n '355p' ~/libcat/hugo/README.md     # "Editions carry `data-daia-id` (the DAIA document id)."
 sed -n '283,288p' ~/libcat/hugo/assets/lcat-availability.js   # domAttr: "data-daia-id"
 ```
+
+## Outcome
+
+Fixed in **v0.117.0** (`83d2f2d`), on top of tasks/287 (v0.116.3) which had to land
+first: even once the attribute was emitted, `daiaRequest` needed a `baseUrl` that
+Hugo had lowercased out of existence. Both were needed for DAIA to work at all,
+exactly as the report's last bullet said.
+
+### The fix
+
+Took the second remedy -- the table -- rather than the `else if` chain, because the
+`else if` reproduces this bug for adapter number three. `page.html` now names no
+provider:
+
+```toml
+# data/lcat/availabilityAttrs.toml    (bf:source scheme -> adapter domAttr)
+"overdrive-reserve" = "data-overdrive-reserve"
+"daia"              = "data-daia-id"
+```
+
+Site data merges over module data **per key**, so a deployment can wire its own
+adapter by shipping one row, without shadowing `page.html`. Pinned by a test.
+
+Scheme named `daia`, matching the JS `providerKey`, over `daia-ppn`: the PPN is one
+ILS's identifier flavour, not the scheme. Documented on `ProviderID` (`project.go`)
+and in `hugo/README.md`, which gained a "Wiring an edition to an adapter" section.
+
+`exampleSite` gains a print edition on wexampletwo with a `daia` document id and an
+item (call number, shelving location, barcode) -- the module's first physical-holdings
+fixture, per the report's fourth bullet. The only new pages are the `print` format
+taxonomy, in both languages (120 -> 124); a11y and link gates clean.
+
+### `html/template` will not compute an attribute name
+
+The interesting part, and worth recording because the naive fix is a trap. Go's
+`html/template` does not error on `{{ $attr }}="{{ $v }}"` in tag context -- it emits
+a sentinel:
+
+```html
+<li class="lcat-edition" ZgotmplZ="a&#34;b&lt;c">
+```
+
+Silent, unusable, and the same failure class as the bug being fixed. So the attribute
+is built with `safeHTMLAttr` -- which means the *value* is no longer escaped by the
+context autoescaper and must be escaped explicitly (`htmlEscape`). Without that, a
+catalogued value of `a"b<c` closes the attribute. Both halves verified with a
+standalone `html/template` probe rather than assumed.
+
+`safeHTMLAttr` also lets a hostile table row inject an attribute *name*, so emission
+is gated on `findRE "^data-[a-z0-9-]+$"`. A site can override the table via its own
+`data/` file, so that is a reachable input, not a typo guard.
+
+### Testing the seam
+
+Folded into `hugo/availability_seam_test.cjs` rather than a new file, because the
+report asked for *one* test that catches this, tasks/287, and the next one. It builds
+`exampleSite` for real and asserts on the render.
+
+The load-bearing assertion is not "`data-daia-id` is present" but:
+
+```js
+const missing = Object.keys(A.adapters).filter((k) => !html.includes(A.adapters[k].domAttr + "="));
+```
+
+Every **registered adapter's** `domAttr` must appear on a real rendered edition. A
+future adapter that nobody wires into the table fails the build instead of shipping
+dead -- which is the actual defect class here. It asks the adapter registry, not a
+hardcoded list.
+
+Mutation-proved every guard:
+
+| mutation | caught by |
+|---|---|
+| M1 `page.html` back to the hardcoded scheme | adapter-reachability, DAIA id, hostile-row |
+| M2 `daia` row dropped from the table | adapter-reachability, DAIA id |
+| M3 `findRE` name guard removed | hostile-row (emits `onload=alert(1)="…"`) |
+| M4 `overdrive` title id mapped into the table | "a scheme with no row emits no attribute" |
+| M5 `daia` providerId removed from the fixture | adapter-reachability, DAIA id |
+| M6 naive `{{ $attr }}="{{ .value }}"`, no `safeHTMLAttr` | **all five**, incl. ZgotmplZ |
+
+M6 is the one worth keeping. The `ZgotmplZ` assertion survived M1-M5 untouched -- an
+unfalsified test -- until M6 showed it is exactly what stands between a table-driven
+template and a silent re-run of this bug.
+
+### End to end
+
+`exampleSite` with both adapters configured, DAIA endpoint stubbed, driven in jsdom.
+`wexampletwo` now has one digital and one physical edition:
+
+```
+before (hardcoded page.html, fixture already carrying the daia id)   <- the report's A7
+    DAIA requests: 0    <li … data-instance="iextwoprint" data-format="print">
+    iextwoprint: status=null  text=""
+
+after
+    DAIA requests: 1    <li … data-instance="iextwoprint" … data-daia-id="ppn:example-daia-1">
+    iextwoprint: status=available  text="Available now · Main Library, Fiction · PQ8098.1.L54 C313"
+```
+
+The second line is the first time the DAIA adapter has run in this repo, and it renders
+the shelf location and call number that `docs/availability-providers.md` calls the proof
+of the superset.
+
+### Deliberately not done
+
+**`availabilitySources` unchanged.** Adding `daia` would flip `Instance.Held` for a
+record with a DAIA id and no projected items, changing the `holdings` facet counts of
+every adopting catalog. The report does not ask for it, and `Held`'s doc comment scopes
+it to the *digital*-holding signal -- physical holdings set it from `items`. Worth a
+separate task if a library wants a DAIA id alone to mean "held".
+
+`docs/availability-providers.md:45` claimed "adding a physical ILS does not change the
+templates". That was false when written and is true now; the line is annotated rather
+than deleted, since it records the intent the code has finally caught up to.
