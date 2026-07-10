@@ -11,6 +11,26 @@
   (favicons, verification tags, theme-color). A work cover (via the adapter's
   `extra` passthrough) becomes the og:image; [params] ogImage is the site fallback.
 */ -}}
+{{- /*
+  A retired Work id (tasks/313) forwards and nothing else. Everything below would
+  lie about it: the canonical would name the retired URL rather than the survivor,
+  and the Book JSON-LD would describe a Work whose data this page does not carry.
+
+  So the stub is the whole head, and it is emitted before the [params.seo] switch
+  is consulted. `disable = true` turns off description, Open Graph and JSON-LD --
+  it must not be able to turn off a redirect.
+
+  The adapter sets `lcatRetiredTo` on *every* Work page, empty on the live ones, so
+  an adopter's `extra.lcatRetiredTo` cannot reach this test and forward a live Work
+  off its own page (the reserved param always beats an extra of the same name).
+*/ -}}
+{{- with .Params.lcatRetiredTo -}}
+{{- $to := printf "works/%s/" . | absLangURL -}}
+<title>{{ i18n "retiredHeading" }} · {{ site.Title }}</title>
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url={{ $to }}">
+<link rel="canonical" href="{{ $to }}">
+{{- else -}}
 {{- $isWork := and (eq .Kind "page") (eq .Section "works") -}}
 {{- /* Term pages: .Title is Hugo's humanized term key (a slug for subjects),
        so resolve the display label the same way term.html renders its h1,
@@ -115,5 +135,6 @@
 {{- if and site.Params.covers .Params.cover }}{{ $ld = merge $ld (dict "image" (.Params.cover | absURL)) }}{{ end -}}
 {{- with $editions }}{{ $ld = merge $ld (dict "workExample" .) }}{{ end }}
 <script type="application/ld+json">{{ $ld | jsonify | safeJS }}</script>
+{{- end -}}
 {{- end -}}
 {{- end -}}

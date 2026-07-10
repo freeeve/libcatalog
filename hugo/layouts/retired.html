@@ -1,0 +1,26 @@
+{{- /*
+  The page a merged Work id resolves to (tasks/313).
+
+  `redirects.json` records every Work id the catalogue retired. The ones with a
+  successor get a page here; the ones without get none, because a static host can
+  only answer 200 for a page that exists, and a 200 "this is gone" page is a soft
+  404 -- worse for the reader and worse for a crawler than the honest 404 it
+  replaces. `lcat serve` answers those with a real 410 by reading the same map.
+
+  This page is Hugo's own alias stub with a body: the `<meta refresh>` and the
+  canonical live in head-seo.html, which skips its usual Work markup for a page
+  whose only content is a forwarding address. The body is what a reader sees if
+  the refresh does not fire -- a link they can click, not a blank page.
+
+  The adapter mints it with `build.list = never`, so it is absent from /works/,
+  from the taxonomy pages and from sitemap.xml. It renders and it forwards; it
+  does not advertise itself.
+*/ -}}
+{{ define "main" }}
+{{- $url := printf "works/%s/" .Params.lcatRetiredTo | absLangURL -}}
+<article class="lcat-retired">
+  <h1>{{ i18n "retiredHeading" }}</h1>
+  <p>{{ i18n "retiredMoved" }}</p>
+  <p><a class="lcat-retired-link" href="{{ $url }}">{{ i18n "retiredContinue" }}</a></p>
+</article>
+{{ end }}

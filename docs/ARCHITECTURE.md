@@ -100,7 +100,10 @@ BIBFRAME-native, matching FRBR/LRM:
   graph via an explicit merge/split overlay that the computed key cannot
   override. Clustering is an ongoing maintenance surface, not a one-shot. Because
   a Work's public URL derives from its opaque id, a merge or split must leave a
-  redirect/tombstone so shared links and SEO survive (see `tasks/001`).
+  redirect/tombstone so shared links and SEO survive (see `tasks/001`). The
+  projector emits that record as `redirects.json`; the Hugo module publishes it and
+  stubs each merged id, and `lcat serve` turns it into `301`/`410` (`tasks/313`,
+  [docs/build-pipeline.md](build-pipeline.md#retired-work-ids-what-happens-to-an-old-permalink)).
 
 ## 5. Data & provenance model
 

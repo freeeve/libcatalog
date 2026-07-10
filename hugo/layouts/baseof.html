@@ -5,7 +5,7 @@
   {{- /* Pre-paint theme application so a stored dark choice never flashes light. */}}
   <script>try{var t=localStorage.getItem("lcat-theme");if(t)document.documentElement.setAttribute("data-lcat-theme",t)}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {{ partial "head-seo.html" . }}{{ partial "favicon.html" . }}
+  {{ partial "head-seo.html" . }}{{ partial "favicon.html" . }}{{ partialCached "lcat-redirects.html" . }}
   {{- /* Assets are fingerprinted so upgrades change the URL: adopters can serve
          them with max-age=31536000,immutable without staleness after a bump. */}}
   {{ with resources.Get "lcat.css" }}{{ with . | fingerprint }}<link rel="stylesheet" href="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}">{{ end }}{{ end }}{{ partial "head-extra.html" . }}

@@ -1,0 +1,19 @@
+{{- /*
+  Publish the projector's redirects.json to the site root (tasks/313).
+
+  Of the four artifacts `lcat project` writes into assets/, this is the only one
+  whose consumer is the *host at runtime* rather than this build. catalog.json,
+  facets.json and similar.json are build inputs: the adapter reads them and they
+  are correctly never published. redirects.json has to reach the served tree, or
+  `lcat serve` -- and any host configured to read it -- has no map to serve.
+
+  Referencing .RelPermalink is what publishes an asset (see baseof.html's wasm
+  reader), and for an asset at assets/redirects.json that permalink is
+  /redirects.json. Assigning it to a variable keeps the URL out of the markup.
+
+  Absent on a site whose lcat predates the artifact, or whose catalogue has
+  retired nothing: `with` simply renders nothing, and the host serves no map.
+*/ -}}
+{{- with resources.Get "redirects.json" -}}
+  {{- $noop := .RelPermalink -}}
+{{- end -}}

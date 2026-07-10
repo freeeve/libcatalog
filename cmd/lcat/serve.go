@@ -35,10 +35,19 @@ func runServe(args []string) error {
 // serveHandler is the serve command's handler: a static file server with
 // preview-friendly caching disabled, so a rebuild is visible on reload
 // instead of the browser replaying yesterday's index artifacts.
+//
+// A retired Work id is answered from the published redirects.json before the file
+// server sees the request (tasks/313): 301 to the survivor, 410 for a tombstone.
+// The projector has always emitted that map; until this ran, nothing served it and
+// every retired permalink answered a bare 404.
 func serveHandler(dir string) http.Handler {
 	files := http.FileServer(http.Dir(dir))
+	retired := newRedirectTable(dir)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
+		if retired.serveRetired(w, r) {
+			return
+		}
 		files.ServeHTTP(w, r)
 	})
 }

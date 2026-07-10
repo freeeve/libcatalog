@@ -491,8 +491,16 @@ type Redirect struct {
 
 // RedirectMap is the redirect artifact emitted alongside catalog.json: every
 // retired Work id and the surviving id it now resolves to, chains collapsed to the
-// final survivor and sorted by retired id. The static host turns each into a 301
-// (per the tasks/001 decision: the projector emits the map, the host serves it).
+// final survivor and sorted by retired id. An empty To is a tombstone -- retired
+// with no successor.
+//
+// Per the tasks/001 decision the projector emits the map and the host serves it.
+// The host is the Hugo module, which publishes this file to /redirects.json and
+// mints a meta-refresh stub for each merged id, and `lcat serve`, which reads the
+// published map and answers 301 for a merge and 410 for a tombstone (tasks/313).
+// Unlike catalog.json and facets.json this artifact is read at request time, so it
+// must reach the served tree. Until tasks/313 nothing published it, nothing read
+// it, and every retired permalink answered a bare 404.
 type RedirectMap struct {
 	Version   int        `json:"version"`
 	Redirects []Redirect `json:"redirects"`

@@ -264,7 +264,13 @@
            the build.
 
            Same reason subjectList / contributorList / classificationList are not
-           `subjects` / `contributors` / `classifications`. */ -}}
+           `subjects` / `contributors` / `classifications`.
+
+           `lcatRetiredTo` is set here, empty, for the opposite reason: head-seo
+           reads it to decide whether a page is a redirect stub (tasks/313), and a
+           reserved param beats an extra of the same name. Claiming it on every live
+           Work is what stops an adopter's `extra.lcatRetiredTo` from forwarding a
+           live Work off its own page. */ -}}
     {{- $params := dict
       "subtitle" .subtitle
       "summary" .summary
@@ -282,6 +288,7 @@
       "relations" .relations
       "seriesList" .series
       "similar" $neighbors
+      "lcatRetiredTo" ""
       "workID" .id -}}
     {{- /* Extra facet params sit between: they override the raw extras value
            under the same key (the split slice replaces the joined string) but
@@ -293,6 +300,48 @@
       "title" (or .title .id)
       "params" $params
     ) -}}
+  {{- end -}}
+  {{- /* Retired Work ids (tasks/313). A Work's public URL derives from its opaque
+         id, so a merge retires a URL that syllabi, citations and inbound links still
+         name. `redirects.json` is the projector's record of every such id; without a
+         consumer it was a record of an intention nothing carried out, and 2710 once-
+         public URLs answered a bare 404.
+
+         A page per *merged* id, and none for a tombstone. The merged id has somewhere
+         to send the reader, and a meta-refresh stub sends them there on any host, with
+         no host configuration -- the same machinery Hugo already uses for its pager
+         aliases. A tombstone has nowhere to send anyone: the honest answer is 410, a
+         static host cannot give one, and a 200 page saying "gone" is a soft 404 that
+         is worse than the 404 it replaced. `lcat serve` answers both from this same
+         map, so a tombstone gets its 410 there.
+
+         Skip an id the catalog still lists. That should never happen -- the projector
+         does not retire a Work it publishes -- but a page collision would replace a
+         live Work's page with a redirect off it, and losing a record is a worse way to
+         find out than not redirecting.
+
+         Optional, and version-checked against catalog.json: the map is emitted by the
+         same projector run and carries the same SchemaVersion. */ -}}
+  {{- with resources.Get "redirects.json" -}}
+    {{- $rd := . | transform.Unmarshal -}}
+    {{- if ne ($rd.version | int) $want -}}
+      {{- errorf "libcat: redirects.json schema version %v, module targets %d -- reproject with a matching lcat (tasks/313)" $rd.version $want -}}
+    {{- end -}}
+    {{- $seen := newScratch -}}
+    {{- range $data.works -}}{{- $seen.SetInMap "w" .id true -}}{{- end -}}
+    {{- $live := $seen.Get "w" | default dict -}}
+    {{- range $rd.redirects -}}
+      {{- if and .to (not (index $live .from)) -}}
+        {{- $.AddPage (dict
+          "kind" "page"
+          "path" .from
+          "title" (i18n "retiredHeading")
+          "layout" "retired"
+          "build" (dict "list" "never" "render" "always")
+          "params" (dict "lcatRetiredTo" .to)
+        ) -}}
+      {{- end -}}
+    {{- end -}}
   {{- end -}}
 {{- else -}}
   {{- errorf "libcat: assets/catalog.json not found -- run `lcat project` and mount its output under the site assets/ (tasks/009)" -}}

@@ -74,6 +74,17 @@ other = "Shares"
 [viewMore]
 other = "View more"
 
+# The page a merged Work id forwards from (tasks/313). Read only when a reader's
+# browser ignores the meta refresh, so it has to stand on its own.
+[retiredHeading]
+other = "This record has moved"
+
+[retiredMoved]
+other = "The record you asked for was merged into another. You are being taken there now."
+
+[retiredContinue]
+other = "Continue to the current record"
+
 [backToAllWorks]
 other = "Back to all works"
 

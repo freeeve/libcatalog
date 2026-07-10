@@ -54,6 +54,15 @@ other = "Comparte"
 [viewMore]
 other = "Ver más"
 
+[retiredHeading]
+other = "Este registro se ha trasladado"
+
+[retiredMoved]
+other = "El registro solicitado se fusionó con otro. Le estamos llevando allí."
+
+[retiredContinue]
+other = "Ir al registro actual"
+
 [backToAllWorks]
 other = "Volver a todas las obras"
 

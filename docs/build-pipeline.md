@@ -35,6 +35,7 @@ mapping = "community-mapping.toml"   # shorthand for params.mapping
 
 [project]
 out = "site/assets"                  # catalog.json + facets.json + redirects.json + similar.json
+                                     # three are build inputs; redirects.json is published (see below)
 # providers = ["marc", "nquads"]     # default: each source's feed in order
 public-sources = ["loc", "QLL"]      # extra.sources allowlist for the public face
 # public-extras = ["cover", "rating"] # extra *key* allowlist; absent keeps every extra
@@ -137,6 +138,39 @@ Two consequences worth stating:
   extra is simply absent. Templates guarding with `with` degrade cleanly; a facet
   configured on a stripped key produces an empty rail. `lcat` cannot see the Hugo
   site's params, so it cannot warn about this -- check the two lists together.
+
+### Retired work ids: what happens to an old permalink
+
+A Work's public URL derives from its opaque id, so merging two records retires a
+URL that syllabi, citations and inbound links still name. `redirects.json` is the
+projector's record of every retired id and the surviving id it resolves to; an
+empty `to` is a tombstone, retired with no successor.
+
+Unlike its three neighbours in `[project] out`, this file is **published**: the
+Hugo module copies it to `/redirects.json`, because its consumer is the host at
+request time and not the build. The other three are read by the content adapter
+and thrown away, which is why `/catalog.json` correctly 404s.
+
+Two answers, and which one a reader gets depends on the host:
+
+| | `lcat serve` (and any host reading the map) | a host that serves only files |
+|---|---|---|
+| **merged** (`to` set) | `301` to the survivor | the module's meta-refresh stub at `/works/<old>/` |
+| **tombstoned** (`to` empty) | `410 Gone` | `404` |
+
+The module mints a stub page for every merged id and **none** for a tombstone.
+That asymmetry is deliberate: a merged id has a successor to name, and the stub
+forwards on any host with no host configuration. A tombstone has nowhere to send
+anyone -- the honest answer is `410`, a static host cannot give one, and a `200`
+page saying "gone" is a soft 404 that is worse than the `404` it would replace.
+
+`lcat serve` re-reads the map when it changes, so a merge is live on the next
+reload without a restart. It checks the map before the file server, so a merged
+id answers `301` there even though the stub is sitting on disk for other hosts.
+
+Chains collapse: `A -> B -> C` is emitted as `A -> C` and `B -> C`. A merge whose
+survivor is itself later tombstoned answers `301` and then `410`, which is correct
+-- do not expect a `200` at the end of every chain.
 
 ### Multi-feed projection
 

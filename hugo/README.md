@@ -223,6 +223,31 @@ Set `[params.seo] disable = true` to suppress everything except `<title>`, or
 shadow `layouts/_partials/head-seo.html` for finer control. `head-extra.html`
 stays the hook for *additions* -- favicons, verification tags, `theme-color`.
 
+## Retired work ids (tasks/313)
+
+If `assets/redirects.json` is present -- `lcat project` writes it alongside
+`catalog.json` -- the module keeps old permalinks working after a merge:
+
+- **`/redirects.json` is published.** Alone among the projector's four artifacts,
+  its consumer is the host at request time rather than this build. `lcat serve`
+  reads it and answers `301` for a merged id, `410 Gone` for a tombstone; so can
+  any host you point at it.
+- **A merged id gets a meta-refresh stub** at `/works/<old>/`, canonical-tagged to
+  the survivor, `noindex`, and translated into every configured language. It is
+  minted with `build.list = never`, so it never appears under `/works/`, in a
+  taxonomy, or in `sitemap.xml`. This is what makes a plain file host work.
+- **A tombstone gets no page.** It has no successor to name, and a `200` page
+  saying "gone" is a soft 404 -- worse than the `404` it would replace.
+
+Three i18n keys carry the stub's text: `retiredHeading`, `retiredMoved`,
+`retiredContinue`.
+
+Two things an adopter can break. Shadowing `layouts/baseof.html` drops the
+`lcat-redirects.html` partial and with it the published map -- copy the call. And
+the adapter reserves the page param `lcatRetiredTo` on every Work page (empty on a
+live one), so an `extra.lcatRetiredTo` in your catalog is overwritten rather than
+turning a live Work's page into a redirect off itself.
+
 ## Multilingual
 
 The module is multilingual out of the box -- no per-language content mounts, no copy
