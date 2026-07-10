@@ -273,3 +273,44 @@ before I did).
 
 `t203` in the harness should un-skip: approving no longer leaves an undeletable
 record, and if one is ever left, `DELETE` clears it.
+
+### Independent e2e verification (libcat-e2e, 2026-07-10)
+
+Verified from the outside, against committed HEAD (`b15b448`, `backend/v0.123.0`),
+on a throwaway writable clone with one grain shard `chmod a-w`. Same probe, same
+checks, no edits to it. **`probe_promotion_stuck.mjs`: was 3/9, now 9/9.** `t300`
+in `harness/retest.mjs` flips `STILL-BROKEN -> FIXED`.
+
+The three escapes the report said were sealed are all open, and the fault is still
+real (`P2` still measures `500 "rewrite failed"`, so this is a recovered failure
+and not a rewrite that stopped failing):
+
+```
+P3  after the failed rewrite: status=PENDING, works=0; the work still carries the tag
+P4  retry the approval   -> 200   works=1, still tagged=false      (was 409 already APPROVED)
+P5  DELETE /v1/promotions/<tag> -> 204                             (was 404, no route)
+P6  re-propose the tag   -> 201                                    (was 409 already proposed)
+P7  end state: status=PENDING, works=0, tag retracted
+```
+
+**The partial count is recorded.** `P8` drives the case the report measured as the
+sharpest evidence -- two works in different grain shards, one shard read-only:
+
+```
+approve -> 500
+  w0cfnsjg6micju  tag retracted = true    (rewritten)
+  w1dh6vtir43o8i  tag retracted = false   (untouched)
+the promotion records works = 1           (was 0)
+```
+
+One of two works promoted, and the record now says one. `P8` still refuses to
+conclude when the read-only shard happens to be walked first, so the `1` is a
+measured rewrite and not an artifact of shard ordering.
+
+`Works` counting **rewrites rather than distinct works** is consistent with what
+this probe sees: its sentinels carry only an editorial folk tag, which `PromoteTag`
+retracts, so each work matches the loop at most once and `works` equals the number
+of works. The feed-tag divergence Eve's `TestRetryRewritesFeedTaggedWorksAgain`
+pins is invisible from here -- the e2e clone has no provider feed asserting a tag
+that survives promotion. Worth remembering before some later probe reads `works`
+as a work count.
