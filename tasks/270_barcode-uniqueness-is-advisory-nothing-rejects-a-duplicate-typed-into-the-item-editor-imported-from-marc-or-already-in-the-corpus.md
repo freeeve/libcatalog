@@ -12,8 +12,11 @@ grain it writes into. What is still missing is the constraint.
 uniqueness enforcement libcat has, and it guards exactly one code path. Nothing
 rejects a duplicate that arrives any other way:
 
-- **The item editor.** A cataloger can type a barcode another item already holds,
-  through `PUT /v1/works/{id}` or `POST /v1/works/{id}/ops`. Nothing objects.
+- **The item editor.** `PUT /v1/works/{id}/items`
+  (`maintenance_handlers.go:109`) replaces an instance's holdings wholesale from
+  the request body and validates nothing about barcodes. A cataloger can type one
+  another item already holds, on this instance or on another work, and nothing
+  objects. (The batch `ops` path cannot: `itemFieldPreds` excludes `barcode`.)
 - **MARC import and copycat.** A holdings barcode is written straight through.
 - **The corpus as it stands.** Nobody has ever checked. A deployment that ran a
   version with the 269 race may be carrying duplicates right now, and there is no
