@@ -104,13 +104,19 @@ func sentinels(t *testing.T) (root, visible, suppressed, tombstoned string) {
 
 // plantCover writes a cover blob and the grain statement that claims it, the
 // way PUT /v1/works/{id}/cover does.
+//
+// Through bibframe.CoverBlobPath, deliberately: the blob tree is **sharded**
+// (data/covers/<xx>/<id>.<ext>) and a fixture that writes the flat path agrees
+// with a reader that reads the flat path, so both can be wrong together. That is
+// exactly what happened -- tasks/308 -- and the positive control here passed
+// while the real exporter published nothing.
 func plantCover(t *testing.T, root, workID string) {
 	t.Helper()
-	dir := filepath.Join(root, "data", "covers")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	blobPath := filepath.Join(root, filepath.FromSlash(bibframe.CoverBlobPath(workID, "png")))
+	if err := os.MkdirAll(filepath.Dir(blobPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, workID+".png"), []byte("PNG"+workID), 0o644); err != nil {
+	if err := os.WriteFile(blobPath, []byte("PNG"+workID), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	p := filepath.Join(root, filepath.FromSlash(bibframe.GrainPath(workID)))
@@ -253,12 +259,15 @@ func TestCoversPublishOnlyVisibleWorks(t *testing.T) {
 // after the fact. Driving the copy from the grains collects it for free.
 func TestCoversSkipBlobsNoWorkClaims(t *testing.T) {
 	root, visible, _, _ := sentinels(t)
-	orphan := filepath.Join(root, "data", "covers", "worphan00000001.jpg")
+	orphan := filepath.Join(root, filepath.FromSlash(bibframe.CoverBlobPath("worphan00000001", "jpg")))
+	if err := os.MkdirAll(filepath.Dir(orphan), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(orphan, []byte("JPG"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	// A stale format for a Work that exists: the grain claims .png, not .webp.
-	stale := filepath.Join(root, "data", "covers", visible+".webp")
+	stale := filepath.Join(root, filepath.FromSlash(bibframe.CoverBlobPath(visible, "webp")))
 	if err := os.WriteFile(stale, []byte("WEBP"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -273,6 +282,67 @@ func TestCoversSkipBlobsNoWorkClaims(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(coversOut, name)); err == nil {
 			t.Errorf("published %s, which no visible Work claims", name)
 		}
+	}
+}
+
+// tasks/308: the cover blob tree is sharded and the site serves it flat. The
+// exporter constructed its read path without the shard, missed every blob, and
+// `os.IsNotExist -> continue` published zero covers in silence.
+//
+// This asserts the shard on both sides at once: the fixture writes only where
+// CoverBlobPath says, and the test fails if the flat path exists at all -- so a
+// reader that reads flat cannot be rescued by a fixture that writes flat.
+func TestCoversAreReadFromTheShardedBlobPath(t *testing.T) {
+	root, visible, _, _ := sentinels(t)
+	flat := filepath.Join(root, "data", "covers", visible+".png")
+	if _, err := os.Stat(flat); err == nil {
+		t.Fatalf("the fixture wrote the flat path %s; it must write only the sharded one", flat)
+	}
+	sharded := filepath.Join(root, filepath.FromSlash(bibframe.CoverBlobPath(visible, "png")))
+	if _, err := os.Stat(sharded); err != nil {
+		t.Fatalf("the fixture did not write the sharded blob: %v", err)
+	}
+
+	coversOut := t.TempDir()
+	var log strings.Builder
+	if _, err := Run(Options{In: root, Out: t.TempDir(), CoversOut: coversOut, Log: &log}); err != nil {
+		t.Fatal(err)
+	}
+	// Published flat, under the base name the site-relative claim carries.
+	data, err := os.ReadFile(filepath.Join(coversOut, visible+".png"))
+	if err != nil {
+		t.Fatalf("the visible Work's cover was not published: %v", err)
+	}
+	if string(data) != "PNG"+visible {
+		t.Errorf("published the wrong bytes: %q", data)
+	}
+	if strings.Contains(log.String(), "not in the store") {
+		t.Errorf("a cover that is in the store was reported missing: %q", log.String())
+	}
+}
+
+// A claimed cover the store does not hold is benign, but it must be counted and
+// said out loud: "every cover is missing" and "one cover is missing" looked
+// identical from the build log, which is how tasks/308 stayed invisible.
+func TestMissingCoverIsReportedRatherThanSwallowed(t *testing.T) {
+	root, visible, _, _ := sentinels(t)
+	if err := os.Remove(filepath.Join(root, filepath.FromSlash(bibframe.CoverBlobPath(visible, "png")))); err != nil {
+		t.Fatal(err)
+	}
+	var log strings.Builder
+	coversOut := t.TempDir()
+	if _, err := Run(Options{In: root, Out: t.TempDir(), CoversOut: coversOut, Log: &log}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(log.String(), "1 of 1 claimed covers are not in the store") {
+		t.Errorf("the build log does not report the missing cover: %q", log.String())
+	}
+	entries, err := os.ReadDir(coversOut)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("published %d covers though the only claimed blob is gone", len(entries))
 	}
 }
 

@@ -125,7 +125,7 @@ func Run(opts Options) (*Manifest, error) {
 	}
 	files = append(files, nq)
 
-	if err := copyCovers(opts.In, opts.CoversOut, visible); err != nil {
+	if err := copyCovers(opts.In, opts.CoversOut, visible, opts.Log); err != nil {
 		return nil, err
 	}
 	paths := make([]string, 0, len(visible))
@@ -203,10 +203,6 @@ func (g *gzFile) finish(records int) (File, error) {
 	}, nil
 }
 
-// copyGzip gzips src to dst, rewriting extra/sources quads to the public
-// allowlist on the way when one is set. Line-based: source names are plain
-// strings without quotes or escapes by convention, so the literal is the span
-// between the first and last '"'.
 // visibleGrain is one Work the projector would publish, with the cover blob its
 // grain claims ("" when it claims none).
 type visibleGrain struct {
@@ -457,7 +453,7 @@ func emitRecord(mw *iso2709.Writer, xw *marcxml.Writer, path string, rec *codex.
 //
 // Driving from the claims also drops the tasks/243 stale-format residue for
 // free: a Work names one cover, and any other blob bearing its id is not it.
-func copyCovers(in, out string, visible []visibleGrain) error {
+func copyCovers(in, out string, visible []visibleGrain, log io.Writer) error {
 	if out == "" {
 		return nil
 	}
@@ -468,16 +464,26 @@ func copyCovers(in, out string, visible []visibleGrain) error {
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		return err
 	}
+	copied, missing := 0, 0
 	for _, vg := range visible {
 		if vg.cover == "" {
 			continue
 		}
-		// The claim is a site-relative URL ("covers/<id>.<ext>"); the blob lives
-		// under data/covers by the same base name.
+		// The claim is a site-relative URL ("covers/<id>.<ext>"). The blob is
+		// SHARDED: bibframe.CoverBlobPath writes data/covers/<xx>/<id>.<ext>, and
+		// the site serves it flattened. Constructing the read path here without
+		// the shard missed every cover in the store, and `os.IsNotExist -> continue`
+		// turned that into silence: no error, no log line, zero covers published
+		// (tasks/308). Ask the same function the writer used.
 		name := path.Base(vg.cover)
-		data, err := os.ReadFile(filepath.Join(root, name))
+		ext := strings.TrimPrefix(filepath.Ext(name), ".")
+		data, err := os.ReadFile(filepath.Join(in, filepath.FromSlash(bibframe.CoverBlobPath(vg.id, ext))))
 		if os.IsNotExist(err) {
-			continue // the Work claims a cover the store no longer holds
+			// The Work claims a cover the store no longer holds. Real, and benign
+			// -- but counted and reported, because "every cover is missing" and
+			// "one cover is missing" must not look alike from the build log.
+			missing++
+			continue
 		}
 		if err != nil {
 			return err
@@ -485,6 +491,11 @@ func copyCovers(in, out string, visible []visibleGrain) error {
 		if err := os.WriteFile(filepath.Join(out, name), data, 0o644); err != nil {
 			return err
 		}
+		copied++
+	}
+	if missing > 0 && log != nil {
+		fmt.Fprintf(log, "export: %d of %d claimed covers are not in the store and were not published\n",
+			missing, missing+copied)
 	}
 	return nil
 }
