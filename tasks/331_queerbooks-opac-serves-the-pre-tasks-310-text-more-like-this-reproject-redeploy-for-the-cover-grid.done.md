@@ -86,6 +86,26 @@ git -C ~/libcat log --oneline -1 627ea2f
 No matching retest check added to harness/retest.mjs: the harness asserts against
 current source (playground :8482), which already renders the grid, so there is
 nothing source-side to regress. The remaining action is the queerbooks redeploy,
-which is outside the harness's reach. If a deploy-version probe is wanted, it would
-assert the live queerbooks OPAC exposes `lcat-similar-grid` -- add it once the
-redeploy is scheduled.
+which is outside the harness's reach.
+
+## Outcome (2026-07-10) -- CLOSED, misfiled; no libcat change
+
+Not a libcat issue and already tracked in the right repo. queerbooks is a separate
+repo (`~/queerbooks-demo/`) that adopts libcat in lockstep. Measured pins/versions:
+
+- `~/queerbooks-demo/site/go.mod` pins `github.com/freeeve/libcat/hugo v0.126.0`.
+- v0.126.0 = commit `c3fdeb7` (2026-07-10 07:28); the cover-grid commit `627ea2f`
+  (tasks/310) landed 08:17, 49 min later. `git merge-base --is-ancestor 627ea2f
+  v0.126.0` -> false: v0.126.0 predates the grid.
+- The grid first appears in module tag **v0.128.0** (latest is v0.141.2).
+
+The adoption is already queued in queerbooks-demo, so nothing new needs filing:
+
+- queerbooks-demo `tasks/074` -- "libcat v0.128.0: the more-like-this rail is now a
+  cover grid ... (tasks/310)" (pending heads-up).
+- queerbooks-demo `tasks/077` -- "adopt libcat v0.141.2 lockstep ... 310 cover-grid
+  rail ..." (pending). Executing 077 (bump the hugo module pin + matching lcat,
+  reproject, redeploy) is the whole fix; queerbooks works already carry od-cdn
+  covers, so the tiles populate.
+
+libcat itself is correct (grid shipped v0.128.0, default, ungated). Closing.
