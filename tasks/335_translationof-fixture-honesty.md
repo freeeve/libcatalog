@@ -51,3 +51,21 @@ No rush and no production impact -- purely so the test data stays honest.
 - libcodex task 116 (the IRI fix, shipped in v0.27.0), 113 (the additive 76x
   extension that will emit `translationof` for 765), 112 (your adoption report
   that surfaced the dropped 765/830 relations).
+
+## Outcome -- test-only, no release
+
+`project/series_test.go:128` now uses
+`http://id.loc.gov/vocabulary/relationship/translationof` (LC's real lowercase
+term) instead of the invented camelCase `translationOf` for the non-series
+relation that the series guard must reject. The fixture now matches what
+libcodex v0.27.0 emits.
+
+- **No production impact.** `Project`'s series discrimination only matches
+  `.../relationship/series` (unchanged by v0.27.0); nothing in `ingest/` or
+  `project/` matches a 76x-78x term. The test passed before and after -- any
+  non-`series` IRI exercises the guard -- so this is purely fixture honesty.
+- **No dependency bump.** The change is a string in libcat's own test data, not
+  an adoption of libcodex v0.27.0; the go.mod require is untouched.
+- **No release / no playground restart:** a test-data string changes no shipped
+  behavior and no binary, so there is nothing to tag or adopt.
+- `go build ./...` clean, `go test ./project/` green, gofmt -s clean.
