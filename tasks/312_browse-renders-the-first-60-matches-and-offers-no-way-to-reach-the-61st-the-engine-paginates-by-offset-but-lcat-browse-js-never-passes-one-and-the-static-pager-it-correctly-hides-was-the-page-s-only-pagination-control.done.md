@@ -155,3 +155,21 @@ the label and count from `rows.nth(0)` of Hugo's panel, then clicked `rows.nth(0
 a different row. The rail keeps its promise exactly: promised 21792, delivered 21792, and
 `filterIds(allIds, [["subject", homoit0000915]])` says 21792. The probe now reads the row that
 ends up **checked**, never the row that was there before the click.
+
+## Outcome -- DUPLICATE of tasks/301
+
+Closed as a duplicate. **tasks/301** ("browse mode has no pagination -- past the first 60
+results the reader is told the total and given no way to reach the rest") was opened the same
+day, split out of tasks/281, and describes the same defect with the same root cause.
+
+Every measurement in this report has been folded into 301 under **Measured evidence**: the
+99.4% discard, the engine's working `offset`, the facet-only path (21,792 matches, 60 cards),
+and the proof that un-hiding the static pager would not help. 301 also names `RrsCursor`
+(`headCount`, `page(offset, limit)`, `next`, `loadTail`), which this report missed.
+
+`t312` in `harness/retest.mjs` is renamed `t301` and now retests 301.
+
+**Why the duplicate happened.** The pre-filing duplicate check was
+`grep -rli "pagination\|paginate" tasks/ | head -5`. It matched 301, and `head -5` cut it off.
+Truncating a duplicate check turns it into a check that can only ever confirm the absence it
+was already assuming. The check is now run without `head`, and against open tasks specifically.
