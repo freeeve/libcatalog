@@ -386,7 +386,7 @@
   .badge[data-status="FAILED"] {
     background: var(--danger);
     border-color: var(--danger);
-    color: #fff;
+    color: var(--danger-ink);
   }
   .actions {
     white-space: nowrap;

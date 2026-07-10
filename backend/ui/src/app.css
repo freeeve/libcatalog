@@ -17,6 +17,7 @@
   --accent: #1e6b4e;     /* curator green */
   --accent-ink: #ffffff;
   --danger: #a34224;     /* date-stamp red */
+  --danger-ink: #ffffff; /* ink ON --danger; see the dark block (tasks/315) */
   --ok: #1e6b4e;
   --info: #27567b;       /* archival blue */
   /* Provenance inks (the signature). */
@@ -160,7 +161,7 @@ h2 {
 .button--danger {
   background: var(--danger);
   border-color: var(--danger);
-  color: #fff;
+  color: var(--danger-ink);
 }
 
 /* Form controls: index-card white on bone so fillable areas read as raised
@@ -288,7 +289,16 @@ html[data-theme="dark"] {
   --rule: #3d443f;
   --accent: #6dbd97;
   --accent-ink: #10261c;
+  /* --danger is two roles at once, and dark mode pulls them apart (tasks/315).
+     As INK it must brighten: #a34224 on this surface is 1.8:1, #e09479 is 7.19:1,
+     and .error / the queue and batch failure text all read `color: var(--danger)`.
+     As a BACKGROUND that same brightening put white on salmon at 2.42:1 -- below
+     even the 3:1 large-text floor -- on Execute and both FAILED badges, which are
+     the three surfaces a cataloger most needs to read. Darkening --danger would
+     fix the background and ruin the ink, so the ink gets its own token, the way
+     --accent-ink already had one. #10261c on #e09479 is 6.60:1. */
   --danger: #e09479;
+  --danger-ink: #10261c;
   --ok: #6dbd97;
   --info: #85b3dc;
   --prov-editorial: #6dbd97;

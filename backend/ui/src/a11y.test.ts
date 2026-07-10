@@ -1,8 +1,11 @@
 // Axe audit over the Login screen, the editable WorkEditor (profile form,
 // save bar, diff preview), the moderation Queue, and the VocabPicker modal,
 // mounted with fixture data in jsdom. color-contrast needs a real rendering
-// engine (canvas), so that single rule is skipped here; the palette in
-// app.css is chosen for WCAG AA contrast.
+// engine (canvas), so that single rule is skipped here. The palette itself is
+// checked in contrast.test.ts, which needs no engine -- two hex colours are all a
+// ratio takes. This comment used to say the palette "is chosen for WCAG AA
+// contrast" and stand as the only evidence of it; dark mode shipped Execute at
+// 2.42:1 behind that sentence (tasks/315).
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import axe from "axe-core";
