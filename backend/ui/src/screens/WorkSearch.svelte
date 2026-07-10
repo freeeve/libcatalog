@@ -295,7 +295,9 @@
     </label>
   </div>
   <p class="muted status" aria-live="polite">
-    {#if loading && st.works.length === 0}Searching…{:else if error}<span class="error">{error}</span>{:else}{st.works.length} of {st.matched} matched · {st.total} {st.showTombstoned ? "in catalog" : "live in catalog"}{/if}
+    <!-- "N in catalog" is a stable phrase: the qualifier goes after it, never
+         between the number and the words (tasks/280). -->
+    {#if loading && st.works.length === 0}Searching…{:else if error}<span class="error">{error}</span>{:else}{st.works.length} of {st.matched} matched · {st.total} in catalog{st.showTombstoned ? " (incl. tombstoned)" : ""}{/if}
     {#if !error && st.works.length > 0}
       · <a href={st.q.trim() ? "#/exports?kind=search&q=" + encodeURIComponent(st.q.trim()) : "#/exports?kind=all"}>Export these results…</a>
     {/if}

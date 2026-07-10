@@ -119,6 +119,23 @@ describe("work search tombstoned filter", () => {
     expect(titles(host)).toEqual(["Gideon the Ninth", "Retired Sentinel"]);
   });
 
+  // The status line is a contract, not just copy: the e2e suite reads
+  // "<n> in catalog" off it to prove a facet narrowed the result set. Putting a
+  // qualifier between the number and the words broke that (tasks/280), so the
+  // phrase stays intact and any qualifier goes after it.
+  it("keeps the '<n> in catalog' phrase intact in both modes", async () => {
+    const { host } = await mountSearch();
+    const status = () => host.querySelector(".status")?.textContent ?? "";
+
+    expect(status()).toMatch(/\b1 in catalog\b/);
+    expect(status()).not.toContain("incl. tombstoned");
+
+    await toggle(showTombstoned(host), true);
+
+    expect(status()).toMatch(/\b2 in catalog\b/);
+    expect(status()).toContain("incl. tombstoned");
+  });
+
   it("badges a retired row so it never reads as live", async () => {
     const { host } = await mountSearch();
 
