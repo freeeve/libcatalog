@@ -279,9 +279,40 @@ every adopter into a lockstep reproject to announce a mismatch that cannot occur
 
 `lcat project` writes a `similar.json` sidecar: for each Work, up to 8 ranked
 neighbours with the attribute values that put them there. The Work detail page
-renders it below the editions, labelled as computed and visually distinct from the
-`lcat-relations` block, which carries relations a **cataloger asserted**
-(`hasPart`/`partOf`). These are inferred.
+renders it below the editions, apart from the `lcat-relations` block, which carries
+relations a **cataloger asserted** (`hasPart`/`partOf`). These are inferred.
+
+### The shelf (tasks/310)
+
+The rail is a grid of covers, not a list of titles: a reader scans it by spine and
+reads the caption only once something catches them. Each tile is one link wrapping
+the cover, the title, and the contributors with their roles.
+
+The sidecar carries only `id`, `title` and `shared` -- the scorer's output. The
+cover, the carrier and the contributors are the *neighbour Work's own* data, so the
+content adapter indexes `catalog.json` by id and reads them out of it. Widening the
+sidecar would duplicate every cover path once per rail that names the Work, and
+stale it independently of the catalog.
+
+- **Covers** come from the `cover` extra. A Work without one gets a blank tile of
+  the same size (`.lcat-similar-cover--none`), `aria-hidden`, so the grid's baseline
+  does not jump and no one hears "no cover image" read aloud. The rail's covers do
+  **not** depend on `[params] covers`, which governs only the detail-page hero.
+- **The badge** names the carrier only when it is not the unmarked case. A print
+  book wears none -- labelling every tile `BOOK` spends the badge on nothing -- and
+  a Work with two carriers wears none rather than an arbitrary one.
+- **`[params] similarShown`** (default 8) caps the tiles the page opens with. When
+  the sidecar carries more, the page also emits a `View more` button and
+  `lcat-similar.js`, which hides the extras and reveals the button. They are *not*
+  hidden in the markup: without JavaScript there is no way to get them back, so a
+  reader whose script did not run sees a longer rail rather than half of one.
+  `--similar` decides how deep the pool is; `similarShown` decides how much of it
+  opens. They are different questions.
+
+Each tile still says what it shares, in the document, as visually-hidden text. A
+recommendation nobody can explain is worse than no recommendation, and "why is this
+here?" is the only question a librarian asks -- the covers took the line's room,
+not its job. Everything below still applies to it.
 
 The method is a two-hop walk over the bipartite graph of Works and their
 attributes -- series (weight 5), contributors (3), tags (2), subjects (1) -- with
@@ -290,9 +321,6 @@ more than 20% of the catalog skipped as undiscriminating, and subjects expanded
 through the `skos:broader` tree so two books match on a nearby concept, not just an
 identical IRI. Same-language neighbours get a flat bonus, applied only to Works
 some other signal already scored.
-
-Each card names what it shares. A recommendation nobody can explain is worse than
-no recommendation, and "why is this here?" is the only question a librarian asks.
 
 Shared subjects are stored as authority IRIs, because the sidecar is
 language-neutral. The content adapter resolves them to labels in the site's own
@@ -317,7 +345,9 @@ separator. Subject headings and contributor names carry commas of their own --
 `Lesbians' writings, Canadian` is one heading and `Elledge, Jim` is one person --
 so a comma-joined line names more things than it lists. Restyle the separator by
 overriding `.lcat-similar-term + .lcat-similar-term::before`. Count terms by
-reading those elements; splitting the line on `, ` counts commas, not terms.
+reading those elements; splitting the line on `, ` counts commas, not terms. To
+put the explanation back on screen, drop the `lcat-visually-hidden` class from the
+`<span>` that wraps it.
 
 **The collapse is by label, and that is a real limitation.** Two vocabularies that
 agree on an English string are treated as one concept, which is right for a

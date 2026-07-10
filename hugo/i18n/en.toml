@@ -65,6 +65,11 @@ other = "Suggested automatically from shared subjects, tags, contributors and se
 [sharesLabel]
 other = "Shares"
 
+# Reveals the neighbours past [params] similarShown. Only rendered when the
+# sidecar carries more than the page opens with (tasks/310).
+[viewMore]
+other = "View more"
+
 [backToAllWorks]
 other = "Back to all works"
 

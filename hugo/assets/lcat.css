@@ -480,20 +480,84 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .lcat-availability[data-status="holdable"] { color: var(--lcat-avail-hold); }
 .lcat-availability[data-status="unavailable"] { color: var(--lcat-avail-none); }
 .lcat-meta dt { font-weight: 600; }
-/* "More like this" (tasks/284). Set apart from the asserted lcat-relations block:
-   these neighbours are computed, and the note plus the per-item "Shares:" line say
-   so, so a surprising suggestion reads as a machine's guess and not a cataloger's
-   claim. */
+/* "More like this" (tasks/284, redesigned in tasks/310). A shelf, not a list: the
+   reader scans by cover and reads the caption only once something catches them.
+
+   The columns are auto-fit rather than a fixed 8: the tile has a minimum legible
+   width, and the row holds as many as fit. On a phone that is two; on a wide
+   screen it is the eight the design was drawn at. No breakpoints to keep in sync
+   with the neighbour limit.
+
+   Set apart from the asserted lcat-relations block: these neighbours are computed,
+   so a surprising suggestion should read as a machine's guess and not a
+   cataloger's claim. What used to say so was a visible "Shares:" line under every
+   title; the covers took that room, and the explanation moved into assistive text
+   on each tile. */
 .lcat-similar { border-top: 1px solid var(--lcat-border); margin-top: var(--lcat-gap); padding-top: var(--lcat-gap); }
-.lcat-similar-note { color: var(--lcat-muted, #667); font-size: 0.85em; margin: 0 0 0.75rem; }
-.lcat-similar-list { list-style: none; padding: 0; margin: 0; }
-.lcat-similar-item { padding: 0.35rem 0; }
-.lcat-similar-why { display: block; color: var(--lcat-muted, #667); font-size: 0.8em; }
+.lcat-similar-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 1.25rem 1rem;
+  align-items: start;
+}
+.lcat-similar-link { display: block; text-decoration: none; color: inherit; }
+.lcat-similar-link:hover .lcat-similar-title,
+.lcat-similar-link:focus-visible .lcat-similar-title { text-decoration: underline; }
+/* The badge is positioned against the art, so the art is the containing block --
+   and the art is what a missing cover has to keep the size of. */
+.lcat-similar-art { position: relative; display: block; }
+.lcat-similar-cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--lcat-border, #ccc);
+}
+/* An <img> gets its height from the aspect-ratio + the intrinsic width; an empty
+   <span> has no intrinsic anything, so it needs the box stated outright or the
+   grid row collapses around it. */
+.lcat-similar-cover--none { height: 0; padding-block-end: 150%; }
+.lcat-similar-badge {
+  position: absolute;
+  inset-block-start: 0.4rem;
+  inset-inline-start: 0.4rem;
+  padding: 0.15rem 0.4rem;
+  background: var(--lcat-bg, #fff);
+  color: var(--lcat-fg, #111);
+  border: 1px solid var(--lcat-border, #ccc);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lcat-similar-title { display: block; margin-top: 0.5rem; font-weight: 600; line-height: 1.25; }
+.lcat-similar-by { display: block; margin-top: 0.15rem; color: var(--lcat-muted, #667); font-size: 0.8em; line-height: 1.3; }
 /* One <span> per shared term, separated by CSS rather than by a comma in the text
    (tasks/302). Subject headings and contributor names carry their own commas --
    "Lesbians' writings, Canadian" is one heading, "Elledge, Jim" is one person --
-   so a comma-joined line reads as more terms than it names. */
+   so a comma-joined line reads as more terms than it names. Still true where the
+   terms now live: a screen reader announces the separator. */
 .lcat-similar-term + .lcat-similar-term::before { content: "· "; color: var(--lcat-border, #ccc); }
+/* Revealed by lcat-similar.js, which also hides the tiles past [params]
+   similarShown. Centred under the grid, and gone once clicked -- there is no
+   second thing to reveal. */
+.lcat-similar-more {
+  display: block;
+  margin: 1.25rem auto 0;
+  padding: 0.55rem 1.4rem;
+  border: 1px solid var(--lcat-border, #ccc);
+  border-radius: 999px;
+  background: var(--lcat-bg, #fff);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lcat-similar-more:hover { border-color: var(--lcat-fg, #111); }
 /* Optional cover art (tasks/025): rendered by lcat-cover.html only when the site sets
    [params] covers = true. Set BOTH width and height in CSS per variant -- the <img>
    carries width/height HTML hints for CLS, and without an explicit CSS height that hint

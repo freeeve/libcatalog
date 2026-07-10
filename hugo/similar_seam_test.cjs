@@ -65,6 +65,10 @@ const catalog = {
       id: "wone",
       title: "One",
       subjects: [{ id: TRANS, labels: { en: "Transgender people", es: "Personas trans" }, broader: [GENDER] }],
+      // tasks/310. A print book: the unmarked carrier, so its tile wears no badge.
+      // One contributor, with no role: the parenthetical must not render empty.
+      formats: ["book"],
+      contributors: [{ name: "Young, Eris" }],
     },
     {
       id: "wtwo",
@@ -73,11 +77,27 @@ const catalog = {
         { id: TRANS, labels: { en: "Transgender people", es: "Personas trans" }, broader: [GENDER] },
         { id: TRANS_FAST, labels: { en: "Transgender people" } },
       ],
+      // The fully-dressed tile: a cover, a badged carrier, two roled contributors.
+      extra: { cover: "covers/wtwo.jpg" },
+      formats: ["audiobook"],
+      contributors: [
+        { name: "Chen, Angela", role: "author" },
+        { name: "Naudus, Natalie", role: "narrator" },
+      ],
     },
     { id: "wthree", title: "Three" }, // no subjects at all
     { id: "wfour", title: "Four", subjects: [{ id: COMMA, labels: { en: "Lesbians' writings, Canadian" } }] },
+    // Two carriers: which one would the badge name? Neither. tasks/310.
+    { id: "wfive", title: "Five", formats: ["ebook", "audiobook"] },
+    // A rail deeper than the page opens with, so the reveal button renders.
+    { id: "wsix", title: "Six" },
   ],
 };
+
+// The site shows 2 tiles, so wsix's four-neighbour rail has two to reveal and
+// every other rail here (two neighbours at most) has none. Both branches, one
+// build.
+const SHOWN = 2;
 
 const similar = {
   version: 1,
@@ -85,7 +105,12 @@ const similar = {
   works: {
     // The reported bug: GENDER is reached through the tree and carried by neither
     // page. Only the catalog can label it.
-    wone: [{ id: "wtwo", title: "Two", shared: [TRANS, GENDER] }],
+    // wfive rides along so a multi-carrier neighbour renders somewhere; it is
+    // appended, so wtwo stays neighbour [0] for every check written before it.
+    wone: [
+      { id: "wtwo", title: "Two", shared: [TRANS, GENDER] },
+      { id: "wfive", title: "Five", shared: [COMMA] },
+    ],
     // The stutter: one concept in two schemes, both resolving to one label.
     // Plus free text (a tag), which is already human and passes through.
     wtwo: [{ id: "wone", title: "One", shared: [TRANS, TRANS_FAST, "lgbtq-books"] }],
@@ -100,6 +125,13 @@ const similar = {
     // keeping the first occurrence would print English at a Spanish reader.
     // COMMA and PERSON each contain a comma of their own.
     wfour: [{ id: "wtwo", title: "Two", shared: [TRANS_FAST, TRANS, COMMA, PERSON] }],
+    // Four neighbours against a cap of two: tiles 3 and 4 are the reveal (tasks/310).
+    wsix: [
+      { id: "wone", title: "One", shared: [TRANS] },
+      { id: "wtwo", title: "Two", shared: [TRANS] },
+      { id: "wfive", title: "Five", shared: [COMMA] },
+      { id: "wfour", title: "Four", shared: [COMMA] },
+    ],
   },
 };
 
@@ -115,22 +147,56 @@ fs.writeFileSync(path.join(assets, "similar.json"), JSON.stringify(similar));
 // facets.json is projected from the same catalog; an empty one keeps them honest.
 fs.writeFileSync(path.join(assets, "facets.json"), JSON.stringify({ version: 11 }));
 
+// An overlay rather than an edit to the copied hugo.toml: a second [params] table
+// appended to a file that already has one is a TOML redefinition error, and later
+// --config files win key by key.
+const overlay = path.join(siteDir, "shown.toml");
+fs.writeFileSync(overlay, `[params]\nsimilarShown = ${SHOWN}\n`);
+
 const out = path.join(tmp, "public");
-execFileSync("hugo", ["--quiet", "--destination", out], { cwd: siteDir, stdio: ["ignore", "ignore", "inherit"] });
+execFileSync("hugo", ["--quiet", "--config", "hugo.toml,shown.toml", "--destination", out], {
+  cwd: siteDir,
+  stdio: ["ignore", "ignore", "inherit"],
+});
 
 const page = (work, lang) =>
   fs.readFileSync(path.join(out, ...(lang === "en" ? [] : [lang]), "works", work, "index.html"), "utf8");
 const decode = (s) => s.replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
 
+// tiles returns each rendered neighbour <li> for a work, in rail order. The split
+// token stops at the class name, not at the closing `">`: a tile past the reveal
+// cap carries a second class, and a token that assumed one class silently returned
+// zero of them while every "it is absent" check below went green.
+const tiles = (work, lang) =>
+  page(work, lang)
+    .split('<li class="lcat-similar-item')
+    .slice(1)
+    .map((chunk) => chunk.slice(0, chunk.indexOf("</li>")));
+
+// The reveal script is fingerprinted, so it is never literally "lcat-similar.js"
+// in the built page. Asserting on that name would pass whether or not the script
+// was loaded.
+const SCRIPT = /lcat-similar\.[0-9a-f]{16,}\.js/;
+
+// tile returns the one tile linking to a given neighbour, so a check names the
+// work it means rather than an index into the rail.
+const tile = (work, lang, neighbor) => {
+  const href = `href="${lang === "en" ? "" : "/" + lang}/works/${neighbor}/"`;
+  const found = tiles(work, lang).filter((t) => t.includes(href));
+  assert(found.length === 1, `${lang} /works/${work}/: ${found.length} tiles link to ${neighbor}`);
+  return found[0];
+};
+
 // whys returns the inner HTML of each rendered Shares line for a work. It scopes
 // by the neighbour <li> rather than lazily matching to a closing tag: the terms
 // are themselves <span>s now, so a lazy `</span>` match eats the last one.
-const WHY_OPEN = '<span class="lcat-similar-why">';
+//
+// The line is visually hidden since tasks/310 -- the covers took its room -- but
+// it is still in the document, and it is still the rail's only explanation of
+// itself. Everything tasks/296 and tasks/302 proved about it still has to hold.
+const WHY_OPEN = '<span class="lcat-visually-hidden">';
 const whys = (work, lang) =>
-  page(work, lang)
-    .split('<li class="lcat-similar-item">')
-    .slice(1)
-    .map((chunk) => chunk.slice(0, chunk.indexOf("</li>")))
+  tiles(work, lang)
     .filter((item) => item.includes(WHY_OPEN))
     .map((item) => item.slice(item.indexOf(WHY_OPEN) + WHY_OPEN.length, item.lastIndexOf("</span>")));
 
@@ -142,7 +208,7 @@ const shares = (work, lang) =>
     [...line.matchAll(/<span class="lcat-similar-term">([\s\S]*?)<\/span>/g)].map((m) => decode(m[1])),
   );
 
-const cards = (work, lang) => (page(work, lang).match(/<li class="lcat-similar-item">/g) ?? []).length;
+const cards = (work, lang) => tiles(work, lang).length;
 
 // ---------------------------------------------------------------------------
 // tasks/296 -- the rail must never print an authority URL at a reader.
@@ -261,6 +327,123 @@ check("terms are separated by markup, never by a comma in the text", () => {
       }
     }
   }
+});
+
+// ---------------------------------------------------------------------------
+// tasks/310 -- the rail is a shelf. Each tile carries the neighbour's cover, its
+// carrier badge and its contributors, none of which the sidecar knows: they are
+// read out of the catalog by work id. Every "it is absent" check below sits next
+// to one asserting the same thing is present on another tile, because an adapter
+// that looked up nothing at all would satisfy the absences alone.
+// ---------------------------------------------------------------------------
+
+check("a neighbour's cover is rendered from the catalog, not from the sidecar", () => {
+  // similar.json carries only id/title/shared. The cover comes from wtwo's own
+  // catalog entry, reached by id.
+  const t = tile("wone", "en", "wtwo");
+  assert(t.includes('src="/covers/wtwo.jpg"'), `no cover img in wtwo's tile: ${t}`);
+});
+
+check("a neighbour with no cover gets a placeholder of the same size", () => {
+  const t = tile("wtwo", "en", "wone");
+  assert(!t.includes("<img"), `wone has no cover, but its tile rendered an img: ${t}`);
+  assert(t.includes("lcat-similar-cover--none"), `no placeholder in wone's tile: ${t}`);
+});
+
+check("the placeholder is not announced to a screen reader", () => {
+  // "no cover image" is not information anyone wants read aloud; the title beneath
+  // already names the work.
+  const t = tile("wtwo", "en", "wone");
+  assert(t.includes('aria-hidden="true"'), "the empty cover box is exposed to assistive tech");
+});
+
+check("a badged carrier names itself; the unmarked one does not", () => {
+  const audio = tile("wone", "en", "wtwo");
+  assert(audio.includes('<span class="lcat-similar-badge">audiobook</span>'), `no badge on the audiobook: ${audio}`);
+  const book = tile("wtwo", "en", "wone");
+  assert(!book.includes("lcat-similar-badge"), `a print book wore a badge: ${book}`);
+});
+
+check("a neighbour with two carriers wears no badge rather than an arbitrary one", () => {
+  const t = tile("wone", "en", "wfive");
+  assert(!t.includes("lcat-similar-badge"), `wfive has two formats but a badge was chosen: ${t}`);
+});
+
+check("contributors render with their roles, and without empty parentheses", () => {
+  const roled = tile("wone", "en", "wtwo");
+  const by = roled.match(/<span class="lcat-similar-by">([\s\S]*?)<\/span>/);
+  assert(by, `no contributor line on wtwo's tile: ${roled}`);
+  assert(
+    decode(by[1]).trim() === "Chen, Angela (author), Naudus, Natalie (narrator)",
+    `got ${JSON.stringify(decode(by[1]).trim())}`,
+  );
+  const roleless = tile("wtwo", "en", "wone");
+  const one = decode(roleless.match(/<span class="lcat-similar-by">([\s\S]*?)<\/span>/)[1]).trim();
+  assert(one === "Young, Eris", `a roleless contributor rendered as ${JSON.stringify(one)}`);
+});
+
+check("a neighbour with no contributors renders no contributor line", () => {
+  const t = tile("wone", "en", "wfive");
+  assert(!t.includes("lcat-similar-by"), `wfive has no contributors but got a byline: ${t}`);
+});
+
+check("the tile links to the neighbour, cover and caption inside one link", () => {
+  // One <a> per tile: a cover and a title that are separate links are two tab
+  // stops and two announcements for one destination.
+  const t = tile("wone", "en", "wtwo");
+  assert((t.match(/<a /g) ?? []).length === 1, `expected one link per tile: ${t}`);
+  assert(t.indexOf("lcat-similar-art") > t.indexOf("<a "), "the cover sits outside the link");
+  assert(t.indexOf("lcat-similar-title") > t.indexOf("lcat-similar-art"), "the caption precedes the cover");
+});
+
+check("a rail no deeper than the page shows renders no button and no script", () => {
+  // wone has two neighbours and similarShown defaults to 8. A "View more" that
+  // reveals nothing is worse than no button.
+  const p = page("wone", "en");
+  assert(!p.includes("lcat-similar-more"), "a button was rendered for a rail with nothing to reveal");
+  assert(!SCRIPT.test(p), "the reveal script was loaded with nothing to reveal");
+  assert(!p.includes("data-similar-shown"), "the rail advertised a cap it does not need");
+});
+
+check("the tiles past the cap are NOT hidden in the markup", () => {
+  // If the extras carried `hidden` in the HTML, a reader whose script did not run
+  // would lose half the rail with no way to get it back. The script hides them;
+  // the document does not. This is the one that matters, and it is invisible to a
+  // browser test that always runs the script.
+  const all = tiles("wsix", "en");
+  assert(all.length === 4, `expected 4 tiles, got ${all.length}`);
+  const extras = all.filter((t) => t.startsWith(" lcat-similar-item--extra"));
+  assert(extras.length === 2, `expected 2 tiles past a cap of ${SHOWN}, got ${extras.length}`);
+  for (const t of extras) {
+    // The chunk starts mid-<li> tag; everything up to the first ">" is the rest
+    // of that tag, which is where a `hidden` attribute would sit.
+    const tag = t.slice(0, t.indexOf(">"));
+    assert(!/\shidden/.test(tag), `a tile past the cap is hidden without JS: <li class="lcat-similar-item${tag}>`);
+  }
+});
+
+check("a rail deeper than the page shows renders the button, hidden, with its script", () => {
+  const p = page("wsix", "en");
+  assert(p.includes(`data-similar-shown="${SHOWN}"`), "the rail does not name its cap");
+  assert(
+    /<button[^>]*class="lcat-similar-more"[^>]*hidden/.test(p),
+    `the button is not hidden for no-JS: ${p.match(/<button[\s\S]{0,120}/)}`,
+  );
+  assert(SCRIPT.test(p), "the reveal script was not loaded");
+});
+
+check("the button is localized", () => {
+  assert(page("wsix", "en").includes(">View more</button>"), "en button text");
+  assert(page("wsix", "es").includes(">Ver más</button>"), "es button text");
+});
+
+check("the rail still explains itself, in the document, on every tile that can", () => {
+  // The regression tasks/310 could have introduced: drop the Shares line with the
+  // markup it lived in. It is hidden, not gone -- and tasks/296's whole finding
+  // was that this line is the rail's only claim to being cataloging.
+  const t = tile("wone", "en", "wtwo");
+  assert(t.includes(WHY_OPEN), `the neighbour tile carries no explanation at all: ${t}`);
+  assert(shares("wone", "en")[0].length === 2, `got ${JSON.stringify(shares("wone", "en")[0])}`);
 });
 
 fs.rmSync(tmp, { recursive: true, force: true });

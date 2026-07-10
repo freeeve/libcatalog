@@ -121,31 +121,84 @@
          data-pagefind-ignore: a neighbour's title on this page must not make this
          page a search hit for that title. */ -}}
   {{ with .Params.similar }}
-  {{- /* .shared arrives as display labels: the content adapter resolves the
+  {{- /* A cover grid, not a list of titles (tasks/310). A reader scans this rail
+         by spine, the way they scan a shelf; the title is the caption on the
+         object, not the object.
+
+         .shared arrives as display labels: the content adapter resolves the
          sidecar's authority IRIs against the catalog's Terms sideband, drops any
          it cannot label, and collapses cross-scheme synonyms (tasks/296, 302). It
          cannot be resolved here -- a shared concept need not be one this page
          carries.
 
-         One element per term, with CSS supplying the separator (tasks/302). A
-         comma-joined line cannot be read: subject headings and contributor names
-         routinely contain commas -- "Lesbians' writings, Canadian" is one term
-         and "Elledge, Jim" is one person, and each read as two. */ -}}
-  <section class="lcat-similar" aria-labelledby="lcat-sim" data-pagefind-ignore>
+         The explanation survives the redesign as assistive text rather than a
+         visible line. "A recommendation nobody can explain is worse than none"
+         still holds, and a screen reader still hears why each tile is here; what
+         changed is that a sighted reader gets the covers instead of four lines of
+         subject headings per neighbour. One element per term, with CSS supplying
+         the separator: a comma-joined line cannot be read, since headings and
+         names routinely contain commas -- "Lesbians' writings, Canadian" is one
+         term and "Elledge, Jim" is one person, and each reads as two.
+
+         data-pagefind-ignore: a neighbour's title on this page must not make this
+         page a search hit for that title. */ -}}
+  {{- /* [params] similarShown caps the tiles a reader sees at once. `lcat project
+         --similar` decides how deep the pool is; this decides how much of it the
+         page opens with. They are different questions: a deployment can compute 24
+         neighbours and still show 8, which is what the reveal button is for.
+
+         The extras are NOT hidden in the markup. Without JavaScript there is no
+         way to reveal them, so a `hidden` attribute in the HTML would bury half
+         the rail for anyone whose script did not run. lcat-similar.js hides them
+         on load and unhides the button in the same pass -- so no-JS gets a longer
+         rail, which is the failure worth having. */ -}}
+  {{- $shown := site.Params.similarShown | default 8 | int -}}
+  <section class="lcat-similar" aria-labelledby="lcat-sim" data-pagefind-ignore
+    {{- if gt (len .) $shown }} data-similar-shown="{{ $shown }}"{{ end }}>
     <h2 id="lcat-sim">{{ i18n "moreLikeThis" }}</h2>
-    <p class="lcat-similar-note">{{ i18n "moreLikeThisNote" }}</p>
-    <ul class="lcat-similar-list">
-      {{ range . }}
-      <li class="lcat-similar-item">
-        <a href="{{ printf "/works/%s/" .id | relLangURL }}">{{ or .title .id }}</a>
-        {{- with .shared }}
-        <span class="lcat-similar-why">{{ i18n "sharesLabel" }}:
-          {{- range . }} <span class="lcat-similar-term">{{ . }}</span>{{ end }}
-        </span>
-        {{- end }}
+    {{- /* The rail is computed, not catalogued, and tasks/284 put that in writing
+           where a reader could see it. The covers took the room, but the claim is
+           not one to drop silently: it stays in the document. */}}
+    <p class="lcat-visually-hidden">{{ i18n "moreLikeThisNote" }}</p>
+    <ul class="lcat-similar-grid">
+      {{ range $i, $n := . }}
+      <li class="lcat-similar-item{{ if ge $i $shown }} lcat-similar-item--extra{{ end }}">
+        <a class="lcat-similar-link" href="{{ printf "/works/%s/" .id | relLangURL }}">
+          <span class="lcat-similar-art">
+            {{- with .cover }}
+            <img class="lcat-similar-cover" src="{{ . | relURL }}" alt="" loading="lazy" decoding="async">
+            {{- else }}
+            {{- /* No cover: a blank tile of the same size, so the grid's baseline
+                   does not jump. It carries no alt text -- the title beneath it
+                   already names the work, and "no cover image" is not information
+                   a reader wants read aloud. */ -}}
+            <span class="lcat-similar-cover lcat-similar-cover--none" aria-hidden="true"></span>
+            {{- end }}
+            {{- with .badge }}
+            <span class="lcat-similar-badge">{{ . }}</span>
+            {{- end }}
+          </span>
+          <span class="lcat-similar-title">{{ or .title .id }}</span>
+          {{- with .contributors }}
+          <span class="lcat-similar-by">
+            {{- range $i, $c := . }}{{ if $i }}, {{ end }}{{ $c.name }}{{ with $c.role }} ({{ . }}){{ end }}{{ end -}}
+          </span>
+          {{- end }}
+          {{- with .shared }}
+          <span class="lcat-visually-hidden">{{ i18n "sharesLabel" }}:
+            {{- range . }} <span class="lcat-similar-term">{{ . }}</span>{{ end }}
+          </span>
+          {{- end }}
+        </a>
       </li>
       {{ end }}
     </ul>
+    {{- if gt (len .) $shown }}
+    <button type="button" class="lcat-similar-more" hidden>{{ i18n "viewMore" }}</button>
+    {{- with resources.Get "lcat-similar.js" }}{{ with . | fingerprint }}
+    <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" defer></script>
+    {{- end }}{{ end }}
+    {{- end }}
   </section>
   {{ end }}
 

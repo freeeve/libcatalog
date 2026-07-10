@@ -72,6 +72,20 @@
 
          Collected first, then derived once per DISTINCT concept: a corpus names
          the same subject on thousands of Works. */ -}}
+  {{- /* The rail's tiles show a cover, a format badge and the contributors, none
+         of which the sidecar carries -- it holds id, title and the shared concepts,
+         and that is the right shape for it: those three are the *scorer's* output,
+         and the rest is the neighbour Work's own data, already here.
+
+         So index the catalog by id once and read each neighbour out of it. The
+         alternative -- widening the sidecar -- would duplicate every cover path
+         and contributor list once per rail that names the Work, and stale them
+         independently of catalog.json. */ -}}
+  {{- $byID := newScratch -}}
+  {{- if $similar -}}
+    {{- range $data.works -}}{{- $byID.SetInMap "w" .id . -}}{{- end -}}
+  {{- end -}}
+  {{- $works := $byID.Get "w" | default dict -}}
   {{- $termLabels := dict -}}
   {{- $termKeys := dict -}}
   {{- $termNative := dict -}}
@@ -219,7 +233,26 @@
           {{- $taken = $taken | append .key -}}
         {{- end -}}
       {{- end -}}
-      {{- $neighbors = $neighbors | append (dict "id" .id "title" .title "shared" $why) -}}
+      {{- /* The badge names the carrier only when it is not the unmarked case. A
+             print book is what a catalog is assumed to hold, so labelling every
+             tile "BOOK" spends the badge's attention on nothing; an audiobook or
+             an ebook is what a reader is scanning the rail for. A Work carrying
+             several carriers gets no badge rather than an arbitrary one. */ -}}
+      {{- $n := index $works .id | default dict -}}
+      {{- $badge := "" -}}
+      {{- with $n.formats -}}
+        {{- if eq (len .) 1 -}}
+          {{- $f := index . 0 -}}
+          {{- if not (in (slice "book" "print") $f) -}}{{- $badge = $f -}}{{- end -}}
+        {{- end -}}
+      {{- end -}}
+      {{- $neighbors = $neighbors | append (dict
+        "id" .id
+        "title" .title
+        "shared" $why
+        "cover" (index ($n.extra | default dict) "cover")
+        "contributors" ($n.contributors | default slice)
+        "badge" $badge) -}}
     {{- end -}}
     {{- $params := dict
       "subtitle" .subtitle
