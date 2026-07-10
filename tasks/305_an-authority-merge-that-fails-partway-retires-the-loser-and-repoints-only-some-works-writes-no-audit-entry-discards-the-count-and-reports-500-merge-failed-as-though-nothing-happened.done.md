@@ -213,3 +213,85 @@ for every heading that has ever existed. And `Terms()` does not filter `mergedIn
 the "dangling subject" this report nearly asserted does not exist: the leftover reference still
 resolves and still labels. Both were found by reading the Go rather than trusting a green-looking
 `FAIL`.
+
+## Outcome
+
+Fixed in **v0.126.0**, commit `2dbf5fb`. Every bullet under **Expected** shipped,
+including the unrelated `409` fallthrough.
+
+### Execute, then stamp
+
+The rewrite loop runs first; the loser is retired only when it returns cleanly.
+Your reading was right and it is what unblocks the fix: nothing in the loop needs
+the marker. `winnerSubject` reads the **vocab index** for the winner, and
+`ReplaceSubjectReference` takes `loserURI` plus that subject. I checked both before
+reordering.
+
+A failure now leaves the heading live and every work either repointed or not.
+Re-issuing the same request resumes -- `AddAuthorityMergeMarker` is idempotent and
+the loop skips works that no longer name the loser -- and that is now pinned by a
+test against the real service with a store that fails on the second work grain.
+
+### The count, the audit, the notify
+
+`MergeResult` gained `Carriers` (works naming the loser when the pass began) and
+`Complete`. `Rewritten < Carriers` is the signal the merge did not finish.
+
+`AUTHORITY_MERGE` is written on **both** paths, carrying
+`partial: rewrote 1 of 2 works, then failed; heading not retired, retry to finish`.
+The trigger notify fires on both paths too, with exactly the grains that were
+rewritten -- you did not ask for this, but it belongs to the same return: a
+half-rewritten corpus never triggered a reprojection, so the built site kept the
+old subjects until something unrelated moved it.
+
+The handler no longer discards `MergeResult`. It distinguishes three outcomes,
+which is one more than expected:
+
+| response | meaning |
+|---|---|
+| `500 merge partially applied: i of n works rewritten; the heading is still live, retry to finish` | resumable |
+| `500 merge failed; nothing was changed` | the first write failed |
+| `500 merge applied, but the vocabulary index was not reloaded` | the store is correct; nothing to redo |
+
+The third exists because folding `Reload`'s error into the error branch would
+otherwise report a **finished** merge as partial. `Complete` separates them.
+
+### `409` fallthrough
+
+Gone. Unclassified errors -- a read failure on the loser grain, a `SummariesOf`
+failure -- answered `409` with the raw error string. That is the tasks/272 shape on
+the one path 272 did not enumerate, exactly as you said. They are server faults and
+answer `500`.
+
+### Mutation-tested, and one thing you asked for that the tests cannot see
+
+- retire before rewriting (the original bug): `TestFailedMergeLeavesTheHeadingLive`
+  fails.
+- audit on the success path only: `TestFailedMergeIsAudited` fails.
+- notify on the success path only: `TestFailedMergeNotifiesTheGrainsItRewrote` fails.
+- handler answers a flat `merge failed`: two tests fail, including the tasks/272 one.
+
+- **reload on the success path only: nothing fails.** Your third bullet -- "reload on
+  the way out, not on the way through" -- is *subsumed by the reorder*. With the
+  marker written last, a failed merge changes no authority grain, so there is
+  nothing for the index to be stale about. The index/disk disagreement you measured
+  was a symptom of the write order, not of where `Reload` sat. Merge still reloads on
+  both paths as defence in depth, and `TestIndexAgreesWithTheStoreAfterEitherOutcome`
+  pins the invariant an operator can see -- but its comment says plainly that it
+  cannot observe the reload. A test that passes under its own mutation is not
+  evidence, and it should not be presented as any.
+
+Gates: `gofmt -s`, `go vet`, root + backend `go test ./...`, 288 SPA unit tests,
+`svelte-check`, and `TestAPIReferenceMatchesRouter`.
+
+### For your harness
+
+`t305` should go green. `probe_authority_merge_partial.mjs`'s `M3`/`M4` will now see
+the heading **live** after the failed merge, `M5` an `AUTHORITY_MERGE` entry whose
+note begins `partial:`, and the 500 body carrying `rewritten`, `carriers` and
+`complete`.
+
+**`TestAuthorityMergeStoreFailureIsNotAConflict` changed its expected message** from
+`merge failed` to `merge failed; nothing was changed`. Anything of yours that pins
+the old literal needs updating. `docs/api.md` documents every code under
+"`POST /v1/authorities/merge`: the heading is retired last".
