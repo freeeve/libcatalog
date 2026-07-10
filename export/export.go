@@ -12,6 +12,7 @@ package export
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
@@ -20,8 +21,10 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -61,8 +64,15 @@ type Options struct {
 // many works, with per-artifact integrity and record counts.
 type Manifest struct {
 	Generated string `json:"generated"`
-	Works     int    `json:"works"`
-	Files     []File `json:"files"`
+	// Works counts the Works the download describes -- the visible ones, so this
+	// number is comparable with catalog.json's. It used to count grains, which
+	// cannot disagree with anything: a build that published 3274 records for a
+	// 31-work catalog reported 3274 and looked healthy (tasks/304).
+	Works int `json:"works"`
+	// Hidden counts the grains held back as suppressed or tombstoned. Recorded so
+	// a takedown is auditable from the build output rather than inferable from it.
+	Hidden int    `json:"hidden"`
+	Files  []File `json:"files"`
 }
 
 // File is one artifact's manifest entry; the sha256 is over the compressed
@@ -91,18 +101,38 @@ func Run(opts Options) (*Manifest, error) {
 		return nil, fmt.Errorf("export: no grains under %s", opts.In)
 	}
 
-	var files []File
-	nq, err := copyGzip(filepath.Join(opts.In, "catalog.nq"), filepath.Join(opts.Out, "catalog.nq.gz"), opts.PublicSources, opts.Log)
+	// `lcat project` drops a suppressed or tombstoned Work before it reaches
+	// catalog.json, and every artifact derived from it. The download path used to
+	// publish straight from the store, so a takedown removed a record from the
+	// OPAC and left it in the RDF, the MARC and the covers (tasks/304). Apply the
+	// same stance here, once, and let every artifact below read the result.
+	visible, hiddenIRIs, err := partitionByVisibility(grains)
 	if err != nil {
 		return nil, err
 	}
-	nq.Records = len(grains) // one Work per grain
-	files = append(files, nq)
+	hidden := len(hiddenIRIs)
+	if len(visible) == 0 {
+		return nil, fmt.Errorf("export: all %d works are suppressed or tombstoned; refusing to publish an empty catalog", hidden)
+	}
+	if hidden > 0 && opts.Log != nil {
+		fmt.Fprintf(opts.Log, "export: held back %d of %d works as hidden (suppressed or tombstoned)\n", hidden, len(grains))
+	}
 
-	if err := copyCovers(opts.In, opts.CoversOut); err != nil {
+	var files []File
+	nq, err := writeNQ(visible, hiddenIRIs, filepath.Join(opts.Out, "catalog.nq.gz"), opts.PublicSources)
+	if err != nil {
 		return nil, err
 	}
-	mrc, xml, err := emitMARC(grains, opts.Out, opts.Log, opts.OrgCode)
+	files = append(files, nq)
+
+	if err := copyCovers(opts.In, opts.CoversOut, visible); err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(visible))
+	for _, g := range visible {
+		paths = append(paths, g.path)
+	}
+	mrc, xml, err := emitMARC(paths, opts.Out, opts.Log, opts.OrgCode)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +140,8 @@ func Run(opts Options) (*Manifest, error) {
 
 	return &Manifest{
 		Generated: time.Now().UTC().Format(time.RFC3339),
-		Works:     len(grains),
+		Works:     len(visible),
+		Hidden:    hidden,
 		Files:     files,
 	}, nil
 }
@@ -176,57 +207,139 @@ func (g *gzFile) finish(records int) (File, error) {
 // allowlist on the way when one is set. Line-based: source names are plain
 // strings without quotes or escapes by convention, so the literal is the span
 // between the first and last '"'.
-func copyGzip(src, dst string, public map[string]bool, log io.Writer) (File, error) {
-	in, err := os.Open(src)
-	if err != nil {
-		return File{}, err
+// visibleGrain is one Work the projector would publish, with the cover blob its
+// grain claims ("" when it claims none).
+type visibleGrain struct {
+	path  string
+	id    string
+	cover string
+}
+
+// partitionByVisibility reads each grain once and splits it on the stance
+// `lcat project` already honours (project.go's tombstoned/suppressed guards).
+// The visible grains come back sorted by work id, which is the order every
+// writer of catalog.nq uses (bibframe.SerializeGrains), so an all-visible corpus
+// exports the same bytes it did when this was a line copy of catalog.nq.
+//
+// hiddenIRIs is the set of Work IRIs the download must not name at all, even from
+// a visible Work's own grain: see writeNQ.
+func partitionByVisibility(paths []string) (visible []visibleGrain, hiddenIRIs map[string]bool, err error) {
+	visible = make([]visibleGrain, 0, len(paths))
+	hiddenIRIs = map[string]bool{}
+	for _, p := range paths {
+		id := strings.TrimSuffix(filepath.Base(p), ".nq")
+		grain, err := os.ReadFile(p)
+		if err != nil {
+			return nil, nil, err
+		}
+		vis, err := bibframe.Visibility(grain, id)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %w", p, err)
+		}
+		// Both stances hide the Work from projection. A tombstone's id is public
+		// in redirects.json by design, but "this id is gone" is not "here is what
+		// it was", so the record leaves the downloads too (tasks/304).
+		if vis.Tombstoned || vis.Suppressed {
+			hiddenIRIs[bibframe.WorkIRI(id)] = true
+			continue
+		}
+		cover, err := bibframe.CoverOf(grain, id)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %w", p, err)
+		}
+		visible = append(visible, visibleGrain{path: p, id: id, cover: cover})
 	}
-	defer in.Close()
+	sort.Slice(visible, func(i, j int) bool { return visible[i].id < visible[j].id })
+	return visible, hiddenIRIs, nil
+}
+
+// workIRIRef matches a minted Work IRI wherever it appears in a quad. Minted
+// Works are `#<id>Work` fragment IRIs (the identity.ScanGrain convention that
+// project.go keys on); relation stubs are blank or external nodes and never match.
+var workIRIRef = regexp.MustCompile(`<(#w[0-9a-z]+Work)>`)
+
+// namesHiddenWork reports whether a quad mentions a Work the download omits.
+func namesHiddenWork(line string, hidden map[string]bool) bool {
+	if len(hidden) == 0 {
+		return false
+	}
+	for _, m := range workIRIRef.FindAllStringSubmatch(line, -1) {
+		if hidden[m[1]] {
+			return true
+		}
+	}
+	return false
+}
+
+// writeNQ builds the nq download from the visible grains rather than copying the
+// catalog.nq on disk.
+//
+// Filtering the copy line-by-line was the obvious alternative and it does not
+// work: a grain's Instance, its titles, its notes and its provision activity are
+// subjects of their own (`<#...Instance>`), and none of them carries the work id.
+// Dropping only the lines that name the id leaves 24 of a 33-quad record on the
+// public site. The merge of the visible grains is the whole record or none of it.
+//
+// Rebuilding is also what catalog.nq *is* -- since tasks/298 every writer emits
+// exactly this merge, so an all-visible corpus produces byte-identical output,
+// pinned by TestNothingIsHeldBackWhenNothingIsHidden. It costs a second read of
+// each grain and removes the export's dependence on a file it did not write:
+// there is no longer a stale catalog.nq for the download to inherit.
+//
+// Dropping the hidden grains is not sufficient. A *visible* Work's grain may name
+// a hidden one -- `bf:hasPart <#wHiddenWork>` -- and that quad would survive,
+// publishing the hidden id and a statement about it. The projector strips exactly
+// these (resolveRelations keeps only links whose target is still in the
+// projection), so the download does too.
+func writeNQ(visible []visibleGrain, hidden map[string]bool, dst string, public map[string]bool) (File, error) {
 	g, w, err := newGzFile(dst)
 	if err != nil {
 		return File{}, err
 	}
 	sourcesPred := "<" + bibframe.ExtraPred + "sources>"
-	sc := bufio.NewScanner(in)
-	sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
 	bw := bufio.NewWriter(w)
-	stale := false
-	for sc.Scan() {
-		line := sc.Text()
-		if !stale && traversalLabel.MatchString(line) {
-			stale = true
-		}
-		if public != nil && strings.Contains(line, sourcesPred) {
-			line = filterSourcesQuad(line, public)
-			if line == "" {
-				continue
-			}
-		}
-		if _, err := bw.WriteString(line + "\n"); err != nil {
+	var merged bytes.Buffer
+	for _, vg := range visible {
+		grain, err := os.ReadFile(vg.path)
+		if err != nil {
 			return File{}, err
 		}
-	}
-	if err := sc.Err(); err != nil {
-		return File{}, err
-	}
-	// This file is one we did not write. Since tasks/298 every writer of
-	// catalog.nq emits grain-derived labels, so `_:b1`-style traversal labels mean
-	// the file predates that and its sha256 will move on the next rebuild for a
-	// corpus that has not changed -- the churn tasks/291 was filed about. Say so;
-	// the fix is one `lcat serialize` away.
-	if stale && log != nil {
-		fmt.Fprintf(log, "export: %s carries traversal-order blank-node labels, so its sha256 will move on the next rebuild even for a catalog that did not change. It was written by a pre-v0.120 lcat, or by an ingest step whose serialize never ran. Regenerate it from the grains: lcat serialize --dir %s\n", src, filepath.Dir(src))
+		merged.Reset()
+		if err := bibframe.WriteMergedGrain(&merged, vg.id, grain); err != nil {
+			return File{}, fmt.Errorf("%s: %w", vg.path, err)
+		}
+		if public == nil && len(hidden) == 0 {
+			if _, err := bw.Write(merged.Bytes()); err != nil {
+				return File{}, err
+			}
+			continue
+		}
+		sc := bufio.NewScanner(bytes.NewReader(merged.Bytes()))
+		sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
+		for sc.Scan() {
+			line := sc.Text()
+			if namesHiddenWork(line, hidden) {
+				continue
+			}
+			if public != nil && strings.Contains(line, sourcesPred) {
+				line = filterSourcesQuad(line, public)
+				if line == "" {
+					continue
+				}
+			}
+			if _, err := bw.WriteString(line + "\n"); err != nil {
+				return File{}, err
+			}
+		}
+		if err := sc.Err(); err != nil {
+			return File{}, err
+		}
 	}
 	if err := bw.Flush(); err != nil {
 		return File{}, err
 	}
-	return g.finish(0)
+	return g.finish(len(visible))
 }
-
-// traversalLabel matches the `_:b1, _:b2, …` labels a shared rdf.Encoder assigns
-// in traversal order. No writer emits them since tasks/298; a file that carries
-// them is stale.
-var traversalLabel = regexp.MustCompile(`(^|\s)_:b\d+(\s|\.)`)
 
 // filterSourcesQuad rewrites one extra/sources quad's literal to the public
 // allowlist, or returns "" to drop the quad when nothing public remains.
@@ -332,7 +445,19 @@ func emitRecord(mw *iso2709.Writer, xw *marcxml.Writer, path string, rec *codex.
 // copyCovers flattens data/covers/<shard>/<file> under in to out/<file>,
 // matching the covers/ URLs the OPAC's cover slot loads (tasks/215). A
 // missing covers tree is a no-op -- most catalogs have no uploads.
-func copyCovers(in, out string) error {
+// copyCovers publishes exactly the covers the visible Works claim.
+//
+// It used to walk data/covers and copy every blob it found, which published the
+// cover of every suppressed and tombstoned Work at covers/<workID>.<ext> -- a
+// guessable URL, and for a tombstone a *derivable* one, since redirects.json
+// names the id (tasks/304). `lcat covers --reap` cannot collect these: a hidden
+// Work still has a grain and still claims its cover, so it is an orphan by none
+// of the reaper's three reasons -- and reaping a blob after it has reached a CDN
+// does not unpublish it.
+//
+// Driving from the claims also drops the tasks/243 stale-format residue for
+// free: a Work names one cover, and any other blob bearing its id is not it.
+func copyCovers(in, out string, visible []visibleGrain) error {
 	if out == "" {
 		return nil
 	}
@@ -343,14 +468,23 @@ func copyCovers(in, out string) error {
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		return err
 	}
-	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
+	for _, vg := range visible {
+		if vg.cover == "" {
+			continue
 		}
-		data, err := os.ReadFile(path)
+		// The claim is a site-relative URL ("covers/<id>.<ext>"); the blob lives
+		// under data/covers by the same base name.
+		name := path.Base(vg.cover)
+		data, err := os.ReadFile(filepath.Join(root, name))
+		if os.IsNotExist(err) {
+			continue // the Work claims a cover the store no longer holds
+		}
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(filepath.Join(out, filepath.Base(path)), data, 0o644)
-	})
+		if err := os.WriteFile(filepath.Join(out, name), data, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
 }

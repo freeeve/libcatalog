@@ -12,9 +12,18 @@ import (
 
 // runExport derives the downloadable artifacts from an ingest output root
 // (tasks/172): catalog.nq.gz, catalog.mrc.gz, catalog.xml.gz, and an
-// integrity manifest for the downloads page. --public-sources applies the
-// same provenance allowlist to the nq download that `lcat project` applies
-// to catalog.json; the on-disk graph of record stays complete.
+// integrity manifest for the downloads page.
+//
+// These artifacts are the public site's, so they describe the public collection:
+// a suppressed or tombstoned Work is absent from all of them and its cover is not
+// copied, exactly as `lcat project` omits it from catalog.json (tasks/304). The
+// complete graph of record -- every Work, hidden or not -- lives in the grain tree
+// and is reachable through the librarian-gated backend export service. It is never
+// written into a directory the site serves.
+//
+// --public-sources applies the same provenance allowlist to the nq download that
+// `lcat project` applies to catalog.json. Both filters answer the same question:
+// what may the public see. Neither touches the grains.
 func runExport(args []string) error {
 	fs := flag.NewFlagSet("export", flag.ExitOnError)
 	in := fs.String("in", "data/out", "grain root (contains data/works and the catalog.nq derived from it)")

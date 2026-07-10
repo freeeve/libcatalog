@@ -65,13 +65,38 @@ several ingests, ingest's copy holds only the last run's works). Both emit the
 **same bytes** for the same grains: each grain's own canonical N-Quads, with its
 blank-node labels namespaced by work id (tasks/291, tasks/298).
 
-That matters because `export` gzips whichever `catalog.nq` it finds. Until
-v0.121.2 the two writers disagreed -- ingest re-encoded the graphs and emitted
-traversal-order `_:b1, _:b2, …` labels -- so a pipeline that ran ingest without
-serialize published a 60MB download whose sha256 moved on every rebuild of an
-unchanged catalog. Running `serialize` after a single-provider ingest is now a
-byte-for-byte no-op, and `export` warns if it finds a `catalog.nq` an older
-`lcat` left behind.
+Until v0.121.2 the two writers disagreed -- ingest re-encoded the graphs and
+emitted traversal-order `_:b1, _:b2, …` labels -- so a pipeline that ran ingest
+without serialize published a 60MB download whose sha256 moved on every rebuild
+of an unchanged catalog. Running `serialize` after a single-provider ingest is
+now a byte-for-byte no-op.
+
+`export` no longer reads `catalog.nq` at all. It rebuilds the download from the
+grains it publishes, which is the same merge by construction, so an all-visible
+corpus exports the same bytes it always did (pinned by
+`TestNothingIsHeldBackWhenNothingIsHidden`). A stale, corrupt or absent
+`catalog.nq` can no longer reach a reader, and the download inherits nothing from
+a file `lcat` did not write on this run.
+
+### The downloads describe the public collection
+
+`lcat project` drops a suppressed or tombstoned Work before it reaches
+`catalog.json`, so it is absent from the OPAC, the facets, the search index and
+the "more like this" rail. Until v0.125.0 the exporter published from the store
+instead, so the same Work kept its cover at a guessable URL, its complete RDF in
+`catalog.nq.gz`, and its MARC record in `catalog.mrc.gz` and `catalog.xml.gz`
+(tasks/304). Suppression is the takedown button; it now removes a record from the
+downloads too.
+
+Two consequences worth knowing. Covers are copied from what the **visible grains
+claim**, not by walking `data/covers`, so an unreferenced blob -- the tasks/243
+stale-format residue -- is never published either; `lcat covers --reap` cleans the
+store, but it cannot unpublish. And the manifest records `works` (what shipped)
+beside `hidden` (what was held back), so a build that publishes 3,274 records for
+a 31-work catalog says so in the build log instead of looking healthy.
+
+The grain tree remains the complete graph of record. Both stances are reversible,
+and staff reach every Work through the librarian-gated backend export service.
 
 ### Public provenance allowlist
 

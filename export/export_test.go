@@ -51,6 +51,29 @@ func corpus(t *testing.T, recs ...*codex.Record) string {
 	return dir
 }
 
+// plantSourcesQuad appends a provenance attribution to some Work's grain, the
+// way an enrichment pass leaves one. It goes in a grain, not in catalog.nq:
+// since tasks/298 catalog.nq is the merge of the grains, and since tasks/304 the
+// export derives the nq download from them rather than copying that file, so a
+// quad that exists only in catalog.nq exists nowhere the exporter looks.
+func plantSourcesQuad(t *testing.T, root, sources string) {
+	t.Helper()
+	paths, err := grainPaths(root)
+	if err != nil || len(paths) == 0 {
+		t.Fatalf("no grains under %s: %v", root, err)
+	}
+	id := strings.TrimSuffix(filepath.Base(paths[0]), ".nq")
+	quad := "<" + bibframe.WorkIRI(id) + "> <" + bibframe.ExtraPred + "sources> \"" + sources + "\" <editorial:> .\n"
+	f, err := os.OpenFile(paths[0], os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(quad); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+}
+
 // gunzip reads a gzipped artifact fully.
 func gunzip(t *testing.T, path string) string {
 	t.Helper()
@@ -80,15 +103,7 @@ func TestRunExportsArtifacts(t *testing.T) {
 	)
 	// A provenance extra like an enrichment pass would leave: one public
 	// source, one community source that must not leak into the download.
-	quad := "<urn:test:w1> <" + bibframe.ExtraPred + "sources> \"loc, mombian\" <feed:marc> .\n"
-	f, err := os.OpenFile(filepath.Join(in, "catalog.nq"), os.O_APPEND|os.O_WRONLY, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f.WriteString(quad); err != nil {
-		t.Fatal(err)
-	}
-	f.Close()
+	plantSourcesQuad(t, in, "loc, mombian")
 
 	out := t.TempDir()
 	var log bytes.Buffer
@@ -131,15 +146,7 @@ func TestRunExportsArtifacts(t *testing.T) {
 // corpus through untouched.
 func TestRunKeepsSourcesWithoutAllowlist(t *testing.T) {
 	in := corpus(t, bookRecord("c1", "9780000000011", "Author, A.", "First Book"))
-	quad := "<urn:test:w1> <" + bibframe.ExtraPred + "sources> \"loc, mombian\" <feed:marc> .\n"
-	f, err := os.OpenFile(filepath.Join(in, "catalog.nq"), os.O_APPEND|os.O_WRONLY, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f.WriteString(quad); err != nil {
-		t.Fatal(err)
-	}
-	f.Close()
+	plantSourcesQuad(t, in, "loc, mombian")
 
 	out := t.TempDir()
 	if _, err := Run(Options{In: in, Out: out, Log: io.Discard}); err != nil {
@@ -204,47 +211,61 @@ func FuzzFilterSourcesQuad(f *testing.F) {
 	})
 }
 
-// tasks/298: export gzips a catalog.nq it did not write. Every writer now emits
-// grain-derived labels, but a tree left by an older lcat still holds the churning
-// dump, and exporting it silently republishes a moving sha256. Say so once.
-func TestExportWarnsAboutAStaleCatalogNQ(t *testing.T) {
-	in := corpus(t, bookRecord("c1", "9780000000011", "Author, A.", "First Book"))
-	// Overwrite catalog.nq the way a pre-v0.120 lcat left it: traversal labels.
-	stale := "<urn:test:w1> <http://ex.org/p> _:b1 <feed:marc> .\n_:b1 <http://ex.org/q> \"x\" <feed:marc> .\n"
-	if err := os.WriteFile(filepath.Join(in, "catalog.nq"), []byte(stale), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	var log bytes.Buffer
-	if _, err := Run(Options{In: in, Out: t.TempDir(), Log: &log}); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(log.String(), "traversal-order blank-node labels") {
-		t.Errorf("no warning for a stale catalog.nq; log was %q", log.String())
-	}
-	if !strings.Contains(log.String(), "lcat serialize") {
-		t.Errorf("the warning does not say how to fix it: %q", log.String())
-	}
-}
-
-// The warning must not fire on what ingest writes today, or it is noise that
-// teaches operators to ignore it.
-func TestExportDoesNotWarnAboutAFreshCatalogNQ(t *testing.T) {
+// tasks/298 warned when export gzipped a catalog.nq written by a pre-v0.120 lcat,
+// because the download inherited that file's churning sha256. tasks/304 retired
+// the warning by retiring its cause: the nq download is now built from the grains,
+// so a stale -- or absent, or hand-corrupted -- catalog.nq cannot reach a reader.
+//
+// This replaces both warning tests. It asserts the property they were guarding,
+// rather than the diagnostic they emitted.
+func TestNQDownloadIgnoresTheCatalogNQOnDisk(t *testing.T) {
 	in := corpus(t,
 		bookRecord("c1", "9780000000011", "Author, A.", "First Book"),
 		bookRecord("c2", "9780000000028", "Author, B.", "Second Book"),
 	)
-	nq, err := os.ReadFile(filepath.Join(in, "catalog.nq"))
+	good := t.TempDir()
+	want, err := Run(Options{In: in, Out: good, Log: io.Discard})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(nq, []byte("_:")) {
-		t.Skip("fixture corpus has no blank nodes, so this proves nothing")
-	}
-	var log bytes.Buffer
-	if _, err := Run(Options{In: in, Out: t.TempDir(), Log: &log}); err != nil {
+	wantNQ := gunzip(t, filepath.Join(good, "catalog.nq.gz"))
+
+	// A pre-v0.120 dump: traversal labels, a subject no grain holds, and nothing
+	// of the real corpus in it.
+	stale := "<urn:test:ghost> <http://ex.org/p> _:b1 <feed:marc> .\n_:b1 <http://ex.org/q> \"leak\" <feed:marc> .\n"
+	if err := os.WriteFile(filepath.Join(in, "catalog.nq"), []byte(stale), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(log.String(), "traversal-order") {
-		t.Errorf("warned about a catalog.nq ingest just wrote: %q", log.String())
+	out := t.TempDir()
+	got, err := Run(Options{In: in, Out: out, Log: io.Discard})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotNQ := gunzip(t, filepath.Join(out, "catalog.nq.gz"))
+
+	if gotNQ != wantNQ {
+		t.Errorf("the download changed when catalog.nq did; it is still reading that file")
+	}
+	if strings.Contains(gotNQ, "urn:test:ghost") || strings.Contains(gotNQ, "leak") {
+		t.Error("the stale catalog.nq's own quads reached the download")
+	}
+	if strings.Contains(gotNQ, "_:b1") {
+		t.Error("traversal-order blank labels reached the download")
+	}
+	if got.Works != want.Works || got.Files[0].SHA256 != want.Files[0].SHA256 {
+		t.Errorf("manifest moved: works %d->%d, sha %s -> %s",
+			want.Works, got.Works, want.Files[0].SHA256, got.Files[0].SHA256)
+	}
+
+	// And with catalog.nq gone entirely.
+	if err := os.Remove(filepath.Join(in, "catalog.nq")); err != nil {
+		t.Fatal(err)
+	}
+	none := t.TempDir()
+	if _, err := Run(Options{In: in, Out: none, Log: io.Discard}); err != nil {
+		t.Fatalf("export needs a catalog.nq it no longer reads: %v", err)
+	}
+	if gunzip(t, filepath.Join(none, "catalog.nq.gz")) != wantNQ {
+		t.Error("the download differs when catalog.nq is absent")
 	}
 }
