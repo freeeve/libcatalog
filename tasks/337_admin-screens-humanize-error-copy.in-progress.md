@@ -85,3 +85,39 @@ Retest: `t337` drives the Vocabularies screen on :8481, opens the register form,
 source with a non-http snapshot URL, and reads the rendered error banner -- STILL-BROKEN while
 it begins with a `word:` package prefix (`vocabsrc:`), FIXED once humanized. The bad URL is
 rejected 400, so nothing is created and no cleanup is needed.
+
+## Outcome -- shipped in libcat v0.147.1 (patch)
+
+Every error-surfacing admin screen now routes its banner copy through
+`humanApiMessage(e, fallback)` instead of assigning the raw `ApiError.message`.
+`humanApiMessage`'s regex was widened to `^[a-z]+: (invalid (request|source): )?`
+so `vocabsrc: invalid source: urls must be http(s)` fully strips to
+`Urls must be http(s)` (not the half-stripped `Invalid source:`).
+
+**Fixed twelve screens, not the nine reported.** The report listed nine; a new
+source-scan test (below) surfaced three more with the same leak that the manual
+census missed -- `NewRecord.svelte`, `Queue.svelte`, `WorkEditor.svelte`
+(clone/split). Fixing the class, not the enumerated instances, is the whole
+point. Screens with simple `e instanceof ApiError ? e.message : "..."` became
+`humanApiMessage(e, "...")`; interpolated ones (`decide failed: <raw>`,
+`audit load failed: <raw>`, Queue's `apply/publish/folk update failed`) keep
+their context wrapper but humanize the interpolated part. Five screens no longer
+reference `ApiError` at all and dropped it from their imports.
+
+**Anti-drift guard.** `api.test.ts` now has a `describe` that globs every
+`/src/screens/*.svelte` and fails if any line pairs `instanceof ApiError` with a
+bare `e.message` -- so the next screen added with a raw banner fails CI instead of
+shipping the leak. Plus unit tests pinning the widened `humanApiMessage`
+(package-prefix strip, `invalid source:` strip, bare-prefix strip, empty-strip
+fallback).
+
+- Backend is unchanged: the sentinel prefixes (`batch.ErrValidation`,
+  `vocabsrc.ErrValidation`, `copycat.ErrValidation`) are internal by design and
+  still ride the `error` field; the UI humanizes at the edge, which is where 197
+  put the helper.
+
+**Verified live on :8481** (Playwright): opened the Vocabularies register form,
+submitted `snapshotUrl: "notaurl"`, and the banner reads `Urls must be http(s)`
+with no `vocabsrc:` prefix. The backend still returns
+`400 {"error":"vocabsrc: invalid source: urls must be http(s)"}` (unchanged).
+UI suite 347/347, svelte-check clean.
