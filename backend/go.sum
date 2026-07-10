@@ -61,8 +61,8 @@ github.com/freeeve/go-ivfpq v0.1.0 h1:m4HUFIXTqQajgcw26Pc+xdVSWv66DSkucrkyBJyB+e
 github.com/freeeve/go-ivfpq v0.1.0/go.mod h1:hIDRgFpPy2P3Sk0q4Y/8XdCeQLuMCja+LtNa3WYM/Ks=
 github.com/freeeve/go-stemmers v0.0.0-20260606195828-3c78df9017f5 h1:0wX7Qz3XG3seGek1UnRO32IKF5tRoJB35LxCUCNXI5k=
 github.com/freeeve/go-stemmers v0.0.0-20260606195828-3c78df9017f5/go.mod h1:dcWXNghdzPDH46QYDvDtDOcXIDhieNz0jNdM7T87MZk=
-github.com/freeeve/libcat v0.131.0 h1:DtEU7c3bPkhSDuiqN44vR40Ey/8jQ1irU2wHT1zQj8A=
-github.com/freeeve/libcat v0.131.0/go.mod h1:RW77cw27Xwk6ijrgyLnRW85SFH23AEWFQ593CG6SjNc=
+github.com/freeeve/libcat v0.132.0 h1:3Rjg4XtweY1VXRwz+ev+i0K+gQufrZADeW4I2u5ElkU=
+github.com/freeeve/libcat v0.132.0/go.mod h1:RW77cw27Xwk6ijrgyLnRW85SFH23AEWFQ593CG6SjNc=
 github.com/freeeve/libcodex v0.25.0 h1:JHfCwqfOZ/K4RRBjtxVBPii/U3VVeIppo8QubGIlwJQ=
 github.com/freeeve/libcodex v0.25.0/go.mod h1:CfAOUn99dnS35oL3NBI99NOtTcPgltlg1MSbudNgjrA=
 github.com/freeeve/roaringrange v0.30.0 h1:OMHTiudHck8egR269J89wkHEvtf4i7GwV+72hZz6Fwg=
