@@ -191,6 +191,26 @@ input, rate-limited behind a proof-of-work challenge issued by
 `GET /v1/terms/resolve` answer authority lookups without a token -- the editor's
 chip renderer and the published site's term pages both read them.
 
+### `GET /v1/works`: retired records are excluded by default
+
+`?tombstoned=` selects which records the search runs over:
+
+| value | meaning |
+|---|---|
+| `exclude` (default, or omitted) | live records only |
+| `include` | live and retired together |
+| `only` | retired records only -- the audit question, "what did I retire?" |
+
+Anything else is a `400`, rather than a silent fall back to the default: a client
+that asked for `only` and was shown `exclude` would read the empty list as "the
+records are gone" (tasks/280).
+
+The filter runs **before** the query, before the facet counts, and before paging,
+so `total`, `matched`, `facets` and the `works` window all describe the same set.
+This is why `total` is not "everything in the catalog": under the default it is
+the number of live records. A client filtering the response instead would report
+`matched: 4` and render one row.
+
 ### Everything else
 
 ### `POST /v1/review`: `reviewed` means applied

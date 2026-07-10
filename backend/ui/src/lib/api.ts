@@ -175,10 +175,26 @@ export function decideWithdrawn(workId: string, action: "keep" | "suppress"): Pr
  *  groups AND. */
 export type WorkFilters = Record<string, string[]>;
 
-/** Work search over the grain tree (librarian); offset pages the matches. */
-export function fetchWorks(q: string, limit = 50, offset = 0, filters: WorkFilters = {}): Promise<WorksPage> {
+/** How the works list treats retired records (tasks/280). The server defaults to
+ *  `exclude`: a tombstone says "this record is retired", and a cataloger
+ *  searching for a book is not looking for one. `only` answers "what did I
+ *  retire?". */
+export type TombstoneMode = "exclude" | "include" | "only";
+
+/** Work search over the grain tree (librarian); offset pages the matches.
+ *
+ *  `tombstoned` is sent to the server rather than filtered here: a client-side
+ *  filter over a paged response reports "10 matches" and renders one. */
+export function fetchWorks(
+  q: string,
+  limit = 50,
+  offset = 0,
+  filters: WorkFilters = {},
+  tombstoned: TombstoneMode = "exclude",
+): Promise<WorksPage> {
   const params = new URLSearchParams({ q, limit: String(limit) });
   if (offset > 0) params.set("offset", String(offset));
+  if (tombstoned !== "exclude") params.set("tombstoned", tombstoned);
   for (const [group, values] of Object.entries(filters)) {
     for (const v of values) params.append(group, v);
   }

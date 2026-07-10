@@ -5,7 +5,7 @@
   // editor lands on the same row; a stale list refetches in the background
   // and re-finds the selected work by id.
   import { onMount } from "svelte";
-  import { fetchWorks, resolveTermURIs, ApiError, type WorkFilters } from "../lib/api";
+  import { fetchWorks, resolveTermURIs, ApiError, type TombstoneMode, type WorkFilters } from "../lib/api";
   import { getConfig } from "../lib/config";
   import { bindKeys, pushScope, popScope } from "../lib/keyboard";
   import { navigate, parseHash } from "../lib/router";
@@ -30,7 +30,15 @@
     loadedAt: 0,
     filters: {} as WorkFilters,
     facets: {} as Record<string, FacetCount[]>,
+    // Retired records are hidden until asked for (tasks/280). This lives in
+    // screenState rather than the hash or storage: it survives a trip into a
+    // work and back, so the checkbox never contradicts the rows beneath it,
+    // and it resets on reload and on sign-out. A "show tombstoned" that
+    // remembered itself across sessions would quietly re-bury the catalog.
+    showTombstoned: false,
   }));
+
+  const tombstoned = $derived<TombstoneMode>(st.showTombstoned ? "include" : "exclude");
 
   // Facet rail copy (tasks/168): fixed groups get cataloger-shaped labels;
   // subject values are IRIs resolved to term labels below. The deployment's
@@ -145,6 +153,23 @@
     void search(st.q, false);
   }
 
+  /** Shows or hides retired records (tasks/280).
+   *
+   *  Hiding them also drops a selected visibility=tombstoned facet: that pair
+   *  of settings can only ever match nothing, and an empty list is read as "the
+   *  records are gone", not as "your two filters disagree". */
+  function setShowTombstoned(on: boolean): void {
+    st.showTombstoned = on;
+    if (!on) {
+      const vis = (st.filters.visibility ?? []).filter((v) => v !== "tombstoned");
+      const rest = { ...st.filters };
+      if (vis.length > 0) rest.visibility = vis;
+      else delete rest.visibility;
+      st.filters = rest;
+    }
+    void search(st.q, false);
+  }
+
   const filtersActive = $derived(Object.values(st.filters).some((v) => v.length > 0));
 
   let error = $state("");
@@ -206,7 +231,7 @@
     error = "";
     const keepId = refresh ? st.works[st.selected]?.WorkID : undefined;
     try {
-      const page = await fetchWorks(query, 50, 0, st.filters);
+      const page = await fetchWorks(query, 50, 0, st.filters, tombstoned);
       if (t.stale) return;
       st.works = page.works ?? [];
       st.total = page.total;
@@ -233,7 +258,7 @@
     loading = true;
     error = "";
     try {
-      const page = await fetchWorks(st.q, 50, st.works.length, st.filters);
+      const page = await fetchWorks(st.q, 50, st.works.length, st.filters, tombstoned);
       if (t.stale) return;
       const seen = new Set(st.works.map((w) => w.WorkID));
       st.works = [...st.works, ...(page.works ?? []).filter((w) => !seen.has(w.WorkID))];
@@ -262,9 +287,15 @@
   <p class="lede">
     <label for="work-q" class="muted">Title, contributor, tag, ISBN, or id</label>
   </p>
-  <input id="work-q" type="search" bind:value={st.q} oninput={onInput} placeholder="Search works…" autocomplete="off" />
+  <div class="query-row">
+    <input id="work-q" type="search" bind:value={st.q} oninput={onInput} placeholder="Search works…" autocomplete="off" />
+    <label class="show-tombstoned">
+      <input type="checkbox" checked={st.showTombstoned} onchange={(e) => setShowTombstoned(e.currentTarget.checked)} />
+      <span>Show tombstoned</span>
+    </label>
+  </div>
   <p class="muted status" aria-live="polite">
-    {#if loading && st.works.length === 0}Searching…{:else if error}<span class="error">{error}</span>{:else}{st.works.length} of {st.matched} matched · {st.total} in catalog{/if}
+    {#if loading && st.works.length === 0}Searching…{:else if error}<span class="error">{error}</span>{:else}{st.works.length} of {st.matched} matched · {st.total} {st.showTombstoned ? "in catalog" : "live in catalog"}{/if}
     {#if !error && st.works.length > 0}
       · <a href={st.q.trim() ? "#/exports?kind=search&q=" + encodeURIComponent(st.q.trim()) : "#/exports?kind=all"}>Export these results…</a>
     {/if}
@@ -317,10 +348,25 @@
 </main>
 
 <style>
+  .query-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+  }
   #work-q {
-    width: 100%;
+    flex: 1 1 18rem;
     max-width: 28rem;
     font-size: 1rem;
+  }
+  .show-tombstoned {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    font-size: var(--fs-meta);
+    color: var(--ink-muted);
+    white-space: nowrap;
+    cursor: pointer;
   }
   .results-layout {
     display: grid;

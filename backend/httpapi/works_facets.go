@@ -45,6 +45,7 @@ type facetGroup struct {
 var reservedWorkParams = map[string]bool{
 	"visibility": true, "holdings": true, "needs": true, "subject": true,
 	"tag": true, "q": true, "limit": true, "offset": true,
+	"tombstoned": true,
 }
 
 // workFacetGroups assembles one request's facet groups: the five built-ins,
