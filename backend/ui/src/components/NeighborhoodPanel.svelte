@@ -6,7 +6,7 @@
   // component by term id, so the trail resets when the highlight moves.
   import { tick } from "svelte";
   import { resolveTerm } from "../lib/api";
-  import { bestDefinition, bestLabel } from "../lib/vocab";
+  import { allAltLabels, bestDefinition, bestLabel } from "../lib/vocab";
   import type { Term } from "../lib/types";
 
   let { term, onselect }: { term: Term; onselect?: (t: Term) => void } = $props();
@@ -23,13 +23,13 @@
   );
 
   // Clicking a neighbor unmounts the button that held focus, so the browser
-  // drops focus to <body>. Move it deliberately to the new breadcrumb (or the
-  // panel when we return to the root) so focus never leaves the dialog and a
-  // screen reader announces the term just walked to (tasks/250). The Modal's
+  // drops focus to <body>. Move it deliberately to the identity heading of the
+  // term just walked to (or the panel as a fallback) so focus never leaves the
+  // dialog and a screen reader announces the new term (tasks/250). The Modal's
   // window-level trap is the safety net; this is the polite version.
   async function refocus(): Promise<void> {
     await tick();
-    (hood?.querySelector<HTMLElement>(".here") ?? hood)?.focus();
+    (hood?.querySelector<HTMLElement>(".ident") ?? hood)?.focus();
   }
 
   function walk(t: Term): void {
@@ -44,17 +44,27 @@
 </script>
 
 <div class="hood" bind:this={hood} tabindex="-1">
+  <!-- The identity block lives here, driven by this panel's own current, so
+       the heading, URI, definition and variants always name the same term the
+       "Use this term" button stages (tasks/251). -->
+  <h3 class="ident" tabindex="-1">
+    {#if current.path?.length}<span class="path">{current.path.map((p) => p.label).join(" › ") + " › "}</span>{/if}{bestLabel(current)}
+  </h3>
+  <p class="uri ident-uri">{current.id}</p>
+  {#if bestDefinition(current)}
+    <p class="def">{bestDefinition(current)}</p>
+  {/if}
+  {#if allAltLabels(current).length > 0}
+    <p class="alt"><span class="muted">Also known as:</span> {allAltLabels(current).join("; ")}</p>
+  {/if}
+
   {#if trail.length > 0}
     <nav class="crumb" aria-label="Neighborhood trail">
-      <button class="linkish" onclick={back}>← {bestLabel(trail[trail.length - 2] ?? term)}</button>
-      <span class="here" tabindex="-1">{bestLabel(current)}</span>
+      <button class="linkish" onclick={back}>← Back to {bestLabel(trail[trail.length - 2] ?? term)}</button>
       {#if onselect}
         <button class="button use" onclick={() => onselect?.(current)}>Use this term</button>
       {/if}
     </nav>
-    {#if bestDefinition(current)}
-      <p class="def muted">{bestDefinition(current)}</p>
-    {/if}
   {/if}
 
   {#if groups.length === 0}
@@ -82,20 +92,33 @@
 </div>
 
 <style>
-  .hood {
-    border-top: 1px solid var(--rule);
-    margin-top: 0.6rem;
-    padding-top: 0.4rem;
+  .hood:focus,
+  .ident:focus {
+    outline: none;
+  }
+  .ident {
+    margin: 0.2rem 0 0.1rem;
+    font-size: 1rem;
+  }
+  .path {
+    font-weight: 400;
+    color: var(--ink-muted);
+  }
+  .ident-uri {
+    color: var(--ink-muted);
+    margin: 0.1rem 0;
+  }
+  .alt {
+    font-size: 0.85rem;
   }
   .crumb {
     display: flex;
     align-items: baseline;
     gap: 0.6rem;
     flex-wrap: wrap;
-    margin: 0.3rem 0;
-  }
-  .here {
-    font-weight: 600;
+    margin: 0.3rem 0 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--rule);
   }
   .use {
     font-size: 0.8rem;

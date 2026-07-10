@@ -216,19 +216,21 @@
 
       {#if current}
         <aside class="details" aria-label="Term details">
-          <h3>
-            {#if current.path?.length}
-              <span class="path">{current.path.map((p) => p.label).join(" › ") + " › "}</span>
-            {/if}{bestLabel(current)}
-          </h3>
-          <p class="opt-id">{current.id}</p>
-          {#if bestDefinition(current)}
-            <p class="def">{bestDefinition(current)}</p>
-          {/if}
-          {#if allAltLabels(current).length > 0}
-            <p class="alt"><span class="muted">Also known as:</span> {allAltLabels(current).join("; ")}</p>
-          {/if}
           {#if tab?.live}
+            <!-- Live tabs have no neighborhood walk; the identity block stays
+                 here and describes the highlighted suggestion. -->
+            <h3>
+              {#if current.path?.length}
+                <span class="path">{current.path.map((p) => p.label).join(" › ") + " › "}</span>
+              {/if}{bestLabel(current)}
+            </h3>
+            <p class="opt-id">{current.id}</p>
+            {#if bestDefinition(current)}
+              <p class="def">{bestDefinition(current)}</p>
+            {/if}
+            {#if allAltLabels(current).length > 0}
+              <p class="alt"><span class="muted">Also known as:</span> {allAltLabels(current).join("; ")}</p>
+            {/if}
             {#if current.exactMatch?.length}
               <p class="alt"><span class="muted">Same as:</span></p>
               <ul class="xm">
@@ -238,6 +240,8 @@
               </ul>
             {/if}
           {:else}
+            <!-- The panel owns the whole identity block so it and the walk
+                 buttons never describe different terms (tasks/251). -->
             {#key current.scheme + " " + current.id}
               <NeighborhoodPanel term={current} {onselect} />
             {/key}
