@@ -157,6 +157,19 @@
     clearAllLocalDrafts();
     navigate("/login");
   }
+
+  // Move focus to the current screen's <main> without letting the href drive
+  // the hash router: "#main" is not a route, so a real navigation would fall
+  // back to the dashboard and unmount the very <main> we mean to focus
+  // (tasks/327). preventDefault keeps the route put; this is the standard
+  // SPA skip-link pattern, and it serves both mouse click and keyboard Enter
+  // (Enter on an <a> dispatches a click).
+  function skipToMain(ev: MouseEvent): void {
+    ev.preventDefault();
+    const m = document.getElementById("main");
+    m?.focus();
+    m?.scrollIntoView();
+  }
 </script>
 
 {#if !ready}
@@ -166,7 +179,7 @@
 {:else if (!$sessionStore && !reauth) || route.name === "login"}
   <Login config={$configStore} />
 {:else}
-  <a class="skip" href="#main">Skip to main content</a>
+  <a class="skip" href="#main" onclick={skipToMain}>Skip to main content</a>
   <header class="top">
     <a class="brand" href="#/">libcat</a>
     <nav aria-label="Primary">
