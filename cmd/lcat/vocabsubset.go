@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -271,6 +272,10 @@ func subsetFromNT(scheme, namespace string, order []string, nts map[string][]byt
 		if !ok {
 			continue
 		}
+		// A malformed line now drops the whole concept rather than the one statement
+		// (libcodex v0.26.0, tasks/317). That is the right trade for a per-concept
+		// body: a concept kept without its prefLabel is a heading with no heading,
+		// and this loop already announces what it skipped.
 		ds, err := rdf.ParseNQuads(body)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "skip %s: parse: %v\n", uri, err)
@@ -319,12 +324,20 @@ func subsetFromNT(scheme, namespace string, order []string, nts map[string][]byt
 // in-namespace URI (a broader parent, an --all concept) takes the namespace
 // flag's scheme; URIs elsewhere are untouched. Returns the snapshot and the
 // count of prefLabel-bearing concepts kept. The dump is the sole input, so
-// keeping nothing (corrupt dump, wrong --namespace: the N-Quads parser skips
-// malformed lines rather than erroring) is fatal here, unlike per-concept
-// fetch skips. Pure.
+// keeping nothing is fatal here, unlike a per-concept fetch skip.
+//
+// Since libcodex v0.26.0 a malformed line refuses the dump outright, naming it
+// (tasks/317). That is a smaller safety net than it sounds: a truncated download
+// used to parse as a well-formed, shorter vocabulary, and the "kept nothing" guard
+// below only fires when the *wrong* dump is fetched, never when the right one
+// arrives half-written.
 func subsetFromDump(scheme, namespace string, uris []string, all bool, dump []byte) ([]byte, int, error) {
 	ds, err := rdf.ParseNQuads(dump)
 	if err != nil {
+		var se *rdf.SyntaxError
+		if errors.As(err, &se) {
+			return nil, 0, fmt.Errorf("dump is truncated or corrupt at line %d (a partial download?): %w", se.Line, err)
+		}
 		return nil, 0, fmt.Errorf("parse dump: %w", err)
 	}
 	graph := bibframe.AuthorityGraph(scheme)

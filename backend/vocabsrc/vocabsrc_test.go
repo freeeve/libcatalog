@@ -263,10 +263,36 @@ func TestConvertFiltersAndTags(t *testing.T) {
 	if err != nil || gzTerms != terms || !bytes.Equal(gzOut, out) {
 		t.Fatalf("gzip convert differs: err=%v terms=%d", err, gzTerms)
 	}
-	// Malformed lines are skipped, not fatal.
-	_, terms, err = Convert(strings.NewReader("not rdf at all\n"+zinesNT), "lcgft")
-	if err != nil || terms != 2 {
-		t.Fatalf("lenient parse: err=%v terms=%d", err, terms)
+	// A malformed line refuses the dump (tasks/317). It used to be skipped, which is
+	// how a truncated download installed as a smaller vocabulary.
+	if _, _, err := Convert(strings.NewReader("not rdf at all\n"+zinesNT), "lcgft"); err == nil {
+		t.Fatal("a malformed line converted cleanly; a truncated dump would install silently")
+	}
+}
+
+// The operator has to be able to find the bad line. ParseNQuads sees one 1MB chunk
+// at a time and numbers lines within it, so an unadjusted SyntaxError.Line sends
+// them to line 3 of a five-million-line dump (tasks/317).
+func TestAMalformedLineIsReportedAtItsLineInTheWholeDump(t *testing.T) {
+	var b strings.Builder
+	// Enough well-formed statements to push the bad line past the first chunk.
+	const stmt = "<https://homosaurus.org/v3/homoit0000001> <http://www.w3.org/2004/02/skos/core#prefLabel> \"Filler\"@en .\n"
+	for b.Len() < 3<<20 {
+		b.WriteString(stmt)
+	}
+	good := strings.Count(b.String(), "\n")
+	b.WriteString("<https://homosaurus.org/v3/homoit000\n") // cut mid-IRI, as a partial download is
+	want := good + 1
+
+	_, _, err := Convert(strings.NewReader(b.String()), "lcgft")
+	if err == nil {
+		t.Fatal("the truncated dump converted cleanly")
+	}
+	if !strings.Contains(err.Error(), fmt.Sprintf("line %d", want)) {
+		t.Errorf("error names the wrong line (want %d): %v", want, err)
+	}
+	if !strings.Contains(err.Error(), "truncated or corrupt") {
+		t.Errorf("the error does not tell the operator what is wrong: %v", err)
 	}
 }
 

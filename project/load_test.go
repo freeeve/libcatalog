@@ -1,6 +1,7 @@
 package project
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -171,15 +172,15 @@ func TestLoadDatasetKeepsNonAuthorityGraphsWhole(t *testing.T) {
 	}
 }
 
-// A malformed line is skipped, not reported -- by libcodex's decoder, for the
-// streaming loader and for ParseNQuadsShared alike. This test pins that, because
-// it is a surprise worth failing loudly on the day it changes, and because the
-// streaming rewrite must not be blamed for it: both paths lose the same line.
+// A truncated catalog.nq is an error, not a smaller catalog (libcodex tasks/115,
+// filed from here; strict since libcodex v0.26.0).
 //
-// The consequence is real. A truncated catalog.nq projects a smaller catalog and
-// exits 0, which is the failure class tasks/246 refuses elsewhere. Filed as
-// libcodex tasks/115; the fix belongs in the decoder.
-func TestAMalformedLineIsSilentlySkippedByBothParsers(t *testing.T) {
+// This inverts the test that used to live here, which pinned the old silent-skip
+// so it would fail loudly the day libcodex changed. It did. What remains is the
+// property that mattered all along: the build refuses a short read of its own
+// input rather than projecting a catalog missing whatever came after the bad byte
+// and exiting 0 -- the failure class tasks/246 refuses everywhere else.
+func TestATruncatedCatalogIsRefused(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "catalog.nq")
 	good := `<#waaWork> <` + rdfNS_ + `type> <` + bfIRI + `Work> <feed:marc> .` + "\n"
 	raw := []byte(good + "<#broken \n")
@@ -187,20 +188,38 @@ func TestAMalformedLineIsSilentlySkippedByBothParsers(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	_, err := LoadDataset(path)
+	if err == nil {
+		t.Fatal("LoadDataset accepted a truncated catalog and returned a smaller one")
+	}
+	var se *rdf.SyntaxError
+	if !errors.As(err, &se) {
+		t.Fatalf("error is not a *rdf.SyntaxError, so nothing can say where: %v", err)
+	}
+	if se.Line != 2 {
+		t.Errorf("SyntaxError.Line = %d, want 2 (the bad line, 1-based)", se.Line)
+	}
+	if !strings.Contains(err.Error(), path) || !strings.Contains(err.Error(), "truncated or corrupt") {
+		t.Errorf("the error does not name the file and what is wrong with it: %v", err)
+	}
+
+	// The bulk parser agrees, so a caller that has not moved to LoadDataset is not
+	// quietly left on the old contract.
+	if _, err := rdf.ParseNQuadsShared(raw); err == nil {
+		t.Error("ParseNQuadsShared still accepts the bad line")
+	}
+
+	// Control: the same file without the bad line loads, so the refusal above is the
+	// malformed line and not the fixture.
+	if err := os.WriteFile(path, []byte(good), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	ds, err := LoadDataset(path)
 	if err != nil {
-		t.Fatalf("LoadDataset now reports the bad line -- update this test and close libcodex tasks/115: %v", err)
-	}
-	shared, err := rdf.ParseNQuadsShared(raw)
-	if err != nil {
-		t.Fatalf("ParseNQuadsShared now reports the bad line: %v", err)
-	}
-	if len(ds.Quads) != len(shared.Quads) {
-		t.Fatalf("streaming load kept %d quads, ParseNQuadsShared %d -- the two paths must lose the same lines",
-			len(ds.Quads), len(shared.Quads))
+		t.Fatalf("a well-formed catalog was refused: %v", err)
 	}
 	if len(ds.Quads) != 1 {
-		t.Fatalf("kept %d quads, want the 1 well-formed one", len(ds.Quads))
+		t.Fatalf("kept %d quads, want 1", len(ds.Quads))
 	}
 }
 

@@ -373,11 +373,19 @@ func Convert(r io.Reader, scheme string) ([]byte, int, error) {
 // authority-tree N-Quads under the authority:<scheme> graph, keeping only the
 // predicates the index reads. Lines are independent in N-Quads, so the input
 // parses and emits in bounded chunks -- peak memory is the chunk plus the
-// concept-count set, not the dump (tasks/110); malformed lines are skipped by
-// the lenient parser. Common wrong-format uploads (zip archives, XML exports)
-// are named outright -- publishers like OCLC FAST distribute both. maxBytes
-// caps the decompressed input (0 = the 4GB default). Returns the distinct
-// prefLabel-bearing concept count.
+// concept-count set, not the dump (tasks/110). Common wrong-format uploads (zip
+// archives, XML exports) are named outright -- publishers like OCLC FAST
+// distribute both. maxBytes caps the decompressed input (0 = the 4GB default).
+// Returns the distinct prefLabel-bearing concept count.
+//
+// A malformed line refuses the whole dump, naming the line (tasks/317). It used to
+// be skipped, and that was not a decision -- it was whatever libcodex's parser did.
+// The dumps that trip it are the ones you most want refused: a 5,242,880-byte
+// homosaurus-v4.nt, cut mid-IRI at exactly 5MiB, converts cleanly under a lenient
+// parser and installs a vocabulary silently missing every concept after the cut.
+// The subject pages it labels are then wrong, and nothing anywhere says so. Five
+// real LC/Homosaurus/FAST dumps were parsed strictly to check this; the only one
+// that failed was that truncated download.
 func ConvertTo(w io.Writer, r io.Reader, scheme string, maxBytes int64) (int, error) {
 	if maxBytes <= 0 {
 		maxBytes = defaultMaxSnapshotMB << 20
@@ -408,14 +416,23 @@ func ConvertTo(w io.Writer, r io.Reader, scheme string, maxBytes int64) (int, er
 	var consumed int64
 	concepts := map[string]bool{}
 	chunk := make([]byte, 0, 1<<20)
+	// Lines fully parsed before the current chunk. A SyntaxError's Line is relative
+	// to the bytes handed to the parser, and the parser sees one chunk at a time, so
+	// without this an operator is sent to line 4,312 of a five-million-line dump.
+	lineBase := 0
 	flush := func() error {
 		if len(chunk) == 0 {
 			return nil
 		}
 		ds, err := rdf.ParseNQuads(chunk)
 		if err != nil {
+			var se *rdf.SyntaxError
+			if errors.As(err, &se) {
+				return fmt.Errorf("line %d is not a valid N-Triples/N-Quads statement (%q) -- the dump is truncated or corrupt; a partial download is the usual cause", lineBase+se.Line, se.Text)
+			}
 			return err
 		}
+		lineBase += bytes.Count(chunk, []byte("\n"))
 		out = out[:0]
 		for _, q := range ds.Quads {
 			if !q.S.IsIRI() || !keepPredicates[q.P.Value] {

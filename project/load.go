@@ -2,6 +2,7 @@ package project
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -136,13 +137,12 @@ func isAuthorityGraph(g rdf.Term) bool {
 // returns silently on *any* error, including a mid-file read error. DecodeQuad
 // surfaces those.
 //
-// It does not surface a malformed *line*: libcodex's N-Quads decoder skips one
-// and reads on, so `this is not rdf at all` parses as zero quads and EOF. That is
-// not something this loader introduced -- ParseNQuadsShared, which every caller
-// used before, does exactly the same -- but it means a truncated catalog.nq
-// projects a smaller catalog and exits 0, which is the failure class tasks/246
-// exists to refuse. Filed upstream (libcodex tasks/115); the guard belongs in the
-// decoder, not in a count heuristic here.
+// A malformed line is one of them, since libcodex v0.26.0 (its tasks/115, filed
+// from here). Before that the decoder skipped what it could not read, so a
+// truncated catalog.nq projected a smaller catalog and exited 0 -- the failure
+// class tasks/246 exists to refuse, and a lie the build would have shipped. Do not
+// reach for Decoder.SkipMalformed here: this file is written by an earlier step of
+// our own build, and a short read of it is not noise to tolerate.
 func eachQuad(path string, fn func(rdf.Quad)) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -157,6 +157,10 @@ func eachQuad(path string, fn func(rdf.Quad)) error {
 			return nil
 		}
 		if err != nil {
+			var se *rdf.SyntaxError
+			if errors.As(err, &se) {
+				return fmt.Errorf("%s is truncated or corrupt at line %d -- reserialize it (`lcat serialize --dir <grain root>`): %w", path, se.Line, err)
+			}
 			return err
 		}
 		fn(q)
