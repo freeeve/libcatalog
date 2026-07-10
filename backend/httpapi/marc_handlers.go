@@ -142,7 +142,7 @@ func registerMARC(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue 
 			return
 		}
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "grain write failed")
+			writeGrainWriteError(w, err)
 			return
 		}
 		ix.Apply(bibframe.GrainPath(workID), newTag, updated)

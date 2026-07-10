@@ -136,7 +136,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 			return
 		}
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "grain write failed")
+			writeGrainWriteError(w, err)
 			return
 		}
 		ix.Apply(bibframe.GrainPath(workID), newTag, updated)
@@ -232,7 +232,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 			return
 		}
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "grain write failed")
+			writeGrainWriteError(w, err)
 			return
 		}
 		ix.Apply(bibframe.GrainPath(workID), newTag, updated)
@@ -463,6 +463,10 @@ var (
 // writeMutateError maps a mutateWorkGrain failure onto its status code.
 func writeMutateError(w http.ResponseWriter, err error) {
 	switch {
+	// Before errGrainStore: a read-only store wraps as both, and a deployment
+	// that does not accept writes is not an unavailable one (tasks/260).
+	case errors.Is(err, blob.ErrReadOnly):
+		writeReadOnly(w)
 	case errors.Is(err, errWorkNotFound):
 		writeError(w, http.StatusNotFound, "no such work")
 	case errors.Is(err, bibframe.ErrNoSuchInstance):
@@ -488,7 +492,10 @@ func mutateWorkGrain(r *http.Request, bs blob.Store, ix *workindex.Index, workID
 			if errors.Is(err, blob.ErrNotFound) {
 				return "", errWorkNotFound
 			}
-			return "", fmt.Errorf("%w: %v", errGrainStore, err)
+			// Wrap both: errGrainStore drives the generic 500, and the store's
+			// own sentinel must survive so writeMutateError can tell a read-only
+			// deployment (403) from a broken one (500) -- tasks/260.
+			return "", fmt.Errorf("%w: %w", errGrainStore, err)
 		}
 		updated, err := mutate(grain)
 		if err != nil {
@@ -499,7 +506,10 @@ func mutateWorkGrain(r *http.Request, bs blob.Store, ix *workindex.Index, workID
 			continue
 		}
 		if err != nil {
-			return "", fmt.Errorf("%w: %v", errGrainStore, err)
+			// Wrap both: errGrainStore drives the generic 500, and the store's
+			// own sentinel must survive so writeMutateError can tell a read-only
+			// deployment (403) from a broken one (500) -- tasks/260.
+			return "", fmt.Errorf("%w: %w", errGrainStore, err)
 		}
 		ix.Apply(path, newTag, updated)
 		_ = ix.AppendFeed(r.Context(), path)

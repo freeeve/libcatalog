@@ -8,6 +8,7 @@
   // server-side; a concurrent edit reloads with a notice.
   import { onMount } from "svelte";
   import { ApiError, ConflictError, fetchMarc, postMarc } from "../lib/api";
+  import { isReadOnly, isSandbox } from "../lib/config";
   import DiffPreview from "./DiffPreview.svelte";
   import FieldClipboardPane from "./FieldClipboardPane.svelte";
   import MarcGrid from "./MarcGrid.svelte";
@@ -15,6 +16,14 @@
   import type { Diff, MarcField, MarcRecordDoc } from "../lib/types";
 
   let { workId, scope }: { workId: string; scope?: string } = $props();
+
+  // The same gating SaveBar applies (tasks/260). A read-only demo hides Save;
+  // the execute path is refused by the server anyway, and offering a control
+  // that cannot work is what made the refusal look like a crash. Sandbox saves
+  // dry-run and render the delta, never persisting. Preview stays in both --
+  // it is why the read-only guard allowlists this route at all.
+  const readOnly = isReadOnly();
+  const sandbox = isSandbox();
 
   let etag = $state("");
   let records = $state<MarcRecordDoc[]>([]);
@@ -68,6 +77,27 @@
       }
     } catch (e) {
       error = e instanceof ApiError ? e.message : "preview failed";
+    } finally {
+      busy = false;
+    }
+  }
+
+  // sandboxSave renders the edit as if committed and never writes, matching
+  // editor.ts's sandboxSave for the ops path. A page refresh restores the
+  // pristine record.
+  async function sandboxSave(): Promise<void> {
+    busy = true;
+    status = "";
+    error = "";
+    try {
+      const res = await postMarc(workId, active, $state.snapshot(records[active]), { dryRun: true });
+      diff = res.diff;
+      status =
+        res.diff.added.length + res.diff.removed.length === 0
+          ? "nothing to save -- the record is untouched"
+          : "rendered in the demo -- not saved";
+    } catch (e) {
+      error = e instanceof ApiError ? e.message : "save failed";
     } finally {
       busy = false;
     }
@@ -153,9 +183,16 @@
 
   <p class="actions">
     <button class="button button--quiet" onclick={() => void preview()} disabled={busy || blocked}>Preview delta</button>
-    <button class="button" onclick={() => void save()} disabled={busy || blocked}>{busy ? "Working…" : "Save MARC"}</button>
+    {#if sandbox}
+      <button class="button" onclick={() => void sandboxSave()} disabled={busy || blocked} title="Renders the edit in the demo; not saved"
+        >{busy ? "Working…" : "Save MARC (demo)"}</button
+      >
+    {:else if !readOnly}
+      <button class="button" onclick={() => void save()} disabled={busy || blocked}>{busy ? "Working…" : "Save MARC"}</button>
+    {/if}
     <button class="button button--quiet" onclick={() => void load()} disabled={busy}>Discard edits</button>
     {#if blocked}<span class="error">the text buffer has parse errors -- saving is blocked</span>{/if}
+    {#if readOnly && !sandbox}<span class="muted">read-only demo -- Preview delta shows the change without saving</span>{/if}
   </p>
 {/if}
 
