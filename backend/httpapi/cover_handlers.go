@@ -1,7 +1,10 @@
 package httpapi
 
 import (
+	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -47,7 +50,8 @@ func sniffCover(data []byte) string {
 }
 
 // sweepStaleCovers deletes a work's cover blobs in every format except the one
-// just written.
+// just written, and reports the first deletion that failed for a reason other
+// than the blob already being absent.
 //
 // Replacing a JPEG with a PNG repointed the grain and left the JPEG serving
 // from its public, unauthenticated, guessable URL forever -- nothing referenced
@@ -56,15 +60,34 @@ func sniffCover(data []byte) string {
 // should not have been published. A takedown that looks done was not done
 // (tasks/243).
 //
+// The error was discarded until tasks/266, which made a failing store reproduce
+// that exact outcome: the caller answered 2xx while the image kept serving. A
+// missing blob stays success -- a cover exists in at most one format, so two of
+// these three deletes normally find nothing, and absent is the state a delete
+// asks for.
+//
 // Called only after the new bytes are stored, so a failed write never destroys
 // the cover it was replacing.
-func sweepStaleCovers(r *http.Request, bs blob.Store, workID, keep string) {
+func sweepStaleCovers(r *http.Request, bs blob.Store, workID, keep string) error {
 	for _, ext := range coverExts {
 		if ext == keep {
 			continue
 		}
-		_ = bs.Delete(r.Context(), bibframe.CoverBlobPath(workID, ext))
+		err := bs.Delete(r.Context(), bibframe.CoverBlobPath(workID, ext))
+		if err != nil && !errors.Is(err, blob.ErrNotFound) {
+			return fmt.Errorf("cover %s: %w", ext, err)
+		}
 	}
+	return nil
+}
+
+// restoreCover puts a work's cover statement back to url, compensating a byte
+// operation that failed after the grain was already written.
+func restoreCover(r *http.Request, bs blob.Store, ix *workindex.Index, workID, url string) error {
+	_, err := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
+		return bibframe.SetCover(g, workID, url)
+	})
+	return err
 }
 
 // coverExts is every extension a cover may be stored under.
@@ -75,8 +98,13 @@ var coverExts = []string{"jpg", "png", "webp"}
 // lcat:extra/cover URL the OPAC's cover slot already reads (tasks/022/025);
 // DELETE removes both. GET serves the bytes publicly -- covers are display
 // assets the static site republishes anyway.
-func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue *suggest.Service, verifier auth.TokenVerifier) {
+func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue *suggest.Service, verifier auth.TokenVerifier, logger *slog.Logger) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
+	// A half-completed cover write is what an operator needs to see: the
+	// response tells the cataloger, the log tells whoever is on call.
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
+	}
 
 	mux.Handle("PUT /v1/works/{id}/cover", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
@@ -113,8 +141,17 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 		}
 		url := "covers/" + workID + "." + ext
 		// Grain first: SetCover verifies the work exists, so a typo'd id
-		// never stores orphan bytes.
+		// never stores orphan bytes. The cost is that a failed byte write
+		// leaves a statement the bytes do not back, so it is compensated
+		// below rather than abandoned (tasks/266). previous is the cover this
+		// request replaces -- what the compensation must restore.
+		var previous string
 		etag, err := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
+			cur, err := bibframe.CoverOf(g, workID)
+			if err != nil {
+				return nil, err
+			}
+			previous = cur
 			return bibframe.SetCover(g, workID, url)
 		})
 		if err != nil {
@@ -122,10 +159,31 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 			return
 		}
 		if _, err := bs.Put(r.Context(), bibframe.CoverBlobPath(workID, ext), data, blob.PutOptions{}); err != nil {
+			// Restore the cover this request replaced, not "": on a replacement
+			// the previous cover's bytes are still stored and still serving, and
+			// clearing the statement would orphan a working public image.
+			if rerr := restoreCover(r, bs, ix, workID, previous); rerr != nil {
+				logger.Error("cover rollback failed: the record claims a cover whose bytes were never stored",
+					"workId", workID, "cover", url, "actor", id.Email, "put", err, "rollback", rerr)
+				writeError(w, http.StatusInternalServerError,
+					"the cover was recorded but its bytes were not stored, and the record could not be rolled back: remove the cover and retry")
+				return
+			}
+			logger.Error("cover bytes were not stored", "workId", workID, "cover", url, "actor", id.Email, "err", err)
 			writeError(w, http.StatusInternalServerError, "cover store failed")
 			return
 		}
-		sweepStaleCovers(r, bs, workID, ext)
+		// The new cover is stored and recorded, but a surviving blob in another
+		// format still serves from its own public URL. That is the takedown
+		// failure tasks/243 named, so it is not a 200. The upload is idempotent:
+		// retrying re-runs the sweep once the store recovers.
+		if err := sweepStaleCovers(r, bs, workID, ext); err != nil {
+			logger.Error("the replaced cover's bytes could not be removed and are still public",
+				"workId", workID, "cover", url, "actor", id.Email, "err", err)
+			writeError(w, http.StatusInternalServerError,
+				"the new cover was stored, but the cover it replaced could not be removed and is still being served: retry")
+			return
+		}
 		if queue != nil {
 			queue.WriteAudit(r.Context(), suggest.AuditEntry{
 				WorkID: workID, Action: "COVER_SET", Actor: id.Email, ETag: etag, Note: url,
@@ -141,14 +199,39 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 			writeError(w, http.StatusBadRequest, "bad work id")
 			return
 		}
+		var previous string
 		etag, err := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
+			cur, err := bibframe.CoverOf(g, workID)
+			if err != nil {
+				return nil, err
+			}
+			previous = cur
 			return bibframe.SetCover(g, workID, "")
 		})
 		if err != nil {
 			writeMutateError(w, err)
 			return
 		}
-		sweepStaleCovers(r, bs, workID, "")
+		// 204 promises the image is gone. A cover's bytes have their own
+		// public, unauthenticated route, so a librarian acting on a rights
+		// complaint must never be told a takedown happened when it did not.
+		// Restore the statement rather than orphan bytes that keep serving:
+		// nothing else indexes them, and there is no reconciliation pass
+		// (tasks/266).
+		if err := sweepStaleCovers(r, bs, workID, ""); err != nil {
+			if rerr := restoreCover(r, bs, ix, workID, previous); rerr != nil {
+				logger.Error("cover bytes survived a delete and the record could not be restored: the bytes are public and orphaned",
+					"workId", workID, "cover", previous, "actor", id.Email, "delete", err, "restore", rerr)
+				writeError(w, http.StatusInternalServerError,
+					"the cover's bytes could not be removed and the record could not be restored: the cover is no longer listed but is still being served")
+				return
+			}
+			logger.Error("cover bytes could not be removed and are still public",
+				"workId", workID, "cover", previous, "actor", id.Email, "err", err)
+			writeError(w, http.StatusInternalServerError,
+				"the cover's bytes could not be removed and are still being served; the record is unchanged")
+			return
+		}
 		if queue != nil {
 			queue.WriteAudit(r.Context(), suggest.AuditEntry{
 				WorkID: workID, Action: "COVER_REMOVE", Actor: id.Email, ETag: etag,
