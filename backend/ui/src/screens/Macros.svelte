@@ -158,7 +158,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Macros</h1>
   <p class="muted">
     A macro is a replayable list of field edits: record one from staged edits in the work editor, replay it on another

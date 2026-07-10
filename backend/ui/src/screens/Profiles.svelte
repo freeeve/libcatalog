@@ -134,7 +134,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Editing profiles</h1>
   <p class="muted">
     Runtime overrides for the field definitions the editor and op builder render

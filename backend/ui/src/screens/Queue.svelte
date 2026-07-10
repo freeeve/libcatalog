@@ -216,7 +216,7 @@
   }
 </script>
 
-<main class="queue wide">
+<main class="queue wide" id="main" tabindex="-1">
   <header class="qhead">
     <h1>Review queue</h1>
     <a href="#/promotions">Tag promotions</a>

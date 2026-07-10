@@ -94,7 +94,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <p class="back"><a href="#/copycat">← Back to import</a></p>
   <h1>New record</h1>
 

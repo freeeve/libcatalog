@@ -257,7 +257,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Batch operations</h1>
 
   <section aria-label="Selection">

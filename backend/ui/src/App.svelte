@@ -166,6 +166,7 @@
 {:else if (!$sessionStore && !reauth) || route.name === "login"}
   <Login config={$configStore} />
 {:else}
+  <a class="skip" href="#main">Skip to main content</a>
   <header class="top">
     <a class="brand" href="#/">libcat</a>
     <nav aria-label="Primary">
@@ -263,6 +264,22 @@
 <KeyboardHelp />
 
 <style>
+  /* WCAG 2.4.1 bypass-block: a keyboard user lands on this first-in-DOM link
+     and jumps past the fifteen-control header to the screen's <main id="main">
+     (tasks/321). Off-screen until focused, mirroring the OPAC's .lcat-skip. */
+  .skip {
+    position: absolute;
+    left: -999px;
+  }
+  .skip:focus {
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 10;
+    background: var(--bg);
+    padding: 0.5rem 0.75rem;
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+  }
   .top {
     display: flex;
     align-items: baseline;

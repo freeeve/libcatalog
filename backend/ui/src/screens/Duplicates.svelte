@@ -263,7 +263,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Duplicates</h1>
   <p class="muted">
     Works sharing a clustering key but minted separately. Merging records the decision on the survivor; the retired

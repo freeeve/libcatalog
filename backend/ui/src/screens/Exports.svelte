@@ -242,7 +242,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Exports</h1>
 
   <section aria-label="New export">

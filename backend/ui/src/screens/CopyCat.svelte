@@ -360,7 +360,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Copy cataloging</h1>
 
   <section class="quickadd" aria-label="Quick-add by ISBN">

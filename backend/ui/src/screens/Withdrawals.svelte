@@ -69,7 +69,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Withdrawals</h1>
   <p class="lede muted">
     Works whose only bib source stopped listing them (feed reconciliation). Suppress hides a work from the public

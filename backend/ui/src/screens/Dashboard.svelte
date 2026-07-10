@@ -141,7 +141,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Dashboard</h1>
   <p>
     Signed in as <strong>{session.email}</strong>

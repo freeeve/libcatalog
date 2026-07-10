@@ -101,7 +101,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Authorities</h1>
   <p class="lede">
     <label for="auth-q" class="muted">Local headings (preferred or used-for label)</label>

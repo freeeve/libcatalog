@@ -141,7 +141,7 @@
   }
 </script>
 
-<main>
+<main id="main" tabindex="-1">
   <header class="phead">
     <h1>Tag promotions</h1>
     <a href="#/queue">Review queue</a>

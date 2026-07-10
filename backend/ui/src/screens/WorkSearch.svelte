@@ -282,7 +282,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Work search</h1>
   <p class="lede">
     <label for="work-q" class="muted">Title, contributor, tag, ISBN, or id</label>

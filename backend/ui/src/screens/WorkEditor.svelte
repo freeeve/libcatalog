@@ -147,7 +147,7 @@
   });
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <p class="back"><a href="#/works">← Back to search</a></p>
 
   {#if $session.loading}

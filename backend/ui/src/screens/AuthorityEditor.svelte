@@ -201,7 +201,7 @@
   const heading = $derived(prefRows.find((r) => r.lang === "en" && r.value)?.value || prefRows[0]?.value || authorityId);
 </script>
 
-<main>
+<main id="main" tabindex="-1">
   {#if loading}
     <p class="muted">Loading…</p>
   {:else if error && !etag}

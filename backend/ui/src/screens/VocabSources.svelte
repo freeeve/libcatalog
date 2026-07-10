@@ -197,7 +197,7 @@
   }
 </script>
 
-<main class="wide">
+<main class="wide" id="main" tabindex="-1">
   <h1>Vocabularies</h1>
   <p class="muted intro">
     Public authority sources ready to use. <strong>Live</strong> sources answer the term picker's typeahead through
