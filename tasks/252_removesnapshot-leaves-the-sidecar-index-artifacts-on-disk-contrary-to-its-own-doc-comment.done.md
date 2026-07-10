@@ -169,3 +169,84 @@ ls ~/libcat-playground/site/data/authorities/sidecar | grep zzleak   # still 8 f
 
 The harness cleaned up the orphans it had left on the playground (`zze2e.*`,
 `zz-e2e-vsrc*.*`, `zzsidecar.*`); `sidecar/` is back to the four real schemes.
+
+## Outcome
+
+Fixed as specified, in **v0.137.0** (`a67c34a`). `vocab.RemoveSidecar(ctx, st,
+prefix, scheme)` is exported; `RemoveSnapshot` calls it; `DeleteSource` deliberately
+does not.
+
+Every judgement in the report survived contact with the code, including the two you
+flagged as guesses:
+
+- **Manifest first.** Adopted for the reason you gave. It also mirrors BuildSidecar's
+  own comment -- *"the manifest lands last: its presence implies a complete artifact
+  set"* -- so removal is now that sentence read backwards.
+- **`DeleteSource` is correct as-is.** Confirmed, and now a decision with a comment
+  rather than an omission. The snapshot keeps serving after its source row is gone,
+  so deleting artifacts there would demote a live scheme to the map loader while its
+  `.nq` still resolves. Views synthesizes the orphan install precisely so
+  `RemoveSnapshot` remains the way out.
+
+### The scheme has to come from the install meta
+
+`RemoveSnapshot` takes a source *name*; the sidecar is keyed by *scheme*. Asking the
+registry would work for the ordinary path and fail for the one you actually caught --
+the orphan install, whose source row is already deleted. It reads `InstallInfo.Scheme`
+out of the meta blob it was already fetching for the existence check.
+
+### Enumerated suffixes, not a prefix match
+
+`sidecar/<scheme>` prefix-matching is the obvious implementation and it is wrong:
+`validateSource` checks only that a scheme is non-empty, so `lcsh` and `lcsh.local`
+can both exist and removing the first would take the second.
+`TestRemoveSidecarDoesNotReachIntoANeighbouringScheme` pins that. The pair of tests
+brackets the behavior from both sides -- one forbids under-deletion, one forbids
+over-deletion -- and I checked they do: implemented as a prefix match, the drift test
+still passes and the neighbour test fails.
+
+### Tests
+
+All four mutation-checked.
+
+- `TestRemoveSidecarLeavesNothingBuildSidecarWrote` **lists the blob store** rather
+  than trusting `sidecarSuffixes`, so an artifact added to `BuildSidecar` and
+  forgotten in `RemoveSidecar` fails here. Dropping `.search.rrt` from the list gives
+  `RemoveSidecar left 1 of 9 artifacts behind: [.../lcsh.search.rrt]`.
+- The lifecycle test now asserts what its comment claimed. Restoring the old
+  two-delete body reproduces your `ls`: all eight files, named.
+- `TestRemoveSnapshotCleansUpAfterADeletedSource` covers the orphan path directly.
+- Controls throughout: each removal check is preceded by an assertion that artifacts
+  existed to remove. *"A test comment is not a test"* -- and an absence is not
+  evidence of a delete.
+
+### End to end, against a fresh server on :8491
+
+```
+install zzleak            -> {"installed":true,"terms":1}, 8 sidecar artifacts
+term search "Zet"         -> [{"id":"http://example.org/z/1","labels":{"en":"Zeta"}}]
+DELETE .../snapshot       -> {"removed":true}
+sidecar artifacts         -> 0        (snapshot + meta also gone)
+term search "Zet"         -> []
+
+zzorphan: install (8 artifacts) -> DELETE the source -> .nq still installed (2 files)
+DELETE .../snapshot       -> {"removed":true}, 0 artifacts
+```
+
+### What this does not do, and one thing you will want to know
+
+It does not collect orphans **already** on disk. Filed as **tasks/322**, because the
+playground is carrying one right now and it is not the one you reported:
+
+```
+zze2e.manifest.json -> data/authorities/vocab/zz-e2e-snap-dzgc.nq   (missing)
+```
+
+You cleaned up `zz-e2e-snap-4ryz`; `dzgc` is from a later harness cycle. Left in
+place as a repro for 322. Worth knowing on your side: **the harness is still minting
+orphans**, and it will keep doing so against any server older than v0.137.0.
+
+Also noted in `RemoveSidecar`'s doc: two sources declaring the same scheme already
+overwrite each other's sidecar in `BuildSidecar`, so removal follows that keying and
+the survivor serves from maps until its next install. Pre-existing, not introduced
+here.
