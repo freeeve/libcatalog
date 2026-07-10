@@ -22,10 +22,14 @@ import (
 //
 // The output represents the same RDF as an ingest-produced catalog.nq (it projects
 // identically) but is not byte-identical to it: ingest serializes each Work's
-// freshly built graph, whereas this re-serializes the on-disk canonical grains, so
-// blank-node labels differ. SerializeGrains is itself deterministic -- the same
-// grains yield the same bytes -- so a re-serialize is a clean (empty) diff. It
-// returns the number of grains merged.
+// freshly built graph, whereas this merges the on-disk canonical grains, so
+// blank-node labels differ. It returns the number of grains merged.
+//
+// A grain's bytes appear in the merge unchanged except for its blank-node labels,
+// which are namespaced by grain id (tasks/291). So a grain contributes the same
+// lines whether it is merged alone or with sixty thousand others, and the merged
+// document changes only when a grain does -- which is what lets a published
+// catalog.nq.gz keep its sha256 across a release that changed no data.
 func SerializeGrains(dir string, sink storage.Sink) (int, error) {
 	type grain struct{ id, path string }
 	var grains []grain
@@ -43,41 +47,47 @@ func SerializeGrains(dir string, sink storage.Sink) (int, error) {
 		return 0, err
 	}
 	sort.Slice(grains, func(i, j int) bool { return grains[i].id < grains[j].id })
+	// Blank-node labels are namespaced by grain id (tasks/291), so two grains
+	// sharing an id would silently merge their blank nodes into one -- a wrong
+	// graph, quietly. Ids are file basenames and unique in practice (work ids,
+	// vocabulary schemes); say so out loud if that ever stops being true.
+	for i := 1; i < len(grains); i++ {
+		if grains[i].id == grains[i-1].id {
+			return 0, fmt.Errorf("two grains share the id %q (%s and %s): their blank nodes would merge",
+				grains[i].id, grains[i-1].path, grains[i].path)
+		}
+	}
 
 	w, err := sink.Create("catalog.nq")
 	if err != nil {
 		return 0, fmt.Errorf("create catalog.nq: %w", err)
 	}
-	var enc rdf.Encoder
 	for _, g := range grains {
 		b, err := os.ReadFile(g.path)
 		if err != nil {
 			w.Close()
 			return 0, err
 		}
-		ds, err := rdf.ParseNQuads(b)
-		if err != nil {
+		// Parse to reject a grain no parser will accept -- the error contract this
+		// has always had -- but emit the grain's own bytes, not a re-serialization.
+		// A grain is already canonical N-Quads; re-encoding it is a second chance
+		// to differ, and the difference was a new blank-node label on every release
+		// for a corpus that had not changed (tasks/291).
+		if _, err := rdf.ParseNQuads(b); err != nil {
 			w.Close()
 			return 0, fmt.Errorf("%s: %w", g.path, err)
 		}
-		for _, gt := range sortedGraphs(ds) {
-			if _, err := w.Write(enc.AppendNQuads(nil, ds.Graph(gt), gt)); err != nil {
-				w.Close()
-				return 0, fmt.Errorf("write catalog.nq: %w", err)
-			}
+		out := RelabelGrainBlanks(b, GrainBlankPrefix(g.path))
+		if len(out) > 0 && out[len(out)-1] != '\n' {
+			out = append(out, '\n')
+		}
+		if _, err := w.Write(out); err != nil {
+			w.Close()
+			return 0, fmt.Errorf("write catalog.nq: %w", err)
 		}
 	}
 	if err := w.Close(); err != nil {
 		return 0, fmt.Errorf("close catalog.nq: %w", err)
 	}
 	return len(grains), nil
-}
-
-// sortedGraphs returns a dataset's graph terms ordered by IRI value, so a grain's
-// feed and editorial statements are emitted in a fixed order regardless of parse
-// order -- keeping SerializeGrains deterministic.
-func sortedGraphs(ds *rdf.Dataset) []rdf.Term {
-	graphs := ds.Graphs()
-	sort.Slice(graphs, func(i, j int) bool { return graphs[i].Value < graphs[j].Value })
-	return graphs
 }

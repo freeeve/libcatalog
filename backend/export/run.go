@@ -195,23 +195,27 @@ func (s *Service) eachGrain(ctx context.Context, paths []string, fn func(path st
 	return nil
 }
 
-// emitNQuads merges the selection corpus-style: one shared encoder so
-// blank-node labels stay unique across grains (the SerializeGrains
-// discipline -- plain concatenation would collide labels), emitted per grain.
+// emitNQuads merges the selection corpus-style, the same way SerializeGrains
+// does -- each grain's own canonical bytes, with its blank-node labels
+// namespaced by grain id so they stay unique across the corpus (plain
+// concatenation would collide them). The two writers must agree byte for byte;
+// TestExportNQuadsMatchesSerialize holds them to it.
 func (s *Service) emitNQuads(ctx context.Context, w io.Writer, paths []string) (int, error) {
-	var enc rdf.Encoder
 	count := 0
-	err := s.eachGrain(ctx, paths, func(_ string, grain []byte) error {
-		ds, err := rdf.ParseNQuads(grain)
-		if err != nil {
+	err := s.eachGrain(ctx, paths, func(grainPath string, grain []byte) error {
+		// Parse to reject a grain the store accepted but no parser will, which is
+		// the error contract this export has always had. The bytes we emit are the
+		// grain's own, not a re-serialization: a grain is already canonical
+		// N-Quads, and re-encoding it is a second chance to differ (tasks/291).
+		if _, err := rdf.ParseNQuads(grain); err != nil {
 			return err
 		}
-		graphs := ds.Graphs()
-		sort.Slice(graphs, func(i, j int) bool { return graphs[i].Value < graphs[j].Value })
-		for _, gt := range graphs {
-			if _, err := w.Write(enc.AppendNQuads(nil, ds.Graph(gt), gt)); err != nil {
-				return err
-			}
+		out := bibframe.RelabelGrainBlanks(grain, bibframe.GrainBlankPrefix(grainPath))
+		if len(out) > 0 && out[len(out)-1] != '\n' {
+			out = append(out, '\n')
+		}
+		if _, err := w.Write(out); err != nil {
+			return err
 		}
 		count++
 		return nil
