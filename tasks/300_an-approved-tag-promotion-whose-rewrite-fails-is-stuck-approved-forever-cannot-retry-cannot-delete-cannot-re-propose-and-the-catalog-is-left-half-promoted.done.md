@@ -194,3 +194,82 @@ the failed ones. `GET /v1/works/{id}/doc` maps the grain into profile fields and
 quads, so the regex matched nothing and answered "no tag" always. `P0` -- which asserts the
 sentinel tag **is** on the work right after it is added -- caught it. The probe now reads
 `GET /v1/works/{id}`'s `nquads`.
+
+## Outcome
+
+Fixed in **v0.123.0**, commit `b15b448`. Every bullet under **Expected** shipped.
+The report's diagnosis was right, including the observation that unblocks the
+whole fix: `PromoteTag` never consults the status.
+
+### Execute, then stamp
+
+`grep -n 'promo\.' backend/publish/promote.go` reads only `promo.Term` and
+`promo.Tag`, exactly as the report says. So the pending record is all the rewrite
+needs, and the durable stamp no longer precedes the work it describes.
+
+Approval is now **one CAS write** that flips PENDING -> APPROVED *and* records the
+count. Splitting them left a window where a promotion read as APPROVED with
+`works: 0` -- the same lie, briefly, and permanently if the second write failed.
+
+A failure leaves the promotion PENDING with its partial count recorded. The
+Approve button stays live, and retry is free. `DecidePromotion` is gone, replaced
+by `ApprovePromotion(tag, actor, works)` and `RejectPromotion(tag, actor)`.
+
+### The count
+
+`RecordPromotionWorks` stamps the partial count on the failure path without
+touching the status, and `ApprovePromotion` adds to it, so the counts accumulate
+across attempts. The `_ =` on the stamp is gone: a rewrite whose record fails now
+answers `500 promotion applied but not recorded; approve again to record it`
+rather than printing `works=0` over work that happened.
+
+### DELETE
+
+`DELETE /v1/promotions/{tag}`, librarian-gated, with an audit entry. It frees the
+tag to be proposed again. The `"publisher not configured; approved but not
+executed"` branch mints exactly the record it exists for.
+
+### The SPA
+
+Decided rows had no control of any kind (the tasks/292 shape). They carry a
+**Delete** now. A pending row whose earlier approval failed partway shows
+`N works already rewritten by a failed attempt`, and its button reads **Resume**
+rather than Approve.
+
+### What the report got right that I checked, and one thing it got half-right
+
+The claim that retrying is safe *without idempotence* -- because the loop skips
+works that no longer carry the tag -- is true, and it is now pinned by a test
+against the real publisher with a store that fails on the second grain write:
+`TestPromoteTagResumesAtTheWorkThatFailed` retries and rewrites exactly the one
+that failed.
+
+But it only holds for **editorial folk tags**. `seedTaggedWork` in the existing
+suite plants a *feed-side* tag as well, and `PromoteTag` deliberately never
+retracts those (the projector's alias suppression hides them). Such a work matches
+the loop on every pass, so a retry rewrites it again -- safely, since the write is
+idempotent, but the accumulated count can then exceed the number of distinct works
+touched. My first version of the resume test asserted 1 and got 2, which is how I
+found it.
+
+That is now three tests, not one: the partial count, the resume-and-skip, and
+`TestRetryRewritesFeedTaggedWorksAgain`, whose failure message says which doc
+comment to update if `PromoteTag` ever starts retracting feed tags. `Promotion.Works`
+documents that it counts rewrites, not distinct works, and when the two diverge.
+
+### Mutation-tested
+
+- **M1**, stamp APPROVED before the rewrite (the original bug): all four new
+  httpapi tests go red, including `PromoteTag was handed a APPROVED promotion` --
+  the fake promoter refuses a decided record, so the success case is evidence and
+  not coincidence.
+- **M2**, discard the partial count (the reported `_ =`):
+  `TestPartialRewriteRecordsHowFarItGot` fails on its own with
+  `works = 0 after a 1-of-2 rewrite, want 1`.
+
+Gates: `gofmt -s`, `go vet`, root + backend `go test ./...`, 287 SPA unit tests,
+and `TestAPIReferenceMatchesRouter` (which caught the undocumented DELETE route
+before I did).
+
+`t203` in the harness should un-skip: approving no longer leaves an undeletable
+record, and if one is ever left, `DELETE` clears it.
