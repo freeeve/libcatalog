@@ -55,6 +55,12 @@ Measured against the running playground (`:8481`), current month:
 **176 of 314** (the four the probe adds) carry no `workId`. Every one of them is written,
 stored, and returned by the API. None can be displayed.
 
+The absolute counts move -- the playground is restarted by hand and its audit partition starts
+over. A later run measured `60 of 106`. **The ratio is the finding: consistently a little over
+half of a month's audit entries have no reader**, and the *set of actions* is invariant --
+`BATCH_EDIT`, `BATCH_OPS`, `COPYCAT_COMMIT`, `COPYCAT_REVERT`, `COPYCAT_STAGE`, `PROFILE_EDIT`,
+`PROFILE_REVERT`, `USER_CREATE`, `USER_DELETE`, `USER_ROLES`.
+
 Driven through the real SPA: logged in as an admin, opened a work's **History** tab, then
 visited the dashboard and all twelve sidebar screens, recording every request to `/v1/audit`.
 
