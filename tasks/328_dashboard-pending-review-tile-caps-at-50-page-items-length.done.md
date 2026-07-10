@@ -97,3 +97,53 @@ with a distinct `Cloudfront-Viewer-Address` so the per-supporter rate limit sees
 different patrons), then issue the Dashboard's `GET /v1/queue` and confirm it
 returns exactly 50 items and a cursor. Folk terms are never published; the clone
 is discarded. Nothing touches :8481.
+
+## Outcome
+
+Shipped in **v0.141.1** (`d71f462`) -- a patch, it only makes a wrong number honest.
+Took your second, cheap option: render **"50+"** when the page is a floor, not a
+total. `GET /v1/queue` already returns a `cursor` when the page fills, so no backend
+change was needed -- the tile just has to stop pretending the count is exact.
+
+`Dashboard.svelte`, `loadPending()`:
+
+```ts
+const page = await fetchQueue({ status: "PENDING" });
+pending = page.items.length;
+pendingMore = !!page.cursor;   // a cursor => the page filled, more await beyond it
+```
+
+and the tile:
+
+```svelte
+{pending}{pendingMore ? "+" : ""} pending suggestion{pending === 1 && !pendingMore ? "" : "s"}
+```
+
+I did **not** add a `Total` to `QueuePage` or a `/v1/queue/count`: a true count means
+scanning the whole `STATUS#PENDING` index on every dashboard load (the queue self-heals
+stale index items on read, so a cheap index-only count would over-report), which is a
+lot of machinery for a tile that is latent on every shipped corpus. "50+" is honest and
+free. If a deployment ever wants the exact backlog, a counted read is a clean follow-up
+-- I left the door open rather than walk through it for a latent case.
+
+### Verified on the real tile (:8481)
+
+Drove the actual Dashboard with the `/v1/queue` response stubbed via route
+interception (seeding 50 real distinct-supporter suggestions is the abuse-flow you
+described; the stub exercises the same template with controlled data):
+
+```
+items=50 + cursor   -> "Review queue  50+ pending suggestions"
+items=3,  no cursor -> "Review queue  3 pending suggestions"
+items=1,  no cursor -> "Review queue  1 pending suggestion"   (singular, no +)
+```
+
+`svelte-check` 0 errors, full UI suite still green.
+
+### The sibling tiles
+
+I left Duplicate groups and Withdrawals alone, as your report noted: their endpoints
+(`GET /v1/duplicates`, `GET /v1/withdrawn`) return the whole list unpaginated today, so
+their `.length` counts are currently correct. They share the anti-pattern but not the
+bug; if either endpoint ever gains pagination, it inherits the same "50+" fix. The
+Authorities browse (**329**) has the same shape and is being handled separately.
