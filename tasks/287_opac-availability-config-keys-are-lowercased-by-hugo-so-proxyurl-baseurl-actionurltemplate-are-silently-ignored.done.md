@@ -220,3 +220,103 @@ By hand, with four lines of Hugo and no libcat:
 {{ site.Params.availability.overdrive.proxyUrl }}   {{/* https://p.example/av */}}
 {{ site.Params.availability | jsonify }}            {{/* {"enabled":true,"overdrive":{"proxyurl":"…"}} */}}
 ```
+
+## Outcome
+
+Fixed in **v0.116.3** (`83e8691`). The report is accurate on the mechanism, the
+blast radius and the reason the suite stayed green. Took the first suggested
+remedy: normalize once at the boundary.
+
+### The fix
+
+`readConfig` canonicalizes known keys before the `enabled` gate, so the adapters
+keep reading the spelling they always read and no adapter changed:
+
+```js
+var CANONICAL_KEYS = ["enabled","slug","transport","baseUrl","proxyUrl",
+                      "actionUrlTemplate","timeoutMs","overdrive","daia"];
+function canonicalizeKeys(v) { /* recursive; arrays too; unknown keys pass through */ }
+```
+
+Both spellings work, per the report's constraint. Unknown keys are untouched --
+a deployment's own params are none of the module's business.
+
+Chose this over rebuilding an explicit `dict` in `baseof.html`. That is the
+smaller diff, but it is also a second place to forget a key: every new adapter
+option would need adding in two files, and the failure mode of forgetting is
+exactly this bug, silent again. One normalizer, one list.
+
+### Misconfiguration no longer looks like an outage
+
+The report says the throw reaches "no console error". Close, and worth stating
+exactly, because the truth is slightly worse. `fetchBatchSafe` at v0.116.2 did
+log -- as a **warning**, once per batch, reading:
+
+```
+lcat-availability: overdrive fetch failed: Error: overdrive.proxyUrl required for proxied transport
+```
+
+So the one diagnostic a devtools reader would find actively misattributed a
+config bug to a network failure, which is the opposite of the hint they needed.
+Verified by building `exampleSite` against the v0.116.2 asset and driving it.
+
+Now a config error is `console.error`, once per adapter (it recurs on every
+batch and is not transient); a network failure stays a per-batch `console.warn`,
+because which batch failed matters. `configError()` tags the error; the log sink
+is injectable via `deps.console` so tests assert on it without monkeypatching a
+global -- which they must not do here, since this suite's `test()` never awaits
+and every async test runs concurrently.
+
+### Testing the seam
+
+`hugo/availability_seam_test.cjs` builds `exampleSite` from a TOML overlay
+carrying the README's own camelCase, pulls the `<script id="lcat-availability-config">`
+JSON out of the render, and feeds **those bytes** to `readConfig`. Nothing in it
+is hand-written but the TOML. It asserts Hugo lowercases (so the day Hugo stops,
+the normalizer can go), that the adapter receives camelCase, and that a proxied
+transport built from real config targets the proxy. Wired into `npm run test:js`.
+
+The report's thesis, demonstrated rather than asserted: with `canonicalizeKeys`
+removed from `readConfig`, **all 23 pre-existing unit tests still pass** and only
+the seam test fails. Each hands the adapter an object a human wrote in the same
+file.
+
+Mutation-proved all three new guards:
+
+| mutation | caught by |
+|---|---|
+| `canonicalizeKeys` removed from `readConfig` | seam test + 2 unit tests |
+| once-only latch dropped (log every batch) | "reported once at error level" |
+| `configError` stops tagging `isConfigError` | same (degrades to a warn) |
+
+End-to-end in jsdom against a stub proxy, `exampleSite` built from the README's
+config verbatim (`transport = "proxied"` + `proxyUrl` + `actionUrlTemplate`):
+
+```
+v0.116.2   proxy requests: 0   status=unknown    data-action-url=null       <- the reported bug
+           console.warn "overdrive fetch failed: Error: … proxyUrl required for proxied transport"
+
+v0.116.3   proxy requests: 1   status=available  data-action-url=https://borrow.example/go/24760f5d-…
+           body: {"provider":"overdrive","slug":"examplelib","ids":[…]}
+```
+
+Default `exampleSite` output is byte-identical before and after (193 files,
+`diff -r` empty) -- availability is off unless configured. a11y and link gates
+clean.
+
+### Not fixed here
+
+`data-daia-id` is never emitted, so the DAIA adapter still cannot run --
+tasks/288, filed separately by the same reporter. This fix makes DAIA's config
+arrive correctly; it does not give it anything to fetch.
+
+`A5` (the borrow link) is fixed as a consequence, verified above:
+`actionUrlTemplate` now reaches `overdriveActionUrl`. Note the proxied repro
+shows `data-action-url=null` rather than the report's wrong
+`{slug}.overdrive.com/…` link, because under a broken proxy nothing resolves far
+enough to render a link at all -- `A5`'s wrong link needs the `direct` transport
+to be visible.
+
+`hugo/README.md` gained a note that Hugo lowercases param keys and that the
+module canonicalizes them, so the next adopter who inspects the shipped JSON
+and sees `proxyurl` is not left wondering.
