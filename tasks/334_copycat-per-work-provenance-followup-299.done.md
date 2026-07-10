@@ -42,3 +42,35 @@ this is purely about giving the per-work entry a `WorkID` to be found by.
 summaries are no longer invisible; what remains is that they are not reachable
 from the *record's own* History. That is a provenance-completeness gap, not a
 data-loss one.
+
+## Outcome -- shipped in libcat v0.147.0 (minor)
+
+`copycat.Commit` now captures the ingest run's resolved work IDs (`res.WorkIDs`,
+previously discarded via `_`) and emits one per-work `COPYCAT_COMMIT` audit entry
+-- carrying that work's `WorkID`, the run ID, and a `imported from <source> (batch
+<id>)` note -- alongside the existing batch-summary entry (now also tagged with
+`RunID`). An imported record's History tab, which filters audit by `WorkID`, now
+shows its import; the audit-log screen (tasks/299) still shows the aggregate.
+
+**Scope: commit only.** Per-work `COPYCAT_STAGE`/`COPYCAT_REVERT` were considered
+and deliberately not added -- staging is a pre-commit preview so new records have
+no work ID yet, and revert removes the imported grains, so a per-work entry would
+attach to a work that is being deleted. Commit is the moment a work comes into
+existence from a copied record, which is the entire provenance question.
+
+- `backend/copycat/copycat.go` -- `Commit` captures `committedWorks` and the
+  per-work emission loop; summary entry carries `RunID: b.ID`.
+- `ingest/ingest.go` -- `Result.WorkIDs` (added earlier this arc) surfaces the
+  resolved work IDs the loop iterates.
+- Test: `copycat_test.go` `TestCommitAuditsPerWorkProvenance` wires a `Queue`
+  into the service, stages+commits, and asserts one summary entry plus one
+  per-work entry per committed work (each with a `w`-prefixed WorkID and
+  `RunID == batchID`).
+
+**Verified live on :8481:** staged a 15-record MARC upload, committed it, then
+`GET /v1/audit?month=&workId=<committed work>` returns exactly the
+`COPYCAT_COMMIT` provenance row (`imported from upload (batch ...)`) -- zero rows
+before this change. Backend copycat/suggest/httpapi suites green.
+
+Closes the record-History half of the U7 provenance probe (libcat-e2e), deferred
+in the 299 doneness note.
