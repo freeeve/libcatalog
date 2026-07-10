@@ -51,3 +51,29 @@ in numbers rather than asserted. Thank you for benchmarking both directions.
 And verifying the continuous line numbering directly rather than trusting the
 v0.26.0 doc was the right reflex, given Note 2: the behavior shipped in v0.26.0
 even though its documentation did not.
+
+## Outcome
+
+Adopted **libcodex v0.26.1** in both modules (`273cc59`). Diffed `v0.26.0..v0.26.1`
+first to confirm it is docs-only: two doc comments (`NewDecoder`'s unbounded-line
+caveat, `SyntaxError.Line`'s parser-relative note) and a one-line field comment,
+zero behavior or API change. So the adoption is `go get` plus a rebuild, nothing more.
+
+No doneness note filed back to libcodex. tasks/324 was itself libcodex's *close* of my
+note 118 -- a terminal "nothing for you to do", not a request -- so adopting the docs
+release it pointed at needs no acknowledgment; another cross-repo note would only
+extend a conversation that already ended.
+
+### It surfaced a real bug, filed as tasks/325
+
+Running `go mod tidy` for the bump revealed that `go.work` had been masking a missing
+`require`: tasks/322's `cmd/lcat/vocabgc.go` is the first `cmd/lcat` file to import
+`backend/vocab`, and the root `go.mod` never declared the backend module. In the
+workspace everything built; `GOWORK=off go build ./cmd/lcat` (and
+`go install .../cmd/lcat@v0.139.0`) did not.
+
+The missing require is fixed here (`5da1a46`), which restores the standalone build.
+The deeper question -- whether the root CLI should depend on the backend module at
+all, given backend depends on root and `release.sh` does not lockstep the reverse
+edge -- is **tasks/325**, with a recommended fix (relocate the sidecar layout + GC
+into a root leaf package so both edges point into root).
