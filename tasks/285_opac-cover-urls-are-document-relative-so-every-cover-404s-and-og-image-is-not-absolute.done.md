@@ -174,3 +174,86 @@ relative `og:image` is observable without any build:
 curl -s http://localhost:8482/works/w0cfnsjg6micju/ | grep -E 'og:image|twitter:(image|card)'
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8482/covers/w0cfnsjg6micju.jpg
 ```
+
+## Outcome
+
+Fixed in **v0.115.2** (`806794c`). Every point in the report was correct, including
+the observation that line 44 was the tell -- `absURL` on the site-wide fallback,
+one line below the per-work cover that never got it.
+
+Four call sites, exactly as prescribed:
+
+- `lcat-cover.html:17` -- `src="{{ $url | relURL }}"`, inherited by both callers.
+- `head-seo.html` -- the cover is absolutized once into `$image`, which
+  `og:image` and `twitter:image` already flow from.
+- `head-seo.html` JSON-LD -- `(.Params.cover | absURL)`.
+- Both social sites are additionally gated on `site.Params.covers`.
+
+`twitter:card` needed no separate change: it already read `{{ if $image }}`, so
+gating `$image` on `covers` fixed the false `summary_large_image` for free.
+
+### Measured, not asserted
+
+Built `hugo/exampleSite` before and after, same fixture:
+
+```
+PRE-FIX   relative href/src in the built site: {'covers/wexampleone.jpg': 31}
+POST-FIX  relative href/src in the built site: (none)
+
+/works/wexampleone/  src="/covers/wexampleone.jpg"     (was covers/wexampleone.jpg)
+/works/              src="/covers/wexampleone.jpg"     (same string, finally)
+og:image             https://example.org/covers/wexampleone.jpg
+json-ld image        https://example.org/covers/wexampleone.jpg
+copyCovers wrote     public/covers/wexampleone.jpg      <- they now agree
+```
+
+`diff -r` between the two builds touches 37 lines, all of them one of those three
+strings. Nothing else moved.
+
+The absolute CDN cover passes through byte-for-byte in both `src` and `og:image`,
+so queerbooks does not regress. The `/es/` pages resolve to `/covers/...` and not
+`/es/covers/...`, which I checked rather than assumed -- `relURL` does not prepend
+the language prefix to a path that already starts at the root.
+
+With `covers = false` (config overlay), the `<img>`, `og:image`, `twitter:image`
+and JSON-LD `image` are all absent and `twitter:card` is `summary`.
+
+### Confirmed live on the playground OPAC
+
+`:8482` has covers off and one work with a cover -- the exact case in the report.
+
+```
+before:  og:image      content="covers/w0cfnsjg6micju.jpg"
+         twitter:image content="covers/w0cfnsjg6micju.jpg"
+         twitter:card  content="summary_large_image"
+after:   (no og:image, no twitter:image, no json-ld image)
+         twitter:card  content="summary"
+```
+
+### The guard that could not see it
+
+`link_check.cjs` had two holes, not one. It scanned `href` and never `src`, and it
+`continue`d on anything without a leading slash -- so even taught about `src` it
+would have skipped a document-relative URL in silence. It now scans both and
+treats a document-relative reference as a failure in its own right. Verified by
+running it against the pre-fix build: **31 references, exit 1**. Against the fixed
+build: 120 pages, exit 0.
+
+A relative reference is never right in this site. Hugo's `relURL` emits a leading
+slash, so one reaching the output means a template forgot to call it.
+
+`npm run test:js` (7 tests) and `a11y_audit.js` (120 pages) pass; the audit was
+never going to catch this, since `alt=""` is correct for a decorative image.
+
+### Adoption
+
+Rebuild the site. No config change, no template change for adopters.
+
+- Deployments serving **absolute** cover URLs (queerbooks) render identically.
+- Deployments using `lcat export --covers-out` get working covers for the first
+  time.
+- A site with `covers = false` **stops** emitting `og:image`, `twitter:image` and
+  JSON-LD `image`. If a deployment wanted a social image regardless of covers,
+  that is what `[params] ogImage` is for, and it is unchanged.
+- `link_check.cjs` will now fail builds that were previously passing with broken
+  images. That is the point. It is dev-only and not consumed by Hugo.
