@@ -6,7 +6,7 @@
   // profile is rejected on save and never reaches a cataloger's editor.
   import { onMount } from "svelte";
   import {
-    ApiError,
+    humanApiMessage,
     deleteProfileOverride,
     fetchProfile,
     fetchProfiles,
@@ -53,7 +53,7 @@
       const res = await fetchProfiles();
       list = Object.values(res.profiles ?? {}).sort((a, b) => a.id.localeCompare(b.id));
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "loading profiles failed";
+      error = humanApiMessage(e, "loading profiles failed");
     }
   }
 
@@ -75,7 +75,7 @@
       isDefault = res.isDefault;
       dirty = false;
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "loading the profile failed";
+      error = humanApiMessage(e, "loading the profile failed");
     }
   }
 
@@ -98,7 +98,7 @@
       status = "saved";
       await loadList();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "save failed";
+      error = humanApiMessage(e, "save failed");
     } finally {
       busy = false;
     }
@@ -127,7 +127,7 @@
         status = "override deleted -- this profile had no shipped default";
       }
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "revert failed";
+      error = humanApiMessage(e, "revert failed");
     } finally {
       busy = false;
     }

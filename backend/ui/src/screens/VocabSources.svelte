@@ -9,7 +9,7 @@
   // registered (non-builtin) sources can be deleted.
   import { onMount } from "svelte";
   import {
-    ApiError,
+    humanApiMessage,
     deleteVocabSource,
     downloadVocabSource,
     fetchVocabSources,
@@ -95,7 +95,7 @@
       sources = (await fetchVocabSources()).sources ?? [];
       selected = Math.min(selected, Math.max(0, sources.length - 1));
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "loading sources failed";
+      error = humanApiMessage(e, "loading sources failed");
     }
   }
 
@@ -108,7 +108,7 @@
       status = `${s.name} queued -- the worker downloads and installs it shortly`;
       await refresh();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "queuing the download failed";
+      error = humanApiMessage(e, "queuing the download failed");
     } finally {
       busy = "";
     }
@@ -124,7 +124,7 @@
       status = `${s.name} removed -- its terms left the index`;
       await refresh();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "removing the snapshot failed";
+      error = humanApiMessage(e, "removing the snapshot failed");
     } finally {
       busy = "";
     }
@@ -160,7 +160,7 @@
       status = `${s.name}: ${res.terms.toLocaleString()} terms installed from ${file.name}`;
       await refresh();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "the upload failed";
+      error = humanApiMessage(e, "the upload failed");
     } finally {
       busy = "";
       input.value = "";
@@ -178,7 +178,7 @@
       newSource = { ...BLANK_SOURCE };
       await refresh();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "registering the source failed";
+      error = humanApiMessage(e, "registering the source failed");
     }
   }
 
@@ -192,7 +192,7 @@
       status = `${s.name} deleted`;
       await refresh();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "deleting the source failed";
+      error = humanApiMessage(e, "deleting the source failed");
     }
   }
 </script>

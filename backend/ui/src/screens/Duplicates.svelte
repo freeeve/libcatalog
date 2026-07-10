@@ -7,7 +7,7 @@
   // uses the same endpoint (and lcat:mergedInto semantics) as the CLI
   // markers; field cleanup happens in the survivor's editor afterward.
   import { onDestroy, onMount } from "svelte";
-  import { ApiError, fetchDuplicates, fetchProfile, fetchWorkDoc, mergeWorks, postOps } from "../lib/api";
+  import { fetchDuplicates, fetchProfile, fetchWorkDoc, humanApiMessage, mergeWorks, postOps } from "../lib/api";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { screenState } from "../lib/screenState.svelte";
   import Modal from "../components/Modal.svelte";
@@ -76,7 +76,7 @@
       st.selected = Math.min(st.selected, Math.max(0, st.groups.length - 1));
       if (st.openKey && !st.groups.some((g) => g.key === st.openKey)) collapse();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "loading duplicates failed";
+      error = humanApiMessage(e, "loading duplicates failed");
     } finally {
       busy = false;
     }
@@ -256,7 +256,7 @@
       collapse();
       await load();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "merge failed";
+      error = humanApiMessage(e, "merge failed");
     } finally {
       busy = false;
     }

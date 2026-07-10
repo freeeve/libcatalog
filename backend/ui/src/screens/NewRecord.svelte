@@ -6,7 +6,7 @@
   // their fields. The draft lives in screenState only -- nothing touches the
   // grain tree until the staged batch commits.
   import { onDestroy, onMount } from "svelte";
-  import { ApiError, FieldedApiError, fetchCopycatTemplates, stageOriginalRecord } from "../lib/api";
+  import { FieldedApiError, fetchCopycatTemplates, humanApiMessage, stageOriginalRecord } from "../lib/api";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { navigate } from "../lib/router";
   import { screenState } from "../lib/screenState.svelte";
@@ -86,7 +86,7 @@
         fieldErrors = e.fields;
         error = e.message;
       } else {
-        error = e instanceof ApiError ? e.message : "staging failed";
+        error = humanApiMessage(e, "staging failed");
       }
     } finally {
       busy = false;

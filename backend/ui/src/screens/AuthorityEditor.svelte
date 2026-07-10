@@ -13,6 +13,7 @@
     updateAuthority,
     mergeAuthority,
     ApiError,
+    humanApiMessage,
     ConflictError,
   } from "../lib/api";
   import { isReadOnly } from "../lib/config";
@@ -131,7 +132,7 @@
         conflicted = true;
         error = "this term changed in another session while you edited";
       } else {
-        error = e instanceof ApiError ? e.message : "save failed";
+        error = humanApiMessage(e, "save failed");
       }
     } finally {
       saving = false;
@@ -184,7 +185,7 @@
       mergeWinner = null;
       await load();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "merge failed";
+      error = humanApiMessage(e, "merge failed");
     } finally {
       merging = false;
     }

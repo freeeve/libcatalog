@@ -26,6 +26,7 @@ import {
   updateDraft,
   ApiError,
   ConflictError,
+  humanApiMessage,
 } from "./api";
 import { invalidateAccess, loginLocal } from "./auth";
 import { setConfig } from "./config";
@@ -369,4 +370,56 @@ describe("401 retry", () => {
     await expect(fetchWorks("q")).rejects.toMatchObject({ status: 401 });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+});
+
+// tasks/337: service-internal error prefixes must not reach a cataloger's error
+// banner. humanApiMessage strips the "pkg:" and its "invalid request:/invalid
+// source:" tail; every error-surfacing screen routes through it.
+describe("humanApiMessage", () => {
+  it("strips the package prefix and capitalizes", () => {
+    expect(humanApiMessage(new ApiError(400, "batch: invalid request: title is required"), "fallback")).toBe(
+      "Title is required",
+    );
+  });
+
+  it("strips 'invalid source:' too, not just 'invalid request:'", () => {
+    expect(humanApiMessage(new ApiError(400, "vocabsrc: invalid source: urls must be http(s)"), "fallback")).toBe(
+      "Urls must be http(s)",
+    );
+  });
+
+  it("strips a bare package prefix with no invalid-* tail", () => {
+    expect(humanApiMessage(new ApiError(409, "copycat: batch already committed"), "fallback")).toBe(
+      "Batch already committed",
+    );
+  });
+
+  it("falls back for a non-ApiError, and for a message that strips to empty", () => {
+    expect(humanApiMessage(new Error("boom"), "loading failed")).toBe("loading failed");
+    expect(humanApiMessage(new ApiError(400, "copycat: invalid request: "), "quick-add failed")).toBe(
+      "quick-add failed",
+    );
+  });
+});
+
+// tasks/337: the anti-drift guard. A screen that assigns the raw ApiError
+// message straight to its error banner re-leaks the package prefix (the exact
+// regression 337 fixed on nine screens). No screen source may pair
+// `instanceof ApiError` with a bare `e.message` on the same line -- the humanizer
+// must sit between them. New screens inherit the rule for free.
+describe("screens never surface a raw ApiError message", () => {
+  const sources = import.meta.glob("/src/screens/*.svelte", {
+    eager: true,
+    query: "?raw",
+    import: "default",
+  }) as Record<string, string>;
+
+  for (const [path, src] of Object.entries(sources)) {
+    it(`${path.split("/").pop()} humanizes its error copy`, () => {
+      const offenders = src
+        .split("\n")
+        .filter((line) => /instanceof ApiError/.test(line) && /\be\.message\b/.test(line));
+      expect(offenders, offenders.join("\n")).toHaveLength(0);
+    });
+  }
 });

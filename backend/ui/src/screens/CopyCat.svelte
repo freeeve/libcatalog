@@ -6,7 +6,7 @@
   // to a matched work returns to the same spot.
   import { onDestroy, onMount } from "svelte";
   import {
-    ApiError,
+    humanApiMessage,
     copycatSearch,
     deleteCopycatBatch,
     deleteCopycatProfile,
@@ -157,7 +157,7 @@
       newProfile = { name: "", policy: "replace-feed", targets: {} };
       await loadProfiles();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "saving the profile failed";
+      error = humanApiMessage(e, "saving the profile failed");
     }
   }
 
@@ -178,7 +178,7 @@
       newTarget = { name: "", url: "", protocol: "sru" };
       await loadTargets();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "saving the target failed";
+      error = humanApiMessage(e, "saving the target failed");
     }
   }
 
@@ -191,7 +191,7 @@
       await putCopycatTarget({ name: s.name, url: s.url, protocol: s.protocol });
       await loadTargets();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "saving the target failed";
+      error = humanApiMessage(e, "saving the target failed");
     }
   }
 
@@ -230,7 +230,7 @@
       st.failures = res.failures ?? {};
       st.warnings = res.warnings ?? {};
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "search failed";
+      error = humanApiMessage(e, "search failed");
     } finally {
       busy = false;
     }
@@ -253,7 +253,7 @@
       await loadBatches();
       await open(res.batch.id);
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "staging failed";
+      error = humanApiMessage(e, "staging failed");
     } finally {
       busy = false;
     }
@@ -296,7 +296,7 @@
       await loadBatches();
       await open(staged.batch.id);
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "quick-add failed";
+      error = humanApiMessage(e, "quick-add failed");
     } finally {
       busy = false;
     }
@@ -321,7 +321,7 @@
       await loadBatches();
       await open(res.batch.id);
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "upload failed";
+      error = humanApiMessage(e, "upload failed");
     } finally {
       busy = false;
       input.value = "";

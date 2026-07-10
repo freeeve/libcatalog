@@ -8,7 +8,7 @@
   // the count of what it managed to rewrite recorded. Decided rows carry a
   // Delete, which is the only way out of an approval made with no publisher.
   import { onMount } from "svelte";
-  import { ApiError, decidePromotion, deletePromotion, fetchPromotions, proposePromotion } from "../lib/api";
+  import { ApiError, decidePromotion, deletePromotion, fetchPromotions, humanApiMessage, proposePromotion } from "../lib/api";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { canPublish } from "../lib/auth";
   import { sessionStore } from "../lib/stores";
@@ -100,7 +100,7 @@
         e instanceof ApiError && e.status === 409
           ? "this tag already has an open proposal"
           : e instanceof ApiError
-            ? `propose failed: ${e.message}`
+            ? `propose failed: ${humanApiMessage(e, "the request was rejected")}`
             : "propose failed";
     } finally {
       submitting = false;
@@ -117,7 +117,7 @@
         : `rejected "${p.tag}"`;
       await load();
     } catch (e) {
-      error = e instanceof ApiError ? `decide failed: ${e.message}` : "decide failed";
+      error = e instanceof ApiError ? `decide failed: ${humanApiMessage(e, "the request was rejected")}` : "decide failed";
       // A failed approval leaves the row PENDING with its partial count updated,
       // so reload rather than leave stale numbers on screen.
       if (approve) await load();
@@ -132,7 +132,7 @@
       notice = `deleted the promotion for "${p.tag}" -- the tag can be proposed again`;
       await load();
     } catch (e) {
-      error = e instanceof ApiError ? `delete failed: ${e.message}` : "delete failed";
+      error = e instanceof ApiError ? `delete failed: ${humanApiMessage(e, "the request was rejected")}` : "delete failed";
     }
   }
 

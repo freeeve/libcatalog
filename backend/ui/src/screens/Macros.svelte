@@ -5,7 +5,7 @@
   // Recording happens in the work editor ("Save staged edits as macro…");
   // this screen is where recordings get parameterized and shared.
   import { onMount } from "svelte";
-  import { ApiError, createMacro, deleteMacro, fetchMacros, updateMacro } from "../lib/api";
+  import { ApiError, createMacro, deleteMacro, fetchMacros, humanApiMessage, updateMacro } from "../lib/api";
   import { canAdmin } from "../lib/auth";
   import { isReadOnly } from "../lib/config";
   import { SUGGESTED_SHORTCUT_KEY, bindKeys, popScope, pushScope, shortcutKeyError } from "../lib/keyboard";
@@ -149,7 +149,7 @@
       cancel();
       await load();
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "saving the macro failed";
+      error = humanApiMessage(e, "saving the macro failed");
     }
   }
 

@@ -6,7 +6,7 @@
   // per-work filter is deliberately correct and stays; this is the unfiltered
   // view it never had a reader for. Librarian-gated, like GET /v1/audit.
   import { onMount } from "svelte";
-  import { ApiError, fetchAudit } from "../lib/api";
+  import { ApiError, fetchAudit, humanApiMessage } from "../lib/api";
   import type { AuditEntry } from "../lib/types";
 
   let {
@@ -49,7 +49,7 @@
       if (action && !entries.some((e) => e.action === action)) action = "";
     } catch (e) {
       entries = [];
-      error = e instanceof ApiError ? `audit load failed: ${e.message}` : "audit load failed";
+      error = e instanceof ApiError ? `audit load failed: ${humanApiMessage(e, "the request was rejected")}` : "audit load failed";
     } finally {
       loading = false;
     }

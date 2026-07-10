@@ -73,7 +73,7 @@ export class ApiError extends Error {
  *  that is not an ApiError gets the caller's fallback copy. */
 export function humanApiMessage(e: unknown, fallback: string): string {
   if (!(e instanceof ApiError)) return fallback;
-  const msg = e.message.replace(/^[a-z]+: (invalid request: )?/, "").trim();
+  const msg = e.message.replace(/^[a-z]+: (invalid (request|source): )?/, "").trim();
   return msg ? msg.charAt(0).toUpperCase() + msg.slice(1) : fallback;
 }
 

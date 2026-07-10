@@ -6,7 +6,7 @@
   // POST /v1/review batch. Folk-scheme rows add immediate accept/block
   // governance for librarians.
   import { onMount } from "svelte";
-  import { ApiError, fetchQueue, postPublish, postReview, setFolkTermStatus } from "../lib/api";
+  import { ApiError, fetchQueue, humanApiMessage, postPublish, postReview, setFolkTermStatus } from "../lib/api";
   import { canPublish } from "../lib/auth";
   import { getConfig } from "../lib/config";
   import { createDecisionStore } from "../lib/decisions";
@@ -185,7 +185,7 @@
       for (const d of stale) decisions.stage(d);
       await load(true);
     } catch (e) {
-      error = e instanceof ApiError ? `apply failed: ${e.message}` : "apply failed";
+      error = e instanceof ApiError ? `apply failed: ${humanApiMessage(e, "the request was rejected")}` : "apply failed";
     } finally {
       applying = false;
     }
@@ -202,7 +202,7 @@
       if (res.publishNote) parts.push(res.publishNote);
       notice = parts.join(" · ");
     } catch (e) {
-      error = e instanceof ApiError ? `publish failed: ${e.message}` : "publish failed";
+      error = e instanceof ApiError ? `publish failed: ${humanApiMessage(e, "the request was rejected")}` : "publish failed";
     } finally {
       applying = false;
     }
@@ -215,7 +215,7 @@
       await setFolkTermStatus(action, s.term.id);
       notice = `${action === "acceptFolk" ? "accepted" : "blocked"} folk term "${s.term.label || s.term.id}"`;
     } catch (e) {
-      error = e instanceof ApiError ? `folk update failed: ${e.message}` : "folk update failed";
+      error = e instanceof ApiError ? `folk update failed: ${humanApiMessage(e, "the request was rejected")}` : "folk update failed";
     }
   }
 </script>

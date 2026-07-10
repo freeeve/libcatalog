@@ -5,7 +5,7 @@
   // p keeps (flag cleared, decision pinned so reconciliation never
   // re-flags), o opens the work.
   import { onDestroy, onMount } from "svelte";
-  import { ApiError, decideWithdrawn, fetchWithdrawn } from "../lib/api";
+  import { decideWithdrawn, fetchWithdrawn, humanApiMessage } from "../lib/api";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { navigate } from "../lib/router";
   import { screenState } from "../lib/screenState.svelte";
@@ -43,7 +43,7 @@
       st.works = (await fetchWithdrawn()).works ?? [];
       st.selected = Math.min(st.selected, Math.max(0, st.works.length - 1));
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "loading the queue failed";
+      error = humanApiMessage(e, "loading the queue failed");
     } finally {
       loading = false;
     }
@@ -59,7 +59,7 @@
       st.works = st.works.filter((x) => x.WorkID !== w.WorkID);
       st.selected = Math.min(st.selected, Math.max(0, st.works.length - 1));
     } catch (e) {
-      error = e instanceof ApiError ? e.message : "the decision failed";
+      error = humanApiMessage(e, "the decision failed");
     }
   }
 

@@ -21,7 +21,7 @@
   import RelationsPanel from "../components/RelationsPanel.svelte";
   import SimilarPanel from "../components/SimilarPanel.svelte";
   import AttachmentsPanel from "../components/AttachmentsPanel.svelte";
-  import { cloneWork, fetchIdentifierKinds, fetchItems, splitWork, ApiError } from "../lib/api";
+  import { cloneWork, fetchIdentifierKinds, fetchItems, splitWork, humanApiMessage } from "../lib/api";
   import type { SubjectCandidate } from "../lib/types";
   import { isReadOnly } from "../lib/config";
   import { createEditorSession } from "../lib/editor";
@@ -79,7 +79,7 @@
       const res = await cloneWork(workId);
       navigate(`/works/${res.workId}`);
     } catch (e) {
-      cloneError = e instanceof ApiError ? e.message : "clone failed";
+      cloneError = humanApiMessage(e, "clone failed");
     }
   }
 
@@ -105,7 +105,7 @@
       splitNotice = `split recorded -- ${instances.length} instance${instances.length === 1 ? "" : "s"} pin to ${res.newWork}; the new work materializes on the next ingest`;
       splitPick = {};
     } catch (e) {
-      splitError = e instanceof ApiError ? e.message : "split failed";
+      splitError = humanApiMessage(e, "split failed");
     } finally {
       splitBusy = false;
     }
