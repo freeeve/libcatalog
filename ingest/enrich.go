@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 
@@ -27,6 +28,13 @@ type WorkSummary struct {
 	// Subjects are the Work's controlled subject IRIs (bf:subject with an
 	// IRI object, any graph) -- what authority merges rewrite (tasks/046).
 	Subjects []string
+	// Series and Languages are the similarity scorer's two strongest signals
+	// (tasks/284): two books in one series are related whatever else they
+	// share, and a reader of one language is rarely served a book in another.
+	// Series is transcribed per Instance (bf:seriesStatement, 490$a) and
+	// hoisted to the Work here; Languages are bf:language local names ("en").
+	Series    []string `json:",omitempty"`
+	Languages []string `json:",omitempty"`
 	// Visibility and holdings signals for the admin works list (tasks/078):
 	// the editor deliberately shows everything, so each row says what the
 	// public projection would do with it.
@@ -341,6 +349,18 @@ func SummarizeGrain(grain []byte) ([]WorkSummary, error) {
 	return SummarizeDataset(ds), nil
 }
 
+// sortedUnique sorts and de-duplicates. Several Instances of one Work routinely
+// transcribe the same series statement and carry the same language, and a
+// similarity scorer that counted them twice would rank a Work with three
+// printings above a Work with one.
+func sortedUnique(vs []string) []string {
+	if len(vs) < 2 {
+		return vs
+	}
+	sort.Strings(vs)
+	return slices.Compact(vs)
+}
+
 // SummarizeDataset is SummarizeGrain for callers that already hold the parsed
 // dataset (the work index scans identity, summaries, and barcodes off one
 // parse).
@@ -413,6 +433,11 @@ func SummarizeDataset(ds *rdf.Dataset) []WorkSummary {
 				s.Tags = append(s.Tags, tag.Value)
 			}
 		}
+		for _, lang := range merged.Objects(work, bfNS+"language") {
+			if code := rdf.LocalName(lang.Value); code != "" {
+				s.Languages = append(s.Languages, code)
+			}
+		}
 		for _, inst := range merged.Objects(work, bfNS+"hasInstance") {
 			for _, ident := range merged.Objects(inst, bfNS+"identifiedBy") {
 				if merged.HasType(ident, bfNS+"Isbn") {
@@ -425,6 +450,14 @@ func SummarizeDataset(ds *rdf.Dataset) []WorkSummary {
 					if label, ok := merged.Literal(src, rdfsLabel); ok && availabilitySources[label] {
 						s.HasAvailability = true
 					}
+				}
+			}
+			// The series statement is transcribed on the Instance, but similarity
+			// is a Work-level question: a reader wants the next book, not the next
+			// printing (tasks/284).
+			for _, ser := range merged.Objects(inst, bfNS+"seriesStatement") {
+				if ser.IsLiteral() && ser.Value != "" {
+					s.Series = append(s.Series, ser.Value)
 				}
 			}
 			s.Items += len(merged.Objects(inst, bfNS+"hasItem"))
@@ -444,6 +477,8 @@ func SummarizeDataset(ds *rdf.Dataset) []WorkSummary {
 		sort.Strings(s.Tags)
 		sort.Strings(s.Subjects)
 		sort.Strings(s.ISBNs)
+		s.Series = sortedUnique(s.Series)
+		s.Languages = sortedUnique(s.Languages)
 		out = append(out, s)
 	}
 	return out
