@@ -61,3 +61,60 @@ On our 62,602-work catalog, both locales, after a facet click:
 The `data-lcat-*` attributes localize correctly; our es.toml supplies all three
 and the English fallbacks never appear. The whole-match-set search is the right
 call -- the rail no longer advertises a number the click cannot deliver.
+
+## Outcome
+
+Fixed in **v0.124.1** (patch), commit `f3828cc`. Diagnosis was exactly right,
+down to the `closest("nav") || el` resolving to the styled element.
+
+Reproduced first, in headless Chromium against the exampleSite with
+`[pagination] pagerSize = 2`, before changing anything:
+
+    cold:              hidden=false display=flex offsetHeight=44
+    after facet click: hidden=true  display=flex offsetHeight=44   <- the bug
+
+### The fix is one rule, but not the one suggested
+
+`.pagination[hidden] { display: none; }` would have worked. It would also have been
+the **third** per-component copy of that rule: `grep` finds
+
+    lcat.css:402  .lcat-excluded[hidden] { display: none; }
+    lcat.css:559  .lcat-theme-toggle[hidden] { display: none; }
+
+Two components had already hit this and been patched one at a time. The paginator
+was the third and got missed, which is what a per-component fix predicts. So:
+
+    [hidden] { display: none !important; }
+
+stated once, near the top, and both per-component copies deleted. `!important` is
+the point rather than a shortcut -- the entire failure mode is a later, more
+specific author rule outranking the UA `[hidden]` rule.
+
+Verified the deletions are covered rather than merely tidy: `.lcat-excluded[hidden]`
+still computes `display:none` with its own rule gone, and forcing `hidden` onto
+`.lcat-theme-toggle` in the live page moves it from `block/27px` to `none/0px`.
+
+Audited the other seven `el.hidden = ...` sites in `assets/*.js`. `.lcat-facet-not`
+and `.lcat-facets ul` set no `display`, so the UA rule was already working there;
+the paginator really was the only broken one.
+
+### The test that should have caught it
+
+`browse-scope.spec.mjs`'s `pagerVisible()` read `!nav.hidden` -- the attribute,
+which was set the whole time. It now reads `offsetHeight` and computed display, and
+prints both in the check label.
+
+Mutation matrix, both run for real:
+
+- Reset removed, new assertion: **1 failed**, and the label names the cause --
+  `static pager is off screen ... [hidden=true display=flex h=44]`. The cold-pager
+  control stays green, so it is not failing vacuously.
+- Reset removed, **old** assertion restored: **exit 0, all green**, with its own
+  label printing `display=flex h=44`. That is the blind spot, demonstrated rather
+  than asserted.
+
+### Gates
+
+65 jsdom checks, 61 Playwright checks across 4 specs, axe over 124 pages, link
+check. Release needed a one-path `git stash` around a concurrent session's
+uncommitted `tasks/304`; restored byte-identical (sha `bef4e615…` before and after).
