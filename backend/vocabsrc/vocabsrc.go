@@ -31,6 +31,12 @@ var ErrValidation = errors.New("vocabsrc: invalid source")
 // ErrNotFound reports a missing source, job, or installed snapshot.
 var ErrNotFound = errors.New("vocabsrc: not found")
 
+// ErrConflict reports an operation refused by the state it would leave behind --
+// deleting a source whose snapshot is still installed (tasks/255). The caller can
+// make it succeed by doing something first, which is what separates it from
+// ErrValidation.
+var ErrConflict = errors.New("vocabsrc: conflict")
+
 // Source is one public authority source. A source may offer live typeahead
 // (SuggestURL), a downloadable SKOS dump (SnapshotURL), or both.
 type Source struct {
@@ -223,23 +229,44 @@ func (s *Service) PutSource(ctx context.Context, src Source) error {
 // DeleteSource removes a stored registry entry. A built-in cannot be deleted
 // (deleting a stored override restores the shipped definition).
 //
-// It deliberately leaves an installed snapshot and its sidecar alone (tasks/252).
-// The snapshot keeps serving its terms after its source row is gone, so deleting
-// the artifacts here would demote a live scheme to the map loader while its .nq
-// still resolves. Views synthesizes an orphan install for exactly this state, and
-// RemoveSnapshot -- which does clean up -- is the way out of it. Deleting the
-// registry entry is not a statement about the vocabulary it installed.
+// It refuses with ErrConflict while a snapshot is installed, which is what the
+// screen's tooltip has always promised (tasks/255): deleting the row out from under
+// an install leaves an orphan whose Upload and Delete actions can only 404, and the
+// admin was told the server would stop them. RemoveSnapshot first, then delete.
+//
+// Deleting a stored *override* of a built-in is exempt: the shipped definition takes
+// its place, so the install keeps a source and is never orphaned.
+//
+// The refusal is not a statement about the vocabulary. An install still outlives its
+// source row by other routes -- an offline lcat vocab-install (tasks/163), or a
+// registry that reset because the deployment has no document store -- so Views still
+// synthesizes the orphan, and RemoveSnapshot is still the way out of it.
 func (s *Service) DeleteSource(ctx context.Context, name string) error {
+	if !isBuiltin(name) {
+		if _, _, err := s.Blob.Get(ctx, s.metaPath(name)); err == nil {
+			return fmt.Errorf("%w: %q has an installed snapshot; remove it before deleting the source", ErrConflict, name)
+		} else if !errors.Is(err, blob.ErrNotFound) {
+			return err
+		}
+	}
 	err := s.DB.Delete(ctx, store.Record{Key: sourceKey(name)}, store.CondNone)
 	if errors.Is(err, store.ErrNotFound) {
-		for _, b := range Builtins() {
-			if b.Name == name {
-				return fmt.Errorf("%w: %q is builtin; override it instead", ErrValidation, name)
-			}
+		if isBuiltin(name) {
+			return fmt.Errorf("%w: %q is builtin; override it instead", ErrValidation, name)
 		}
 		return ErrNotFound
 	}
 	return err
+}
+
+// isBuiltin reports whether name is one of the shipped sources.
+func isBuiltin(name string) bool {
+	for _, b := range Builtins() {
+		if b.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 func validateSource(src Source) error {
@@ -383,6 +410,11 @@ type SourceView struct {
 	Source
 	Installed *InstallInfo `json:"installed,omitempty"`
 	Job       *Job         `json:"job,omitempty"`
+	// Orphan marks a row synthesized from an install with no source record behind
+	// it. Such a row can only be removed: everything else the screen offers needs a
+	// source to act on, and answers 404 without one (tasks/255). An empty
+	// SnapshotURL is not a proxy for this -- an upload-only source has none either.
+	Orphan bool `json:"orphan,omitempty"`
 }
 
 // Views assembles the download-list screen's rows.
@@ -428,7 +460,7 @@ func (s *Service) Views(ctx context.Context) ([]SourceView, error) {
 	// vocabulary stays visible and removable.
 	for name, info := range byName {
 		if !registered[name] {
-			views = append(views, SourceView{Source: Source{Name: name, Scheme: info.Scheme}, Installed: &info})
+			views = append(views, SourceView{Source: Source{Name: name, Scheme: info.Scheme}, Installed: &info, Orphan: true})
 		}
 	}
 	sort.Slice(views, func(i, j int) bool { return views[i].Name < views[j].Name })

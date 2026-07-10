@@ -146,6 +146,9 @@ func writeVocabSrcError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, vocabsrc.ErrNotFound):
 		writeError(w, http.StatusNotFound, "no such source")
+	case errors.Is(err, vocabsrc.ErrConflict):
+		// The reason is the whole message here -- it names what to do first.
+		writeError(w, http.StatusConflict, err.Error())
 	default:
 		writeError(w, http.StatusInternalServerError, "vocab source operation failed")
 	}

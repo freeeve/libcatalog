@@ -683,6 +683,9 @@ export interface VocabJob {
 export interface VocabSourceView extends VocabSource {
   installed?: VocabInstall;
   job?: VocabJob;
+  /** The row is synthesized from an install with no source record behind it, so
+   *  only Remove can act on it -- everything else answers 404 (tasks/255). */
+  orphan?: boolean;
 }
 
 /** httpapi.subjectCandidate -- one external heading found by ISBN lookup

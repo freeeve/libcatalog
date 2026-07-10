@@ -236,6 +236,12 @@
             <td>
               {#if s.suggestUrl}<span class="badge">live</span>{/if}
               {#if s.snapshotUrl}<span class="badge">downloadable</span>{/if}
+              {#if s.orphan}
+                <span class="badge badge--orphan"
+                  title="This vocabulary is installed, but no registered source describes it -- from an offline vocab-install or a registry reset. It can be removed; to manage it, register a source named {s.name} below.">
+                  unregistered
+                </span>
+              {/if}
             </td>
             <td class="muted">{s.license ?? ""}</td>
             <td>
@@ -265,13 +271,15 @@
                   Remove
                 </button>
               {/if}
-              {#if isAdmin && !readOnly}
+              <!-- Upload and Delete both need a source record to act on; an orphan
+                   row has none, so the server can only answer 404 (tasks/255). -->
+              {#if isAdmin && !readOnly && !s.orphan}
                 <label class="button button--quiet upload-btn"
                   title="Install a local SKOS dump: .nt/.nq, optionally gzipped. Uploads are size-capped (512MB unless LCATD_VOCAB_UPLOAD_CAP_MB raises it) -- gzip large dumps.">
                   Upload… <input type="file" accept=".nt,.nq,.gz,.nt.gz,.nq.gz" onchange={(ev) => void upload(s, ev)} hidden disabled={busy === s.name || working(s)} />
                 </label>
               {/if}
-              {#if isAdmin && !s.builtin && !readOnly}
+              {#if isAdmin && !s.builtin && !readOnly && !s.orphan}
                 <button class="button button--quiet" onclick={() => void unregister(s)} disabled={busy === s.name || working(s)}
                   title="Delete this registered source definition (an installed snapshot must be removed first)">
                   Delete source
@@ -387,6 +395,13 @@
     background: var(--danger);
     border-color: var(--danger);
     color: var(--danger-ink);
+  }
+  /* Provisional, not failed: a dashed edge, the same "shadowed, not erased"
+     register the provenance rail uses for an overridden value. Tokenised ink on
+     an untinted badge, so both themes hold AA (tasks/315). */
+  .badge--orphan {
+    color: var(--ink-muted);
+    border-style: dashed;
   }
   .actions {
     white-space: nowrap;

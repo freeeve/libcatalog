@@ -75,8 +75,10 @@ func TestViewsListsOrphanInstalls(t *testing.T) {
 	if _, err := s.InstallUpload(ctx, "homosaurus", strings.NewReader(zinesNT)); err != nil {
 		t.Fatal(err)
 	}
-	// The registry forgets the source; the blob-side install remains.
-	if err := s.DeleteSource(ctx, "homosaurus"); err != nil {
+	// The registry forgets the source; the blob-side install remains. Straight to
+	// the store, because DeleteSource now refuses to produce this state (tasks/255)
+	// -- the routes that still reach it are the two this test's doc comment names.
+	if err := s.DB.Delete(ctx, store.Record{Key: sourceKey("homosaurus")}, store.CondNone); err != nil {
 		t.Fatal(err)
 	}
 	views, err := s.Views(ctx)
@@ -414,11 +416,11 @@ func blobPaths(t *testing.T, st blob.Store, prefix string) []string {
 	return out
 }
 
-// TestRemoveSnapshotCleansUpAfterADeletedSource is the leak the harness actually
-// found: the source row is deleted first, so RemoveSnapshot cannot ask the registry
-// what scheme to clean up and has to read the install meta instead. Views
-// synthesizes this orphan install precisely so it stays removable (tasks/252).
-func TestRemoveSnapshotCleansUpAfterADeletedSource(t *testing.T) {
+// TestRemoveSnapshotCleansUpAfterAnOrphanedInstall is the leak the harness actually
+// found: the source row is gone, so RemoveSnapshot cannot ask the registry what
+// scheme to clean up and has to read the install meta instead. Views synthesizes
+// this orphan install precisely so it stays removable (tasks/252).
+func TestRemoveSnapshotCleansUpAfterAnOrphanedInstall(t *testing.T) {
 	s := newService(t)
 	ctx := t.Context()
 	ix, err := vocab.Load(ctx, s.Blob, s.AuthoritiesPrefix, nil)
@@ -437,16 +439,19 @@ func TestRemoveSnapshotCleansUpAfterADeletedSource(t *testing.T) {
 		t.Fatal("install built no sidecar artifacts")
 	}
 
-	// The operator deletes the source, then remembers the snapshot.
-	if err := s.DeleteSource(ctx, "zzleak"); err != nil {
+	// The registry loses the record without the blob store hearing about it: an
+	// offline vocab-install, or a deployment whose registry reset. DeleteSource can
+	// no longer produce this state (tasks/255), but these routes still do.
+	if err := s.DB.Delete(ctx, store.Record{Key: sourceKey("zzleak")}, store.CondNone); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.GetSource(ctx, "zzleak"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("source still registered: %v", err)
 	}
-	// DeleteSource leaves the install alone on purpose: the .nq still serves.
+	// Control: the snapshot outlived its source row, which is what makes this an
+	// orphan rather than an ordinary removal.
 	if _, _, err := s.Blob.Get(ctx, s.snapshotPath("zzleak")); err != nil {
-		t.Fatalf("DeleteSource removed the snapshot its scheme still serves: %v", err)
+		t.Fatalf("the snapshot went with the registry record: %v", err)
 	}
 
 	if err := s.RemoveSnapshot(ctx, "zzleak"); err != nil {
@@ -459,6 +464,143 @@ func TestRemoveSnapshotCleansUpAfterADeletedSource(t *testing.T) {
 
 const zzleakNT = `<http://example.org/z/1> <http://www.w3.org/2004/02/skos/core#prefLabel> "Z"@en .
 `
+
+// TestDeleteSourceRefusesWhileASnapshotIsInstalled makes the screen's tooltip true:
+// "an installed snapshot must be removed first". Nothing enforced it, so one click
+// silently produced an orphan row offering two buttons that could only 404
+// (tasks/255).
+func TestDeleteSourceRefusesWhileASnapshotIsInstalled(t *testing.T) {
+	s := newService(t)
+	ctx := t.Context()
+	ix, err := vocab.Load(ctx, s.Blob, s.AuthoritiesPrefix, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Index = ix
+	if err := s.PutSource(ctx, Source{Name: "zzorph", Scheme: "zzorph"}); err != nil {
+		t.Fatal(err)
+	}
+	// Control: with no snapshot installed, deleting is the ordinary path.
+	if err := s.DeleteSource(ctx, "zzorph"); err != nil {
+		t.Fatalf("delete of an uninstalled source: %v", err)
+	}
+
+	if err := s.PutSource(ctx, Source{Name: "zzorph", Scheme: "zzorph"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.InstallUpload(ctx, "zzorph", strings.NewReader(zzleakNT)); err != nil {
+		t.Fatal(err)
+	}
+	err = s.DeleteSource(ctx, "zzorph")
+	if !errors.Is(err, ErrConflict) {
+		t.Fatalf("delete with a snapshot installed: err = %v, want ErrConflict", err)
+	}
+	// The refusal has to say what to do first, or it is just a wall.
+	if !strings.Contains(err.Error(), "remove it before deleting") {
+		t.Errorf("refusal does not name the remedy: %v", err)
+	}
+	// It refused, so the source is still there and still usable.
+	if _, err := s.GetSource(ctx, "zzorph"); err != nil {
+		t.Fatalf("refused delete removed the source anyway: %v", err)
+	}
+
+	// The documented order works.
+	if err := s.RemoveSnapshot(ctx, "zzorph"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteSource(ctx, "zzorph"); err != nil {
+		t.Fatalf("delete after remove: %v", err)
+	}
+}
+
+// TestDeleteSourceStillDropsABuiltinOverrideWithASnapshotInstalled is the exemption.
+// Deleting a stored override of a built-in restores the shipped definition rather
+// than removing the row, so the install keeps a source and is never orphaned --
+// refusing there would strand an admin who overrode lcsh and wants the default back.
+func TestDeleteSourceStillDropsABuiltinOverrideWithASnapshotInstalled(t *testing.T) {
+	s := newService(t)
+	ctx := t.Context()
+	ix, err := vocab.Load(ctx, s.Blob, s.AuthoritiesPrefix, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Index = ix
+	if err := s.PutSource(ctx, Source{Name: "lcgft", Scheme: "lcgft", SnapshotURL: "http://example.invalid/x.nt"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.InstallUpload(ctx, "lcgft", strings.NewReader(zinesNT)); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteSource(ctx, "lcgft"); err != nil {
+		t.Fatalf("dropping a builtin override with a snapshot installed: %v", err)
+	}
+	// The shipped definition is back, so nothing was orphaned.
+	src, err := s.GetSource(ctx, "lcgft")
+	if err != nil || !src.Builtin {
+		t.Fatalf("shipped definition did not return: %+v err=%v", src, err)
+	}
+	views, err := s.Views(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range views {
+		if v.Name == "lcgft" && v.Orphan {
+			t.Error("dropping a builtin override orphaned its install")
+		}
+	}
+}
+
+// TestViewsMarkOrphanInstalls gives the client the one fact it cannot derive: this
+// row has no source record behind it, so Upload and Delete would 404 (tasks/255).
+// An empty SnapshotURL is not a proxy -- an upload-only source has none either.
+func TestViewsMarkOrphanInstalls(t *testing.T) {
+	s := newService(t)
+	ctx := t.Context()
+	ix, err := vocab.Load(ctx, s.Blob, s.AuthoritiesPrefix, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Index = ix
+	// An upload-only source: registered, no snapshot URL. The control that stops
+	// "no snapshotUrl" from passing as an orphan test.
+	if err := s.PutSource(ctx, Source{Name: "zzupload", Scheme: "zzupload"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.InstallUpload(ctx, "zzupload", strings.NewReader(zzleakNT)); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PutSource(ctx, Source{Name: "zzgone", Scheme: "zzgone"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.InstallUpload(ctx, "zzgone", strings.NewReader(zinesNT)); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DB.Delete(ctx, store.Record{Key: sourceKey("zzgone")}, store.CondNone); err != nil {
+		t.Fatal(err)
+	}
+
+	views, err := s.Views(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{}
+	for _, v := range views {
+		seen[v.Name] = true
+		switch v.Name {
+		case "zzgone":
+			if !v.Orphan {
+				t.Error("an install with no source record is not marked orphan")
+			}
+		case "zzupload":
+			if v.Orphan {
+				t.Error("an upload-only source is marked orphan; it has a source record and no snapshot URL")
+			}
+		}
+	}
+	if !seen["zzgone"] || !seen["zzupload"] {
+		t.Fatalf("views missing rows: %v", seen)
+	}
+}
 
 // TestInstallUpload is the hand-supplied dump path: same converter and index
 // swap as a download, no snapshot URL required, provenance recorded as
