@@ -205,3 +205,68 @@ curl -s -H "Authorization: Bearer $TOK" localhost:8481/v1/drafts \
 The list comes back in ascending id order, not time order. Now open `#/works/$WORK` in a
 browser that has no `lcat-localdraft-$WORK` entry: the banner offers the draft printed
 **first**, whatever its edit count or age.
+
+## Outcome
+
+Shipped in **v0.141.0** (`9d7c8da`) -- a **minor**: the draft list response shape
+changes (bodies dropped) and drafts are re-keyed, so a consumer (the e2e harness) has
+something to adopt. Took your first option, the re-key, because -- as you said -- it is
+one change where the patchwork is three.
+
+### The slot is real now
+
+`drafts_handlers.go`: `draftKey(email, workID) = {PK: "DRAFT#"+email, SK: "W#"+workID}`.
+The draft's public `id` **is** the work id. Every symptom follows from that one key:
+
+- **One draft per (user, work).** POST keys by work and **upserts** (`CondNone`), so a
+  second tab's autosave lands last-writer-wins on the shared slot instead of piling up
+  a rival draft. I chose replace over reject (your option-2 phrasing "reject *or*
+  replace") so a second autosave never errors.
+- **`load()` is a point read.** `editor.ts` now calls `fetchDraft(workId)`
+  (`GET /v1/drafts/{workId}`) instead of listing every draft and `find()`-ing. No
+  ordering to be at the mercy of, no rival to pick between -- there is at most one.
+- **The list stops fanning out.** `GET /v1/drafts` drops `body` from its projection
+  (the struct field is now `omitempty`, the handler nils it), so opening a record no
+  longer downloads every other record's draft body. The point read carries the body
+  for the one draft the editor wants.
+- **A POST with no `workId` is refused** (400) rather than keyed to an empty slot.
+
+`editor.ts:130-131`'s comment ("adopts the (work, user) draft slot") is finally true --
+the slot it names now exists.
+
+### The banner
+
+`WorkEditor.svelte` pluralizes via `{@const draftOps}`: **"1 edit"**, "2 edits". Same
+shape `editor.ts:236` already used.
+
+### Tests
+
+`TestDraftSlotIsUniquePerWork` (Go): three POSTs of one work → **one** draft whose id is
+the work id, the list carries no body, the point read returns the **last** write, a
+different work gets its own slot, and a workId-less POST is 400. `TestDraftsCRUD` still
+passes (its `d.ID` is now the work id). The client `editor.test.ts` `loadSession` helper
+switched to mocking the point read; all 10 editor flows green. Full UI suite 322/322,
+backend all green, `gofmt -s` clean, `svelte-check` 0 errors.
+
+### Verified end to end on a throwaway :8491
+
+```
+POST wtest1 x3 (ops 1,7,3)  -> all return id=wtest1
+GET  /v1/drafts             -> 2 drafts (wtest1, wtest2), ids=workIds, no body
+GET  /v1/drafts/wtest1      -> ops=3   (the LAST write, not the luckiest id)
+POST no workId              -> 400
+```
+
+And on `:8481`, seeded a one-op draft and read the real banner: **"You have a draft for
+this work (1 edit, saved …)"** and **"Resume draft (1 edit)"** -- singular. Draft
+deleted afterward (204, then 404); the playground is left as found.
+
+### Adoption note (breaking bits)
+
+- **In-flight drafts are re-keyed.** Old random-id drafts age out via the existing
+  90-day TTL; they are scratch state, and expiring them is defensible (your words).
+- **`GET /v1/drafts` no longer includes `body`** -- a consumer that read edit counts
+  off the list must switch to the point read `GET /v1/drafts/{workId}`. The `t297`
+  probe's `.body.ops.length`-off-the-list assertion moves to the point read.
+- The URL shape `/v1/drafts/{id}` is unchanged; `{id}` is now the work id, which is
+  what the POST/point-read already return.
