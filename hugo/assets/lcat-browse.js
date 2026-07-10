@@ -36,7 +36,7 @@
  * {field, category, exclude: true} entries -- the reader subtracts their
  * posting sets. A row is include- or exclude-filtered, never both.
  *
- * Live facet counts (tasks/177, the QLL POC's model): while a query or
+ * Live facet counts (tasks/177): while a query or
  * filter is active, every rendered count re-derives from the result set --
  * each category's postings intersected with the surviving ids -- so the rail
  * never promises a result set it will not deliver. An active field's counts
@@ -287,7 +287,7 @@ function start() {
     return subjectMetaP;
   }
 
-  // ---- Subject vocabulary trees (tasks/174, ported from the QLL POC) ----
+  // ---- Subject vocabulary trees (tasks/174, ported from an earlier POC) ----
   //
   // browse-subjects.json + the sidecar's ancestry-expanded postings give a
   // complete client-side model: children/roots per scheme, and a parent's
