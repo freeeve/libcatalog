@@ -134,3 +134,64 @@ Both boot a throwaway writable clone (port 8459 / 8458) from `git archive HEAD`,
 mint a sentinel work via copycat, split one instance twice, and read the source
 grain back through `GET /v1/works/{id}` -> `.nquads`. Nothing is written to the
 playground; the clone is deleted afterwards.
+
+## Outcome
+
+Shipped in **v0.140.0** (`0026b15`). Went with **Option B (genuine idempotency)** --
+it makes `AddSplitMarkers`' existing "idempotent" comment true rather than adding a
+new API surface, and needs no override flag.
+
+### The three pieces
+
+1. **`bibframe.SplitTargetFor(grain, instances)`** returns the Work a prior split
+   already pinned to *exactly* these instances, or `""`. The match is on the exact
+   instance set: a split of `[i1]` then `[i1,i2]`, or `[i1,i2]` then `[i1]`, are
+   different operations, not retries, so each mints its own Work. Only a byte-identical
+   re-request reuses.
+2. **The handler** reuses that Work instead of minting, and -- the load-bearing detail
+   -- decides it **inside the `mutateWorkGrain` closure**. `mutateWorkGrain` re-reads
+   and re-runs the mutation on a CAS conflict, so a split that lands between this
+   read and the write is seen on retry: two genuinely concurrent double-submits
+   converge on one id, not just a sequential double-click.
+3. **`identity.SeedPin`** hardens the ingest side for pins written before this fix or
+   by hand: a second pin for an instance is reported as a conflict (into the existing
+   `Conflicts()` surfaced in the ingest result) rather than silently dropped, the first
+   seen wins deterministically (pins arrive in canonical quad order, so no more
+   IRI-sort coin flip), and the discarded id is no longer reserved -- closing the
+   "every retried split burns an id" leak the report noted.
+
+Plus a `splitBusy` guard on WorkEditor's split button, so the UI does not invite the
+redundant request the report flagged (the correctness guarantee is server-side; this
+is prevention).
+
+### Tests, all mutation-checked
+
+- `TestSplitIsIdempotent` (httpapi): double split -> same Work, one pin. Stubbing the
+  reuse reproduces the report's P1 exactly -- 2 contradictory pins.
+- `TestSplitTargetForReusesAPriorSplit` (bibframe): exact-set reuse; different set,
+  superset, and **subset** all mint fresh. The subset case was a gap my first pass
+  missed -- the mutation that drops the set-size check passed until I added a prior
+  split of `[i1,i2]` and asserted a request for `[i2]` reuses nothing.
+- `TestConflictingPinIsReportedNotSilentlyDropped` (identity): first pin wins, second
+  surfaced, discarded id not reserved, identical re-pin is not a conflict.
+
+### Verified end to end on :8491
+
+Reproduced the reporter's flow -- mint a sentinel via copycat, split one instance
+twice:
+
+```
+S0 sentinel: work=wv5dpmeh6j9u9k instance=ibldktnnshgso6
+S1 first split:  200, newWork=wsceue3b58br52
+P1 second split: 200, newWork=wsceue3b58br52      <- was a fresh id
+grain: 1 workAssignment pin, 1 splitFrom marker   <- was 2 and 2
+```
+
+### On the choices the report offered
+
+I did not add the `409`-with-override path (Option A): a double-click should just
+succeed idempotently, not surface an error the cataloger has to reason about. And I
+did not add a timestamp to the marker (Option C): exact-set reuse gives determinism
+without a new field in the grain. A deliberate re-split to a *different* target is not
+expressible through this endpoint anyway (split always mints), so there is nothing
+Option B silently discards that the cataloger could have wanted.
