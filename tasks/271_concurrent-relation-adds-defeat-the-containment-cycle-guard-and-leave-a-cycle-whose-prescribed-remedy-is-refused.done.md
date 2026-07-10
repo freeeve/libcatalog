@@ -297,3 +297,37 @@ has no store. Reaching across grains would put a blob read inside a pure quad
 transform. The handler is the right place for a corpus-wide invariant, and it now
 holds it across the write, which is what the backstop's doc comment always
 assumed ("the handler catches the same pair first").
+
+### Verified end to end from libcat-e2e (2026-07-09, HEAD `9911214`)
+
+`probe_relations_cycle_race.mjs` was **5/7 against the fix, and that was the
+probe's fault, not the fix's**. `L2` asserted "both concurrent requests answer
+500" and `L3` asserted `C.partOf=[]` — the bug's symptom as a passing condition.
+A correct serialization was always going to fail them. Rewritten against the
+shipped contract, it is **10/10**, and it now presses three things the original
+did not:
+
+**The race is run on 5 distinct pairs, not one.** All five answered `204/400`,
+and the winning direction varies between rounds (`204/400 400/204 400/204`), so
+the lock is arbitrating rather than an ordering happening to hold. A race probe
+that passes once has observed the bug not firing, not the bug being fixed.
+
+**The graph is checked against what the responses claimed** — the winner's link
+present in both directions, the refused add having written neither side. Without
+this, "no cycle" could be earned by dropping both writes.
+
+**The compensation branch is induced against a real filesystem**, by `chmod a-w`
+on *only* the target's grain shard (grains are hash-sharded, so the shard is
+found by glob, not derived from the id). The forward write lands, the inverse
+cannot, and the measurement is: `500`, `X.hasPart=[]`, `Y.partOf=[]` — the
+forward statement rolled back, nothing applied. Audit count unchanged across it
+(`10 -> 10`), and a successful add audits exactly once (`7 -> 8`). Control: while
+Y's shard is read-only, a relation add touching two writable grains still answers
+`204`, so the induced failure is the inverse write and nothing else.
+
+That last one is the reason to say this out loud rather than just flip the row.
+It is new code, it changed the failure contract, and it is unreachable without an
+induced storage failure — the unit tests fake the store, this drives the branch
+the operator will actually meet. `t271` in `retest.mjs` now carries all three
+checks, so a regression in any one of them reopens this task rather than the one
+that happens to be easiest to trip.
