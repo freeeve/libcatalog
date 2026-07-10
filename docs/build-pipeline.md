@@ -81,6 +81,18 @@ corpus exports the same bytes it always did (pinned by
 `catalog.nq` can no longer reach a reader, and the download inherits nothing from
 a file `lcat` did not write on this run.
 
+All three downloads are emitted in **canonical work-id order**. `catalog.nq.gz`
+has sorted this way since tasks/291; `catalog.mrc.gz` and `catalog.xml.gz` joined
+it in **v0.126.0**, when `export` began rebuilding the MARC/MARCXML artifacts from
+the same visibility-partitioned, work-id-sorted grain list
+(`partitionByVisibility`) instead of blob-walk order. The order is deterministic:
+repeated `lcat build --only export` on an unchanged corpus produce an identical
+sha. One adoption consequence: **on the upgrade to v0.126.0, `catalog.mrc.gz` and
+`catalog.xml.gz` change checksum exactly once**, with identical record content --
+same record count, same total bytes, only the record order canonicalized. A
+sha-pinned integrity check or a "did my downloads change?" alarm will trip once on
+this upgrade; it is the canonicalization, not a corpus change (tasks/330).
+
 ### The downloads describe the public collection
 
 `lcat project` drops a suppressed or tombstoned Work before it reaches
