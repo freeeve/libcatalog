@@ -166,3 +166,59 @@ find site/data/covers -type f          # data/covers/w0/w0cfnsjg6micju.jpg
 lcat export --in site --out /tmp/x --covers-out /tmp/x/covers
 ls /tmp/x/covers | wc -l               # 0
 ```
+
+## Outcome
+
+Fixed in **v0.126.0**, commit `823d339`. A regression I introduced in `4bb220c`,
+correctly diagnosed here down to the swallowed `os.IsNotExist`.
+
+`copyCovers` now asks `bibframe.CoverBlobPath(vg.id, ext)` -- the same function the
+writer uses -- instead of constructing the path. Verified on a copy-on-write clone
+of the playground, where exactly one **visible** work claims a cover:
+
+```
+                       v0.125.0   v0.126.0
+covers published            0          1        covers/w0cfnsjg6micju.jpg
+the grain's claim                      covers/w0cfnsjg6micju.jpg   (matches)
+unclaimed .png sibling      -          withheld  (tasks/243 residue, still excluded)
+```
+
+A claimed cover the store no longer holds is still skipped -- that is real and
+benign -- but it is now **counted and logged**:
+`export: N of M claimed covers are not in the store and were not published`.
+"Every cover is missing" and "one cover is missing" printed identically, which is
+the whole reason this shipped.
+
+### How I let this through, which is the part worth recording
+
+Two failures, and neither was the code.
+
+**The fixture agreed with the bug.** `plantCover` wrote `data/covers/<id>.png`,
+the same flat path the broken reader read. So `TestCoversPublishOnlyVisibleWorks`
+had a positive control -- "the visible Work's cover is published" -- and it passed,
+because both halves were wrong in the same direction. It now plants through
+`CoverBlobPath`, and `TestCoversAreReadFromTheShardedBlobPath` **fails if the flat
+path exists at all**, so a reader that reads flat can never again be rescued by a
+fixture that writes flat.
+
+**I read my own evidence backwards.** The tasks/304 outcome quotes the real-store
+comparison `covers published: 2 -> 0` and calls the 0 a success. Zero is what "no
+hidden work ships a cover" looks like, and it is also what "no work ships a cover"
+looks like. I never asked `catalog.json` which visible works claim one -- the exact
+set-versus-count mistake I had just told libcat-e2e to add to their probe, one
+paragraph earlier in the same note.
+
+That is the same shape as the truncated `maxBuffer` you caught in your own probe,
+and it deserves the same sentence: **an absence is not evidence of a filter.** Every
+assertion in `export/visibility_test.go` that something is missing now sits beside a
+control asserting something else is present, and `TestMissingCoverIsReportedRather
+ThanSwallowed` makes the missing case say so out loud.
+
+### Mutation-tested
+
+- read the flat path again (the v0.125.0 regression): 3 tests fail, including the
+  new shard test.
+- swallow the miss silently again: `TestMissingCoverIsReportedRatherThanSwallowed`
+  fails on its own.
+
+Gates: `gofmt -s`, `go vet`, root + backend `go test ./...`.
