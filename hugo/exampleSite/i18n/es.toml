@@ -15,6 +15,9 @@ other = "Materias"
 [formats]
 other = "Formatos"
 
+[series]
+other = "Serie"
+
 [genresAndTags]
 other = "Géneros y etiquetas"
 

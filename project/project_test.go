@@ -501,9 +501,11 @@ _:tb <http://id.loc.gov/ontologies/bibframe/mainTitle> "The Part" <feed:overdriv
 		part.Relations.PartOf[0] != (RelatedWork{ID: "waa", Title: "The Whole"}) {
 		t.Fatalf("part relations = %+v", part.Relations)
 	}
-	inst := whole.Instances[0]
-	if !reflect.DeepEqual(inst.Series, []string{"Big Series"}) || inst.SeriesEnumeration != "v. 2" {
-		t.Fatalf("series = %v / %q", inst.Series, inst.SeriesEnumeration)
+	// The fixture carries the pre-v0.25.0 flat literals on the Instance, so this
+	// also pins the legacy fallback (tasks/309): a grain tree written by an older
+	// libcodex keeps projecting its series rather than losing them at the bump.
+	if !reflect.DeepEqual(whole.Series, []Series{{Title: "Big Series", Enumeration: "v. 2"}}) {
+		t.Fatalf("legacy series = %+v", whole.Series)
 	}
 	if _, ok := byID["whidden"]; ok {
 		t.Fatal("suppressed work projected")

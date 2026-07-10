@@ -54,6 +54,24 @@
   {{ end }}
 
   <dl class="lcat-meta">
+    {{- /* Series are Work-level facts (schema v12, tasks/309), not per-edition
+           ones: 490 is transcribed on every printing, and a Work's membership in
+           "Firebrand fiction, bk. 2" does not change because you borrowed the
+           audiobook. Each entry pairs its own statement with its own enumeration
+           -- the flat shape paired them by list position, so a record with two
+           490s gave one enumeration to both.
+
+           The ISSN and the traced flag are carried but not rendered: an ISSN is a
+           serials-control number no reader is looking for on a novel's page, and
+           "traced" is a cataloging fact about whether an added entry exists. Both
+           reach adopters through .Params.series. */}}
+    {{ with .Params.series }}<dt>{{ i18n "series" }}</dt><dd>
+      {{- range $i, $s := . }}{{ if $i }}; {{ end -}}
+        <span class="lcat-series"{{ with $s.issn }} data-issn="{{ . }}"{{ end }}>
+          {{- $s.title }}{{ with $s.enumeration }}, {{ . }}{{ end -}}
+        </span>
+      {{- end }}
+    </dd>{{ end }}
     {{ with .Params.formats }}<dt>{{ i18n "formats" }}</dt><dd>
       {{ range $i, $f := . }}{{ if $i }}, {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "formats" "key" $f) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="format">{{ $f }}</a>{{ else }}<span data-pagefind-filter="format">{{ $f }}</span>{{ end }}{{ end }}
     </dd>{{ end }}
@@ -97,8 +115,6 @@
       <li class="lcat-edition" data-instance="{{ .id }}"{{ with .format }} data-format="{{ . }}"{{ end }}{{ range .providerIds }}{{ $pid := . }}{{ with index $attrs $pid.source }}{{ if findRE "^data-[a-z0-9-]+$" . }}{{ printf " %s=\"%s\"" . (htmlEscape $pid.value) | safeHTMLAttr }}{{ end }}{{ end }}{{ end }}>
         {{ with .format }}<span class="lcat-format">{{ . }}</span>{{ end }}
         {{ with .isbns }}<span class="lcat-isbn">{{ i18n "isbn" }} {{ index . 0 }}</span>{{ end }}
-        {{- /* Series statement(s) + enumeration (schema v11, tasks/222). */}}
-        {{ if .series }}<span class="lcat-series">{{ delimit .series "; " }}{{ with .seriesEnumeration }}, {{ . }}{{ end }}</span>{{ end }}
         {{/* Availability is fetched client-side at view time by lcat-availability.js
              (libcat tasks/004), keyed on data-overdrive-reserve above; it fills
              this placeholder in when the site enables [params.availability]. Without

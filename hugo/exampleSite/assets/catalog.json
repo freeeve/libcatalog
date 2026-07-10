@@ -1,5 +1,5 @@
 {
- "version": 11,
+ "version": 12,
  "works": [
   {
    "id": "wexampleone",
@@ -70,11 +70,7 @@
        "value": "24760f5d-028e-4749-968f-85a458a79ad2"
       }
      ],
-     "held": true,
-     "series": [
-      "Example Audio Series"
-     ],
-     "seriesEnumeration": "v. 2"
+     "held": true
     },
     {
      "id": "iexoneebook",
@@ -103,7 +99,18 @@
       "title": "The House of the Spirits"
      }
     ]
-   }
+   },
+   "series": [
+    {
+     "title": "Example Audio Series",
+     "enumeration": "v. 2",
+     "issn": "0075-2118",
+     "traced": true
+    },
+    {
+     "title": "Example Untraced Series"
+    }
+   ]
   },
   {
    "id": "wexampletwo",

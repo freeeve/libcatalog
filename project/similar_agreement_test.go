@@ -18,7 +18,9 @@ import (
 //
 // So: one graph, both converters, and the results must agree. Values are compared
 // as sets because similar.Build normalizes; a difference in *content* is the bug.
-const agreementNQ = `<#waWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
+// agreementNQBase carries every signal except the series, which the two fixtures
+// below add in the two shapes the readers must both handle.
+const agreementNQBase = `<#waWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
 <#waWork> <http://www.w3.org/2000/01/rdf-schema#label> "Herculine" <feed:overdrive> .
 <#waWork> <http://id.loc.gov/ontologies/bibframe/subject> <https://homosaurus.org/v3/homoit0000123> <feed:overdrive> .
 <#waWork> <http://id.loc.gov/ontologies/bibframe/subject> <https://id.loc.gov/authorities/subjects/sh85078196> <feed:overdrive> .
@@ -31,11 +33,16 @@ _:contribA <http://id.loc.gov/ontologies/bibframe/agent> _:agentA <feed:overdriv
 _:agentA <http://www.w3.org/2000/01/rdf-schema#label> "Winterson, Jeanette" <feed:overdrive> .
 <#waWork> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#waInstance> <feed:overdrive> .
 <#waInstance> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Instance> <feed:overdrive> .
-<#waInstance> <http://id.loc.gov/ontologies/bibframe/seriesStatement> "The Cornish Trilogy" <feed:overdrive> .
 <#waInstance> <http://id.loc.gov/ontologies/bibframe/identifiedBy> _:reserveA <feed:overdrive> .
 _:reserveA <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "24760f5d" <feed:overdrive> .
 _:reserveA <http://id.loc.gov/ontologies/bibframe/source> _:srcA <feed:overdrive> .
 _:srcA <http://www.w3.org/2000/01/rdf-schema#label> "overdrive-reserve" <feed:overdrive> .
+`
+
+// agreementNQ is the pre-v0.25.0 shape: a flat seriesStatement literal on the
+// Instance. Both converters keep a fallback for it, so archived grains and any
+// corpus not yet re-ingested still carry their series.
+const agreementNQ = agreementNQBase + `<#waInstance> <http://id.loc.gov/ontologies/bibframe/seriesStatement> "The Cornish Trilogy" <feed:overdrive> .
 `
 
 func sorted(vs []string) []string {
@@ -52,37 +59,64 @@ func sameSet(t *testing.T, field string, admin, opac []string) {
 	}
 }
 
+// agreementRelationNQ is the same Work with its series in the shape libcodex
+// v0.25.0 emits (tasks/309): a bf:relation on the Work rather than a flat literal
+// on the Instance. Both converters grew a new reader for it, and both kept the old
+// one for archived grains, so both shapes have to be driven through both readers
+// -- otherwise the pair agrees on legacy graphs and silently diverges on new ones.
+const agreementRelationNQ = agreementNQBase + `<#waWork> <http://id.loc.gov/ontologies/bibframe/relation> _:rel <feed:overdrive> .
+_:rel <http://id.loc.gov/ontologies/bibframe/relationship> <http://id.loc.gov/vocabulary/relationship/series> <feed:overdrive> .
+_:rel <http://id.loc.gov/ontologies/bibframe/seriesEnumeration> "bk. 1" <feed:overdrive> .
+_:rel <http://id.loc.gov/ontologies/bibframe/associatedResource> _:series <feed:overdrive> .
+_:series <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Series> <feed:overdrive> .
+_:series <http://id.loc.gov/ontologies/bibframe/title> _:seriesTitle <feed:overdrive> .
+_:seriesTitle <http://id.loc.gov/ontologies/bibframe/mainTitle> "The Cornish Trilogy" <feed:overdrive> .
+`
+
 func TestBothConvertersAgreeOnTheSameGraph(t *testing.T) {
-	cat, err := Project([]byte(agreementNQ), "overdrive")
-	if err != nil {
-		t.Fatalf("Project: %v", err)
-	}
-	if len(cat.Works) != 1 {
-		t.Fatalf("projected %d works, want 1", len(cat.Works))
-	}
-	opac := cat.Works[0].SimilarWork()
+	for name, nq := range map[string]string{
+		"legacy flat literals": agreementNQ,
+		"v0.25.0 relations":    agreementRelationNQ,
+	} {
+		t.Run(name, func(t *testing.T) {
+			cat, err := Project([]byte(nq), "overdrive")
+			if err != nil {
+				t.Fatalf("Project: %v", err)
+			}
+			if len(cat.Works) != 1 {
+				t.Fatalf("projected %d works, want 1", len(cat.Works))
+			}
+			opac := cat.Works[0].SimilarWork()
 
-	ds, err := rdf.ParseNQuadsShared([]byte(agreementNQ))
-	if err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	summaries := ingest.SummarizeDataset(ds)
-	if len(summaries) != 1 {
-		t.Fatalf("summarized %d works, want 1", len(summaries))
-	}
-	admin := summaries[0].SimilarWork()
+			ds, err := rdf.ParseNQuadsShared([]byte(nq))
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+			summaries := ingest.SummarizeDataset(ds)
+			if len(summaries) != 1 {
+				t.Fatalf("summarized %d works, want 1", len(summaries))
+			}
+			admin := summaries[0].SimilarWork()
 
-	if admin.WorkID != opac.WorkID {
-		t.Errorf("WorkID disagrees: admin %q, opac %q", admin.WorkID, opac.WorkID)
+			if admin.WorkID != opac.WorkID {
+				t.Errorf("WorkID disagrees: admin %q, opac %q", admin.WorkID, opac.WorkID)
+			}
+			if admin.Held != opac.Held {
+				t.Errorf("Held disagrees: admin %v, opac %v", admin.Held, opac.Held)
+			}
+			sameSet(t, "Subjects", admin.Subjects, opac.Subjects)
+			sameSet(t, "Contributors", admin.Contributors, opac.Contributors)
+			sameSet(t, "Tags", admin.Tags, opac.Tags)
+			sameSet(t, "Series", admin.Series, opac.Series)
+			sameSet(t, "Languages", admin.Languages, opac.Languages)
+
+			// Both shapes must name the same series, or "they agree" only means
+			// "they are equally empty".
+			if len(opac.Series) != 1 || opac.Series[0] != "The Cornish Trilogy" {
+				t.Errorf("series = %v, want the fixture's one series", opac.Series)
+			}
+		})
 	}
-	if admin.Held != opac.Held {
-		t.Errorf("Held disagrees: admin %v, opac %v", admin.Held, opac.Held)
-	}
-	sameSet(t, "Subjects", admin.Subjects, opac.Subjects)
-	sameSet(t, "Contributors", admin.Contributors, opac.Contributors)
-	sameSet(t, "Tags", admin.Tags, opac.Tags)
-	sameSet(t, "Series", admin.Series, opac.Series)
-	sameSet(t, "Languages", admin.Languages, opac.Languages)
 }
 
 // The agreement above is worthless if the graph exercises no signal. Assert the

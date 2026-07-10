@@ -43,7 +43,7 @@ changes.
 | 336 / 337 / 338 | Content / media / carrier type | 336 kept since libcodex v0.9.0; 337 partially collapses on multi-337 records |
 | 306 | Playing time | since libcodex v0.11.0 (bf:duration) |
 | 347 | Digital file characteristics | since libcodex v0.11.0 ($a/$b via bflc FileType/EncodingFormat; $2 not kept) |
-| 490 | Series statement | since libcodex v0.11.0 (bf:seriesStatement; $v rejoins after " ; ") |
+| 490 | Series statement | since libcodex v0.25.0 one bf:relation per 490 on the Work (relationship/series -> bf:Series), so $a/$v pair per field; $x -> bf:Issn and ind1=1 -> mstatus/tr are carried. $n/$p, $l, $3 and the 880 parallel grouping are not. Before v0.25.0: flat bf:seriesStatement literals on the Instance, which lost the $a/$v pairing across repeated 490s |
 | 500 | General note | since libcodex v0.9.0 (5XX -> bf:Note) |
 | 511 / 521 / 533 / 538 | Specialized notes | since libcodex v0.11.0 -- typed bf:noteType decodes back to the original tag; note labels join every subfield |
 | 520 | Summary | |

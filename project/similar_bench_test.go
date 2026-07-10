@@ -24,7 +24,8 @@ func synthCatalog(n int) *Catalog {
 			Languages:    []string{"en"},
 		}
 		if i%10 == 0 {
-			w.Instances = []Instance{{ID: w.ID + "i", Series: []string{fmt.Sprintf("Series %d", i%(n/100+1))}}}
+			w.Instances = []Instance{{ID: w.ID + "i"}}
+			w.Series = []Series{{Title: fmt.Sprintf("Series %d", i%(n/100+1))}}
 		}
 		works = append(works, w)
 	}

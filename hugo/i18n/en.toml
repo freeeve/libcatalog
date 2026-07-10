@@ -19,6 +19,10 @@ other = "Subjects"
 [formats]
 other = "Formats"
 
+# The Work's series membership(s), each with its own enumeration (tasks/309).
+[series]
+other = "Series"
+
 [genresAndTags]
 other = "Genres & tags"
 

@@ -58,9 +58,13 @@ func (w Work) SimilarWork() similar.Work {
 	for _, s := range w.Subjects {
 		subjects = append(subjects, s.ID)
 	}
-	var series []string
-	for _, inst := range w.Instances {
-		series = append(series, inst.Series...)
+	// Series are Work-level since tasks/309, so the scorer no longer collects them
+	// across Instances and de-duplicates. The *titles* are what links two Works:
+	// "bk. 2" and "bk. 7" of one series are neighbours, and an enumeration shared
+	// by two unrelated series is a coincidence.
+	series := make([]string, 0, len(w.Series))
+	for _, s := range w.Series {
+		series = append(series, s.Title)
 	}
 	return similar.Work{
 		WorkID:       w.ID,

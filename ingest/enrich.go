@@ -31,8 +31,8 @@ type WorkSummary struct {
 	// Series and Languages are the similarity scorer's two strongest signals
 	// (tasks/284): two books in one series are related whatever else they
 	// share, and a reader of one language is rarely served a book in another.
-	// Series is transcribed per Instance (bf:seriesStatement, 490$a) and
-	// hoisted to the Work here; Languages are bf:language local names ("en").
+	// Series holds the Work's series statements, read off its bf:relation
+	// series relations (tasks/309); Languages are bf:language local names ("en").
 	Series    []string `json:",omitempty"`
 	Languages []string `json:",omitempty"`
 	// Visibility and holdings signals for the admin works list (tasks/078):
@@ -361,6 +361,53 @@ func sortedUnique(vs []string) []string {
 	return slices.Compact(vs)
 }
 
+// seriesTitles reads a Work's series statements for the similarity scorer
+// (tasks/309). Titles only: what links two Works is the series they are both in,
+// and an enumeration two unrelated series happen to share is a coincidence.
+//
+// libcodex >= v0.25.0 hangs one bf:relation per 490 on the Work. bf:relation also
+// carries 76x-78x linking entries ("translation of", "sequel to"), so the
+// bf:relationship IRI is what says this one is a series -- reading bf:relation
+// alone would score every translation as a shared series.
+//
+// Falls back to the pre-v0.25.0 flat literals on the Instances when the Work
+// carries no series relation, so an existing grain tree keeps its series until it
+// is re-ingested. The projector applies the same rule (project.series), and the
+// similar-agreement test drives both from one graph.
+func seriesTitles(g *rdf.Graph, work rdf.Term) []string {
+	const (
+		bfNS              = "http://id.loc.gov/ontologies/bibframe/"
+		seriesRelationIRI = "http://id.loc.gov/vocabulary/relationship/series"
+	)
+	var titles []string
+	for _, rel := range g.Objects(work, bfNS+"relation") {
+		if r, ok := g.Object(rel, bfNS+"relationship"); !ok || r.Value != seriesRelationIRI {
+			continue
+		}
+		res, ok := g.Object(rel, bfNS+"associatedResource")
+		if !ok {
+			continue
+		}
+		for _, t := range g.Objects(res, bfNS+"title") {
+			if v, ok := g.Literal(t, bfNS+"mainTitle"); ok && v != "" {
+				titles = append(titles, v)
+				break
+			}
+		}
+	}
+	if len(titles) > 0 {
+		return sortedUnique(titles)
+	}
+	for _, inst := range g.Objects(work, bfNS+"hasInstance") {
+		for _, ser := range g.Objects(inst, bfNS+"seriesStatement") {
+			if ser.IsLiteral() && ser.Value != "" {
+				titles = append(titles, ser.Value)
+			}
+		}
+	}
+	return sortedUnique(titles)
+}
+
 // SummarizeDataset is SummarizeGrain for callers that already hold the parsed
 // dataset (the work index scans identity, summaries, and barcodes off one
 // parse).
@@ -452,16 +499,12 @@ func SummarizeDataset(ds *rdf.Dataset) []WorkSummary {
 					}
 				}
 			}
-			// The series statement is transcribed on the Instance, but similarity
-			// is a Work-level question: a reader wants the next book, not the next
-			// printing (tasks/284).
-			for _, ser := range merged.Objects(inst, bfNS+"seriesStatement") {
-				if ser.IsLiteral() && ser.Value != "" {
-					s.Series = append(s.Series, ser.Value)
-				}
-			}
 			s.Items += len(merged.Objects(inst, bfNS+"hasItem"))
 		}
+		// Series hang off the Work since libcodex v0.25.0 (tasks/309), which is
+		// where similarity wanted them anyway: a reader wants the next book, not
+		// the next printing (tasks/284).
+		s.Series = seriesTitles(merged, work)
 		// Visibility + reconciliation stance (tasks/078); statements are
 		// editorial, so the merged view carries them.
 		s.Tombstoned = len(merged.Objects(work, bibframe.PredTombstoned)) > 0
@@ -477,7 +520,10 @@ func SummarizeDataset(ds *rdf.Dataset) []WorkSummary {
 		sort.Strings(s.Tags)
 		sort.Strings(s.Subjects)
 		sort.Strings(s.ISBNs)
-		s.Series = sortedUnique(s.Series)
+		// s.Series needs no sortedUnique here: seriesTitles reads one Work-level
+		// relation set and returns it sorted and de-duplicated. The old cross-
+		// instance dedupe existed because every printing transcribed the same 490
+		// (tasks/286); the graph no longer repeats it per Instance.
 		s.Languages = sortedUnique(s.Languages)
 		out = append(out, s)
 	}

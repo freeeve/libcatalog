@@ -251,8 +251,19 @@ if you need those localized.
 
 Both JSON files carry a top-level `version` (`project.SchemaVersion`). The adapter
 fails the build loudly if `catalog.json`'s version does not match the version the
-module targets (`params.catalogSchemaVersion`, currently **11**). Reproject with a
-matching `lcat` if you hit a mismatch. v6 added the holdings signal: `held` on each
+module targets (`params.catalogSchemaVersion`, currently **12**). Reproject with a
+matching `lcat` if you hit a mismatch.
+
+v12 moved series from the instance to the work and made them objects (tasks/309):
+`.Params.series` is a list of `{title, enumeration, issn, traced}`, replacing
+`instance.series` (a list of strings) and `instance.seriesEnumeration` (one
+string). A 490 is transcribed on every printing, so series were never per-edition
+facts; and each enumeration now belongs to its own series, where the flat shape
+paired them by list position and gave a record with two 490s one enumeration for
+both. `issn` and `traced` are carried but not rendered by the default layout --
+a serials-control number and a cataloging fact, both available to adopters.
+
+v6 added the holdings signal: `held` on each
 instance and work (physical items, or a live-availability identifier whose feed
 still lists the work -- tasks/078). Whether unheld works are hidden, badged, or
 faceted is the site's choice; the module renders them unchanged by default. v7

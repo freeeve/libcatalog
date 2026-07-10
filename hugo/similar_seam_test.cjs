@@ -52,7 +52,7 @@ const PERSON = "Elledge, Jim"; // free text -- a contributor, and it has a comma
 // no Work carries it -- so a page can only label it from the catalog, never from
 // itself. That is the shape that broke.
 const catalog = {
-  version: 11,
+  version: 12,
   terms: [
     { id: GENDER, labels: { en: "Gender identity", es: "Identidad de genero" } },
     { id: TRANS, labels: { en: "Transgender people", es: "Personas trans" }, broader: [GENDER] },
@@ -145,7 +145,7 @@ const assets = path.join(siteDir, "assets");
 fs.writeFileSync(path.join(assets, "catalog.json"), JSON.stringify(catalog));
 fs.writeFileSync(path.join(assets, "similar.json"), JSON.stringify(similar));
 // facets.json is projected from the same catalog; an empty one keeps them honest.
-fs.writeFileSync(path.join(assets, "facets.json"), JSON.stringify({ version: 11 }));
+fs.writeFileSync(path.join(assets, "facets.json"), JSON.stringify({ version: 12 }));
 
 // An overlay rather than an edit to the copied hugo.toml: a second [params] table
 // appended to a file that already has one is a TOML redefinition error, and later

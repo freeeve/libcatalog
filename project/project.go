@@ -46,11 +46,23 @@ const (
 	pHasPart          = bfNS + "hasPart"
 	pPartOf           = bfNS + "partOf"
 	classIsbn         = bfNS + "Isbn"
-	pLabel            = rdfsNS + "label"
-	pPrefLabel        = skosNS + "prefLabel"
-	pBroader          = skosNS + "broader"
-	pValue            = rdfNS + "value"
-	primaryContr      = bflcNS + "PrimaryContribution"
+	// Series as libcodex >= v0.25.0 emits it (tasks/309): one bf:relation per 490
+	// on the Work, discriminated by its bf:relationship IRI, carrying the
+	// enumeration and pointing at a bf:Series through bf:associatedResource.
+	pRelation           = bfNS + "relation"
+	pRelationship       = bfNS + "relationship"
+	pAssociatedResource = bfNS + "associatedResource"
+	pStatus             = bfNS + "status"
+	classIssn           = bfNS + "Issn"
+	seriesRelationIRI   = "http://id.loc.gov/vocabulary/relationship/series"
+	// mstatus/tr is "traced": the cataloger gave the series an added entry
+	// (490 ind1=1). mstatus/t ("transcribed") is on every series and says nothing.
+	statusTracedIRI = "http://id.loc.gov/vocabulary/mstatus/tr"
+	pLabel          = rdfsNS + "label"
+	pPrefLabel      = skosNS + "prefLabel"
+	pBroader        = skosNS + "broader"
+	pValue          = rdfNS + "value"
+	primaryContr    = bflcNS + "PrimaryContribution"
 	// pTag is libcat's blank-free folksonomy-tag predicate
 	// (bibframe.PredTag): editorial-class graphs cannot carry the feed's
 	// labeled-blank-node tag shape, so approved community tags arrive as
@@ -89,7 +101,14 @@ const (
 // Instance series statement/enumeration (bf:seriesStatement 490$a,
 // bf:seriesEnumeration 490$v), so the site cross-links parts and shows
 // series lines (tasks/221/222).
-const SchemaVersion = 11
+// v12 moved series from the Instance to the Work and made them objects:
+// Work.Series []{title, enumeration, issn, traced} replaces Instance.Series
+// []string + Instance.SeriesEnumeration. libcodex v0.25.0 hangs one bf:relation
+// per 490 on the Work, so each enumeration belongs to its own series instead of
+// being paired by list position -- a pairing an RDF graph, being a set, could not
+// preserve. 490$x (ISSN) and ind1=1 (traced) are carried for the first time
+// (tasks/309).
+const SchemaVersion = 12
 
 // Catalog is the projected corpus: one record per Work, sorted by id.
 type Catalog struct {
@@ -147,6 +166,33 @@ type Work struct {
 	// suppressed, tombstoned, or foreign work is omitted rather than
 	// rendered as a dead cross-link.
 	Relations *Relations `json:"relations,omitempty"`
+	// Series are the Work's series memberships, one per 490 (tasks/309).
+	// Work-level, because that is where libcodex >= v0.25.0 hangs them: a
+	// bf:relation whose bf:relationship is .../relationship/series. They used
+	// to be flat literals on the Instance, which paired a statement to its
+	// enumeration by list position -- and an RDF graph is a set, so two 490s
+	// sharing a $v collapsed to one triple and the pairing died.
+	Series []Series `json:"series,omitempty"`
+}
+
+// Series is one series membership: the transcribed statement, this Work's place
+// in it, and the series ISSN (tasks/309).
+//
+// Enumeration belongs to the *relation*, not to the series, which is why it can
+// finally be per-series rather than one-per-Instance: "bk. 2 of Firebrand fiction"
+// is a fact about this Work's membership, and the same series numbers a different
+// Work differently.
+type Series struct {
+	// Title is the transcribed series statement (490$a, bf:mainTitle on the
+	// bf:Series).
+	Title string `json:"title"`
+	// Enumeration is this Work's volume/part within the series (490$v).
+	Enumeration string `json:"enumeration,omitempty"`
+	// ISSN is the series ISSN (490$x), which the flat mapping silently dropped.
+	ISSN string `json:"issn,omitempty"`
+	// Traced marks a series the cataloger traced (490 ind1=1), i.e. one with a
+	// corresponding added entry. Carried as bf:status mstatus/tr.
+	Traced bool `json:"traced,omitempty"`
 }
 
 // Relations are a Work's whole/part cross-links (schema v11).
@@ -243,11 +289,6 @@ type Instance struct {
 	// live-availability identifier whose feed still lists the Work (digital,
 	// unless the reconciliation flagged the Work withdrawn) -- tasks/078.
 	Held bool `json:"held,omitempty"`
-	// Series carries the Instance's transcribed series statements
-	// (bf:seriesStatement, 490$a) and SeriesEnumeration its volume/part
-	// within the series (bf:seriesEnumeration, 490$v) -- tasks/221/222.
-	Series            []string `json:"series,omitempty"`
-	SeriesEnumeration string   `json:"seriesEnumeration,omitempty"`
 }
 
 // Item is one holding of an Instance (the minimal bf:Item model, tasks/051).
@@ -690,6 +731,7 @@ func (p *projector) work(w rdf.Term) Work {
 	wk.Formats = formatUnion(wk.Instances)
 	wk.Extra = p.extras[w.Value]
 	wk.Relations = p.relations(w)
+	wk.Series = p.series(w)
 	for _, inst := range wk.Instances {
 		if inst.Held {
 			wk.Held = true
@@ -773,6 +815,141 @@ func (p *projector) contributors(w rdf.Term) []Contributor {
 	out := make([]Contributor, len(es))
 	for i, e := range es {
 		out[i] = e.c
+	}
+	return out
+}
+
+// series collects the Work's series memberships (tasks/309).
+//
+// libcodex >= v0.25.0 emits one bf:relation per 490, on the Work, following LC's
+// ConvSpec-Process6-Series.xsl. The relation carries the enumeration and points at
+// a bf:Series through bf:associatedResource:
+//
+//	<Work> bf:relation _:rel .
+//	_:rel   bf:relationship <.../relationship/series> ;
+//	        bf:seriesEnumeration "bk. 2" ;
+//	        bf:associatedResource _:series .
+//	_:series a bf:Series ; bf:title [ bf:mainTitle "Firebrand fiction" ] ;
+//	        bf:status <.../mstatus/tr> ; bf:identifiedBy [ a bf:Issn ; rdf:value "..." ] .
+//
+// The relationship IRI is what discriminates a series from a 76x-78x linking
+// entry, which uses the same bf:relation predicate. Reading bf:relation without
+// checking it would project every "translation of" and "sequel to" as a series.
+//
+// Sorted by title then enumeration, so a projection is stable across runs: blank
+// node labels are canonicalized per graph, not per corpus, and Objects() does not
+// promise an order.
+func (p *projector) series(w rdf.Term) []Series {
+	var out []Series
+	for _, rel := range p.view.Objects(w, pRelation) {
+		r, ok := p.view.Object(rel, pRelationship)
+		if !ok || r.Value != seriesRelationIRI {
+			continue
+		}
+		res, ok := p.view.Object(rel, pAssociatedResource)
+		if !ok {
+			continue
+		}
+		s := Series{Title: p.seriesTitle(res)}
+		if s.Title == "" {
+			// A series with no transcribed statement is a relation we cannot
+			// render. Its enumeration alone ("bk. 2" of what?) says nothing.
+			continue
+		}
+		// The enumeration hangs off the RELATION, not the series -- which is the
+		// whole point of the reshape. "bk. 2" is a fact about this Work's
+		// membership; the same series numbers another Work differently.
+		if enum, ok := p.view.Literal(rel, pSeriesEnum); ok {
+			s.Enumeration = enum
+		}
+		for _, st := range p.view.Objects(res, pStatus) {
+			if st.Value == statusTracedIRI {
+				s.Traced = true
+			}
+		}
+		// A bf:Series may carry several identifiers; only the bf:Issn is its ISSN.
+		// First one wins and stops the walk, so the result does not depend on the
+		// order Objects() happens to return.
+		for _, id := range p.view.Objects(res, pIdentifiedBy) {
+			if !p.view.HasType(id, classIssn) {
+				continue
+			}
+			if v, ok := p.view.Literal(id, pValue); ok && v != "" {
+				s.ISSN = v
+				break
+			}
+		}
+		out = append(out, s)
+	}
+	if len(out) == 0 {
+		out = p.legacySeries(w)
+	}
+	sort.Slice(out, func(a, b int) bool {
+		if out[a].Title != out[b].Title {
+			return out[a].Title < out[b].Title
+		}
+		return out[a].Enumeration < out[b].Enumeration
+	})
+	return out
+}
+
+// seriesTitle reads bf:title -> bf:mainTitle off a bf:Series node.
+func (p *projector) seriesTitle(res rdf.Term) string {
+	for _, t := range p.view.Objects(res, pTitle) {
+		if v, ok := p.view.Literal(t, pMainTitle); ok && v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// legacySeries reads the pre-v0.25.0 flat literals off the Work's Instances, so a
+// grain tree written by an older libcodex keeps projecting its series rather than
+// silently losing them the day the dependency is bumped. Only consulted when the
+// Work carries no series relation at all.
+//
+// It inherits the defect it cannot fix. The flat shape paired statement to
+// enumeration by list position, and an RDF graph is a set: two 490s sharing a $v
+// emitted one triple, so the pairing was already gone before this code saw it.
+// Every legacy series therefore gets the Instance's first non-empty enumeration,
+// which is what the old projector did to all of them. Re-ingest to get it right.
+func (p *projector) legacySeries(w rdf.Term) []Series {
+	var titles []string
+	enum := ""
+	for _, inst := range p.view.Objects(w, pHasInstance) {
+		for _, s := range p.view.Objects(inst, pSeriesStatement) {
+			if s.IsLiteral() && s.Value != "" {
+				titles = append(titles, s.Value)
+			}
+		}
+		if enum == "" {
+			for _, s := range p.view.Objects(inst, pSeriesEnum) {
+				if s.IsLiteral() && s.Value != "" {
+					enum = s.Value
+					break
+				}
+			}
+		}
+	}
+	var out []Series
+	for _, t := range sortedUniqueStrings(titles) {
+		out = append(out, Series{Title: t, Enumeration: enum})
+	}
+	return out
+}
+
+// sortedUniqueStrings sorts and de-duplicates: several printings of one Work
+// transcribe the same 490 on each Instance.
+func sortedUniqueStrings(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	sort.Strings(in)
+	out := in[:1]
+	for _, s := range in[1:] {
+		if s != out[len(out)-1] {
+			out = append(out, s)
+		}
 	}
 	return out
 }
@@ -1100,21 +1277,6 @@ func (p *projector) instances(w rdf.Term) []Instance {
 			return pids[a].Value < pids[b].Value
 		})
 		i.ISBNs, i.ProviderIDs = isbns, pids
-		for _, s := range p.view.Objects(inst, pSeriesStatement) {
-			if s.IsLiteral() && s.Value != "" {
-				i.Series = append(i.Series, s.Value)
-			}
-		}
-		sort.Strings(i.Series)
-		// libcodex v0.21.0 pairs enumerations to statements positionally and
-		// pads with EMPTY literals for 490s that carried no $v -- placeholders,
-		// not data. First non-empty wins (the editor's max-1 shape).
-		for _, s := range p.view.Objects(inst, pSeriesEnum) {
-			if s.IsLiteral() && s.Value != "" {
-				i.SeriesEnumeration = s.Value
-				break
-			}
-		}
 		i.Items = p.items(inst)
 		i.Held = len(i.Items) > 0
 		if !i.Held && !withdrawn {
