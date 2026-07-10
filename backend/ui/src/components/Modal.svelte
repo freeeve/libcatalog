@@ -26,25 +26,47 @@
     const opener = document.activeElement as HTMLElement | null;
     const auto = panel?.querySelector<HTMLElement>("[data-autofocus]");
     (auto ?? panel)?.focus();
-    return () => opener?.focus?.();
+    // Bound to the window (capture) rather than the panel so the trap keeps
+    // working when the dialog's content unmounts the focused control and the
+    // browser drops focus to <body>: a panel-scoped listener goes deaf the
+    // instant focus leaves it, which killed Escape and let Tab wander onto
+    // controls behind the scrim (tasks/250).
+    window.addEventListener("keydown", onKeydown, true);
+    return () => {
+      window.removeEventListener("keydown", onKeydown, true);
+      opener?.focus?.();
+    };
   });
 
-  /** Focus trap: Tab cycles inside the dialog, Escape closes it. */
+  /** Focus trap: Escape closes from anywhere; Tab keeps the cycle inside the
+      panel and pulls focus back in if it has already escaped. */
   function onKeydown(ev: KeyboardEvent): void {
+    if (!panel) return;
     if (ev.key === "Escape") {
       ev.stopPropagation();
       onclose();
       return;
     }
-    if (ev.key !== "Tab" || !panel) return;
+    if (ev.key !== "Tab") return;
     const focusables = panel.querySelectorAll<HTMLElement>('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    if (focusables.length === 0) return;
+    if (focusables.length === 0) {
+      ev.preventDefault();
+      panel.focus();
+      return;
+    }
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
-    if (ev.shiftKey && document.activeElement === first) {
+    const active = document.activeElement;
+    if (!panel.contains(active)) {
+      // Content unmounted whatever held focus; recapture it into the dialog.
+      ev.preventDefault();
+      (ev.shiftKey ? last : first).focus();
+      return;
+    }
+    if (ev.shiftKey && active === first) {
       ev.preventDefault();
       last.focus();
-    } else if (!ev.shiftKey && document.activeElement === last) {
+    } else if (!ev.shiftKey && active === last) {
       ev.preventDefault();
       first.focus();
     }
@@ -59,7 +81,6 @@
     aria-label={ariaLabel}
     tabindex="-1"
     bind:this={panel}
-    onkeydown={onKeydown}
     style:width={`min(${width}, 94vw)`}
   >
     {@render children()}

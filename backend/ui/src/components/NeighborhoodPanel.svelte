@@ -4,6 +4,7 @@
   // neighbor walks the panel to that term; the breadcrumb walks back, and a
   // walked-to term can be picked directly via onselect. The parent keys this
   // component by term id, so the trail resets when the highlight moves.
+  import { tick } from "svelte";
   import { resolveTerm } from "../lib/api";
   import { bestDefinition, bestLabel } from "../lib/vocab";
   import type { Term } from "../lib/types";
@@ -11,6 +12,7 @@
   let { term, onselect }: { term: Term; onselect?: (t: Term) => void } = $props();
 
   let trail = $state<Term[]>([]);
+  let hood = $state<HTMLElement | null>(null);
   const current = $derived(trail[trail.length - 1] ?? term);
   const groups = $derived(
     [
@@ -20,20 +22,32 @@
     ].filter((g) => g.ids.length > 0),
   );
 
+  // Clicking a neighbor unmounts the button that held focus, so the browser
+  // drops focus to <body>. Move it deliberately to the new breadcrumb (or the
+  // panel when we return to the root) so focus never leaves the dialog and a
+  // screen reader announces the term just walked to (tasks/250). The Modal's
+  // window-level trap is the safety net; this is the polite version.
+  async function refocus(): Promise<void> {
+    await tick();
+    (hood?.querySelector<HTMLElement>(".here") ?? hood)?.focus();
+  }
+
   function walk(t: Term): void {
     trail = [...trail, t];
+    void refocus();
   }
 
   function back(): void {
     trail = trail.slice(0, -1);
+    void refocus();
   }
 </script>
 
-<div class="hood">
+<div class="hood" bind:this={hood} tabindex="-1">
   {#if trail.length > 0}
     <nav class="crumb" aria-label="Neighborhood trail">
       <button class="linkish" onclick={back}>← {bestLabel(trail[trail.length - 2] ?? term)}</button>
-      <span class="here">{bestLabel(current)}</span>
+      <span class="here" tabindex="-1">{bestLabel(current)}</span>
       {#if onselect}
         <button class="button use" onclick={() => onselect?.(current)}>Use this term</button>
       {/if}

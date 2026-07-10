@@ -52,6 +52,27 @@ describe("Modal", () => {
     expect(document.activeElement?.id).toBe("m-first");
   });
 
+  // tasks/250: clicking content that unmounts the focused control drops focus
+  // to <body>; a panel-scoped listener would then go deaf. The window-level
+  // trap must keep Escape and the Tab cycle alive.
+  it("still closes on Escape after content unmounts the focused control", () => {
+    const onclose = vi.fn();
+    const host = mountModal(onclose);
+    expect(document.activeElement?.id).toBe("m-first");
+    host.querySelector("#m-first")!.remove(); // focus falls out of the panel
+    expect(document.querySelector('[role="dialog"]')!.contains(document.activeElement)).toBe(false);
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(onclose).toHaveBeenCalledOnce();
+  });
+
+  it("recaptures escaped focus into the dialog on Tab", () => {
+    const host = mountModal(() => {});
+    host.querySelector("#m-first")!.remove(); // focus escapes to <body>
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
+    expect(document.activeElement?.id).toBe("m-last"); // pulled back to the remaining focusable
+    expect(host.querySelector('[role="dialog"]')!.contains(document.activeElement)).toBe(true);
+  });
+
   it("restores focus to the opener on unmount", () => {
     const opener = document.createElement("button");
     opener.id = "opener";
