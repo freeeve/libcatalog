@@ -205,3 +205,52 @@ curl -s -XPOST -H "Authorization: Bearer $TOK" -H "If-Match: $ET" -H 'Content-Ty
 
 In the UI: open a record on a read-only instance, choose the **MARC** tab, change a
 subfield, click **Save MARC**.
+
+## Outcome
+
+Fixed in **v0.108.0** (`0208541`). `probe_readonly.mjs` **9/9**; `retest.mjs`
+**t260 FIXED**, nothing regressed.
+
+Both halves held, and both suggested fixes were the right ones. The report's
+framing -- *nothing persists; what is wrong is the answer the server gives* -- is
+exactly the scope of the change.
+
+### What shipped
+
+**`writeGrainWriteError`** maps `blob.ErrReadOnly` onto the guard's own 403 and
+its own wording, so a client cannot tell which layer refused it.
+
+**`mutateWorkGrain` wrapped the store's error with `%v`.** That destroyed the
+sentinel for *every* route that writes through it -- items, covers, relations,
+attachments -- so they would all have 500'd the day the guard was relaxed or a
+store was mounted read-only for another reason. It wraps with `%w` now, and
+`writeMutateError` checks `ErrReadOnly` before `errGrainStore`: a deployment that
+does not accept writes is not an unavailable one. The report only named the two
+explicit `bs.Put` sites; this one was a level down.
+
+**`readOnlyAllowed` no longer matches on suffix.** It matches the route's shape --
+`/v1/works/{id}/<named suffix>` -- plus three exact paths. The report's third
+bullet was right that the old form relied entirely on the blob store to catch a
+future `/v1/queue/ops`, and that a route writing to the *document* store would
+not have been caught at all.
+
+I did **not** validate the work id inside the allowlist. A malformed id should
+reach the handler and earn its 400 rather than be masked by the guard's 403.
+
+**`MarcPanel` is gated the way `SaveBar` already was**: Save hidden in the
+read-only demo, and in sandbox a `Save MARC (demo)` that dry-runs and renders the
+delta without persisting, matching `editor.ts`'s `sandboxSave`. Preview delta
+stays in both, which is why the guard allowlists the route at all.
+
+### Every guard proven by mutation
+
+Un-mapping the sentinel, restoring the `%v` wrap, restoring the suffix match, and
+removing the panel's gate each make a specific named test fail. The `%v` mutation
+is the one worth remembering: it compiles, it reads correctly, and it silently
+breaks `errors.Is` two call frames away.
+
+### Not in scope, deliberately
+
+`/v1/batch/ops` was already right -- it reports the store's error per item inside
+a 200, because a batch's per-entry results are its contract (compare tasks/268).
+It is untouched.
