@@ -118,3 +118,84 @@ jq '.redirects | length' ~/libcat-playground/opac/assets/redirects.json   # 2710
 curl -s -o /dev/null -w '%{http_code}\n' localhost:8482/redirects.json    # 404
 curl -si localhost:8482/works/<any id from the map>/ | head -1            # 404, no Location
 ```
+
+## Outcome
+
+Shipped in `5ba5bc4`, released as **v0.132.0**. Both halves, as filed.
+`probe_opac_redirects.mjs` goes **4/7 -> 7/7**.
+
+### The map reaches the site
+
+The module publishes `assets/redirects.json` to `/redirects.json`
+(`layouts/_partials/lcat-redirects.html`, called from `baseof.html`). Referencing
+an asset's `.RelPermalink` is what publishes it, so this needed no mount and no
+output format. `catalog.json`, `facets.json` and `similar.json` stay unpublished
+-- there is a test asserting that, because "publish the whole assets dir" would
+have satisfied the first check while proving nothing.
+
+### Retired ids answer
+
+A page per **merged** id and **none** for a tombstone. That asymmetry is the one
+judgement call in here, and it is not what the task asked for verbatim.
+
+A merged id has a successor to name, so it gets a meta-refresh stub -- Hugo's own
+alias shape, canonical-tagged to the survivor, `noindex`, translated per language,
+minted with `build.list = never` so it never reaches `/works/`, a taxonomy or
+`sitemap.xml`. It forwards on any host with no host configuration, which is what
+expectation 2 asked for.
+
+A tombstone has nowhere to send anyone. Expectation 3 wants `410`; a static host
+cannot give one, and the only thing it *can* give is a `200` page saying "gone",
+which is a soft 404 -- a crawler treats it worse than the honest `404` it would
+replace, and a reader gets a dead end either way. So the tombstone gets no page,
+and `lcat serve` (and any host pointed at the map) answers the real `410`. On the
+playground that is 4 stubs, not 3,639.
+
+### `lcat serve`
+
+`cmd/lcat/redirects.go`: 301 for a merge, 410 with a short body for a tombstone,
+re-read on mtime/size change so a merge is live on the next reload without a
+restart -- `serve` reads every other file per request and the map had to match.
+The check runs **before** the file server, so a merged id answers 301 there even
+though its stub is sitting on disk for other hosts.
+
+A `to` that is not a plain Work id answers 410 rather than a wrong 301. The value
+is read off disk and interpolated into a `Location` header; an absolute URL there
+is an open redirect and a newline is a header injection. Work ids are opaque
+tokens so it never fires, which is exactly why it is asserted.
+
+### Measured
+
+Against the rebuilt playground OPAC (37 works, 3,639 retired ids: 4 merged,
+3,635 tombstoned):
+
+```
+GET /redirects.json                     200
+GET /works/w4327hak52nmak/              301  Location: /works/w4q01p0obp549o/
+GET /works/w4q01p0obp549o/              410  (the survivor is itself tombstoned)
+GET /works/w0cfnsjg6micju/              200  (live work)
+GET /works/wneverexisted/               404  (an id nobody retired)
+works/w4327hak52nmak/index.html         <meta http-equiv="refresh" ...>  (static hosts)
+```
+
+`301` then `410` is the correct answer for that chain, as the task's own note on
+D3 says.
+
+### Tests
+
+`hugo/redirects_seam_test.cjs` (9 checks, added to `test:js`) and
+`cmd/lcat/redirects_test.go` (6 tests). Every guard was mutation-checked: dropping
+the publish partial, minting tombstone pages, dropping `build.list`, swapping
+`absLangURL` for `absURL`, un-reserving `lcatRetiredTo`, serving files before the
+map, accepting any successor string, and pinning the map at startup each kill
+exactly the test written for it.
+
+The a11y gate audits both stub pages (124 -> 126 pages) and passes: axe's
+`meta-refresh` rule permits a zero-delay refresh, which is why Hugo's own pager
+aliases pass it too.
+
+### Not done
+
+The task calls this "a fifth instance of the family behind tasks/115, 261, 300 and
+305: the durable record of an intention is written, and nothing carries the
+intention out." Nothing here addresses the family, only this instance.
