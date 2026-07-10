@@ -214,3 +214,59 @@ curl -s -o /dev/null -w '%{http_code}\n' -XDELETE -H "Authorization: Bearer $A" 
   localhost:8481/v1/users/$B_EMAIL                                              # 204
 curl -s -H "Authorization: Bearer $A" localhost:8481/v1/item-templates          # still there
 ```
+
+## Outcome
+
+Shipped in **libcat v0.142.0** (minor -- the probe has something to adopt: O3-O6
+flip from 403 to success). Took the first fork from Expected: give an admin
+custody of shared records, rather than removing the feature.
+
+**Server (`batch/owned.go`).** A new `writable(meta, owner, isAdmin)` gates both
+`updateOwned` and `deleteOwned`: the owner always may write, and an admin may
+write a record that is `Shared`. A personal record stays private to its owner
+even from an admin -- and in fact is invisible to everyone but its owner, so an
+admin acting on someone else's personal record gets `NotFound`, not a policy
+refusal. An admin editing a colleague's shared record is its custodian, not its
+owner: `updateOwned` preserves the original `Owner` and refuses to let a
+non-owner un-share it (which would move it into the departed owner's partition
+and re-orphan it). The service methods (`UpdateMacro`/`DeleteMacro`,
+`UpdateItemTemplate`/`DeleteItemTemplate`) thread an `isAdmin bool`; the handlers
+pass `id.CanAdmin()`.
+
+**UI.** `Macros.svelte` and `ItemsPanel.svelte` replace their `owner === me`
+guard with a `canManage` that also admits an admin on a shared record, so the
+custodian controls the server now honours actually render. The macro editor
+disables the "Shared" toggle when an admin edits a record they do not own (the
+server ignores an un-share there), and the 403 messages now name the admin path.
+
+**Tests.** The two "specified rule" tests (`itemtemplates_test.go`,
+`batch_test.go`) are rewritten per Expected: the non-owner rule is kept, and the
+two cases they skipped are added -- an admin succeeding on a shared record (and
+still blocked from a colleague's personal one), and cleaning up a record whose
+owner is gone.
+
+**Deferred to tasks/332 (bullets 2 and 3).** `DeleteUser` still silently orphans
+(now admin-*reachable* but not surfaced), and ownership is still keyed on a
+recyclable email. Both are larger than this CRUD-guard change and are filed
+together; 292's headline -- "deleted by nobody, not even an admin" -- is fully
+resolved because an orphan is now admin-deletable.
+
+### Verified end to end on :8481
+
+Two real accounts (admin `eve`, throwaway librarian sentinel):
+
+```
+sentinel POST /v1/item-templates {shared:true}  -> 201  owner=sentinel
+admin    GET  /v1/item-templates                 -> shared template listed
+admin    PUT  /v1/item-templates/{id}            -> 200  relabelled, still shared, owner=sentinel
+admin    DELETE /v1/item-templates/{id}          -> 204  (was 403)
+sentinel POST /v1/macros {shared:true}           -> 201  owner=sentinel
+admin    DELETE /v1/users/sentinel               -> 204
+admin    GET  /v1/macros                          -> orphaned shared macro still listed
+admin    DELETE /v1/macros/{id}                   -> 204  NOBODY-can-delete is fixed
+```
+
+And the real UI (Playwright), signed in as the admin: selecting a shared template
+owned by another librarian in the Items panel shows **Rename** and **Delete**, and
+clicking Delete removes it server-side. Backend `go test ./...` green; full UI
+suite 323/323; `npm run check` clean.
