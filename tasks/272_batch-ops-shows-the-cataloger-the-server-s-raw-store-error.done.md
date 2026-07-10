@@ -229,3 +229,77 @@ curl -s -XPOST -H "Authorization: Bearer $TOK" -H 'Content-Type: application/jso
 
 chmod -R u+w "$SITE/data/works/31"
 ```
+
+## Outcome
+
+Fixed in **v0.110.0** (`ffe49a8`). `probe_batch_write_failure.mjs` passes **6/6**
+unmodified; `retest.mjs` reports **t272 FIXED** with nothing regressed.
+
+Four of the five bullets shipped. The fifth is declined, with a reason.
+
+The report was right that the comparison is the argument. It was also right about
+where the fix belongs: **the sentinel, not the string**. `batch.runOne` could not
+map its error because `publish.MutateGrain` had three error sources -- the
+store's read, the caller's mutate closure, the store's write -- and returned all
+three the same way. A `writeError(err)` keyed on `blob.*` sentinels alone would
+have swallowed `"no such work"` and every op-validation message, because those
+come out of the closure and match nothing.
+
+### What shipped
+
+**`publish.MutateGrain` sorts its own errors.** Store errors wrap a new
+`ErrGrainStore`; CAS exhaustion is `ErrGrainConflict` and names no path; the
+closure's error passes through untouched. The wrap is `%w: %w`, so
+`blob.ErrReadOnly` stays reachable -- the exact `%v`-versus-`%w` defect tasks/260
+found one layer up, now asserted at the layer that wraps.
+
+**`batch.writeError`** maps with those sentinels. `"no such work"` and the
+mapper's complaints reach the cataloger verbatim; anything the store produced
+becomes `"grain write failed"`; a lost race says to retry; a read-only refusal
+reads exactly like the guard's 403. The raw error goes to `Service.Logger`,
+where it was going nowhere before.
+
+**The other two call sites, same pass.** The merge handler answered `409` -- a
+claim that somebody else edited the record -- with an `*os.PathError` as its
+body; a store failure is a `500 "merge failed"` now, a real lost race keeps its
+`409`, and a read-only store gets the guard's `403`. The promotion handler no
+longer concatenates the raw error into its `500`.
+
+### Two things the report did not know
+
+**`readOnlyNotice` cannot be shared by import.** `httpapi` imports `batch`, so
+`batch` cannot import back. The notice is declared in both and
+`TestReadOnlyNoticeMatchesTheBatchNotice` pins them equal -- two literals, one
+asserted invariant, no layering inversion.
+
+**Both new handlers needed a nil-logger guard**, and finding out cost a wrong
+guess. A nil `*slog.Logger` panics on call; the recovery middleware turns that
+into `500 {"error":"internal error"}` -- which is a 500 either way, so a test
+asserting only the status passes on the panic. My first merge test caught it by
+asserting the *message*. I then claimed the same latent panic lived in
+covers/relations/attachments and was wrong: `registerCovers` already nil-guards
+(`cover_handlers.go:105`), and so do the others. I checked instead of shipping
+the belt-and-braces default in `New` that I had already written.
+
+### Declined: `humanApiMessage` on `item.error`
+
+`humanApiMessage(e, fallback)` returns `fallback` unless `e instanceof ApiError`
+(`api.ts:74-78`). `item.error` is a plain string off the JSON, so routing it
+through would replace **every** per-record message with the fallback -- it would
+delete the information, not sanitize it. Defence in depth here would need a
+different helper, and with the server no longer sending a path there is nothing
+left to defend against. The bullet's own parenthesis is the right call: the
+server should not be sending it, and now it is not.
+
+### Verification
+
+Every guard was mutation-proven. Restoring `item.Error = err.Error()` fails six
+of the batch tests. Changing `%w: %w` to `%w: %v` in `MutateGrain` fails exactly
+the two that assert `blob.ErrReadOnly` survives -- the defect that is invisible
+to any probe. Drifting `batch.ReadOnlyNotice` by one word fails the parity test.
+Removing the merge handler's nil-logger guard turns its 500 into
+`"internal error"`. One perl-based mutation silently failed to apply and the test
+passed vacuously; it was redone with an explicit edit before being believed.
+
+`gofmt -s` clean, `go vet` clean, backend suite 28 packages ok (`-count=1`, exit
+0), root suite ok. `probe_batch_write_failure.mjs` 6/6 against committed HEAD.
