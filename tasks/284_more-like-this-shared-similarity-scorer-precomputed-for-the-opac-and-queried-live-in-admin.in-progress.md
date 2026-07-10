@@ -148,3 +148,67 @@ focus work is excluded, and so is any other edition of it if we have a cluster k
 - The DF cap and the `df <= 1` floor are what keep this from being a
   "these two books both have the subject Fiction" machine. They are not tuning
   knobs to skip in a first cut.
+
+## Progress
+
+**The scorer is done** (`similar/`, `e98ae2b`), with `WorkSummary` gaining `Series`
+and `Languages`. Eve chose qllpoc's full weight set. Two deliberate divergences
+from qllpoc, both pinned by tests and argued in the commit: the singleton floor
+counts Works *other than the focus* (qllpoc's `df >= 2` silently drops a
+tree-expanded concept held by exactly one other Work), and the DF cap never rounds
+away `df = 2` (`floor(0.20 * 5)` is 1, which would leave a five-book catalog with
+no rail).
+
+Running it over the real playground caught what 15 green unit tests could not:
+`ScanSummaries` over a prefix that also catches `catalog.nq` yields four summaries
+per Work, so the focus sat at four offsets, `Neighbors` excluded one, and *Frog and
+Toad Together* was the top recommendation for *Frog and Toad Together*. `Build` now
+de-duplicates by `WorkID`.
+
+### Benchmarks, before wiring anything (`similar/bench_test.go`)
+
+Synthetic catalog with a realistic attribute spread -- a subject on ~20 Works, a
+denser band on ~645, an author on ~8, series on a tenth -- so the DF cap and the
+singleton floor both bite.
+
+| n | `Build` | `Neighbors` (one Work) |
+|---|---|---|
+| 1,000 | 0.46 ms, 1.0 MB | 33 µs, 14 KB |
+| 10,000 | 5.6 ms, 14 MB | 202 µs, 94 KB |
+| 62,602 | 44 ms, 103 MB | **1.34 ms, 690 KB** |
+
+**The admin half is comfortable.** `Build` once at 44 ms / 103 MB, cached and
+rebuilt on the works-list freshness signal, then 1.34 ms per request. That is
+cheaper than the grain read the editor is already doing.
+
+**The OPAC half is not, as written.** Neighbours for *every* Work is
+`62,602 x 1.34 ms ~= 84 s` serial, churning ~43 GB. Measured directly at n=10,000:
+2.18 s and 990 MB allocated for the whole-catalog pass. `lcat project` already
+peaks at 1.9 GB for a 36-work catalog (tasks/279); adding 84 s and 43 GB of churn
+to that build without saying so would be exactly the "no silent caps" failure.
+
+Per-query cost is dominated by the dense subject band: a heading on 645 of 62,602
+Works passes the DF cap (12,520) and drags 645 candidates into the score map on
+every hop. Options, cheapest first:
+
+1. **Parallelize the precompute.** Embarrassingly so -- `Neighbors` is read-only on
+   a built `Index`. 16 cores takes 84 s to ~6 s. Enough on its own.
+2. **Lower `DFCapFraction` for the build.** 0.20 is qllpoc's, tuned for its
+   catalog. At 0.02 the dense band drops out entirely. This is a ranking decision,
+   not a performance knob, so it should be measured against real neighbours before
+   being taken.
+3. **Cap the candidate pool.** qllpoc scores a pool of 200 and keeps 8; nothing
+   here bounds the score map.
+
+Doing (1) and reporting the number. Not touching (2) without looking at what it
+does to the rail.
+
+### Remaining
+
+- `project` emits a `similar.json` sidecar (parallel precompute), bump
+  `project.SchemaVersion`, and Hugo renders a section on `page.html` beside the
+  asserted `lcat-relations` block -- visually distinct, because these are computed.
+- `GET /v1/works/{id}/similar?limit=` (librarian) off a cached index, and a
+  `WorkEditor` panel.
+- Suppressed Works stay in the admin index and are absent from the projection,
+  which happens upstream. Tombstoned Works are already excluded on both.
