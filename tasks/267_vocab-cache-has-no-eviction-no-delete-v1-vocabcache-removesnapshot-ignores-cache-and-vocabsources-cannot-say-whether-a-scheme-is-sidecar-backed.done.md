@@ -56,3 +56,41 @@ that is holding a scheme dirty.
 `~/libcat-e2e/harness/probe_vocab_cache.mjs` and `probe_vocab_sidecar_bypass.mjs`
 cover the current behavior; `M9` already asserts the sidecar files survive a
 cache write, which a `RemoveSnapshot` sweep must not break.
+
+## Outcome
+
+Shipped in **libcat v0.146.0** (minor -- a new route, a new audit action, and two
+additive fields). All three Expected items landed.
+
+**1. Eviction.** `DELETE /v1/vocabcache?scheme=&id=` -- librarian-gated (like the
+POST) and audited (`VOCAB_CACHE_REMOVE`, note `scheme: id`, reusing the audit
+queue wired in tasks/259). `RemoveCachedTerm` deletes the one blob and reloads;
+an absent pick is a `404`, not a silent success. Dropping a scheme's last pick
+removes it from `cachedSchemes`, so the reload also drops it from the filter
+unless a snapshot or the base filter still holds it.
+
+**2. One sweep.** `RemoveSnapshot` now calls a `sweepScheme` helper that removes
+`cache/<scheme>/` **and** the sidecar artifacts (the latter it already did,
+tasks/252). Uninstalling a snapshot no longer leaves a scheme's live picks
+behind holding it dirty. The M9 guarantee holds: the sweep is only in
+`RemoveSnapshot`, so a cache *write* still leaves the sidecar untouched.
+
+**3. Serving visibility.** `GET /v1/vocabsources` carries `sidecar bool` and
+`residentTerms int` per row, from a new nil-safe `Index.SchemeStats(scheme)`
+(`snapshot.sidecar[scheme] != nil`, `len(snapshot.schemes[scheme])`). The SPA's
+vocab screen shows a `sidecar` badge (with the resident overlay count in its
+tooltip) or a `· N resident` note. `RemoveSnapshot` returns the removed
+`InstallInfo` so the count is read once.
+
+### Verified
+
+- `TestVocabCacheEvictionAndSweep` (service): two picks cached, one evicted, the
+  other survives, re-evict is `NotFound`; a cache write leaves the sidecar count
+  unchanged; `Views` fields equal `SchemeStats`; `RemoveSnapshot` leaves zero
+  cache blobs and zero sidecar artifacts. `TestVocabCacheRemoveIsAudited`
+  (handler): the DELETE is librarian-gated, audited, and 404s an absent pick.
+  Backend `go test ./...` green; UI 324/324; `docs/api.md` regenerated.
+- Live on `:8481`: `GET /v1/vocabsources` shows **`lcsh: installed=true
+  sidecar=true residentTerms=0 terms=513125`** -- the exact "why is this process
+  1.2 GB" answer the task asked for. A cached pick evicts (200) and lands a
+  `VOCAB_CACHE_REMOVE` entry naming the scheme; re-evicting 404s.
