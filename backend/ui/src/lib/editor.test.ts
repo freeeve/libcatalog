@@ -38,10 +38,13 @@ async function seedSession(): Promise<void> {
   fetchMock.mockClear();
 }
 
-/** Loads a session for w1: doc fetch (etag e1) then the given draft list. */
+/** Loads a session for w1: doc fetch (etag e1) then the work's one draft slot.
+    load() point-reads GET /v1/drafts/w1 (tasks/297), so the mock returns w1's
+    draft from the given set, or a 404 when there is none. */
 async function loadSession(drafts: unknown[] = []): Promise<EditorSession> {
   fetchMock.mockResolvedValueOnce(json({ etag: "e1", doc }));
-  fetchMock.mockResolvedValueOnce(json({ drafts }));
+  const mine = (drafts as Array<{ workId?: string }>).find((d) => d.workId === "w1");
+  fetchMock.mockResolvedValueOnce(mine ? json(mine) : json({ error: "no such draft" }, 404));
   session = createEditorSession("w1");
   await session.load();
   fetchMock.mockClear();

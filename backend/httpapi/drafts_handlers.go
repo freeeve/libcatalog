@@ -1,8 +1,6 @@
 package httpapi
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,18 +11,24 @@ import (
 )
 
 // draft is a per-user editor draft: an opaque client payload (op list /
-// form state) keyed to a work, autosave-friendly.
+// form state) keyed to a work, autosave-friendly. One draft slot per (user,
+// work): the id IS the work id, so a work can never accumulate several drafts
+// for one user (tasks/297). Body is omitempty so the list projection can drop
+// it -- the point read carries the body.
 type draft struct {
 	ID        string          `json:"id"`
 	WorkID    string          `json:"workId,omitempty"`
-	Body      json.RawMessage `json:"body"`
+	Body      json.RawMessage `json:"body,omitempty"`
 	UpdatedAt time.Time       `json:"updatedAt"`
 }
 
 const draftTTL = 90 * 24 * time.Hour
 
-func draftKey(email, id string) store.Key {
-	return store.Key{PK: "DRAFT#" + email, SK: id}
+// draftKey scopes a draft to a (user, work) pair. The work id in the sort key
+// is what makes the slot real: one key per work, so uniqueness is structural
+// rather than something a scan has to enforce.
+func draftKey(email, workID string) store.Key {
+	return store.Key{PK: "DRAFT#" + email, SK: "W#" + workID}
 }
 
 // registerDrafts mounts per-user draft CRUD (librarian-gated like the rest
@@ -37,13 +41,18 @@ func registerDrafts(mux *http.ServeMux, db store.Store, librarian func(http.Hand
 			writeError(w, http.StatusBadRequest, "bad request body")
 			return
 		}
-		suffix := make([]byte, 8)
-		_, _ = rand.Read(suffix)
-		d.ID = hex.EncodeToString(suffix)
+		if d.WorkID == "" {
+			writeError(w, http.StatusBadRequest, "draft needs a workId")
+			return
+		}
+		// The id is the work id: one slot per (user, work). Upsert rather than
+		// reject a second write so a second tab's autosave lands last-writer-
+		// wins on the shared slot instead of erroring (tasks/297).
+		d.ID = d.WorkID
 		d.UpdatedAt = time.Now().UTC()
 		data, _ := json.Marshal(d)
-		rec := store.Record{Key: draftKey(id.Email, d.ID), Data: data, ExpireAt: time.Now().Add(draftTTL)}
-		if _, err := db.Put(r.Context(), rec, store.CondIfAbsent); err != nil {
+		rec := store.Record{Key: draftKey(id.Email, d.WorkID), Data: data, ExpireAt: time.Now().Add(draftTTL)}
+		if _, err := db.Put(r.Context(), rec, store.CondNone); err != nil {
 			writeError(w, http.StatusInternalServerError, "draft save failed")
 			return
 		}
@@ -60,6 +69,11 @@ func registerDrafts(mux *http.ServeMux, db store.Store, librarian func(http.Hand
 			}
 			var d draft
 			if json.Unmarshal(rec.Data, &d) == nil {
+				// The list is a hot-path call on every editor open; drop the
+				// body so it never fans out a megabyte per draft. The point
+				// read carries the body for the one draft the editor wants
+				// (tasks/297).
+				d.Body = nil
 				drafts = append(drafts, d)
 			}
 		}

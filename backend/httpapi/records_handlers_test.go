@@ -342,6 +342,62 @@ func TestDraftsCRUD(t *testing.T) {
 	}
 }
 
+// TestDraftSlotIsUniquePerWork is the tasks/297 gate: a (user, work) pair owns
+// exactly one draft slot, so repeated POSTs of the same work -- two tabs, two
+// devices, an autosave retry -- never pile up rival drafts the resume banner
+// then has to pick between by lowest random id. The last write wins the slot.
+func TestDraftSlotIsUniquePerWork(t *testing.T) {
+	h, _ := newRecordsAPI(t)
+	post := func(op string) {
+		rec := request(t, h, http.MethodPost, "/v1/drafts", "lib-token", "", map[string]any{
+			"workId": editWorkID, "body": map[string]any{"ops": []any{op}},
+		})
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("post %q: %d %s", op, rec.Code, rec.Body)
+		}
+	}
+	post("first")
+	post("second")
+	post("third")
+
+	rec := request(t, h, http.MethodGet, "/v1/drafts", "lib-token", "", nil)
+	var listing struct{ Drafts []draft }
+	_ = json.Unmarshal(rec.Body.Bytes(), &listing)
+	if len(listing.Drafts) != 1 {
+		t.Fatalf("one (user, work) must hold one draft, got %d: %s", len(listing.Drafts), rec.Body)
+	}
+	if listing.Drafts[0].ID != editWorkID {
+		t.Errorf("draft id = %q, want the work id %q", listing.Drafts[0].ID, editWorkID)
+	}
+	// The list projection carries no body -- the fan-out fix.
+	if len(listing.Drafts[0].Body) != 0 {
+		t.Errorf("list should omit body, got %s", listing.Drafts[0].Body)
+	}
+	// The surviving draft is the last write, read through the point GET.
+	rec = request(t, h, http.MethodGet, "/v1/drafts/"+editWorkID, "lib-token", "", nil)
+	if !strings.Contains(rec.Body.String(), `"third"`) {
+		t.Errorf("point read = %s, want the last-written body", rec.Body)
+	}
+	// A different work gets its own slot.
+	if rec := request(t, h, http.MethodPost, "/v1/drafts", "lib-token", "", map[string]any{
+		"workId": "wother", "body": map[string]any{"ops": []any{}},
+	}); rec.Code != http.StatusCreated {
+		t.Fatalf("post other work: %d %s", rec.Code, rec.Body)
+	}
+	rec = request(t, h, http.MethodGet, "/v1/drafts", "lib-token", "", nil)
+	_ = json.Unmarshal(rec.Body.Bytes(), &listing)
+	if len(listing.Drafts) != 2 {
+		t.Fatalf("two works, two slots, got %d: %s", len(listing.Drafts), rec.Body)
+	}
+
+	// A POST with no workId is refused rather than keyed to an empty slot.
+	if rec := request(t, h, http.MethodPost, "/v1/drafts", "lib-token", "", map[string]any{
+		"body": map[string]any{"ops": []any{}},
+	}); rec.Code != http.StatusBadRequest {
+		t.Errorf("post without workId = %d, want 400", rec.Code)
+	}
+}
+
 // TestMergeSplitRejectPhantomIDs covers tasks/214: merge refuses a retiring
 // work that has no grain, and split refuses instances the source grain does
 // not describe -- both markers are permanent identity-resolver instructions

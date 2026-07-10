@@ -8,7 +8,7 @@ import {
   ConflictError,
   createDraft,
   deleteDraft,
-  fetchDrafts,
+  fetchDraft,
   fetchWorkDoc,
   postOps,
   updateDraft,
@@ -148,10 +148,13 @@ export function createEditorSession(workId: string): EditorSession {
       const res = await fetchWorkDoc(workId);
       let pendingDraft: Draft | null = null;
       try {
-        const { drafts } = await fetchDrafts();
-        pendingDraft = drafts.find((d) => d.workId === workId) ?? null;
+        // A point read of this work's one draft slot -- no list to scan, no
+        // rival drafts to pick between, no every-other-work's body pulled
+        // down to open this one (tasks/297).
+        pendingDraft = await fetchDraft(workId);
       } catch {
-        // Drafts are a convenience; the editor works without them.
+        // No draft for this work (404), or drafts unavailable -- either way
+        // the editor works without one.
       }
       // The local mirror wins over the server draft in this browser: it is
       // written on every edit, while the autosave lags 3s and dies with the

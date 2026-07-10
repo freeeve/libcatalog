@@ -203,13 +203,14 @@
       </details>
 
       {#if $session.pendingDraft}
+        {@const draftOps = $session.pendingDraft.body?.ops?.length ?? 0}
         <div class="banner" role="status">
           <span>
-            You have a draft for this work ({$session.pendingDraft.body?.ops?.length ?? 0} edits, saved
+            You have a draft for this work ({draftOps} edit{draftOps === 1 ? "" : "s"}, saved
             {new Date($session.pendingDraft.updatedAt).toLocaleString()}).
           </span>
           <button class="button" onclick={() => session.resumeDraft()}>
-            Resume draft ({$session.pendingDraft.body?.ops?.length ?? 0} edits)
+            Resume draft ({draftOps} edit{draftOps === 1 ? "" : "s"})
           </button>
           <button class="button button--quiet" onclick={() => void session.discardDraft()}>Discard draft</button>
         </div>
