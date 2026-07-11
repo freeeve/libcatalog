@@ -65,6 +65,8 @@ github.com/freeeve/libcat v0.172.0 h1:AOX4hV+KVieK+j75WlF7UpOTS7UKJRA/Mw/WJatyuN
 github.com/freeeve/libcat v0.172.0/go.mod h1:3dl/Dd01UEqj2JEUfMMKbnX889b6Kj5II+xrcSrFNd4=
 github.com/freeeve/libcodex v0.29.0 h1:3yZeyGo3SAYoLcrQcw1A//HS6VH97yTetvSPGUxgHB8=
 github.com/freeeve/libcodex v0.29.0/go.mod h1:CfAOUn99dnS35oL3NBI99NOtTcPgltlg1MSbudNgjrA=
+github.com/freeeve/libcodex v0.30.0 h1:lE+U9696PLVNYmbRa1l2ADhYX+LLCYPbTjapzLo1CcI=
+github.com/freeeve/libcodex v0.30.0/go.mod h1:CfAOUn99dnS35oL3NBI99NOtTcPgltlg1MSbudNgjrA=
 github.com/freeeve/roaringrange v0.30.0 h1:OMHTiudHck8egR269J89wkHEvtf4i7GwV+72hZz6Fwg=
 github.com/freeeve/roaringrange v0.30.0/go.mod h1:WjFBwhlzBsajVxAeZ3YR+Ys9nbxSIuGp7YQoEMpZDXE=
 github.com/goccy/go-json v0.10.6 h1:p8HrPJzOakx/mn/bQtjgNjdTcN+/S6FcG2CTtQOrHVU=
