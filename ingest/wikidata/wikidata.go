@@ -303,7 +303,13 @@ func (e *Enricher) query(ctx context.Context, isbns []string) ([]row, error) {
 	// than the label service, which does not reliably bind through the
 	// UNION. The claims are OPTIONAL so a resolved author with none stated
 	// still returns (matched-but-unknown, which the audit reports).
-	sparql := fmt.Sprintf(`SELECT ?isbn ?author ?authorLabel ?prop ?value ?valueLabel WHERE {
+	// Explicit PREFIX declarations: the official WDQS auto-registers the
+	// Wikidata prefixes as a convenience, but spec-compliant endpoints (a
+	// QLever mirror via LCATD_ENRICH_WIKIDATA_ENDPOINT) reject bare wdt:/rdfs:.
+	// The label service was already avoided for the same portability reason.
+	sparql := fmt.Sprintf(`PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?isbn ?author ?authorLabel ?prop ?value ?valueLabel WHERE {
   VALUES ?isbn { %s}
   ?edition wdt:P212|wdt:P957 ?i .
   FILTER(REPLACE(STR(?i), "-", "") = ?isbn)

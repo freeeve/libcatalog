@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -39,7 +40,8 @@ type stubSPARQL struct {
 
 func (s *stubSPARQL) Do(req *http.Request) (*http.Response, error) {
 	body, _ := io.ReadAll(req.Body)
-	s.queries = append(s.queries, string(body))
+	form, _ := url.ParseQuery(string(body))
+	s.queries = append(s.queries, form.Get("query"))
 	payload, _ := json.Marshal(map[string]any{
 		"results": map[string]any{"bindings": s.bindings},
 	})
@@ -318,5 +320,34 @@ func TestEnrichBadRequestFailsFast(t *testing.T) {
 	}
 	if flaky.attempts != 1 {
 		t.Errorf("attempts = %d, want 1 (no retry on a 400)", flaky.attempts)
+	}
+}
+
+// TestQueryIsPortableSPARQL: the query must declare every prefix it uses and
+// avoid WDQS-only extensions (the label SERVICE), so a spec-compliant mirror
+// (QLever) parses it.
+func TestQueryIsPortableSPARQL(t *testing.T) {
+	stub := &stubSPARQL{}
+	e := New(WithClient(stub), WithDelay(0))
+	if _, err := e.Enrich(context.Background(), []ingest.WorkSummary{summary("w1", "9780062278241")}); err != nil {
+		t.Fatal(err)
+	}
+	q := stub.queries[0]
+	for _, want := range []string{
+		"PREFIX wdt: <http://www.wikidata.org/prop/direct/>",
+		"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>",
+	} {
+		if !strings.Contains(q, want) {
+			t.Errorf("query missing %q:\n%s", want, q)
+		}
+	}
+	if strings.Contains(q, "SERVICE wikibase:label") {
+		t.Errorf("query uses the WDQS-only label service:\n%s", q)
+	}
+	// Every prefix the body uses must be declared.
+	for _, used := range []string{"wdt:", "rdfs:"} {
+		if strings.Count(q, used) < 2 { // at least the declaration + one use
+			t.Errorf("prefix %s declared but unused, or used undeclared:\n%s", used, q)
+		}
 	}
 }
