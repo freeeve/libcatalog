@@ -172,6 +172,64 @@ func TestDuplicateBarcodes(t *testing.T) {
 	}
 }
 
+// TestDuplicateGroupsExcludesHiddenWorks is the tasks/348 fix: a tombstoned or
+// suppressed work is retired, so it is not a merge candidate and drops out of the
+// duplicates report -- mirroring DuplicateBarcodes' live-only filter. A group left
+// with fewer than two live works disappears entirely.
+func TestDuplicateGroupsExcludesHiddenWorks(t *testing.T) {
+	ctx := t.Context()
+	cs := &countingStore{Store: blob.NewMem()}
+	// Three works that cluster together (same title + author).
+	seed(t, cs, "w1", grain("w1", "Same Title", "Same Author", "111", ""))
+	seed(t, cs, "w2", grain("w2", "Same Title", "Same Author", "222", ""))
+	seed(t, cs, "w3", grain("w3", "Same Title", "Same Author", "333", ""))
+	ix := New(cs, "data/works/")
+
+	var key string
+	groups, err := ix.DuplicateGroups(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for k, ids := range groups {
+		if len(ids) == 3 {
+			key = k
+		}
+	}
+	if key == "" {
+		t.Fatalf("no 3-work group formed: %+v", groups)
+	}
+	has := func(ids []string, id string) bool {
+		for _, x := range ids {
+			if x == id {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Tombstone w1 -> it drops out; the group keeps its two live works.
+	tomb, err := bibframe.SetTombstone(grain("w1", "Same Title", "Same Author", "111", ""), "w1", "w2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix.Apply(bibframe.GrainPath("w1"), seed(t, cs, "w1", tomb), tomb)
+	groups, _ = ix.DuplicateGroups(ctx)
+	if ids := groups[key]; len(ids) != 2 || has(ids, "w1") {
+		t.Fatalf("after tombstone, group = %v, want two live works without w1", ids)
+	}
+
+	// Tombstone w2 too -> only w3 live, so the group falls below 2 and vanishes.
+	tomb2, err := bibframe.SetTombstone(grain("w2", "Same Title", "Same Author", "222", ""), "w2", "w3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix.Apply(bibframe.GrainPath("w2"), seed(t, cs, "w2", tomb2), tomb2)
+	groups, _ = ix.DuplicateGroups(ctx)
+	if ids, ok := groups[key]; ok {
+		t.Fatalf("a group with fewer than two live works is still reported: %v", ids)
+	}
+}
+
 // TestBarcodeHeldByOther is the tasks/347 write-time check: a barcode on a live
 // item of another instance is a collision; the holding instance itself is not
 // (a re-save); and a suppressed work's barcode is not live, so it frees up.

@@ -258,6 +258,15 @@ func (ix *Index) DuplicateGroups(ctx context.Context) (map[string][]string, erro
 	for key, refs := range ix.byCluster {
 		seen := map[string]bool{}
 		for _, ref := range refs {
+			// A tombstoned or suppressed work is already retired -- it is not an
+			// actionable merge candidate, and listing it clutters the dedup queue
+			// with dead entries. Skip it, mirroring DuplicateBarcodes' live-only
+			// filter so the two maintenance reports agree (tasks/348). byCluster
+			// itself keeps every work for identity resolution (ClusterOwners); the
+			// liveness filter is a report-time concern.
+			if e := ix.grains[ref.Path]; e != nil && e.hidden {
+				continue
+			}
 			seen[ref.WorkID] = true
 		}
 		if len(seen) < 2 {
