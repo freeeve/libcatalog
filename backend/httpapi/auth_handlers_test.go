@@ -12,6 +12,8 @@ import (
 
 	"github.com/freeeve/libcat/backend/auth"
 	"github.com/freeeve/libcat/backend/auth/local"
+	"github.com/freeeve/libcat/backend/batch"
+	"github.com/freeeve/libcat/backend/editor"
 	"github.com/freeeve/libcat/backend/store"
 )
 
@@ -144,10 +146,73 @@ func TestLoginFlowEndToEnd(t *testing.T) {
 		t.Fatalf("refresh after logout: %d", rec.Code)
 	}
 
-	// Delete user.
+	// Delete user. 200 with the (here empty) list of shared records the admin
+	// inherited -- no Batch wired in this fixture, so nothing to reassign.
 	rec = doJSON(t, h, http.MethodDelete, "/v1/users/cat@example.org", tokens.AccessToken, nil)
-	if rec.Code != http.StatusNoContent {
+	if rec.Code != http.StatusOK {
 		t.Fatalf("delete: %d", rec.Code)
+	}
+}
+
+// TestDeleteUserReassignsSharedRecordsToAdmin is the tasks/332 fix: deleting a
+// user hands their library-shared macros/templates to the deleting admin (a live
+// custodian) and tells the admin which ones, instead of silently orphaning them.
+func TestDeleteUserReassignsSharedRecordsToAdmin(t *testing.T) {
+	_, key, _ := ed25519.GenerateKey(rand.Reader)
+	svc, _ := local.New(store.NewMem(), key, "lcatd-test")
+	if _, err := svc.Bootstrap(t.Context(), "root@example.org:changeme123"); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.CreateUser(t.Context(), "cat@example.org", "Cat", "changeme123", []auth.Role{auth.RoleLibrarian}); err != nil {
+		t.Fatal(err)
+	}
+	bsvc := &batch.Service{DB: store.NewMem()}
+	// cat owns a library-shared macro and keeps a personal one.
+	if _, err := bsvc.CreateMacro(t.Context(), batch.Macro{
+		OwnedMeta: batch.OwnedMeta{Label: "Shared stamp", Shared: true},
+		Ops:       []editor.Op{{Resource: "work", Path: "summary", Action: "set", Values: []editor.OpValue{{V: "x"}}}},
+	}, "cat@example.org"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bsvc.CreateMacro(t.Context(), batch.Macro{
+		OwnedMeta: batch.OwnedMeta{Label: "Private"},
+		Ops:       []editor.Op{{Resource: "work", Path: "summary", Action: "set", Values: []editor.OpValue{{V: "y"}}}},
+	}, "cat@example.org"); err != nil {
+		t.Fatal(err)
+	}
+
+	verifier := auth.NewMulti(map[string]auth.TokenVerifier{"lcatd-test": svc})
+	h := New(Deps{Local: svc, Verifier: verifier, Batch: bsvc})
+	tokens, err := svc.Login(t.Context(), "root@example.org", "changeme123")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := doJSON(t, h, http.MethodDelete, "/v1/users/cat@example.org", tokens.AccessToken, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("delete: %d %s", rec.Code, rec.Body)
+	}
+	var resp struct {
+		Reassigned []batch.OwnedMeta `json:"reassigned"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	if len(resp.Reassigned) != 1 || resp.Reassigned[0].Owner != "root@example.org" || resp.Reassigned[0].Label != "Shared stamp" {
+		t.Fatalf("reassigned = %+v, want just the shared macro now owned by root", resp.Reassigned)
+	}
+
+	// root now owns the shared macro; the personal one is not reassigned.
+	rootMacros, _ := bsvc.ListMacros(t.Context(), "root@example.org")
+	var shared, personal int
+	for _, m := range rootMacros {
+		if m.Label == "Shared stamp" && m.Owner == "root@example.org" {
+			shared++
+		}
+		if m.Label == "Private" {
+			personal++
+		}
+	}
+	if shared != 1 || personal != 0 {
+		t.Fatalf("root macros after delete: shared=%d personal=%d, want shared=1 personal=0", shared, personal)
 	}
 }
 

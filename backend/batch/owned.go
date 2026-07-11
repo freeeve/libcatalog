@@ -14,9 +14,19 @@ import (
 // record shapes (macros, item templates): one record per item, living in the
 // owner's partition or the library-shared one. A personal record is writable
 // only by its owner; a library-shared record is also writable by an admin, who
-// is its custodian once it is library property (tasks/292). Owner is a bare
-// email address, so re-issuing an address inherits its shared records --
-// documented here because it reads as a stable identity and behaves as a key.
+// is its custodian once it is library property (tasks/292).
+//
+// Owner is a bare email address, which behaves as an ownership key. The sharp
+// edge -- deleting a user leaves their library-shared records orphaned, and a
+// re-issued address inherits them -- is closed by reassigning those shared
+// records to the deleting admin at delete time (tasks/332,
+// Service.ReassignSharedRecords). The residual is that a re-created account with
+// the same address still sees the departed user's *personal* (non-shared)
+// records, which are lower stakes (private op templates, never library
+// property). Decision (tasks/332): the email stays the key -- a stable,
+// non-recyclable user id would remove even that residual, but it is a
+// disproportionate migration for a private-records-only surprise now that shared
+// records are reassigned, not inherited.
 type OwnedMeta struct {
 	ID        string    `json:"id"`
 	Label     string    `json:"label"`
@@ -170,6 +180,35 @@ func listOwned[T any](ctx context.Context, db store.Store, k ownedKind[T], owner
 		}
 		return a.ID < b.ID
 	})
+	return out, nil
+}
+
+// reassignShared changes the owner of every library-shared record of one kind
+// that `from` owns to `to`, re-putting each in place (shared records keep the
+// shared partition regardless of owner, so the key does not move). Returns the
+// updated metas. Used when a user is deleted so their shared records keep a live
+// owner instead of being silently orphaned (tasks/332).
+func reassignShared[T any](ctx context.Context, db store.Store, k ownedKind[T], from, to string) ([]OwnedMeta, error) {
+	var out []OwnedMeta
+	for rec, err := range db.Query(ctx, k.pk+sharedPartition, k.sk, store.QueryOpt{}) {
+		if err != nil {
+			return nil, err
+		}
+		var item T
+		if json.Unmarshal(rec.Data, &item) != nil {
+			continue
+		}
+		m := k.meta(&item)
+		if m.Owner != from {
+			continue
+		}
+		m.Owner = to
+		m.UpdatedAt = time.Now().UTC()
+		if err := putOwned(ctx, db, k, item, store.CondNone); err != nil {
+			return nil, err
+		}
+		out = append(out, *m)
+	}
 	return out, nil
 }
 

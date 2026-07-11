@@ -130,6 +130,22 @@ func (s *Service) ListMacros(ctx context.Context, owner string) ([]Macro, error)
 	return listOwned(ctx, s.DB, macroKind, owner)
 }
 
+// ReassignSharedRecords transfers every library-shared macro and item template
+// owned by `from` to `to`, returning the reassigned metas. It exists so deleting
+// a user can hand their shared records to the deleting admin -- a live custodian
+// -- rather than leave them orphaned with a dead owner (tasks/332).
+func (s *Service) ReassignSharedRecords(ctx context.Context, from, to string) ([]OwnedMeta, error) {
+	macros, err := reassignShared(ctx, s.DB, macroKind, from, to)
+	if err != nil {
+		return nil, err
+	}
+	tmpls, err := reassignShared(ctx, s.DB, itemTemplateKind, from, to)
+	if err != nil {
+		return nil, err
+	}
+	return append(macros, tmpls...), nil
+}
+
 // ApplyParams substitutes ${name} references in the macro's op values from
 // the caller's values (falling back to declared defaults) and returns the
 // concrete op list. An unresolved reference fails closed -- a template never

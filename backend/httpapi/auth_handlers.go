@@ -9,6 +9,7 @@ import (
 
 	"github.com/freeeve/libcat/backend/auth"
 	"github.com/freeeve/libcat/backend/auth/local"
+	"github.com/freeeve/libcat/backend/batch"
 	"github.com/freeeve/libcat/backend/suggest"
 )
 
@@ -16,7 +17,7 @@ import (
 // everyone, user administration for admins. queue, when set, receives one
 // audit entry per user mutation -- role grants are the privilege boundary
 // for every other audited action, so they must be legible too (tasks/208).
-func registerLocalAuth(mux *http.ServeMux, svc *local.Service, verifier auth.TokenVerifier, queue *suggest.Service) {
+func registerLocalAuth(mux *http.ServeMux, svc *local.Service, verifier auth.TokenVerifier, queue *suggest.Service, batchSvc *batch.Service) {
 	// audit names the acting admin and the affected account.
 	audit := func(r *http.Request, action, note string, terms []string) {
 		if queue == nil {
@@ -146,7 +147,24 @@ func registerLocalAuth(mux *http.ServeMux, svc *local.Service, verifier auth.Tok
 			writeError(w, http.StatusForbidden, "admins cannot delete their own account")
 			return
 		}
-		err := svc.DeleteUser(r.Context(), r.PathValue("email"))
+		email := r.PathValue("email")
+		// Hand the departing user's library-shared macros/templates to the
+		// deleting admin before removing the account, so they keep a live
+		// custodian instead of being silently orphaned with a dead owner
+		// (tasks/332). Done first: if the reassign fails the account survives, so
+		// no records are stranded. Personal (non-shared) records stay private and
+		// are the account's to lose.
+		var reassigned []batch.OwnedMeta
+		if batchSvc != nil {
+			admin, _ := auth.FromContext(r.Context())
+			rs, rerr := batchSvc.ReassignSharedRecords(r.Context(), email, admin.Email)
+			if rerr != nil {
+				writeError(w, http.StatusInternalServerError, "could not reassign the user's shared records")
+				return
+			}
+			reassigned = rs
+		}
+		err := svc.DeleteUser(r.Context(), email)
 		switch {
 		case errors.Is(err, local.ErrUserNotFound):
 			writeError(w, http.StatusNotFound, "no such user")
@@ -155,8 +173,17 @@ func registerLocalAuth(mux *http.ServeMux, svc *local.Service, verifier auth.Tok
 		case err != nil:
 			writeError(w, http.StatusInternalServerError, "delete failed")
 		default:
-			audit(r, "USER_DELETE", r.PathValue("email"), nil)
-			w.WriteHeader(http.StatusNoContent)
+			audit(r, "USER_DELETE", email, nil)
+			if len(reassigned) > 0 {
+				ids := make([]string, len(reassigned))
+				for i, m := range reassigned {
+					ids[i] = m.ID
+				}
+				audit(r, "SHARED_RECORDS_REASSIGNED", email, ids)
+			}
+			// 200 rather than 204 so the admin is told which shared records they
+			// inherited -- the whole point is that the orphaning is no longer silent.
+			writeJSON(w, http.StatusOK, map[string]any{"reassigned": reassigned})
 		}
 	})))
 }
