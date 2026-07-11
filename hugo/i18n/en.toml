@@ -61,6 +61,34 @@ other = "ISBN"
 [availabilityAction]
 other = "Borrow"
 
+# Availability chip vocabulary (tasks/356). lcat-availability.js renders these once a
+# copy resolves; the {days}/{n}/{date} placeholders are filled client-side (the values
+# are only known then), and holdsOne/holdsOther are the singular/plural the count
+# selects. The script falls back to these English strings when a translation omits a key.
+[availAvailableNow]
+other = "Available now"
+
+[availNotAvailable]
+other = "Not available"
+
+[availPlaceHold]
+other = "Place a hold"
+
+[availEstimatedWait]
+other = "Estimated wait ~{days} days"
+
+[availHoldsOne]
+other = "{n} hold"
+
+[availHoldsOther]
+other = "{n} holds"
+
+[availDue]
+other = "due {date}"
+
+[availMoreLocations]
+other = "(+{n} more)"
+
 [relatedWorks]
 other = "Related works"
 

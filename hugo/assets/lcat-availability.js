@@ -422,16 +422,52 @@
 
   // ---- rendering ----------------------------------------------------------------
 
+  // DEFAULT_STRINGS is the English chip vocabulary and the fallback for any key a
+  // deployment's bundle omits. The template emits a localized bundle into the config
+  // (tasks/356); the {days}/{n}/{date} placeholders are filled here because the
+  // values are only known client-side (the browse pager localizes the same way,
+  // tasks/281). holdsOne/holdsOther are the CLDR singular/plural the count selects.
+  var DEFAULT_STRINGS = {
+    availableNow: "Available now",
+    notAvailable: "Not available",
+    placeHold: "Place a hold",
+    estimatedWait: "Estimated wait ~{days} days",
+    holdsOne: "{n} hold",
+    holdsOther: "{n} holds",
+    due: "due {date}",
+    moreLocations: "(+{n} more)",
+  };
+
+  // withDefaults fills a partial bundle from DEFAULT_STRINGS, so a translation that
+  // omits a key falls back to English rather than printing "{n} holds" literally.
+  function withDefaults(strings) {
+    if (!strings) return DEFAULT_STRINGS;
+    var out = {};
+    Object.keys(DEFAULT_STRINGS).forEach(function (k) {
+      out[k] = strings[k] != null ? strings[k] : DEFAULT_STRINGS[k];
+    });
+    return out;
+  }
+
+  // fmtStr substitutes {name} placeholders from params; an unknown placeholder is
+  // left verbatim so a broken template is visible rather than silently blanked.
+  function fmtStr(tmpl, params) {
+    return String(tmpl).replace(/\{(\w+)\}/g, function (whole, k) {
+      return params[k] != null ? params[k] : whole;
+    });
+  }
+
   // locationSummary is the short shelf line for a physical holding: the first
   // location's library and call number, plus a "+N more" when several hold it.
-  function locationSummary(model) {
+  function locationSummary(model, strings) {
     if (!model.locations || !model.locations.length) return "";
+    var S = withDefaults(strings);
     var loc = model.locations[0];
     var parts = [];
     if (loc.library) parts.push(loc.library);
     if (loc.callNumber) parts.push(loc.callNumber);
     var s = parts.join(" · ");
-    if (model.locations.length > 1) s += " (+" + (model.locations.length - 1) + " more)";
+    if (model.locations.length > 1) s += " " + fmtStr(S.moreLocations, { n: model.locations.length - 1 });
     return s;
   }
 
@@ -446,26 +482,25 @@
   }
 
   // statusText is the human string for a status, using wait/holds detail when
-  // holdable and the shelf location for physical holdings.
-  function statusText(model) {
-    var loc = locationSummary(model);
+  // holdable and the shelf location for physical holdings. The optional strings
+  // bundle localizes every word; omitted, it renders English.
+  function statusText(model, strings) {
+    var S = withDefaults(strings);
+    var loc = locationSummary(model, S);
     var tail = loc ? " · " + loc : "";
     switch (model.status) {
       case "available":
-        return "Available now" + tail;
+        return S.availableNow + tail;
       case "holdable":
-        var t =
-          model.estimatedWaitDays != null
-            ? "Estimated wait ~" + model.estimatedWaitDays + " days"
-            : "Place a hold";
+        var t = model.estimatedWaitDays != null ? fmtStr(S.estimatedWait, { days: model.estimatedWaitDays }) : S.placeHold;
         if (model.holdsCount) {
-          t += " · " + model.holdsCount + (model.holdsCount === 1 ? " hold" : " holds");
+          t += " · " + fmtStr(model.holdsCount === 1 ? S.holdsOne : S.holdsOther, { n: model.holdsCount });
         }
         var due = earliestDue(model);
-        if (due) t += " · due " + due;
+        if (due) t += " · " + fmtStr(S.due, { date: due });
         return t + tail;
       case "unavailable":
-        return "Not available" + tail;
+        return S.notAvailable + tail;
       default:
         return ""; // unknown: say nothing rather than mislead
     }
@@ -493,8 +528,9 @@
   }
 
   // renderInto writes a resolved model into a status element: data-status for styling,
-  // a data-action-url a theme can turn into a borrow link, and the status text.
-  function renderInto(el, model) {
+  // a data-action-url a theme can turn into a borrow link, and the status text (in the
+  // optional strings bundle's language, else English).
+  function renderInto(el, model, strings) {
     el.setAttribute("data-status", model.status);
     if (model.actionUrl) el.setAttribute("data-action-url", model.actionUrl);
     if (model.format) el.setAttribute("data-format", model.format);
@@ -503,7 +539,7 @@
     if (model.locations && model.locations.length) {
       el.setAttribute("data-locations", JSON.stringify(model.locations));
     }
-    el.textContent = statusText(model);
+    el.textContent = statusText(model, strings);
   }
 
   // ---- DOM wiring (browser only) ------------------------------------------------
@@ -590,6 +626,9 @@
     if (!doc) return Promise.resolve();
     var cfg = opts.config || readConfig(doc);
     if (!cfg) return Promise.resolve();
+    // The template merges a localized chip vocabulary into the config (tasks/356);
+    // opts.strings lets a caller override it (tests).
+    var strings = opts.strings || cfg.strings;
 
     var byProvider = collect(doc);
     var jobs = Object.keys(byProvider).map(function (providerKey) {
@@ -600,7 +639,7 @@
           ids.forEach(function (id) {
             var model = models[id] || unknownModel(providerKey, id, opts.now || Date.now());
             map[id].forEach(function (slot) {
-              renderInto(slot.chip, model);
+              renderInto(slot.chip, model, strings);
               wireAction(slot.edition, model);
             });
           });
@@ -624,6 +663,7 @@
     fetchDaiaBatch: fetchDaiaBatch,
     statusText: statusText,
     locationSummary: locationSummary,
+    fmtStr: fmtStr,
     chunk: chunk,
     makeStore: makeStore,
     resolve: resolve,

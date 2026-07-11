@@ -51,6 +51,31 @@ other = "ISBN"
 [availabilityAction]
 other = "Pedir prestado"
 
+# Vocabulario del indicador de disponibilidad (tasks/356).
+[availAvailableNow]
+other = "Disponible ahora"
+
+[availNotAvailable]
+other = "No disponible"
+
+[availPlaceHold]
+other = "Reservar"
+
+[availEstimatedWait]
+other = "Espera estimada ~{days} días"
+
+[availHoldsOne]
+other = "{n} reserva"
+
+[availHoldsOther]
+other = "{n} reservas"
+
+[availDue]
+other = "devolución {date}"
+
+[availMoreLocations]
+other = "(+{n} más)"
+
 [moreLikeThis]
 other = "Obras similares"
 

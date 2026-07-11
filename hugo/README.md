@@ -527,6 +527,13 @@ page never shows a dead button. Its label is the `availabilityAction` i18n key
 (default "Borrow"), so it localizes and a deployment can rename it per provider ("Open in
 Libby", "Place a hold", ...).
 
+The chip text itself ("Available now", "Estimated wait ~14 days · 3 holds", "due
+2026-08-01", ...) localizes too: the template emits the `avail*` i18n keys into the
+config, and the script fills their `{days}`/`{n}`/`{date}` placeholders client-side (the
+values are only known then). A translation adds `i18n/<lang>.toml` entries like any
+other chrome string; an omitted key falls back to English rather than printing a raw
+placeholder.
+
 ### Direct vs proxied transport
 
 If the source's CORS does not permit a browser call from your deploy origin (or you

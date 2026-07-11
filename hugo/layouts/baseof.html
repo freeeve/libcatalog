@@ -42,7 +42,19 @@
          configures [params.availability]. The config (library slug etc.) is emitted
          as JSON for the adapter; no availability data is in the static build. */ -}}
   {{ with site.Params.availability }}{{ if .enabled }}
-  <script id="lcat-availability-config" type="application/json">{{ . | jsonify }}</script>
+  {{- /* Localized chip vocabulary (tasks/356): merged into the config so the browser
+         renders availability text in the page's language. The {days}/{n}/{date}
+         placeholders are filled client-side (the count/date are only known then). */ -}}
+  {{- $strings := dict
+    "availableNow" (i18n "availAvailableNow")
+    "notAvailable" (i18n "availNotAvailable")
+    "placeHold" (i18n "availPlaceHold")
+    "estimatedWait" (i18n "availEstimatedWait")
+    "holdsOne" (i18n "availHoldsOne")
+    "holdsOther" (i18n "availHoldsOther")
+    "due" (i18n "availDue")
+    "moreLocations" (i18n "availMoreLocations") -}}
+  <script id="lcat-availability-config" type="application/json">{{ merge . (dict "strings" $strings) | jsonify }}</script>
   {{ with resources.Get "lcat-availability.js" }}{{ with . | fingerprint }}<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" defer></script>{{ end }}{{ end }}
   {{ end }}{{ end }}
 </body>

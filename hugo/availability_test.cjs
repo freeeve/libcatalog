@@ -254,6 +254,43 @@ test("statusText: physical holding shows shelf location and due date", () => {
   );
 });
 
+test("fmtStr: substitutes {name} placeholders; leaves unknown ones verbatim", () => {
+  assert.equal(A.fmtStr("Estimated wait ~{days} days", { days: 14 }), "Estimated wait ~14 days");
+  assert.equal(A.fmtStr("{n} holds", { n: 3 }), "3 holds");
+  assert.equal(A.fmtStr("due {date}", { date: "2026-08-01" }), "due 2026-08-01");
+  assert.equal(A.fmtStr("{missing}", { n: 1 }), "{missing}", "unknown placeholder stays visible");
+});
+
+const ES = {
+  availableNow: "Disponible ahora",
+  notAvailable: "No disponible",
+  placeHold: "Reservar",
+  estimatedWait: "Espera estimada ~{days} días",
+  holdsOne: "{n} reserva",
+  holdsOther: "{n} reservas",
+  due: "devolución {date}",
+  moreLocations: "(+{n} más)",
+};
+
+test("statusText: a strings bundle localizes every word and plural", () => {
+  assert.equal(A.statusText({ status: "available" }, ES), "Disponible ahora");
+  assert.equal(A.statusText({ status: "unavailable" }, ES), "No disponible");
+  assert.equal(A.statusText({ status: "holdable", estimatedWaitDays: 14, holdsCount: 3 }, ES), "Espera estimada ~14 días · 3 reservas");
+  assert.equal(A.statusText({ status: "holdable", holdsCount: 1 }, ES), "Reservar · 1 reserva");
+  assert.equal(
+    A.statusText({ status: "holdable", locations: [{ library: "Central", dueDate: "2026-08-01" }, { library: "Sur" }] }, ES),
+    "Reservar · devolución 2026-08-01 · Central (+1 más)"
+  );
+  assert.equal(A.statusText({ status: "unknown" }, ES), "");
+});
+
+test("statusText: a partial bundle falls back to English per missing key", () => {
+  // Only availableNow translated; holdable detail must not print raw "{n} holds".
+  const partial = { availableNow: "Disponible ahora" };
+  assert.equal(A.statusText({ status: "available" }, partial), "Disponible ahora");
+  assert.equal(A.statusText({ status: "holdable", holdsCount: 2 }, partial), "Place a hold · 2 holds");
+});
+
 // fakeEl is a minimal attribute-carrying element for the DOM-adjacent wireAction
 // logic, so the CTA wiring is testable without a browser.
 function fakeEl() {
