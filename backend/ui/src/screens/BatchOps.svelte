@@ -20,7 +20,7 @@
   import Modal from "../components/Modal.svelte";
   import { isReadOnly } from "../lib/config";
   import { ITEM_ACTIONS, ITEM_FIELDS, fieldKey, isItemField, itemOp, itemOpSummary, parseFieldKey, type ItemGuard } from "../lib/itemops";
-  import { RESOURCE_ITEMS, type BatchRunResult, type BatchTarget, type Macro, type Op, type Profile, type SavedQuery, type Selection } from "../lib/types";
+  import { RESOURCE_ITEMS, type BatchRunResult, type BatchTarget, type Macro, type Op, type ProfileSummary, type SavedQuery, type Selection } from "../lib/types";
 
   // initialMacro preselects a macro (deep link #/batch?macro=<id>).
   let { initialMacro = "" }: { initialMacro?: string } = $props();
@@ -68,7 +68,18 @@
   let matched = $state<number | null>(null);
   let preview = $state<BatchTarget[]>([]);
 
-  let workProfile = $state<Profile | null>(null);
+  // A batch selection is query/id-defined, so it has no single work profile to
+  // derive a field list from (tasks/346). Rather than hardcode work-monograph --
+  // which offered the wrong fields for a work on fastadd -- let the cataloger pick
+  // which work profile's fields the op-builder shows; default to work-monograph.
+  let allProfiles = $state<Record<string, ProfileSummary>>({});
+  let profileId = $state("work-monograph");
+  const workProfile = $derived(allProfiles[profileId] ?? null);
+  const workProfiles = $derived(
+    Object.values(allProfiles)
+      .filter((p) => p.resourceType === "work")
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  );
   let macros = $state<Macro[]>([]);
   let macroId = $state("");
   let paramValues = $state<Record<string, string>>({});
@@ -94,7 +105,7 @@
 
   onMount(() => {
     fetchProfiles().then(
-      (r) => (workProfile = r.profiles["work-monograph"] ?? null),
+      (r) => (allProfiles = r.profiles),
       () => {},
     );
     fetchMacros().then(
@@ -335,6 +346,17 @@
         <pre>{JSON.stringify(macro.ops, null, 2)}</pre>
       </details>
     {:else}
+      {#if workProfiles.length > 1}
+        <div class="row">
+          <label for="op-profile" class="muted">Fields from</label>
+          <select id="op-profile" bind:value={profileId}>
+            {#each workProfiles as p (p.id)}
+              <option value={p.id}>{p.label || p.id}</option>
+            {/each}
+          </select>
+          <span class="muted">which framework's fields to offer -- a batch can span profiles</span>
+        </div>
+      {/if}
       {#each opRows as row, i (i)}
         {@const items = isItemField(row.field)}
         <div class="row">
