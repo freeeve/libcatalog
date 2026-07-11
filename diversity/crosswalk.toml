@@ -1,0 +1,98 @@
+# Diversity-audit subject crosswalk (libcat tasks/365).
+#
+# Each [[category]] maps controlled subjects to one diversity category. A work is
+# counted in a category when any of its subjects matches, by either:
+#   - uris     : an exact subject-authority URI (LCSH sh..., FAST, etc.), or
+#   - keywords : a case-insensitive, whole-word/phrase match against the subject's
+#                heading label (the common case for ILS records that carry bare
+#                topic strings with no authority URI).
+#
+# This seed is intentionally conservative and US-collection-oriented; the taxonomy
+# is an editorial choice, not a universal truth. Operators override it with their
+# own TOML file (same shape): a category with a matching `id` unions its keywords
+# and uris onto the seed and, if it sets a non-empty `label`, replaces the label.
+# A category with a new `id` is added. (Narrowing/removal is not supported in the
+# seed-plus-override model; copy the seed to retune from scratch.)
+#
+# Matching a subject to a category says the work is *about* that topic -- it does
+# NOT assert anything about the identity of the work's creators. Creator
+# demographics are a separate, opt-in axis (tasks/368).
+
+[[category]]
+id = "women-gender"
+label = "Women & gender"
+keywords = ["women", "feminism", "feminist", "gender identity", "girls", "motherhood", "womanhood", "gender role", "gender roles"]
+uris = []
+
+[[category]]
+id = "bipoc"
+label = "BIPOC / racial & ethnic minorities"
+keywords = [
+  "african american", "african americans", "black people", "people of color",
+  "hispanic american", "hispanic americans", "latino", "latina", "latinx",
+  "mexican american", "asian american", "asian americans", "chinese american",
+  "japanese american", "korean american", "arab american", "race relations",
+  "racism", "ethnic minorities", "minorities",
+]
+uris = []
+
+[[category]]
+id = "indigenous"
+label = "Indigenous peoples"
+keywords = [
+  "indigenous", "native american", "native americans", "first nations",
+  "aboriginal", "aboriginal australians", "indians of north america", "inuit",
+  "maori", "two-spirit", "tribal", "first peoples",
+]
+uris = []
+
+[[category]]
+id = "lgbtqia"
+label = "LGBTQIA+"
+keywords = [
+  "lgbt", "lgbtq", "lgbtqia", "gay", "lesbian", "bisexual", "transgender",
+  "trans", "queer", "nonbinary", "non-binary", "genderqueer", "intersex",
+  "asexual", "same-sex", "homosexual", "two-spirit", "drag queen", "pansexual",
+]
+uris = []
+
+[[category]]
+id = "disability-neurodiversity"
+label = "Disability & neurodiversity"
+keywords = [
+  "disability", "disabilities", "disabled", "people with disabilities", "blind",
+  "blindness", "deaf", "deafness", "autism", "autistic", "neurodiversity",
+  "neurodivergent", "wheelchair", "chronic illness", "mental illness", "adhd",
+  "down syndrome", "cerebral palsy", "amputee", "dyslexia",
+]
+uris = []
+
+[[category]]
+id = "religious-minorities"
+label = "Religious minorities"
+keywords = [
+  "muslim", "muslims", "islam", "jewish", "judaism", "jews", "hindu", "hinduism",
+  "sikh", "sikhism", "buddhist", "buddhism", "jain", "jainism", "bahai",
+  "religious minorities",
+]
+uris = []
+
+[[category]]
+id = "immigrant-diaspora"
+label = "Immigrants & diaspora"
+keywords = [
+  "immigrant", "immigrants", "immigration", "emigrant", "emigrants",
+  "emigration", "refugee", "refugees", "diaspora", "migrant", "migrants",
+  "asylum", "undocumented immigrants",
+]
+uris = []
+
+[[category]]
+id = "economic-hardship"
+label = "Economic hardship & class"
+keywords = [
+  "poverty", "poor", "working class", "homeless", "homelessness", "welfare",
+  "low-income", "unemployment", "unemployed", "economic hardship",
+  "social classes",
+]
+uris = []

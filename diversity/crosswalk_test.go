@@ -1,0 +1,173 @@
+package diversity
+
+import (
+	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
+)
+
+// TestSeedIsWellFormed is the golden guard on the shipped crosswalk: every category
+// has an id, a label, and at least one keyword, and ids are unique.
+func TestSeedIsWellFormed(t *testing.T) {
+	cw := Default()
+	cats := cw.Categories()
+	if len(cats) == 0 {
+		t.Fatal("seed crosswalk has no categories")
+	}
+	seen := map[string]bool{}
+	for _, c := range cats {
+		if c.ID == "" || c.Label == "" {
+			t.Errorf("category %+v missing id or label", c)
+		}
+		if seen[c.ID] {
+			t.Errorf("duplicate category id %q", c.ID)
+		}
+		seen[c.ID] = true
+		if len(cw.keywords[c.ID]) == 0 {
+			t.Errorf("category %q has no keywords", c.ID)
+		}
+	}
+}
+
+// TestCategorizeByKeyword covers the common ILS case: bare heading strings with no
+// authority URI are matched by whole-word/phrase keywords, and a work can land in
+// more than one category.
+func TestCategorizeByKeyword(t *testing.T) {
+	cw := Default()
+	cases := []struct {
+		label string
+		want  []string
+	}{
+		{"LGBTQIA+ (Fiction)", []string{"lgbtqia"}},
+		{"African American women", []string{"women-gender", "bipoc"}},
+		{"Literature", nil},
+		{"Fiction", nil},
+		{"Immigrants--United States", []string{"immigrant-diaspora"}},
+		{"Autism in children", []string{"disability-neurodiversity"}},
+	}
+	for _, tc := range cases {
+		got := cw.Categorize("", tc.label)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("Categorize(%q) = %v, want %v", tc.label, got, tc.want)
+		}
+	}
+}
+
+// TestKeywordWordBoundary guards against substring false positives: a keyword must
+// match as a whole word or phrase, not as a fragment of a longer word.
+func TestKeywordWordBoundary(t *testing.T) {
+	cw := Default()
+	if got := cw.Categorize("", "Gaya (India)"); got != nil {
+		t.Errorf("'gay' must not match inside 'Gaya': got %v", got)
+	}
+	if got := cw.Categorize("", "Poore, Benjamin Perley"); got != nil {
+		t.Errorf("'poor' must not match inside 'Poore': got %v", got)
+	}
+	if got := cw.Categorize("", "Gay pride parades"); !reflect.DeepEqual(got, []string{"lgbtqia"}) {
+		t.Errorf("'gay' should match the whole word: got %v", got)
+	}
+}
+
+// TestCategorizeByURI covers the controlled case: an exact authority-URI match,
+// seeded here via an override so the test does not depend on specific seed URIs.
+func TestCategorizeByURI(t *testing.T) {
+	dir := t.TempDir()
+	over := filepath.Join(dir, "over.toml")
+	writeFile(t, over, `
+[[category]]
+id = "lgbtqia"
+uris = ["http://id.loc.gov/authorities/subjects/sh2007003123"]
+`)
+	cw, err := Load(over)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// Exact URI hits even when the label carries no keyword.
+	got := cw.Categorize("http://id.loc.gov/authorities/subjects/sh2007003123", "Some neutral heading")
+	if !reflect.DeepEqual(got, []string{"lgbtqia"}) {
+		t.Errorf("URI match = %v, want [lgbtqia]", got)
+	}
+	// A different URI with no keyword hit maps nowhere.
+	if got := cw.Categorize("http://id.loc.gov/authorities/subjects/sh0000000000", "Neutral"); got != nil {
+		t.Errorf("unmapped URI = %v, want nil", got)
+	}
+}
+
+// TestOverrideMergesAndAdds checks the seed-plus-override contract: an existing
+// category unions new keywords, a non-empty label replaces, and a new id is added in
+// stable order after the seed categories.
+func TestOverrideMergesAndAdds(t *testing.T) {
+	dir := t.TempDir()
+	over := filepath.Join(dir, "over.toml")
+	writeFile(t, over, `
+[[category]]
+id = "lgbtqia"
+label = "LGBTQIA+ (local)"
+keywords = ["achillean"]
+
+[[category]]
+id = "veterans"
+label = "Veterans"
+keywords = ["veterans", "military families"]
+`)
+	cw, err := Load(over)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// Union: the seed keyword still matches and the added one now matches too.
+	if got := cw.Categorize("", "Lesbian poets"); !reflect.DeepEqual(got, []string{"lgbtqia"}) {
+		t.Errorf("seed keyword lost after override: got %v", got)
+	}
+	if got := cw.Categorize("", "Achillean love"); !reflect.DeepEqual(got, []string{"lgbtqia"}) {
+		t.Errorf("override keyword not added: got %v", got)
+	}
+	// Label replaced.
+	if got := cw.Label("lgbtqia"); got != "LGBTQIA+ (local)" {
+		t.Errorf("label = %q, want the override label", got)
+	}
+	// New category appended after the seed categories.
+	cats := cw.Categories()
+	if last := cats[len(cats)-1]; last.ID != "veterans" {
+		t.Errorf("added category should sort last: got %q", last.ID)
+	}
+	if got := cw.Categorize("", "Military families"); !reflect.DeepEqual(got, []string{"veterans"}) {
+		t.Errorf("new category not matched: got %v", got)
+	}
+}
+
+// TestCategorizeSubjectsRollup checks the work-level roll-up: multiple subjects
+// dedupe to a stable, seed-ordered set of category ids.
+func TestCategorizeSubjectsRollup(t *testing.T) {
+	cw := Default()
+	subs := []struct{ URI, Label string }{
+		{"", "LGBTQIA+ (Fiction)"},
+		{"", "Immigrants"},
+		{"", "Gay men"}, // same category as the first -> deduped
+		{"", "Cooking"}, // no match
+	}
+	got := cw.CategorizeSubjects(subs)
+	want := []string{"lgbtqia", "immigrant-diaspora"} // seed order: lgbtqia before immigrant
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("CategorizeSubjects = %v, want %v", got, want)
+	}
+}
+
+// TestLoadMissingOverrideErrors checks that a configured-but-unreadable override is
+// a hard error, not a silent fallback to the seed.
+func TestLoadMissingOverrideErrors(t *testing.T) {
+	if _, err := Load(filepath.Join(t.TempDir(), "does-not-exist.toml")); err == nil {
+		t.Fatal("Load with a missing override should error")
+	}
+	// An empty path is skipped, not an error.
+	if _, err := Load(""); err != nil {
+		t.Fatalf("empty override path should be skipped: %v", err)
+	}
+}
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write %s: %v", path, err)
+	}
+}
