@@ -227,3 +227,96 @@ func TestNormalizeISBN(t *testing.T) {
 		}
 	}
 }
+
+// flakySPARQL fails the first n requests with the given status, then delegates
+// to the stub; requests whose body contains poison always fail.
+type flakySPARQL struct {
+	stubSPARQL
+	failFirst int
+	status    int
+	poison    string
+	attempts  int
+}
+
+func (f *flakySPARQL) Do(req *http.Request) (*http.Response, error) {
+	body, _ := io.ReadAll(req.Body)
+	f.attempts++
+	if (f.failFirst > 0 && f.attempts <= f.failFirst) ||
+		(f.poison != "" && strings.Contains(string(body), f.poison)) {
+		return &http.Response{StatusCode: f.status, Body: io.NopCloser(strings.NewReader("upstream request timeout"))}, nil
+	}
+	req.Body = io.NopCloser(strings.NewReader(string(body)))
+	return f.stubSPARQL.Do(req)
+}
+
+// TestEnrichRetriesTransient504: WDQS weather (a 504 on the first attempts)
+// retries with backoff and the run completes with no skips.
+func TestEnrichRetriesTransient504(t *testing.T) {
+	flaky := &flakySPARQL{
+		stubSPARQL: stubSPARQL{bindings: []map[string]any{
+			binding("9780062278241", "Q231663", "N.D. Stevenson", "P21", "Q48270", "non-binary"),
+		}},
+		failFirst: 2, status: http.StatusGatewayTimeout,
+	}
+	e := New(WithClient(flaky), WithDelay(0), WithRetryBase(0))
+	res, err := e.Enrich(context.Background(), []ingest.WorkSummary{summary("w1", "9780062278241")})
+	if err != nil || len(res) != 1 {
+		t.Fatalf("Enrich = %v, %v; want the resolved work after retries", res, err)
+	}
+	if e.Skipped() != 0 {
+		t.Errorf("skipped = %d, want 0 (the batch eventually succeeded)", e.Skipped())
+	}
+	if flaky.attempts != 3 {
+		t.Errorf("attempts = %d, want 3 (two 504s then success)", flaky.attempts)
+	}
+}
+
+// TestEnrichSkipsDeadBatchAndContinues: a batch that keeps 504ing past the
+// retry budget is skipped -- its works stay untouched -- and the rest of the
+// run proceeds and returns nil error.
+func TestEnrichSkipsDeadBatchAndContinues(t *testing.T) {
+	flaky := &flakySPARQL{
+		stubSPARQL: stubSPARQL{bindings: []map[string]any{
+			binding("9780062278241", "Q231663", "N.D. Stevenson", "P21", "Q48270", "non-binary"),
+		}},
+		poison: "9781111111111", status: http.StatusGatewayTimeout,
+	}
+	e := New(WithClient(flaky), WithDelay(0), WithRetryBase(0))
+	e.batch = 1 // one ISBN per query so the poison isolates to its own batch
+	res, err := e.Enrich(context.Background(), []ingest.WorkSummary{
+		summary("wdead", "9781111111111"),
+		summary("wok", "9780062278241"),
+	})
+	if err != nil {
+		t.Fatalf("a partially-failed run must not error: %v", err)
+	}
+	if len(res) != 1 || res[0].WorkID != "wok" {
+		t.Fatalf("results = %+v, want only the surviving batch's work", res)
+	}
+	if e.Skipped() != 1 {
+		t.Errorf("skipped = %d, want 1", e.Skipped())
+	}
+}
+
+// TestEnrichAllBatchesFailedErrors: when nothing succeeds the run errors --
+// that shape is an outage or a misconfiguration, not weather.
+func TestEnrichAllBatchesFailedErrors(t *testing.T) {
+	flaky := &flakySPARQL{poison: "978", status: http.StatusGatewayTimeout}
+	e := New(WithClient(flaky), WithDelay(0), WithRetryBase(0))
+	if _, err := e.Enrich(context.Background(), []ingest.WorkSummary{summary("w1", "9780062278241")}); err == nil {
+		t.Fatal("an all-batches-failed run should error")
+	}
+}
+
+// TestEnrichBadRequestFailsFast: a 400 means the query itself is broken;
+// retrying it is noise, so it fails after one attempt.
+func TestEnrichBadRequestFailsFast(t *testing.T) {
+	flaky := &flakySPARQL{poison: "978", status: http.StatusBadRequest}
+	e := New(WithClient(flaky), WithDelay(0), WithRetryBase(0))
+	if _, err := e.Enrich(context.Background(), []ingest.WorkSummary{summary("w1", "9780062278241")}); err == nil {
+		t.Fatal("want error")
+	}
+	if flaky.attempts != 1 {
+		t.Errorf("attempts = %d, want 1 (no retry on a 400)", flaky.attempts)
+	}
+}

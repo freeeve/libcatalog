@@ -28,6 +28,7 @@ package wikidata
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -60,16 +61,32 @@ type Doer interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// maxRetries is how many extra times one SPARQL batch is attempted after a
+// transient failure (a network error, a 429, or a 5xx -- WDQS 504s are
+// routine on a shared public service); the pause between attempts starts at
+// the enricher's retryBase and doubles. A batch that still fails is SKIPPED,
+// not fatal: its works stay untouched and a re-run backfills them, so an
+// hours-long corpus run survives a bad stretch.
+const maxRetries = 5
+
 // Enricher resolves creators via the Wikidata Query Service.
 type Enricher struct {
 	client   Doer
 	endpoint string
 	// batch is how many ISBNs one SPARQL query carries; delay is the
 	// politeness pause between queries (WDQS is a shared public service).
-	batch int
-	delay time.Duration
-	now   func() time.Time
+	batch     int
+	delay     time.Duration
+	retryBase time.Duration
+	now       func() time.Time
+	// skipped counts the batches the last Enrich call abandoned after
+	// exhausting retries -- observability for the caller's logs.
+	skipped int
 }
+
+// Skipped reports how many batches the last Enrich call abandoned after
+// retries; their works were left untouched for a re-run to backfill.
+func (e *Enricher) Skipped() int { return e.skipped }
 
 // Option configures the enricher.
 type Option func(*Enricher)
@@ -83,14 +100,18 @@ func WithEndpoint(u string) Option { return func(e *Enricher) { e.endpoint = u }
 // WithDelay overrides the politeness pause between SPARQL batches.
 func WithDelay(d time.Duration) Option { return func(e *Enricher) { e.delay = d } }
 
+// WithRetryBase overrides the first retry pause (tests use 0).
+func WithRetryBase(d time.Duration) Option { return func(e *Enricher) { e.retryBase = d } }
+
 // New returns the Wikidata creator-demographics enricher.
 func New(opts ...Option) *Enricher {
 	e := &Enricher{
-		client:   http.DefaultClient,
-		endpoint: DefaultEndpoint,
-		batch:    40,
-		delay:    time.Second,
-		now:      time.Now,
+		client:    http.DefaultClient,
+		endpoint:  DefaultEndpoint,
+		batch:     40,
+		delay:     time.Second,
+		retryBase: 2 * time.Second,
+		now:       time.Now,
 	}
 	for _, o := range opts {
 		o(e)
@@ -125,6 +146,9 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 	}
 
 	retrieved := e.now().UTC().Format("2006-01-02")
+	e.skipped = 0
+	succeeded := 0
+	var lastErr error
 	byWork := map[string]map[string]*ingest.CreatorClaim{} // workID -> QID -> claim
 	for start := 0; start < len(order); start += e.batch {
 		if start > 0 && e.delay > 0 {
@@ -135,10 +159,16 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 			}
 		}
 		end := min(start+e.batch, len(order))
-		rows, err := e.query(ctx, order[start:end])
+		rows, err := e.queryRetry(ctx, order[start:end])
 		if err != nil {
-			return nil, fmt.Errorf("wikidata: %w", err)
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			e.skipped++
+			lastErr = err
+			continue
 		}
+		succeeded++
 		for _, row := range rows {
 			qid := strings.TrimPrefix(row.author, entityPrefix)
 			if qid == row.author || qid == "" {
@@ -175,6 +205,12 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 		}
 	}
 
+	// Every batch failing is configuration-shaped (bad endpoint, outage),
+	// not weather; partial failure is survivable and a re-run backfills.
+	if succeeded == 0 && lastErr != nil {
+		return nil, fmt.Errorf("wikidata: every batch failed, last: %w", lastErr)
+	}
+
 	workIDs := make([]string, 0, len(byWork))
 	for id := range byWork {
 		workIDs = append(workIDs, id)
@@ -200,6 +236,51 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 // row is one SPARQL result binding set, flattened.
 type row struct {
 	isbn, author, authorLabel, prop, value, valueLabel string
+}
+
+// queryRetry wraps query with backoff on transient failures: network errors,
+// 429s, and 5xx statuses retry up to maxRetries with doubling pauses; other
+// statuses (a 400 means the query itself is malformed) fail immediately.
+func (e *Enricher) queryRetry(ctx context.Context, isbns []string) ([]row, error) {
+	backoff := e.retryBase
+	var err error
+	for attempt := 0; ; attempt++ {
+		var rows []row
+		rows, err = e.query(ctx, isbns)
+		if err == nil {
+			return rows, nil
+		}
+		if !transient(err) || attempt >= maxRetries {
+			return nil, err
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(backoff):
+		}
+		backoff *= 2
+	}
+}
+
+// statusError marks a non-200 SPARQL response with its code, so the retry
+// wrapper can tell WDQS weather (5xx/429) from a broken query (4xx).
+type statusError struct {
+	code int
+	body string
+}
+
+func (e *statusError) Error() string {
+	return fmt.Sprintf("sparql status %d: %s", e.code, e.body)
+}
+
+// transient reports whether an error is worth retrying: any transport error,
+// or a 429/5xx status.
+func transient(err error) bool {
+	var se *statusError
+	if errors.As(err, &se) {
+		return se.code == http.StatusTooManyRequests || se.code >= 500
+	}
+	return true // transport-level: connection reset, timeout, DNS blip
 }
 
 // query runs one batched resolution: ISBN -> edition -> work -> author,
@@ -256,7 +337,7 @@ func (e *Enricher) query(ctx context.Context, isbns []string) ([]row, error) {
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(res.Body, 512))
-		return nil, fmt.Errorf("sparql status %d: %s", res.StatusCode, strings.TrimSpace(string(body)))
+		return nil, &statusError{code: res.StatusCode, body: strings.TrimSpace(string(body))}
 	}
 
 	var parsed struct {
