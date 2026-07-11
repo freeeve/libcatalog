@@ -168,6 +168,9 @@ func TestPluralTolerantKeywords(t *testing.T) {
 		{"Genderfluid people", []string{"lgbtqia"}},   // new seed vocabulary
 		{"Homophobia in sports", []string{"lgbtqia"}}, // -phobia terms
 		{"Sapphics", []string{"lgbtqia"}},             // plural of a new keyword
+		{"Homosexuality", []string{"lgbtqia"}},        // FAST noun-form heading, 3,377 occ in queerbooks
+		{"Bisexuality--Fiction", []string{"lgbtqia"}}, // -ity class, subdivided heading
+		{"Lesbianism", []string{"lgbtqia"}},           // -ism noun form
 		{"Gaya (India)", nil},                         // still no substring match
 		{"Poore, Benjamin Perley", nil},               // "poors"/"poores" != "poore"
 		{"Transactions of the Royal Society", nil},    // "trans" must not match "transactions"

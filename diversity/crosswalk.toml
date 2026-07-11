@@ -67,6 +67,11 @@ keywords = [
   "intersex", "asexual", "aromantic", "same-sex", "homosexual", "two-spirit",
   "drag queen", "drag king", "pansexual", "polyamorous", "homophobia",
   "transphobia", "biphobia", "lesbophobia", "queerphobia", "intersexphobia",
+  # noun-form headings (LCSH/FAST style, e.g. FAST "Homosexuality"): the
+  # word-token matcher tolerates plurals, not -ity/-ism derivations, so the
+  # noun forms of the adjective keywords above need their own entries.
+  "homosexuality", "bisexuality", "asexuality", "pansexuality", "lesbianism",
+  "intersexuality", "transsexuality",
 ]
 uris = []
 
