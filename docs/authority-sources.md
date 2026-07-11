@@ -106,7 +106,8 @@ index from the offline editions dump (public bulk TSV; no live API on the
 ingest path), then a run links each Work whose ISBNs resolve to exactly one
 OpenLibrary work with `<work> owl:sameAs <openlibrary URI>` in the
 `enrichment:openlibrary` graph -- so the link rides into N-Quads/JSON-LD
-exports. A Work whose ISBNs map to conflicting works is left unlinked (never
+exports and, since libcodex v0.29.0, into MARC as an **758** Resource Identifier
+with the hub URI in `$1` (tasks/359). A Work whose ISBNs map to conflicting works is left unlinked (never
 guessed); the minted `w…` id stays primary. Direct mode is the meaningful one:
 an exact ISBN match is deterministic, and the queue path moderates subject
 candidates, not identity links.

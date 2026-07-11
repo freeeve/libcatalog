@@ -37,15 +37,9 @@ var KnownLoss = map[string]string{
 	// mapping is designed.
 	"773": "editorial hasPart/partOf links are not yet shaped as host-item entries",
 	"774": "editorial hasPart/partOf links are not yet shaped as constituent-unit entries",
-	// External work-identity links (tasks/066): the enrichment pass writes
-	// <work> owl:sameAs <hub URI> (e.g. OpenLibrary), carried in N-Quads/JSON-LD
-	// exports, the OPAC, and the editor. 758 (RDA Resource Identifier) is the
-	// right MARC home, but the libcodex crosswalk emits MARC identifiers only
-	// from bf:identifiedBy (020/022/024), not owl:sameAs, and has no 758 at all.
-	// Forcing owl:sameAs into a 024 would mislabel a hub link as a standard
-	// identifier of the item, so MARC omits it until libcodex crosswalks
-	// owl:sameAs -> 758 (filed there).
-	"758": "external-identity owl:sameAs links have no MARC emission yet (libcodex has no owl:sameAs -> 758 crosswalk)",
+	// (758 external-identity links, tasks/066, are no longer lost: libcodex v0.29.0
+	// crosswalks owl:sameAs / bf:hasEquivalent to MARC 758 $1 on decode, so the
+	// enrichment hub links now reach MARC exports. Removed here in tasks/359.)
 }
 
 // LossyTag reports whether a tag is on the known-loss table, with the

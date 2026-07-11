@@ -113,6 +113,25 @@ func TestDecodeGrainMARCVerbatim(t *testing.T) {
 	}
 }
 
+// TestDecodeGrainMARCSameAs758 proves the external-identity link now reaches MARC:
+// libcodex v0.29.0's crosswalk (libcat tasks/066, requested via libcodex 121) turns a
+// Work's owl:sameAs -- the hub URI the identity enrichment writes -- into a MARC 758
+// Resource Identifier with the URI in $1. Closes the KnownLoss 758 gap.
+func TestDecodeGrainMARCSameAs758(t *testing.T) {
+	grain, _ := marcGrainFixture(t)
+	const olURI = "https://openlibrary.org/works/OL45804W"
+	work := WorkIRI("wmarc00000001")
+	line := "<" + work + "> <http://www.w3.org/2002/07/owl#sameAs> <" + olURI + "> <enrichment:openlibrary> .\n"
+	recs, err := DecodeGrainMARC(append(append([]byte{}, grain...), line...))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := recs[0].SubfieldValues("758", '1')
+	if len(got) != 1 || got[0] != olURI {
+		t.Fatalf("758 $1 = %v, want [%s] -- owl:sameAs must decode to MARC 758 (libcodex v0.29.0)", got, olURI)
+	}
+}
+
 // TestDecodeGrainMARCShadow proves lcat:overrides changes what decodes: an
 // editorial claim on a predicate hides the feed value and shows the
 // editorial replacement.
