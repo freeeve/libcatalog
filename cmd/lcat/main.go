@@ -91,6 +91,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lcat covers:", err)
 			os.Exit(1)
 		}
+	case "audit":
+		if err := runAudit(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "lcat audit:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -120,6 +125,8 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "                    [--from-catalog]   (no network: snapshot from catalog.json's own labels, e.g. FAST)")
 	fmt.Fprintln(os.Stderr, "  lcat covers --store <blob-root> [--reap] [--json]")
 	fmt.Fprintln(os.Stderr, "              (cover blobs no grain references; they keep serving publicly until reaped)")
+	fmt.Fprintln(os.Stderr, "  lcat audit --catalog <catalog.json> [--crosswalk <override.toml,...>] [--format text|json] [--out <file>]")
+	fmt.Fprintln(os.Stderr, "             (content-diversity audit: works per category from their subjects, coverage-first; tasks/366)")
 	fmt.Fprintln(os.Stderr, "  lcat vocab-gc --store <blob-root> [--prefix data/authorities/] [--reap] [--json]")
 	fmt.Fprintln(os.Stderr, "              (sidecar artifact sets whose snapshot is gone; a removal before v0.137.0 left them behind)")
 	fmt.Fprintln(os.Stderr, "  lcat merge --dir <grains> --from <workid> --to <workid>")
