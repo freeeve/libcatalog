@@ -55,10 +55,15 @@ type ResourceDoc struct {
 // statement no field claims -- so doc -> grain reproduces the input
 // byte-for-byte when nothing is edited.
 type WorkDoc struct {
-	WorkID    string        `json:"workId"`
-	ProfileID string        `json:"profileId"`
-	Work      ResourceDoc   `json:"work"`
-	Instances []ResourceDoc `json:"instances"`
+	WorkID string `json:"workId"`
+	// ProfileID shapes the Work fields; InstanceProfileID the Instances' --
+	// exposed so the editor can drive each form from the deployment's profile
+	// rather than a hardcoded field list (tasks/295, tasks/345). Empty when no
+	// instance profile is configured.
+	ProfileID         string        `json:"profileId"`
+	InstanceProfileID string        `json:"instanceProfileId,omitempty"`
+	Work              ResourceDoc   `json:"work"`
+	Instances         []ResourceDoc `json:"instances"`
 	// Passthrough holds the unclaimed statements as raw N-Quads lines.
 	Passthrough []string `json:"passthrough"`
 }
@@ -105,6 +110,9 @@ func (m *Mapper) ToDoc(grainNQ []byte, workID string) (*WorkDoc, error) {
 		WorkID:    workID,
 		ProfileID: m.WorkProfile.ID,
 		Work:      ResourceDoc{ID: workID, Fields: map[string][]FieldValue{}},
+	}
+	if m.InstanceProfile != nil {
+		doc.InstanceProfileID = m.InstanceProfile.ID
 	}
 	claimFields(ds, claimed, rdf.NewIRI(bibframe.WorkIRI(workID)), m.WorkProfile, doc.Work.Fields, overrides)
 	for _, instID := range instanceIDs {

@@ -61,6 +61,8 @@ export const INSTANCE_FIELDS: FieldSpec[] = [
   { path: "links", label: "Links", kind: "iri", hint: "https://…" },
   { path: "responsibility", label: "Responsibility", kind: "single", section: "more" },
   { path: "edition", label: "Edition", kind: "single", section: "more" },
+  { path: "series", label: "Series", kind: "literal", hint: "Series statement as transcribed", section: "more" },
+  { path: "seriesEnumeration", label: "Series enumeration", kind: "single", section: "more" },
   { path: "publicationPlace", label: "Publication place", kind: "readonly", section: "more" },
   { path: "publisher", label: "Publisher", kind: "readonly", section: "more" },
   { path: "publicationDate", label: "Publication date", kind: "readonly", section: "more" },

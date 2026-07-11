@@ -4,7 +4,8 @@
 // drifting out from under the shipped work profile.
 import { describe, expect, it } from "vitest";
 import workMonograph from "../../../profiles/defaults/work-monograph.json";
-import { WORK_FIELDS, buildFieldSpecs } from "./profileSpecs";
+import instanceEbook from "../../../profiles/defaults/instance-ebook.json";
+import { INSTANCE_FIELDS, WORK_FIELDS, buildFieldSpecs } from "./profileSpecs";
 import type { ProfileField } from "../lib/types";
 
 describe("buildFieldSpecs", () => {
@@ -54,5 +55,16 @@ describe("WORK_FIELDS presentation", () => {
     const presented = new Set(WORK_FIELDS.map((s) => s.path));
     const missing = (workMonograph.fields as { path: string }[]).map((f) => f.path).filter((p) => !presented.has(p));
     expect(missing, `work-monograph paths lacking a presentation entry: ${missing.join(", ")}`).toEqual([]);
+  });
+});
+
+describe("INSTANCE_FIELDS presentation", () => {
+  it("covers every field the shipped instance-ebook profile declares", () => {
+    // instance-ebook.json declared series/seriesEnumeration that the hand-copied
+    // presentation never had (tasks/345) -- exactly the drift tasks/295 predicted.
+    // Pin the presentation to the shipped profile so it cannot recur.
+    const presented = new Set(INSTANCE_FIELDS.map((s) => s.path));
+    const missing = (instanceEbook.fields as { path: string }[]).map((f) => f.path).filter((p) => !presented.has(p));
+    expect(missing, `instance-ebook paths lacking a presentation entry: ${missing.join(", ")}`).toEqual([]);
   });
 });

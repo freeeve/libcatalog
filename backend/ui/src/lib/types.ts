@@ -80,6 +80,9 @@ export interface ResourceDoc {
 export interface WorkDoc {
   workId: string;
   profileId: string;
+  /** The instance profile that shapes the instance forms (tasks/345); absent
+   *  when no instance profile is configured. */
+  instanceProfileId?: string;
   work: ResourceDoc;
   instances: ResourceDoc[];
   passthrough: string[];

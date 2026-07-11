@@ -66,6 +66,32 @@
     );
   });
 
+  // The same for the instance form (tasks/345): the doc now names its instance
+  // profile, so the instance holdings obey the deployment's shape too. When no
+  // instance profile is configured (id absent), the form keeps its shipped shape.
+  let instanceFields = $state<ProfileField[] | undefined>(undefined);
+  let instanceProfileLoaded = $state(false);
+  $effect(() => {
+    const doc = $session.doc;
+    if (!doc) return;
+    const pid = doc.instanceProfileId;
+    if (!pid) {
+      instanceFields = undefined;
+      instanceProfileLoaded = true;
+      return;
+    }
+    fetchProfile(pid).then(
+      (r) => {
+        instanceFields = r?.profile?.fields;
+        instanceProfileLoaded = true;
+      },
+      () => {
+        instanceFields = undefined;
+        instanceProfileLoaded = true;
+      },
+    );
+  });
+
   const dirty = $derived($session.ops.length > 0);
   $effect(() => {
     if (!dirty) return;
@@ -320,15 +346,18 @@
                     <input type="checkbox" bind:checked={splitPick[inst.id]} /> select for split
                   </label>
                 {/if}
-                <ProfileForm
-                  res={inst}
-                  resource={inst.id}
-                  kind="instance"
-                  ops={$session.ops}
-                  onstage={(op) => session.stage(op)}
-                  onunstage={(op) => session.unstage(op)}
-                  {idKinds}
-                />
+                {#if instanceProfileLoaded}
+                  <ProfileForm
+                    res={inst}
+                    resource={inst.id}
+                    kind="instance"
+                    fields={instanceFields}
+                    ops={$session.ops}
+                    onstage={(op) => session.stage(op)}
+                    onunstage={(op) => session.unstage(op)}
+                    {idKinds}
+                  />
+                {/if}
                 <ItemsPanel {workId} instanceId={inst.id} />
               </details>
             {/each}
