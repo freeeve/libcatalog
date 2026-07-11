@@ -284,9 +284,11 @@ export function fetchStats(month: string): Promise<MonthStats> {
   return call("GET", `/v1/stats?${new URLSearchParams({ month })}`);
 }
 
-/** The content-diversity audit over the live work index (librarian). */
-export function fetchDiversityAudit(source?: string): Promise<DiversityReport> {
+/** The content-diversity audit over the live work index (librarian).
+ *  Filters are `key=value` terms matched against work extras, ANDed. */
+export function fetchDiversityAudit(filters: string[] = [], source?: string): Promise<DiversityReport> {
   const q = new URLSearchParams();
+  for (const f of filters) q.append("filter", f);
   if (source) q.set("source", source);
   const qs = q.toString();
   return call("GET", `/v1/audit/diversity${qs ? `?${qs}` : ""}`);

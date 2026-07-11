@@ -110,3 +110,32 @@ describe("Diversity audit screen", () => {
     expect(section?.textContent).toContain("LCATD_ENRICH_WIKIDATA");
   });
 });
+
+describe("Diversity audit scope", () => {
+  it("passes the applied key=value terms to the endpoint", async () => {
+    fetchDiversityAudit.mockResolvedValue(REPORT);
+    await render();
+    const input = document.querySelector<HTMLInputElement>("#div-scope");
+    expect(input).not.toBeNull();
+    input!.value = "inQll=true sources=qll";
+    input!.dispatchEvent(new Event("input", { bubbles: true }));
+    document.querySelector("form.scope")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    for (let i = 0; i < 8; i++) {
+      await Promise.resolve();
+      flushSync();
+    }
+    expect(fetchDiversityAudit).toHaveBeenLastCalledWith(["inQll=true", "sources=qll"]);
+  });
+
+  it("honors an initial filter from the route query", async () => {
+    fetchDiversityAudit.mockResolvedValue(REPORT);
+    const target = document.createElement("div");
+    document.body.appendChild(target);
+    app = mount(Diversity, { target, props: { initialFilter: "inQll=true" } });
+    for (let i = 0; i < 8; i++) {
+      await Promise.resolve();
+      flushSync();
+    }
+    expect(fetchDiversityAudit).toHaveBeenCalledWith(["inQll=true"]);
+  });
+});

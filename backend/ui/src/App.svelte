@@ -270,7 +270,7 @@
       initialAction={route.query.get("action") ?? ""}
     />
   {:else if route.name === "diversity"}
-    <Diversity />
+    <Diversity initialFilter={route.query.get("filter") ?? ""} />
   {:else if $sessionStore}
     <Dashboard session={$sessionStore} />
   {/if}

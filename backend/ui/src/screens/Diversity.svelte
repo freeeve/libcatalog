@@ -7,20 +7,35 @@
   import { fetchDiversityAudit, humanApiMessage } from "../lib/api";
   import type { DiversityReport } from "../lib/types";
 
+  let { initialFilter = "" }: { initialFilter?: string } = $props();
+
   let report = $state<DiversityReport | null>(null);
   let loading = $state(true);
   let error = $state("");
+  // The scope input: space-separated key=value terms matched against work
+  // extras (e.g. "inQll=true"), ANDed -- the endpoint's ?filter semantics.
+  // svelte-ignore state_referenced_locally
+  let filterText = $state(initialFilter);
+
+  function filterTerms(): string[] {
+    return filterText.split(/\s+/).filter((t) => t.includes("="));
+  }
 
   async function load(): Promise<void> {
     loading = true;
     error = "";
     try {
-      report = await fetchDiversityAudit();
+      report = await fetchDiversityAudit(filterTerms());
     } catch (e) {
       error = humanApiMessage(e, "diversity audit failed");
     } finally {
       loading = false;
     }
+  }
+
+  function apply(ev: SubmitEvent): void {
+    ev.preventDefault();
+    void load();
   }
 
   onMount(() => {
@@ -40,6 +55,20 @@
       not who created it.
     </p>
   </header>
+
+  <form class="scope" onsubmit={apply}>
+    <label for="div-scope">Scope</label>
+    <input
+      id="div-scope"
+      type="text"
+      placeholder="key=value extras, e.g. inQll=true"
+      bind:value={filterText}
+    />
+    <button type="submit" disabled={loading}>Apply</button>
+    <span class="muted hint">
+      space-separated <code>key=value</code> terms over work extras; empty = whole corpus
+    </span>
+  </form>
 
   {#if loading}
     <p class="muted">Auditing…</p>
@@ -170,6 +199,19 @@
   }
   .head p {
     margin-top: 0.25rem;
+  }
+  .scope {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0.25rem;
+    flex-wrap: wrap;
+  }
+  .scope input {
+    min-width: 18rem;
+  }
+  .scope .hint {
+    font-size: 0.8rem;
   }
   .coverage {
     display: flex;
