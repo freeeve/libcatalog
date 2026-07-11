@@ -27,15 +27,15 @@ func runProject(args []string) error {
 	out := fs.String("out", ".", "output directory for catalog.json")
 	provider := fs.String("provider", "overdrive", "provenance graph feed(s) to project, comma-separated, first wins")
 	publicSources := fs.String("public-sources", "",
-		"comma-separated extra.sources names allowed on the public face; others are stripped (tasks/172). Empty (default) keeps everything.")
+		"comma-separated extra.sources names allowed on the public face; others are stripped. Empty (default) keeps everything.")
 	publicExtras := fs.String("public-extras", "",
-		"comma-separated extra keys allowed on the public face; others are dropped from catalog.json (tasks/277). `sources` is governed by --public-sources instead. Empty (default) keeps everything.")
+		"comma-separated extra keys allowed on the public face; others are dropped from catalog.json. `sources` is governed by --public-sources instead. Empty (default) keeps everything.")
 	schemeMap := fs.String("subject-scheme", "",
-		"extra authority namespace -> scheme entries, comma-separated prefix=code pairs (prepended, so they override the built-in table; tasks/141)")
+		"extra authority namespace -> scheme entries, comma-separated prefix=code pairs (prepended, so they override the built-in table)")
 	allowEmpty := fs.Bool("allow-empty", false,
-		"write a catalog with zero works instead of failing (a fresh deployment before its first ingest; tasks/246)")
+		"write a catalog with zero works instead of failing (a fresh deployment before its first ingest)")
 	similarLimit := fs.Int("similar", DefaultSimilarLimit,
-		"neighbours per work in the similar.json \"more like this\" sidecar; 0 skips it entirely (tasks/284)")
+		"neighbours per work in the similar.json \"more like this\" sidecar; 0 skips it entirely")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

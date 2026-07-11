@@ -128,7 +128,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  lcat audit (--graph <catalog.nq> | --catalog <catalog.json>) [--crosswalk <override.toml,...>]")
 	fmt.Fprintln(os.Stderr, "             [--filter k=v]... [--source <name>] [--format text|json] [--out <file>]")
 	fmt.Fprintln(os.Stderr, "             (content-diversity audit, coverage-first; --graph = full corpus incl. suppressed,")
-	fmt.Fprintln(os.Stderr, "              --catalog = the public projection; tasks/366/372/373)")
+	fmt.Fprintln(os.Stderr, "              --catalog = the public projection)")
 	fmt.Fprintln(os.Stderr, "  lcat vocab-gc --store <blob-root> [--prefix data/authorities/] [--reap] [--json]")
 	fmt.Fprintln(os.Stderr, "              (sidecar artifact sets whose snapshot is gone; a removal before v0.137.0 left them behind)")
 	fmt.Fprintln(os.Stderr, "  lcat merge --dir <grains> --from <workid> --to <workid>")

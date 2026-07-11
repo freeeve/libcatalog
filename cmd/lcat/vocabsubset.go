@@ -55,7 +55,7 @@ func runVocabSubset(args []string) error {
 	dump := fs.String("dump", "", "whole-vocabulary N-Triples/N-Quads dump (file path or URL, e.g. https://homosaurus.org/v5.nt) filtered locally instead of per-term fetching")
 	all := fs.Bool("all", false, "with --dump: keep the entire in-namespace vocabulary, not just the catalog's used slice")
 	fromCatalog := fs.Bool("from-catalog", false,
-		"emit the snapshot purely from catalog.json's subject labels and broader links -- no network (tasks/137); covers exactly the catalog's used slice")
+		"emit the snapshot purely from catalog.json's subject labels and broader links -- no network; covers exactly the catalog's used slice")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

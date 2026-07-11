@@ -32,13 +32,13 @@ func runExport(args []string) error {
 	out := fs.String("out", "public/downloads", "output directory for the gzipped artifacts")
 	manifest := fs.String("manifest", "", "manifest path the downloads page reads (default <out>/downloads.json)")
 	publicSources := fs.String("public-sources", "",
-		"comma-separated extra.sources names allowed in the nq download; others are stripped (tasks/172). Empty (default) keeps everything.")
+		"comma-separated extra.sources names allowed in the nq download; others are stripped. Empty (default) keeps everything.")
 	publicExtras := fs.String("public-extras", "",
-		"comma-separated extra keys allowed in the nq download; other lcat:extra quads are dropped (tasks/277). `sources` is governed by --public-sources instead. Empty (default) keeps everything.")
+		"comma-separated extra keys allowed in the nq download; other lcat:extra quads are dropped. `sources` is governed by --public-sources instead. Empty (default) keeps everything.")
 	orgCode := fs.String("org-code", "",
-		"deployment MARC organization code: derives each record's 040 from graph facts in the MARC downloads (tasks/192). Empty disables.")
+		"deployment MARC organization code: derives each record's 040 from graph facts in the MARC downloads. Empty disables.")
 	coversOut := fs.String("covers-out", "",
-		"directory uploaded cover images are copied to (the site's covers/ dir, tasks/215). Empty skips.")
+		"directory uploaded cover images are copied to (the site's covers/ dir). Empty skips.")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

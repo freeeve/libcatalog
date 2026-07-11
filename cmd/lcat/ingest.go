@@ -26,11 +26,11 @@ func runIngestCmd(args []string) error {
 	source := fs.String("source", "", "provider input (e.g. an OverDrive page-cache directory)")
 	out := fs.String("out", "", "output directory for canonical grains and catalog.nq")
 	feed := fs.String("feed", "", "provenance graph feed:<name> (default: the provider name)")
-	mapping := fs.String("mapping", "", "mapping TOML for the generic providers (nquads, csv); shorthand for --param mapping=<path> (tasks/172)")
+	mapping := fs.String("mapping", "", "mapping TOML for the generic providers (nquads, csv); shorthand for --param mapping=<path>")
 	params := paramFlags{}
 	fs.Var(params, "param", "provider parameter key=value, repeatable (ingest.Config.Params)")
-	reconcile := fs.String("reconcile", "", "flag feed-only works this scan no longer lists: review | auto-suppress (tasks/078)")
-	allowEmpty := fs.Bool("reconcile-allow-empty", false, "let a zero-record scan reconcile (withdraws every feed-only work; tasks/103)")
+	reconcile := fs.String("reconcile", "", "flag feed-only works this scan no longer lists: review | auto-suppress")
+	allowEmpty := fs.Bool("reconcile-allow-empty", false, "let a zero-record scan reconcile (withdraws every feed-only work)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

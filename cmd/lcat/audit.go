@@ -25,16 +25,16 @@ import (
 func runAudit(args []string) error {
 	fs := flag.NewFlagSet("audit", flag.ExitOnError)
 	catalogJSON := fs.String("catalog", "", "path to a projected catalog.json (from `lcat project`) -- audits the PUBLIC view")
-	graphNQ := fs.String("graph", "", "path to a catalog.nq dataset -- audits the FULL corpus, including works the projection suppresses (tasks/372)")
+	graphNQ := fs.String("graph", "", "path to a catalog.nq dataset -- audits the FULL corpus, including works the projection suppresses")
 	crosswalk := fs.String("crosswalk", "",
-		"comma-separated operator override crosswalk TOML file(s), merged over the built-in seed (tasks/365)")
+		"comma-separated operator override crosswalk TOML file(s), merged over the built-in seed")
 	format := fs.String("format", "text", "output format: text or json")
 	out := fs.String("out", "", "write the report to this file instead of stdout")
 	var filters filterFlags
 	fs.Var(&filters, "filter",
-		"audit only works whose extra.<key> equals <value> (key=value; repeatable, ANDed; a comma-joined extra matches on any element; tasks/373)")
+		"audit only works whose extra.<key> equals <value> (key=value; repeatable, ANDed; a comma-joined extra matches on any element)")
 	source := fs.String("source", "",
-		"audit only works whose extra.sources lists this name -- shorthand for --filter sources=<name> (tasks/373)")
+		"audit only works whose extra.sources lists this name -- shorthand for --filter sources=<name>")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
