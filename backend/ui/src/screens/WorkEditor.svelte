@@ -16,6 +16,7 @@
   import ProfileForm from "../components/ProfileForm.svelte";
   import SaveBar from "../components/SaveBar.svelte";
   import SubjectLookup from "../components/SubjectLookup.svelte";
+  import EquivalentsPanel from "../components/EquivalentsPanel.svelte";
   import VisibilityPanel from "../components/VisibilityPanel.svelte";
   import CoverPanel from "../components/CoverPanel.svelte";
   import RelationsPanel from "../components/RelationsPanel.svelte";
@@ -325,6 +326,12 @@
             />
           {/if}
           <SubjectLookup {workId} onadd={addLookedUpSubject} />
+          <EquivalentsPanel
+            subjects={doc.work.fields.subjects ?? []}
+            ops={$session.ops.filter((op) => op.resource === "work" && op.path === "subjects")}
+            onadd={(uri) =>
+              session.stage({ resource: "work", path: "subjects", action: "add", value: { v: uri, iri: true } })}
+          />
         </section>
 
         {#if doc.instances.length > 0}

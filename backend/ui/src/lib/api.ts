@@ -50,6 +50,7 @@ import type {
   Selection,
   SubjectCandidate,
   TagCount,
+  TermEquivalent,
   Term,
   TermRef,
   VocabJob,
@@ -293,6 +294,12 @@ export function fetchDiversityAudit(filters: string[] = [], source?: string): Pr
   if (source) q.set("source", source);
   const qs = q.toString();
   return call("GET", `/v1/audit/diversity${qs ? `?${qs}` : ""}`);
+}
+
+/** A term's cross-scheme equivalents: skos matches both directions plus
+ *  one-hop pivots, strength-labeled (public vocab read). */
+export function fetchTermEquivalents(id: string): Promise<{ equivalents: TermEquivalent[] }> {
+  return call("GET", `/v1/terms/equivalents?id=${encodeURIComponent(id)}`);
 }
 
 /** The dated audit-snapshot series for a scope (librarian). */

@@ -790,3 +790,16 @@ export interface CreatorAudit {
   resolvedCreators: number;
   properties: CreatorProperty[];
 }
+
+/** One cross-scheme equivalent of a term (GET /v1/terms/equivalents). */
+export interface TermEquivalent {
+  id: string;
+  scheme?: string;
+  labels?: Record<string, string>;
+  /** exact | close | pivot-exact | pivot-close -- the weakest hop names it. */
+  strength: string;
+  /** The pivot URI for transitive equivalents. */
+  via?: string;
+  /** False when the URI is only a link target, not a loaded term. */
+  known: boolean;
+}
