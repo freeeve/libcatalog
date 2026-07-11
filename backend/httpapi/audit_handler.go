@@ -6,6 +6,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/freeeve/libcat/diversity"
 	"github.com/freeeve/libcat/ingest"
@@ -137,19 +138,71 @@ func aggregateCreators(sums []ingest.WorkSummary, include func(*ingest.WorkSumma
 	return ca
 }
 
+// auditCache memoizes computed reports against the work index generation: the
+// audit is a pure function of (corpus, crosswalk, filters), the generation is
+// the corpus's change counter, and the crosswalk is compile-time constant
+// (diversity.Default; a server-side override, when one lands, must join the
+// key). Entries key on the NORMALIZED filter set so term order does not fork
+// the cache; a generation change drops everything, and the map is capped
+// because filters are caller-chosen text.
+type auditCache struct {
+	mu      sync.Mutex
+	gen     uint64
+	entries map[string]auditResponse
+}
+
+// auditCacheCap bounds distinct filter sets kept per generation; overflow
+// clears wholesale (recomputing is milliseconds; bookkeeping an LRU is not
+// worth it here).
+const auditCacheCap = 64
+
+// get returns the cached response for the key at the given generation.
+func (c *auditCache) get(gen uint64, key string) (auditResponse, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.gen != gen || c.entries == nil {
+		return auditResponse{}, false
+	}
+	r, ok := c.entries[key]
+	return r, ok
+}
+
+// put stores a computed response, invalidating older generations.
+func (c *auditCache) put(gen uint64, key string, r auditResponse) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.gen != gen || c.entries == nil || len(c.entries) >= auditCacheCap {
+		c.gen = gen
+		c.entries = map[string]auditResponse{}
+	}
+	c.entries[key] = r
+}
+
+// cacheKey is the normalized filter set: sorted terms, so "a=1 b=2" and
+// "b=2 a=1" hit the same entry.
+func (f auditFilterSet) cacheKey() string {
+	terms := make([]string, 0, len(f))
+	for _, p := range f {
+		terms = append(terms, p[0]+"="+p[1])
+	}
+	sort.Strings(terms)
+	return strings.Join(terms, "\x00")
+}
+
 // registerAudit serves the content-diversity audit over the live work index
 // : the same coverage-first report `lcat audit` computes, but against
 // the cataloging corpus the editor sees -- suppressed works included (they are
 // held, just not published), tombstoned works excluded (they are retired).
-// Aggregation over the in-memory summaries is O(corpus) string matching and runs
-// per request; at works-list scale that is milliseconds, and the index owns
-// freshness.
+// Aggregation is O(corpus) string matching, memoized against the index
+// generation (auditCache) so a page re-view or a scope toggle back returns
+// instantly; the index owns freshness.
 //
 // Query: filter=key=value (repeatable, ANDed; comma-joined extras match per
 // element) and source=<name>, both matching the summaries' Extras -- the same
 // semantics as `lcat audit --filter/--source`.
 func registerAudit(mux *http.ServeMux, ix *workindex.Index, verifier auth.TokenVerifier) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
+	cache := &auditCache{}
 
 	mux.Handle("GET /v1/audit/diversity", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filters, err := auditFilters(r)
@@ -157,9 +210,14 @@ func registerAudit(mux *http.ServeMux, ix *workindex.Index, verifier auth.TokenV
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		sums, err := ix.Summaries(r.Context())
+		sums, gen, err := ix.SummariesWithGeneration(r.Context())
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "scan failed")
+			return
+		}
+		key := filters.cacheKey()
+		if resp, ok := cache.get(gen, key); ok {
+			writeJSON(w, http.StatusOK, resp)
 			return
 		}
 		cw := diversity.Default()
@@ -174,12 +232,14 @@ func registerAudit(mux *http.ServeMux, ix *workindex.Index, verifier auth.TokenV
 			}
 			a.Add(summaryRefs(s))
 		}
-		writeJSON(w, http.StatusOK, auditResponse{
+		resp := auditResponse{
 			Input:    "work index (cataloging corpus: suppressed included, tombstoned excluded)",
 			Scope:    filters.String(),
 			Report:   a.Report(),
 			Creators: aggregateCreators(sums, include),
-		})
+		}
+		cache.put(gen, key, resp)
+		writeJSON(w, http.StatusOK, resp)
 	})))
 }
 

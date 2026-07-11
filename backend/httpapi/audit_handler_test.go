@@ -5,6 +5,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -226,5 +227,38 @@ func TestAuditDiversityCreators(t *testing.T) {
 	// The un-stated properties report the resolved creator as unknown.
 	if p27 := ca.Properties[1]; p27.Known != 0 || p27.Unknown != 1 {
 		t.Errorf("P27 = %+v, want known 0 / unknown 1", p27)
+	}
+}
+
+// TestAuditCache: same generation + normalized filter key serves the stored
+// response; a generation change or cap overflow drops entries; term order does
+// not fork the cache.
+func TestAuditCache(t *testing.T) {
+	c := &auditCache{}
+	r1 := auditResponse{Scope: "one"}
+	c.put(7, "k", r1)
+	if got, ok := c.get(7, "k"); !ok || got.Scope != "one" {
+		t.Fatalf("get after put = %+v, %v", got, ok)
+	}
+	if _, ok := c.get(8, "k"); ok {
+		t.Fatal("a new generation must miss")
+	}
+	c.put(8, "k", auditResponse{Scope: "two"})
+	if _, ok := c.get(7, "k"); ok {
+		t.Fatal("the old generation must be gone after a newer put")
+	}
+	// Cap overflow clears wholesale rather than evicting piecemeal.
+	for i := 0; i < auditCacheCap+1; i++ {
+		c.put(8, fmt.Sprintf("k%d", i), auditResponse{})
+	}
+	if len(c.entries) > auditCacheCap {
+		t.Fatalf("entries = %d, want <= cap", len(c.entries))
+	}
+
+	// Key normalization: filter order must not fork entries.
+	a := auditFilterSet{{"a", "1"}, {"b", "2"}}
+	b := auditFilterSet{{"b", "2"}, {"a", "1"}}
+	if a.cacheKey() != b.cacheKey() {
+		t.Errorf("cacheKey order-sensitive: %q vs %q", a.cacheKey(), b.cacheKey())
 	}
 }
