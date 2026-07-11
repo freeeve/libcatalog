@@ -1,0 +1,16 @@
+{{- /* lcat-format-carrier.html (tasks/310, hoisted in tasks/311): the single
+       distinguishing format carrier for a Work or edition, or "" for the
+       unmarked case. Input is a formats slice; output is the one format string
+       when there is exactly one and it is not the default "book"/"print" -- so a
+       book gets no badge/eyebrow (it would spend the reader's attention on
+       nothing), a multi-format Work gets no arbitrary one, and an audiobook or
+       ebook gets named. Both the similar-rail badge (_content.gotmpl) and the
+       work-detail eyebrow (page.html) call this, so the rule lives in one place. */ -}}
+{{- $carrier := "" -}}
+{{- with . -}}
+  {{- if eq (len .) 1 -}}
+    {{- $f := index . 0 -}}
+    {{- if not (in (slice "book" "print") $f) -}}{{- $carrier = $f -}}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $carrier -}}

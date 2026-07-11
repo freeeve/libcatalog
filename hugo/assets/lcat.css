@@ -894,6 +894,94 @@ summary:focus-visible {
   color: var(--lcat-muted);
 }
 
+/* Work-detail hero (tasks/311): the cover and the naming block (eyebrow, title,
+   subtitle, contributors) share a row on a wide screen and stack on a narrow one.
+   lcat-hero--cover is present only when a cover actually renders, so the two-column
+   track is never asked to leave an empty gutter on a coverless record. */
+.lcat-hero {
+  margin-bottom: var(--lcat-gap);
+}
+.lcat-hero--cover {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+/* The cover occupies its own grid cell in the hero, so cancel the float and margins
+   the shared detail variant carries for standalone (non-hero) use. */
+.lcat-hero-art .lcat-cover--detail {
+  float: none;
+  margin: 0;
+}
+.lcat-hero-body {
+  min-width: 0;
+}
+/* Format eyebrow: names the one distinguishing carrier above the title, in the same
+   small-caps register as the facet drawer. A plain book prints no eyebrow. */
+.lcat-eyebrow {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--lcat-accent-ink);
+}
+/* In the hero the title stands beside its cover, so it drops the standalone double
+   rule -- a mid-hero underline would read as a divider between title and subtitle. */
+.lcat-hero h1 {
+  border-bottom: 0;
+  padding-bottom: 0;
+  margin: 0 0 0.35rem;
+}
+/* The subtitle is its own display-serif line under the title, not a run-on span. */
+.lcat-hero .lcat-subtitle {
+  display: block;
+  font-family: var(--lcat-display);
+  font-size: 1.15rem;
+  line-height: 1.3;
+  margin: 0 0 0.5rem;
+}
+
+/* Titled sections on the work page (tasks/311): About, Details, Subjects, Editions
+   and the rest each get a small-caps head over a hairline rule, so the page reads as
+   a stack of captioned blocks rather than a run of bare h2s. */
+.lcat-section {
+  margin-top: var(--lcat-gap);
+}
+.lcat-section-head {
+  font-family: var(--lcat-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--lcat-muted);
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--lcat-border);
+}
+
+/* Details grid (tasks/311): the Work-level facts as captioned cells that wrap to fill
+   the row, instead of one tall definition list. Each cell is a <dl> pairing a
+   small-caps label with its value. */
+.lcat-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1rem 1.5rem;
+}
+.lcat-detail {
+  margin: 0;
+}
+.lcat-detail dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--lcat-muted);
+  margin-bottom: 0.15rem;
+}
+.lcat-detail dd {
+  margin: 0;
+}
+
 /* Theme toggle (theme-toggle.html): hidden until its script runs, so a
    no-JS page shows no dead control. */
 .lcat-theme-toggle {

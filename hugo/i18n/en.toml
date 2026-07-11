@@ -36,6 +36,12 @@ other = "Classifications"
 other = "Contributors"
 
 # Work detail page
+[aboutTitle]
+other = "About this title"
+
+[details]
+other = "Details"
+
 [language]
 other = "Language"
 

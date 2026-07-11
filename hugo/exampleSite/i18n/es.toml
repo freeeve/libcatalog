@@ -30,6 +30,12 @@ other = "Clasificaciones"
 [contributors]
 other = "Colaboradores"
 
+[aboutTitle]
+other = "Sobre esta obra"
+
+[details]
+other = "Detalles"
+
 [language]
 other = "Idioma"
 

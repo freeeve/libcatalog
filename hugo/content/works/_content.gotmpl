@@ -271,15 +271,10 @@
              print book is what a catalog is assumed to hold, so labelling every
              tile "BOOK" spends the badge's attention on nothing; an audiobook or
              an ebook is what a reader is scanning the rail for. A Work carrying
-             several carriers gets no badge rather than an arbitrary one. */ -}}
+             several carriers gets no badge rather than an arbitrary one. The rule
+             is shared with the work-detail eyebrow (tasks/311). */ -}}
       {{- $n := index $works .id | default dict -}}
-      {{- $badge := "" -}}
-      {{- with $n.formats -}}
-        {{- if eq (len .) 1 -}}
-          {{- $f := index . 0 -}}
-          {{- if not (in (slice "book" "print") $f) -}}{{- $badge = $f -}}{{- end -}}
-        {{- end -}}
-      {{- end -}}
+      {{- $badge := partial "lcat-format-carrier.html" $n.formats -}}
       {{- $neighbors = $neighbors | append (dict
         "id" .id
         "title" .title

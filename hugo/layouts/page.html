@@ -6,29 +6,49 @@
        unless the site sets [params.search] engine = "pagefind" and runs the index
        step; the attributes are harmless otherwise. */ -}}
 <article class="lcat-work" data-pagefind-body>
-  {{- if and site.Params.covers .Params.cover }}{{ partial "lcat-cover.html" (dict "url" .Params.cover "title" .Title "variant" "detail") }}{{ end }}
-  <h1 data-pagefind-meta="title">{{ .Title }}{{ with .Params.subtitle }} <span class="lcat-subtitle">{{ . }}</span>{{ end }}</h1>
+  {{- /* Hero (tasks/311): cover on the left, everything that names the Work on the
+         right, so the title sits beside its object instead of under it. The format
+         eyebrow names the one distinguishing carrier (shared lcat-format-carrier
+         rule, tasks/310) -- a plain book gets none, so the line only appears when it
+         earns the reader's attention. The subtitle is its own muted line, not a
+         run-on span inside the <h1>. When there is no cover the body simply fills
+         the row (lcat-hero--cover gates the two-column grid). */ -}}
+  {{- $eyebrow := partial "lcat-format-carrier.html" .Params.formats -}}
+  <div class="lcat-hero{{ if and site.Params.covers .Params.cover }} lcat-hero--cover{{ end }}">
+    {{- if and site.Params.covers .Params.cover }}
+    <div class="lcat-hero-art">{{ partial "lcat-cover.html" (dict "url" .Params.cover "title" .Title "variant" "detail") }}</div>
+    {{- end }}
+    <div class="lcat-hero-body">
+      {{- with $eyebrow }}<p class="lcat-eyebrow">{{ . }}</p>{{ end }}
+      <h1 data-pagefind-meta="title">{{ .Title }}</h1>
+      {{- with .Params.subtitle }}<p class="lcat-subtitle">{{ . }}</p>{{ end }}
 
-  {{- /* Contributor names link to their term pages, matching the browse cards
-         (tasks/129); raw names are the taxonomy keys (tasks/128), byte-bounded
-         through lcat-cap (tasks/134). */}}
-  {{ with .Params.contributorList }}
-  <p class="lcat-contribs" data-pagefind-meta="author">
-    {{ range $i, $c := . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" (partial "lcat-cap.html" $c.name)) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="contributor">{{ $c.name }}</a>{{ else }}<span data-pagefind-filter="contributor">{{ $c.name }}</span>{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
-  </p>
-  {{ end }}
+      {{- /* Contributor names link to their term pages, matching the browse cards
+             (tasks/129); raw names are the taxonomy keys (tasks/128), byte-bounded
+             through lcat-cap (tasks/134). */}}
+      {{ with .Params.contributorList }}
+      <p class="lcat-contribs" data-pagefind-meta="author">
+        {{ range $i, $c := . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" (partial "lcat-cap.html" $c.name)) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="contributor">{{ $c.name }}</a>{{ else }}<span data-pagefind-filter="contributor">{{ $c.name }}</span>{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
+      </p>
+      {{ end }}
+    </div>
+  </div>
 
   {{- /* The Work's bf:summary (tasks/124): plain text from the projector, split on
          blank lines into paragraphs. Inside data-pagefind-body, so blurb text lands
-         in the full-text index. */ -}}
+         in the full-text index. Presented as its own titled section (tasks/311) so
+         the blurb reads as prose about the title rather than an unlabelled lede. */ -}}
   {{ with .Params.summary }}
-  <div class="lcat-summary">
-    {{ range split . "\n\n" }}{{ with trim . " \n" }}<p>{{ . }}</p>{{ end }}{{ end }}
-  </div>
+  <section class="lcat-section" aria-labelledby="lcat-about">
+    <h2 id="lcat-about" class="lcat-section-head">{{ i18n "aboutTitle" }}</h2>
+    <div class="lcat-summary">
+      {{ range split . "\n\n" }}{{ with trim . " \n" }}<p>{{ . }}</p>{{ end }}{{ end }}
+    </div>
+  </section>
   {{ end }}
 
   {{ with .Params.subjectList }}
-  <section aria-labelledby="lcat-subj"><h2 id="lcat-subj">{{ i18n "subjects" }}</h2>
+  <section class="lcat-section" aria-labelledby="lcat-subj"><h2 id="lcat-subj" class="lcat-section-head">{{ i18n "subjects" }}</h2>
     <ul class="lcat-tags">
       {{ $lang := site.Language.Lang }}
       {{ range . }}
@@ -46,43 +66,55 @@
   {{ end }}
 
   {{ with .Params.tagLabels }}
-  <section aria-labelledby="lcat-tags"><h2 id="lcat-tags">{{ i18n "genresAndTags" }}</h2>
+  <section class="lcat-section" aria-labelledby="lcat-tags"><h2 id="lcat-tags" class="lcat-section-head">{{ i18n "genresAndTags" }}</h2>
     <ul class="lcat-tags">
       {{ range . }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "tags" "key" (partial "lcat-slug.html" .)) }}<li>{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="tag">{{ . }}</a>{{ else }}<span data-pagefind-filter="tag">{{ . }}</span>{{ end }}</li>{{ end }}
     </ul>
   </section>
   {{ end }}
 
-  <dl class="lcat-meta">
-    {{- /* Series are Work-level facts (schema v12, tasks/309), not per-edition
-           ones: 490 is transcribed on every printing, and a Work's membership in
-           "Firebrand fiction, bk. 2" does not change because you borrowed the
-           audiobook. Each entry pairs its own statement with its own enumeration
-           -- the flat shape paired them by list position, so a record with two
-           490s gave one enumeration to both.
+  {{- /* Details (tasks/311): the Work-level facts as a labelled grid of cells
+         instead of one long definition list, so series/formats/language/class sit
+         side by side and each reads as a captioned value. Each cell is its own <dl>
+         (a dt/dd pair) so the grouping stays valid HTML while the outer grid does
+         the columns. The whole section only appears when at least one field is
+         present -- no empty "Details" heading. */ -}}
+  {{- $hasDetails := or .Params.seriesList .Params.formats .Params.languages .Params.classificationList -}}
+  {{ if $hasDetails }}
+  <section class="lcat-section" aria-labelledby="lcat-details-head">
+    <h2 id="lcat-details-head" class="lcat-section-head">{{ i18n "details" }}</h2>
+    <div class="lcat-details">
+      {{- /* Series are Work-level facts (schema v12, tasks/309), not per-edition
+             ones: 490 is transcribed on every printing, and a Work's membership in
+             "Firebrand fiction, bk. 2" does not change because you borrowed the
+             audiobook. Each entry pairs its own statement with its own enumeration
+             -- the flat shape paired them by list position, so a record with two
+             490s gave one enumeration to both.
 
-           The ISSN and the traced flag are carried but not rendered: an ISSN is a
-           serials-control number no reader is looking for on a novel's page, and
-           "traced" is a cataloging fact about whether an added entry exists. Both
-           reach adopters through .Params.seriesList.
+             The ISSN and the traced flag are carried but not rendered: an ISSN is a
+             serials-control number no reader is looking for on a novel's page, and
+             "traced" is a cataloging fact about whether an added entry exists. Both
+             reach adopters through .Params.seriesList.
 
-           seriesList, not series: `series` belongs to adopters, who use it for
-           their own lcat:extra/series string. See the adapter's note. */}}
-    {{ with .Params.seriesList }}<dt>{{ i18n "series" }}</dt><dd>
-      {{- range $i, $s := . }}{{ if $i }}; {{ end -}}
-        <span class="lcat-series"{{ with $s.issn }} data-issn="{{ . }}"{{ end }}>
-          {{- $s.title }}{{ with $s.enumeration }}, {{ . }}{{ end -}}
-        </span>
-      {{- end }}
-    </dd>{{ end }}
-    {{ with .Params.formats }}<dt>{{ i18n "formats" }}</dt><dd>
-      {{ range $i, $f := . }}{{ if $i }}, {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "formats" "key" $f) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="format">{{ $f }}</a>{{ else }}<span data-pagefind-filter="format">{{ $f }}</span>{{ end }}{{ end }}
-    </dd>{{ end }}
-    {{- /* Languages and classifications display their human label (tasks/142);
-           the pagefind filter carries the same label the facet shows. */}}
-    {{ with .Params.languages }}<dt>{{ i18n "language" }}</dt><dd>{{ range $i, $l := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="language">{{ partial "lcat-lang-name.html" $l }}</span>{{ end }}</dd>{{ end }}
-    {{ with .Params.classificationList }}<dt>{{ i18n "classification" }}</dt><dd>{{ range $i, $c := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="classification">{{ or $c.label $c.value }}</span>{{ end }}</dd>{{ end }}
-  </dl>
+             seriesList, not series: `series` belongs to adopters, who use it for
+             their own lcat:extra/series string. See the adapter's note. */}}
+      {{ with .Params.seriesList }}<dl class="lcat-detail"><dt>{{ i18n "series" }}</dt><dd>
+        {{- range $i, $s := . }}{{ if $i }}; {{ end -}}
+          <span class="lcat-series"{{ with $s.issn }} data-issn="{{ . }}"{{ end }}>
+            {{- $s.title }}{{ with $s.enumeration }}, {{ . }}{{ end -}}
+          </span>
+        {{- end }}
+      </dd></dl>{{ end }}
+      {{ with .Params.formats }}<dl class="lcat-detail"><dt>{{ i18n "formats" }}</dt><dd>
+        {{ range $i, $f := . }}{{ if $i }}, {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "formats" "key" $f) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="format">{{ $f }}</a>{{ else }}<span data-pagefind-filter="format">{{ $f }}</span>{{ end }}{{ end }}
+      </dd></dl>{{ end }}
+      {{- /* Languages and classifications display their human label (tasks/142);
+             the pagefind filter carries the same label the facet shows. */}}
+      {{ with .Params.languages }}<dl class="lcat-detail"><dt>{{ i18n "language" }}</dt><dd>{{ range $i, $l := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="language">{{ partial "lcat-lang-name.html" $l }}</span>{{ end }}</dd></dl>{{ end }}
+      {{ with .Params.classificationList }}<dl class="lcat-detail"><dt>{{ i18n "classification" }}</dt><dd>{{ range $i, $c := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="classification">{{ or $c.label $c.value }}</span>{{ end }}</dd></dl>{{ end }}
+    </div>
+  </section>
+  {{ end }}
 
   {{- /* Adopter hook (tasks/125): empty by default; an importing site overrides
          work-extra.html to render its passthrough extras here. */ -}}
@@ -92,7 +124,7 @@
          emits links whose target is in this projection, so every href here
          resolves to a minted Work page. */ -}}
   {{ with .Params.relations }}
-  <section class="lcat-relations" aria-labelledby="lcat-rel"><h2 id="lcat-rel">{{ i18n "relatedWorks" }}</h2>
+  <section class="lcat-section lcat-relations" aria-labelledby="lcat-rel"><h2 id="lcat-rel" class="lcat-section-head">{{ i18n "relatedWorks" }}</h2>
     <dl class="lcat-meta">
       {{ with .partOf }}<dt>{{ i18n "partOf" }}</dt><dd>{{ range $i, $r := . }}{{ if $i }}; {{ end }}<a href="{{ printf "/works/%s/" $r.id | relLangURL }}">{{ or $r.title $r.id }}</a>{{ end }}</dd>{{ end }}
       {{ with .hasPart }}<dt>{{ i18n "contains" }}</dt><dd>{{ range $i, $r := . }}{{ if $i }}; {{ end }}<a href="{{ printf "/works/%s/" $r.id | relLangURL }}">{{ or $r.title $r.id }}</a>{{ end }}</dd>{{ end }}
@@ -112,7 +144,7 @@
          here rather than by the context autoescaper. The findRE guard keeps a bad
          table row from opening an injection through that safeHTMLAttr. */ -}}
   {{- $attrs := or (index (or site.Data.lcat dict) "availabilityAttrs") dict -}}
-  <section aria-labelledby="lcat-ed"><h2 id="lcat-ed">{{ i18n "editionsAndFormats" }}</h2>
+  <section class="lcat-section" aria-labelledby="lcat-ed"><h2 id="lcat-ed" class="lcat-section-head">{{ i18n "editionsAndFormats" }}</h2>
     <ul class="lcat-editions">
       {{ range . }}
       <li class="lcat-edition" data-instance="{{ .id }}"{{ with .format }} data-format="{{ . }}"{{ end }}{{ range .providerIds }}{{ $pid := . }}{{ with index $attrs $pid.source }}{{ if findRE "^data-[a-z0-9-]+$" . }}{{ printf " %s=\"%s\"" . (htmlEscape $pid.value) | safeHTMLAttr }}{{ end }}{{ end }}{{ end }}>
@@ -172,9 +204,9 @@
          on load and unhides the button in the same pass -- so no-JS gets a longer
          rail, which is the failure worth having. */ -}}
   {{- $shown := site.Params.similarShown | default 8 | int -}}
-  <section class="lcat-similar" aria-labelledby="lcat-sim" data-pagefind-ignore
+  <section class="lcat-section lcat-similar" aria-labelledby="lcat-sim" data-pagefind-ignore
     {{- if gt (len .) $shown }} data-similar-shown="{{ $shown }}"{{ end }}>
-    <h2 id="lcat-sim">{{ i18n "moreLikeThis" }}</h2>
+    <h2 id="lcat-sim" class="lcat-section-head">{{ i18n "moreLikeThis" }}</h2>
     {{- /* The rail is computed, not catalogued, and tasks/284 put that in writing
            where a reader could see it. The covers took the room, but the claim is
            not one to drop silently: it stays in the document. */}}
