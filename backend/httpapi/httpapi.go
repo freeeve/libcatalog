@@ -183,6 +183,7 @@ func New(deps Deps) http.Handler {
 	}
 	if deps.Suggest != nil && deps.Verifier != nil {
 		registerPromotions(mux, deps.Suggest, deps.Publisher, deps.Verifier, deps.Logger)
+		registerSuggestionPolicy(mux, deps.Suggest, deps.Verifier)
 	}
 	if deps.Exports != nil && deps.Verifier != nil {
 		registerExports(mux, deps.Exports, deps.Batch, deps.Verifier)

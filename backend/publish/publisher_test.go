@@ -70,6 +70,10 @@ func newPublisher(t *testing.T) (*Publisher, blob.Store, *suggest.Service, *capt
 	}
 	db := store.NewMem()
 	queue := suggest.New(db, ix, suggest.Caps{})
+	// Open the patron intake (tasks/263); default is off.
+	if _, err := queue.PutPolicy(t.Context(), suggest.Policy{Enabled: true, FreeText: suggest.FreeTextAny}); err != nil {
+		t.Fatal(err)
+	}
 	grains := blob.NewMem()
 	notifier := &captureNotifier{}
 	pub := &Publisher{

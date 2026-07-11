@@ -116,6 +116,14 @@ func registerSuggestions(mux *http.ServeMux, svc *suggest.Service, abuse *sugges
 			writeError(w, http.StatusConflict, "declined")
 		case errors.Is(err, suggest.ErrRateLimited):
 			writeError(w, http.StatusTooManyRequests, "rate limited")
+		// Patron-policy refusals (tasks/263) carry their own message so the
+		// client can explain why -- suggestions off, scheme not open, or the
+		// free-text rule -- rather than a bare "declined".
+		case errors.Is(err, suggest.ErrSuggestionsOff),
+			errors.Is(err, suggest.ErrSchemeNotAllowed),
+			errors.Is(err, suggest.ErrFreeTextOff),
+			errors.Is(err, suggest.ErrNovelTagOff):
+			writeError(w, http.StatusForbidden, err.Error())
 		case errors.Is(err, suggest.ErrBadTerm):
 			writeError(w, http.StatusBadRequest, "unknown term")
 		case err != nil:

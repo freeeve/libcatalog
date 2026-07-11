@@ -64,6 +64,13 @@ var (
 	ErrRateLimited = errors.New("suggest: rate limit exceeded")
 	ErrBadTerm     = errors.New("suggest: term not in a loaded vocabulary")
 	ErrFolkBlocked = errors.New("suggest: folksonomy term is blocked")
+	// Patron-suggestion policy refusals (tasks/263); the API maps these to 403.
+	// They bind patrons only -- ManualTerm (the librarian path) is not gated.
+	ErrSuggestionsOff   = errors.New("suggest: patron suggestions are not enabled here")
+	ErrSchemeNotAllowed = errors.New("suggest: that vocabulary is not open for patron suggestions")
+	ErrFreeTextOff      = errors.New("suggest: free-text tags are not accepted")
+	ErrNovelTagOff      = errors.New("suggest: only tags already in use may be suggested")
+	ErrBadPolicy        = errors.New("suggest: invalid suggestion policy")
 )
 
 // Suggestion is one aggregated (work, term, type) queue item. SupporterCount

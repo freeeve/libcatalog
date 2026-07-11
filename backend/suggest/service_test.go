@@ -41,7 +41,13 @@ func newService(t *testing.T) (*Service, *store.Mem) {
 		t.Fatal(err)
 	}
 	db := store.NewMem()
-	return New(db, ix, Caps{}), db
+	svc := New(db, ix, Caps{})
+	// Open the patron intake for tests that exercise Submit; policy enforcement
+	// itself is covered in policy_test.go against a fresh (default-off) service.
+	if _, err := svc.PutPolicy(t.Context(), Policy{Enabled: true, FreeText: FreeTextAny}); err != nil {
+		t.Fatal(err)
+	}
+	return svc, db
 }
 
 func submit(t *testing.T, svc *Service, workID string, term vocab.TermRef, typ SuggType, hash string) SubmitResult {

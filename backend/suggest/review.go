@@ -254,7 +254,9 @@ func (s *Service) Review(ctx context.Context, decisions []Decision, actor string
 // aggregate is born APPROVED (the librarian is the review) and flows to the
 // graph on the next publish.
 func (s *Service) ManualTerm(ctx context.Context, workID string, ref vocab.TermRef, workTitle, actor string) error {
-	term, _, err := s.resolveTerm(ctx, ref)
+	// patron=false: the librarian is the authority, so the patron-suggestion
+	// policy (tasks/263) does not gate what they may add.
+	term, _, err := s.resolveTerm(ctx, ref, false)
 	if err != nil {
 		return err
 	}

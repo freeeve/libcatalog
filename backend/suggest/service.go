@@ -76,7 +76,10 @@ func (s *Service) Submit(ctx context.Context, in SubmitInput) (SubmitResult, err
 		return SubmitResult{}, fmt.Errorf("suggest: invalid reason %q", in.Reason)
 	}
 	result := SubmitResult{}
-	term, folkNew, err := s.resolveTerm(ctx, in.Term)
+	// The patron policy (tasks/263) gates this intake: resolveTerm with
+	// patron=true refuses a disabled deployment, a scheme outside the allowlist,
+	// or a folk tag the free-text mode forbids.
+	term, folkNew, err := s.resolveTerm(ctx, in.Term, true)
 	if err != nil {
 		return SubmitResult{}, err
 	}
@@ -135,8 +138,25 @@ func (s *Service) Submit(ctx context.Context, in SubmitInput) (SubmitResult, err
 // resolveTerm validates a controlled term against the vocabulary index or
 // runs a folk term through normalization and its lifecycle gate. Returns the
 // canonicalized ref and whether a novel folk term was just proposed.
-func (s *Service) resolveTerm(ctx context.Context, ref vocab.TermRef) (vocab.TermRef, bool, error) {
+func (s *Service) resolveTerm(ctx context.Context, ref vocab.TermRef, patron bool) (vocab.TermRef, bool, error) {
+	// The patron-suggestion policy (tasks/263) applies only to the anonymous
+	// intake (Submit). A cataloger path (ManualTerm) passes patron=false and is
+	// never gated -- the cataloger is the authority, the policy is the public
+	// intake gate.
+	var pol Policy
+	if patron {
+		var err error
+		if pol, err = s.GetPolicy(ctx); err != nil {
+			return ref, false, err
+		}
+		if !pol.Enabled {
+			return ref, false, ErrSuggestionsOff
+		}
+	}
 	if ref.Scheme != vocab.FolkScheme {
+		if patron && !pol.allowsScheme(ref.Scheme) {
+			return ref, false, ErrSchemeNotAllowed
+		}
 		if s.vocab == nil {
 			return ref, false, ErrBadTerm
 		}
@@ -147,6 +167,9 @@ func (s *Service) resolveTerm(ctx context.Context, ref vocab.TermRef) (vocab.Ter
 		ref.Label = term.Label("")
 		return ref, false, nil
 	}
+	if patron && pol.FreeText == FreeTextOff {
+		return ref, false, ErrFreeTextOff
+	}
 	norm, err := vocab.NormalizeFolk(ref.ID)
 	if err != nil {
 		return ref, false, ErrBadTerm
@@ -156,6 +179,11 @@ func (s *Service) resolveTerm(ctx context.Context, ref vocab.TermRef) (vocab.Ter
 	rec, err := s.db.Get(ctx, folkKey(norm))
 	switch {
 	case errors.Is(err, store.ErrNotFound):
+		// A novel folk tag: refused when the policy admits only tags already in
+		// use (tasks/263), before it is created.
+		if patron && pol.FreeText == FreeTextExisting {
+			return ref, false, ErrNovelTagOff
+		}
 		ft := FolkTerm{Term: norm, Status: FolkProposed, CreatedAt: s.now().UTC()}
 		data, _ := json.Marshal(ft)
 		if _, err := s.db.Put(ctx, store.Record{Key: folkKey(norm), Data: data}, store.CondIfAbsent); err != nil && !errors.Is(err, store.ErrConditionFailed) {

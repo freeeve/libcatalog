@@ -39,6 +39,10 @@ func newModerationAPI(t *testing.T) (http.Handler, *suggest.Service) {
 		t.Fatal(err)
 	}
 	svc := suggest.New(store.NewMem(), ix, suggest.Caps{})
+	// Open the patron intake (tasks/263); default is off.
+	if _, err := svc.PutPolicy(t.Context(), suggest.Policy{Enabled: true, FreeText: suggest.FreeTextAny}); err != nil {
+		t.Fatal(err)
+	}
 	verifier := staffVerifier{
 		"mod-token": {Email: "mod@example.org", Roles: []auth.Role{auth.RoleModerator}},
 		"lib-token": {Email: "lib@example.org", Roles: []auth.Role{auth.RoleLibrarian}},

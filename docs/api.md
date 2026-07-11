@@ -566,6 +566,8 @@ of them: `/` serves the admin SPA, `/v1/` is the JSON-404 catch-all.
 | `POST` | `/v1/batch/resolve` | librarian | `batch_handlers.go` |
 | `GET` | `/v1/challenge` | public | `suggest_handlers.go` |
 | `POST` | `/v1/concerns` | public | `suggest_handlers.go` |
+| `GET` | `/v1/config/suggestions` | admin | `suggestpolicy_handlers.go` |
+| `PUT` | `/v1/config/suggestions` | admin | `suggestpolicy_handlers.go` |
 | `GET` | `/v1/copycat/batches` | librarian | `copycat_handlers.go` |
 | `POST` | `/v1/copycat/batches` | librarian | `copycat_handlers.go` |
 | `DELETE` | `/v1/copycat/batches/{id}` | librarian | `copycat_handlers.go` |
@@ -623,6 +625,7 @@ of them: `/` serves the admin SPA, `/v1/` is the JSON-404 catch-all.
 | `POST` | `/v1/review` | moderator | `review_handlers.go` |
 | `GET` | `/v1/stats` | librarian | `review_handlers.go` |
 | `POST` | `/v1/suggestions` | public | `suggest_handlers.go` |
+| `GET` | `/v1/suggestions/policy` | public | `suggestpolicy_handlers.go` |
 | `GET` | `/v1/tags` | moderator | `promotion_handlers.go` |
 | `GET` | `/v1/term` | public | `terms_handler.go` |
 | `GET` | `/v1/terms` | public | `terms_handler.go` |
