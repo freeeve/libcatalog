@@ -139,6 +139,7 @@ func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, prof *p
 			writeError(w, http.StatusBadRequest, "bad request body")
 			return
 		}
+		term.MergedInto = "" // retirement is merge's to write, never a client field (mirror POST); Update restores the prior grain's value
 		etag, err := svc.Update(r.Context(), authID, term, ifMatch, id.Email)
 		switch {
 		case errors.Is(err, authoritiesvc.ErrValidation):

@@ -123,6 +123,58 @@ func TestAuthorityCRUDFlow(t *testing.T) {
 // browse returns a `total` that is the real count of local headings, not the
 // length of the truncated page, so the screen can say how many exist and know
 // the page is capped rather than presenting the fetch limit as a total.
+// TestAuthorityPutCannotForgeMergedInto is the tasks/357 gate: mergedInto is the
+// retired/merged marker and Merge is its only legitimate writer (Merge also rewrites
+// every referencing Work to the winner). POST already strips a client-supplied value;
+// PUT must too, else a plain description edit could retire a live heading catalogers
+// are using and point it at a dangling URI, skipping all the reference rewriting.
+func TestAuthorityPutCannotForgeMergedInto(t *testing.T) {
+	h, _, _ := newAuthoritiesAPI(t)
+
+	rec := request(t, h, http.MethodPost, "/v1/authorities", "lib-token", "", map[string]any{
+		"prefLabel": map[string]string{"en": "Live heading"},
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create = %d %s", rec.Code, rec.Body.String())
+	}
+	var created struct{ ID, URI, ETag string }
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+
+	// A description edit that also forges a retirement target -- no merge, no rewrite.
+	const forged = "https://github.com/freeeve/libcat/authority/afake00000000"
+	rec = request(t, h, http.MethodPut, "/v1/authorities/"+created.ID, "lib-token", created.ETag, map[string]any{
+		"prefLabel":  map[string]string{"en": "Live heading (edited)"},
+		"mergedInto": forged,
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update = %d %s", rec.Code, rec.Body.String())
+	}
+
+	// The label edit persists; the forged retirement is stripped, so the heading
+	// stays live rather than pointing at a dangling merge target.
+	rec = request(t, h, http.MethodGet, "/v1/authorities/"+created.ID, "lib-token", "", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get = %d %s", rec.Code, rec.Body.String())
+	}
+	var got struct {
+		Term struct {
+			PrefLabel  map[string]string `json:"prefLabel"`
+			MergedInto string            `json:"mergedInto"`
+		} `json:"term"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Term.MergedInto != "" {
+		t.Errorf("mergedInto = %q, want empty -- PUT must not let a client forge retirement (tasks/357)", got.Term.MergedInto)
+	}
+	if got.Term.PrefLabel["en"] != "Live heading (edited)" {
+		t.Errorf("prefLabel = %q, want the description edit to have applied", got.Term.PrefLabel["en"])
+	}
+}
+
 func TestAuthoritiesListReportsTrueTotal(t *testing.T) {
 	h, _, _ := newAuthoritiesAPI(t)
 	const n = 7
