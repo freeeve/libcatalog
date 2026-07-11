@@ -298,6 +298,42 @@ func TestMergeSelfGuard(t *testing.T) {
 	}
 }
 
+// TestMergeRefusesAlreadyRetired is the tasks/341 gate: a term already merged
+// into one winner cannot be merged into a different one -- a second appended
+// mergedInto marker would leave a nondeterministic retirement target and move no
+// works. Re-merging into the same winner stays idempotent.
+func TestMergeRefusesAlreadyRetired(t *testing.T) {
+	svc, _, _, _ := newService(t)
+	mk := func(label string) string {
+		id, _, err := svc.Create(t.Context(), bibframe.AuthorityTerm{PrefLabel: map[string]string{"en": label}}, "lib@example.org")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	loser, winner1, winner2 := mk("Loser L"), mk("Winner W1"), mk("Winner W2")
+
+	if _, err := svc.Merge(t.Context(), loser, vocab.TermRef{Scheme: authoritiesvc.LocalScheme, ID: winner1}, "lib@example.org"); err != nil {
+		t.Fatalf("first merge L->W1: %v", err)
+	}
+	// A second merge into a DIFFERENT winner is refused as validation.
+	if _, err := svc.Merge(t.Context(), loser, vocab.TermRef{Scheme: authoritiesvc.LocalScheme, ID: winner2}, "lib@example.org"); !errors.Is(err, authoritiesvc.ErrValidation) {
+		t.Fatalf("second merge L->W2 err = %v, want ErrValidation", err)
+	}
+	// The retirement target is unchanged -- still W1, not clobbered or doubled.
+	term, _, err := svc.Get(t.Context(), loser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if term.MergedInto != bibframe.LocalAuthorityIRI(winner1) {
+		t.Fatalf("mergedInto = %q, want the W1 IRI (unchanged)", term.MergedInto)
+	}
+	// Re-merging into the SAME winner stays idempotent (no error).
+	if _, err := svc.Merge(t.Context(), loser, vocab.TermRef{Scheme: authoritiesvc.LocalScheme, ID: winner1}, "lib@example.org"); err != nil {
+		t.Fatalf("idempotent re-merge L->W1: %v", err)
+	}
+}
+
 // TestMergeRefusesNamespaceMismatch covers tasks/202 at the service layer:
 // a grain stored under one short id but describing a different IRI base
 // (pre-rename or imported namespaces) errors as validation instead of

@@ -208,6 +208,18 @@ func (s *Service) Merge(ctx context.Context, loserID string, winner vocab.TermRe
 	if !bibframe.AuthorityGrainDescribes(loserGrain, loserURI) {
 		return MergeResult{}, fmt.Errorf("%w: authority grain for %s does not describe %s -- namespace mismatch", ErrValidation, loserID, loserURI)
 	}
+	// A term already retired into a survivor may not be merged into a different
+	// one: AddAuthorityMergeMarker appends, so a second marker would leave the
+	// loser with two contradictory mergedInto statements whose effective winner is
+	// nondeterministic (quad order), and the re-merge would move no works (the
+	// first merge already repointed the carriers off the loser). Refuse it,
+	// symmetric to the self-merge and namespace guards (tasks/341). Re-merging into
+	// the same winner stays idempotent.
+	if prior, err := bibframe.ParseAuthorityGrain(loserGrain, loserURI, LocalScheme); err != nil {
+		return MergeResult{}, err
+	} else if prior.MergedInto != "" && prior.MergedInto != winner.ID {
+		return MergeResult{}, fmt.Errorf("%w: term %s is already merged into %s; it cannot be merged again", ErrValidation, loserID, prior.MergedInto)
+	}
 	subject := s.winnerSubject(winner)
 	summaries, paths, err := ingest.SummariesOf(ctx, s.Summaries, s.Blob, s.Prefix+"data/works/")
 	if err != nil {
