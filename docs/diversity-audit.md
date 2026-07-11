@@ -131,6 +131,16 @@ match rate first, then each property's value distribution over distinct
 resolved creators with the not-stated remainder alongside. No person is ever
 named in the report.
 
+**Why Wikidata and not the name authorities:** LCNAF/NACO records carry
+names, dates, places, occupations, and languages -- identifiers, not
+demographics. The one demographic field it had (MARC 375, gender) was
+formally retired by the PCC in April 2022 -- do not record, delete on edit --
+for the same privacy and misgendering reasons this feature's rules encode;
+ethnicity and orientation were never systematically recorded (LCDGT terms in
+bib-level 385/386 are sparse and describe records, not persons). Name
+authorities remain excellent resolution identifiers; they are not a claims
+source.
+
 Expect low match rates and read them first. Wikidata's book coverage is
 thin and skewed: most editions have no ISBN item at all, ~82% of humans with
 a gender claim are "male", and non-Western and Indigenous creators are
