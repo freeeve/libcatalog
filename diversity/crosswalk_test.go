@@ -253,3 +253,26 @@ func writeFile(t *testing.T, path, content string) {
 		t.Fatalf("write %s: %v", path, err)
 	}
 }
+
+// TestReligionCategoryRescope: the representation frame admits
+// denomination-level faith-community terms; the id keeps the historical slug
+// so operator overrides keyed on it keep unioning.
+func TestReligionCategoryRescope(t *testing.T) {
+	cw := Default()
+	if got := cw.Label("religious-minorities"); got != "Religion & faith communities" {
+		t.Errorf("label = %q, want the representation framing", got)
+	}
+	for _, uri := range []string{
+		"https://homosaurus.org/v5/homoit0000048", // LGBTQ+ Anglicans
+		"https://homosaurus.org/v5/homoit0001069", // LGBTQ+ Pagans
+		"https://homosaurus.org/v5/homoit0000386", // LGBTQ+ Eastern Orthodox Christians
+	} {
+		got := cw.Categorize(uri, "", "homosaurus")
+		if !reflect.DeepEqual(got, []string{"lgbtqia", "religious-minorities"}) {
+			t.Errorf("Categorize(%s) = %v, want [lgbtqia religious-minorities]", uri, got)
+		}
+	}
+	if got := cw.Categorize("", "Wiccans", ""); !reflect.DeepEqual(got, []string{"religious-minorities"}) {
+		t.Errorf("Wiccans = %v, want the faith-communities category", got)
+	}
+}

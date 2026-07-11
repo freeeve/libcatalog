@@ -106,20 +106,26 @@ keywords = [
 uris = []
 
 [[category]]
+# The id keeps the historical slug for operator-override compatibility; the
+# LABEL is the category's meaning. Representation framing ("what faith
+# communities does the collection speak to"), matching the audit prior art --
+# not a per-denomination majority/minority ruling, which was both US-centric
+# and demographically wrong (392, superseding the 387 decline).
 id = "religious-minorities"
-label = "Religious minorities"
+label = "Religion & faith communities"
 keywords = [
   "muslim", "muslims", "islam", "jewish", "judaism", "jews", "hindu", "hinduism",
   "sikh", "sikhism", "buddhist", "buddhism", "jain", "jainism", "bahai",
-  "religious minorities",
+  "pagan", "wicca", "wiccan", "religious minorities",
 ]
 uris = [
-  # Homosaurus v5 intersectional terms matching this category's existing
-  # keyword scope (non-Christian traditions + Jewish). Denomination-level
-  # terms (LGBTQ+ Anglicans etc.) stay an operator-override choice.
+  # Homosaurus v5 intersectional faith-community terms.
   "https://homosaurus.org/v5/homoit0000682", # Jewish LGBTQ+ people
   "https://homosaurus.org/v5/homoit0000225", # LGBTQ+ Buddhists
   "https://homosaurus.org/v5/homoit0000633", # LGBTQ+ Hindus
+  "https://homosaurus.org/v5/homoit0000048", # LGBTQ+ Anglicans
+  "https://homosaurus.org/v5/homoit0001069", # LGBTQ+ Pagans
+  "https://homosaurus.org/v5/homoit0000386", # LGBTQ+ Eastern Orthodox Christians
 ]
 
 [[category]]

@@ -66,7 +66,7 @@ development does -- that is a feature of an honest audit, not a flaw.
 
 The shipped seed (`diversity/crosswalk.toml`) is conservative and
 US-collection-oriented: women & gender, BIPOC, Indigenous peoples, LGBTQIA+,
-disability & neurodiversity, religious minorities, immigrants & diaspora,
+disability & neurodiversity, religion & faith communities, immigrants & diaspora,
 economic hardship. It is a starting point, not a truth. Operators tune it
 with an override file:
 
