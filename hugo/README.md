@@ -161,7 +161,16 @@ site-side:
   extra = "sources"      # extras key (default: the entry name)
   split = ","            # omit for single-valued extras
   title = "Sources"      # heading; i18n key "sources" wins when defined
+  onDetail = true        # also show this dimension's values as chips on each
+                         # Work page (tasks/353), not only in the browse sidebar
 ```
+
+`onDetail = true` surfaces the dimension on the Work detail page as a labelled
+chip row -- each value linking to the same term page the sidebar facet does --
+in addition to the sidebar. A curated **"On these lists"** dimension is exactly
+this: name the facet `lists`, put each work's lists in `extra.lists`, and set
+`onDetail = true`. It defaults off, so an existing extra facet's Work pages are
+unchanged unless you ask for it.
 
 The adapter splits and trims each work's value, indexes the taxonomy by
 `lcat-slug` keys (URL-safe like tags), and keeps the raw text for display

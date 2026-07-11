@@ -96,6 +96,24 @@
   </section>
   {{ end }}
 
+  {{- /* Opt-in extra-facet chips (tasks/353): a deployment surfaces one of its
+         [params.extraFacets.<name>] dimensions on the Work page with onDetail = true
+         -- e.g. an "On these lists" dimension of curated lists. Each value is a chip
+         linking to the same term page the sidebar facet does. Prepared by the content
+         adapter as .Params.onDetailFacets, so this stays a plain render. */ -}}
+  {{ with .Params.onDetailFacets }}
+  {{ range . }}
+  {{ $f := . }}
+  {{ with $f.items }}
+  <section class="lcat-section" aria-labelledby="lcat-xf-{{ $f.name }}"><h2 id="lcat-xf-{{ $f.name }}" class="lcat-section-head">{{ $f.title }}</h2>
+    <ul class="lcat-tags">
+      {{ range . }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" $f.name "key" .key) }}<li>{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="{{ $f.name }}">{{ .label }}</a>{{ else }}<span data-pagefind-filter="{{ $f.name }}">{{ .label }}</span>{{ end }}</li>{{ end }}
+    </ul>
+  </section>
+  {{ end }}
+  {{ end }}
+  {{ end }}
+
   {{- /* Details (tasks/311): the Work-level facts as a labelled grid of cells
          instead of one long definition list, so series/formats/language/class sit
          side by side and each reads as a captioned value. Each cell is its own <dl>

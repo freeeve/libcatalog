@@ -216,6 +216,14 @@
            tags/tagLabels pattern). */ -}}
     {{- $extraFacetParams := dict -}}
     {{- $extras := or .extra dict -}}
+    {{- /* onDetailFacets (tasks/353): the subset of extra facets a deployment opts
+           onto the Work page with `onDetail = true` -- e.g. a curated "On these
+           lists" dimension. Emitted as a ready-to-render slice of {name, title,
+           items:[{key,label}]} so page.html neither re-reads the config nor does a
+           case-sensitive `<name>Labels` param lookup. The title resolves like the
+           sidebar heading: i18n <name> (bilingual), else the config title, else the
+           humanized name. */ -}}
+    {{- $onDetailFacets := slice -}}
     {{- range $name, $cfg := (or site.Params.extraFacets dict) -}}
       {{- $raw := index $extras (or $cfg.extra $name) -}}
       {{- if $raw -}}
@@ -234,6 +242,11 @@
         {{- end -}}
         {{- if $keys -}}
           {{- $extraFacetParams = merge $extraFacetParams (dict $name $keys (printf "%sLabels" $name) $labels) -}}
+          {{- if $cfg.onDetail -}}
+            {{- $items := slice -}}
+            {{- range $i, $k := $keys -}}{{- $items = $items | append (dict "key" $k "label" (index $labels $i)) -}}{{- end -}}
+            {{- $onDetailFacets = $onDetailFacets | append (dict "name" $name "title" (or (i18n $name) $cfg.title (humanize $name)) "items" $items) -}}
+          {{- end -}}
         {{- end -}}
       {{- end -}}
     {{- end -}}
@@ -337,6 +350,7 @@
       "contributorList" .contributors
       "subjectList" .subjects
       "broaderLabels" $broaderLabels
+      "onDetailFacets" $onDetailFacets
       "instances" .instances
       "relations" .relations
       "seriesList" .series

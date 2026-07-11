@@ -99,6 +99,9 @@ defaultContentLanguage = "en"
   extra = "sources"
   split = ","
   title = "Sources"
+  # Also surface this dimension as chips on each Work page (tasks/353), not just in
+  # the browse sidebar. A curated "On these lists" dimension is declared the same way.
+  onDetail = true
 
 # Negative facet filters (tasks/144): every facet row gets an exclude button;
 # active exclusions render as dismissible "Not X" chips above the results and
