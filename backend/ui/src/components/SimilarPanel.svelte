@@ -9,6 +9,7 @@
   // which a cataloger stated on purpose; nothing here was stated by anyone, so the
   // panel says so and every row explains itself.
   import { onMount } from "svelte";
+  import { coverSrc } from "../lib/covers";
   import { fetchSimilar, humanApiMessage, resolveTermURIs, type SimilarNeighbor } from "../lib/api";
   import type { Term } from "../lib/types";
 
@@ -77,10 +78,17 @@
       &mdash; adding a controlled subject is the fastest way to change that.
     </p>
   {:else}
-    <ul>
+    <ul class="grid">
       {#each neighbours as n (n.workId)}
-        <li>
-          <a href="#/works/{n.workId}">{n.title || n.workId}</a>
+        <li class="card">
+          <a href="#/works/{n.workId}" class="cover-link" aria-label={n.title || n.workId}>
+            {#if n.cover}
+              <img class="cover" src={coverSrc(n.cover)} alt="" loading="lazy" />
+            {:else}
+              <span class="cover no-cover" aria-hidden="true">{(n.title || n.workId).slice(0, 1)}</span>
+            {/if}
+          </a>
+          <a href="#/works/{n.workId}" class="title">{n.title || n.workId}</a>
           {#if n.shared?.length}
             <!-- One element per term, separated by CSS. Joining on a
                  comma is unreadable: a subject heading ("Lesbians' writings,
@@ -97,13 +105,47 @@
 </div>
 
 <style>
-  .similar ul {
+  .similar ul.grid {
     list-style: none;
     padding: 0;
     margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    gap: 0.9rem 0.75rem;
   }
-  .similar li {
-    padding: 0.3rem 0;
+  .card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .cover-link {
+    display: block;
+  }
+  .cover {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: var(--radius, 4px);
+    background: var(--surface-alt, #f2f3f5);
+    border: 1px solid var(--rule, #dde);
+  }
+  .no-cover {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--ink-muted, #99a);
+  }
+  .card .title {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .note,
   .muted {

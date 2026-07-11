@@ -3,7 +3,7 @@
   // editorial-or-feed extra.cover the OPAC's cover slot reads), uploads a
   // replacement, or removes the editorial one. Writes are immediate (like
   // items), not staged ops.
-  import { apiBase } from "../lib/config";
+  import { coverSrc } from "../lib/covers";
   import { deleteCover, putCover, humanApiMessage } from "../lib/api";
   import { isReadOnly } from "../lib/config";
 
@@ -17,18 +17,10 @@
   let error = $state("");
   let bump = $state(0); // cache-buster after replace
 
-  // An absolute feed/CDN cover (extra.cover passthrough, e.g. OverDrive
-  // img-od-cdn) is already resolved -- prefixing apiBase corrupts it into a
-  // same-origin path the server answers with the SPA shell. Only
-  // a site-relative editorial blob path takes the apiBase prefix, and only
-  // that branch can change under this editor, so it alone gets the ?v bump.
-  const src = $derived(
-    !current
-      ? ""
-      : /^https?:\/\//.test(current)
-        ? current
-        : `${apiBase()}/${current}?v=${bump}`,
-  );
+  // Cover-shape resolution lives in lib/covers (the corruption-fix
+  // contract); only the relative branch can change under this editor, so it
+  // alone gets the ?v bump.
+  const src = $derived(coverSrc(current, bump));
 
   async function upload(ev: Event): Promise<void> {
     const input = ev.currentTarget as HTMLInputElement;

@@ -155,3 +155,25 @@ describe("SimilarPanel", () => {
     expect(target.textContent).toMatch(/Suggested automatically/);
   });
 });
+
+describe("SimilarPanel cover grid", () => {
+  it("renders covers (absolute verbatim) and an initial placeholder when absent", async () => {
+    fetchSimilar.mockResolvedValue({
+      similar: [
+        { workId: "wa", title: "American Hippo", cover: "https://img2.od-cdn.com/x.jpg", score: 1 },
+        { workId: "wb", title: "Bare Book", score: 0.5 },
+        { workId: "wc", title: "Editorial Cover", cover: "covers/wc.jpg", score: 0.4 },
+      ],
+    });
+    resolveTermURIs.mockResolvedValue({ terms: {} });
+    render();
+    await settle();
+    const imgs = [...document.querySelectorAll<HTMLImageElement>("img.cover")];
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0]?.getAttribute("src")).toBe("https://img2.od-cdn.com/x.jpg");
+    expect(imgs[1]?.getAttribute("src")).toBe("/covers/wc.jpg");
+    const placeholder = document.querySelector(".no-cover");
+    expect(placeholder?.textContent).toBe("B");
+    expect(document.querySelectorAll(".grid .card")).toHaveLength(3);
+  });
+});

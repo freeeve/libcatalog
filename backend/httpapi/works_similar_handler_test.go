@@ -265,3 +265,46 @@ func TestSimilarIndexRebuildsWhenTheCorpusChanges(t *testing.T) {
 		t.Errorf("titles went stale: %q", after.titles["wsim000005c"])
 	}
 }
+
+// TestSimilarCarriesCovers: a neighbour's extra.cover rides the response
+// so the rail can render its cover grid; a coverless neighbour omits it.
+func TestSimilarCarriesCovers(t *testing.T) {
+	h, bs := newRecordsAPI(t)
+	seedPadding(t, bs, 20)
+	seedSubjectedWork(t, bs, "wsimcov0001a", "Has Cover", "https://ex.org/shared-cov")
+	seedSubjectedWork(t, bs, "wsimcov0001b", "No Cover", "https://ex.org/shared-cov")
+	// Attach a cover extra to the first work's grain.
+	path := bibframe.GrainPath("wsimcov0001a")
+	grain, etag, err := bs.Get(t.Context(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ds, err := rdf.ParseNQuads(grain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ds.Add(rdf.NewIRI(bibframe.WorkIRI("wsimcov0001a")),
+		rdf.NewIRI(bibframe.ExtraPred+"cover"),
+		rdf.NewLiteral("https://img2.od-cdn.com/x.jpg", "", ""), bibframe.FeedGraph("overdrive"))
+	nq, err := ds.Canonical()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bs.Put(t.Context(), path, nq, blob.PutOptions{IfMatch: etag}); err != nil {
+		t.Fatal(err)
+	}
+
+	page := getSimilar(t, h, "wsimcov0001b", "")
+	if len(page.Similar) == 0 {
+		t.Fatal("no neighbours")
+	}
+	var covered *similarNeighbor
+	for i := range page.Similar {
+		if page.Similar[i].WorkID == "wsimcov0001a" {
+			covered = &page.Similar[i]
+		}
+	}
+	if covered == nil || covered.Cover != "https://img2.od-cdn.com/x.jpg" {
+		t.Fatalf("neighbour cover = %+v, want the extra.cover URL", covered)
+	}
+}

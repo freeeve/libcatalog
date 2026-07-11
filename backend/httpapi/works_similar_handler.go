@@ -45,6 +45,10 @@ type similarIndex struct {
 type builtSimilar struct {
 	ix     *similar.Index
 	titles map[string]string
+	// covers holds each work's extra.cover for the rail's cover grid --
+	// either a site-relative editorial blob path or an absolute feed/CDN
+	// URL; the client resolves the two shapes.
+	covers map[string]string
 	known  map[string]bool
 }
 
@@ -63,10 +67,14 @@ func (s *similarIndex) get(ctx context.Context) (*builtSimilar, error) {
 	b := &builtSimilar{
 		ix:     similar.Build(ingest.SimilarWorks(summaries), s.opts()),
 		titles: make(map[string]string, len(summaries)),
+		covers: make(map[string]string, len(summaries)),
 		known:  make(map[string]bool, len(summaries)),
 	}
 	for _, sm := range summaries {
 		b.titles[sm.WorkID] = sm.Title
+		if c := sm.Extras["cover"]; c != "" {
+			b.covers[sm.WorkID] = c
+		}
 		b.known[sm.WorkID] = true
 	}
 	s.built, s.gen = b, gen
@@ -150,6 +158,7 @@ func registerWorksSimilar(mux *http.ServeMux, ix *workindex.Index, verifier auth
 			out = append(out, similarNeighbor{
 				WorkID: s.WorkID,
 				Title:  b.titles[s.WorkID],
+				Cover:  b.covers[s.WorkID],
 				Score:  s.Score,
 				Shared: s.Shared,
 			})
@@ -164,6 +173,7 @@ func registerWorksSimilar(mux *http.ServeMux, ix *workindex.Index, verifier auth
 type similarNeighbor struct {
 	WorkID string   `json:"workId"`
 	Title  string   `json:"title"`
+	Cover  string   `json:"cover,omitempty"`
 	Score  float64  `json:"score"`
 	Shared []string `json:"shared,omitempty"`
 }

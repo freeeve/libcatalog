@@ -961,6 +961,8 @@ export function removeRelation(workId: string, kind: "hasPart" | "partOf", targe
 export interface SimilarNeighbor {
   workId: string;
   title: string;
+  /** extra.cover passthrough: relative editorial blob path or absolute CDN URL. */
+  cover?: string;
   score: number;
   shared?: string[];
 }
