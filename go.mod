@@ -5,7 +5,6 @@ go 1.25.0
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/RoaringBitmap/roaring/v2 v2.14.4
-	github.com/freeeve/libcat/backend v0.139.0
 	github.com/freeeve/libcodex v0.26.1
 	github.com/freeeve/roaringrange v0.30.0
 )
@@ -17,5 +16,4 @@ require (
 	github.com/freeeve/go-stemmers v0.0.0-20260606195828-3c78df9017f5 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
 )

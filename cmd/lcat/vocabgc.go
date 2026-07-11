@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/freeeve/libcat/backend/vocab"
 	"github.com/freeeve/libcat/storage/blob"
+	"github.com/freeeve/libcat/storage/vocabsidecar"
 )
 
 // defaultAuthoritiesPrefix roots the authority tree in the blob store; it matches
@@ -40,14 +40,14 @@ func runVocabGC(args []string) error {
 	ctx := context.Background()
 	bs := blob.NewDir(*store)
 
-	orphans, err := vocab.OrphanSidecars(ctx, bs, *prefix)
+	orphans, err := vocabsidecar.OrphanSidecars(ctx, bs, *prefix)
 	if err != nil {
 		return err
 	}
 	reaped := 0
 	if *reap {
 		for _, o := range orphans {
-			if err := vocab.RemoveSidecar(ctx, bs, *prefix, o.Scheme); err != nil {
+			if err := vocabsidecar.RemoveSidecar(ctx, bs, *prefix, o.Scheme); err != nil {
 				return err
 			}
 			reaped++
@@ -55,7 +55,7 @@ func runVocabGC(args []string) error {
 	}
 	if *asJSON {
 		if orphans == nil {
-			orphans = []vocab.OrphanSidecar{} // a clean run is [], not null, for jq
+			orphans = []vocabsidecar.OrphanSidecar{} // a clean run is [], not null, for jq
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
@@ -64,7 +64,7 @@ func runVocabGC(args []string) error {
 	return printVocabGCReport(orphans, *reap)
 }
 
-func printVocabGCReport(orphans []vocab.OrphanSidecar, reaped bool) error {
+func printVocabGCReport(orphans []vocabsidecar.OrphanSidecar, reaped bool) error {
 	if len(orphans) == 0 {
 		fmt.Println("no orphan sidecars: every manifest names a snapshot that exists")
 		return nil

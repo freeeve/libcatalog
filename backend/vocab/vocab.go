@@ -23,6 +23,7 @@ import (
 
 	"github.com/freeeve/libcat/bibframe"
 	"github.com/freeeve/libcat/storage/blob"
+	"github.com/freeeve/libcat/storage/vocabsidecar"
 )
 
 // SKOS predicate IRIs.
@@ -164,7 +165,7 @@ func buildSnapshot(ctx context.Context, st blob.Store, prefix string, schemes []
 		etag string
 	}
 	var nqs []nqFile
-	manifests := map[string]*SidecarManifest{}
+	manifests := map[string]*vocabsidecar.SidecarManifest{}
 	for entry, err := range st.List(ctx, prefix) {
 		if err != nil {
 			return nil, fmt.Errorf("vocab: list authorities: %w", err)
@@ -172,13 +173,13 @@ func buildSnapshot(ctx context.Context, st blob.Store, prefix string, schemes []
 		switch {
 		case strings.HasSuffix(entry.Path, ".nq"):
 			nqs = append(nqs, nqFile{path: entry.Path, etag: entry.ETag})
-		case strings.HasPrefix(entry.Path, prefix+sidecarDirPart) && strings.HasSuffix(entry.Path, manifestSuffix):
+		case strings.HasPrefix(entry.Path, prefix+vocabsidecar.DirPart) && strings.HasSuffix(entry.Path, vocabsidecar.ManifestSuffix):
 			data, _, err := st.Get(ctx, entry.Path)
 			if err != nil {
 				return nil, fmt.Errorf("vocab: read %s: %w", entry.Path, err)
 			}
-			m := &SidecarManifest{}
-			if err := json.Unmarshal(data, m); err != nil || m.Version != sidecarVersion || m.Scheme == "" {
+			m := &vocabsidecar.SidecarManifest{}
+			if err := json.Unmarshal(data, m); err != nil || m.Version != vocabsidecar.Version || m.Scheme == "" {
 				slog.Warn("vocab: ignoring unreadable sidecar manifest", "path", entry.Path, "err", err)
 				continue
 			}
@@ -216,8 +217,8 @@ func buildSnapshot(ctx context.Context, st blob.Store, prefix string, schemes []
 		snap.addDataset(ds, want)
 		return nil
 	}
-	armedFor := func(f nqFile) []*SidecarManifest {
-		var out []*SidecarManifest
+	armedFor := func(f nqFile) []*vocabsidecar.SidecarManifest {
+		var out []*vocabsidecar.SidecarManifest
 		for _, m := range manifests {
 			if m.Source == f.path && m.SourceETag == f.etag {
 				out = append(out, m)

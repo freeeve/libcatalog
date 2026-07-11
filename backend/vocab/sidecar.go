@@ -18,6 +18,7 @@ import (
 	rr "github.com/freeeve/roaringrange"
 
 	"github.com/freeeve/libcat/storage/blob"
+	"github.com/freeeve/libcat/storage/vocabsidecar"
 )
 
 // sidecarTermCacheCap bounds the materialized-Term cache; at the editor's
@@ -42,9 +43,9 @@ type sidecarScheme struct {
 
 // openSidecar loads a scheme's resident artifacts and wires the record
 // store over ranged reads of the .bin blob.
-func openSidecar(ctx context.Context, st blob.Store, prefix string, m *SidecarManifest) (*sidecarScheme, error) {
+func openSidecar(ctx context.Context, st blob.Store, prefix string, m *vocabsidecar.SidecarManifest) (*sidecarScheme, error) {
 	resident := func(suffix string) ([]byte, error) {
-		data, _, err := st.Get(ctx, sidecarPath(prefix, m.Scheme, suffix))
+		data, _, err := st.Get(ctx, vocabsidecar.Path(prefix, m.Scheme, suffix))
 		if err != nil {
 			return nil, fmt.Errorf("vocab: sidecar %s%s: %w", m.Scheme, suffix, err)
 		}
@@ -68,7 +69,7 @@ func openSidecar(ctx context.Context, st blob.Store, prefix string, m *SidecarMa
 			return nil, fmt.Errorf("vocab: sidecar %s id tier %d: %w", m.Scheme, k+1, err)
 		}
 	}
-	searchRA, _, _, err := blob.ReaderAt(ctx, st, sidecarPath(prefix, m.Scheme, ".search.rrt"))
+	searchRA, _, _, err := blob.ReaderAt(ctx, st, vocabsidecar.Path(prefix, m.Scheme, ".search.rrt"))
 	if err != nil {
 		return nil, fmt.Errorf("vocab: sidecar %s search: %w", m.Scheme, err)
 	}
@@ -79,7 +80,7 @@ func openSidecar(ctx context.Context, st blob.Store, prefix string, m *SidecarMa
 	if err != nil {
 		return nil, err
 	}
-	binRA, _, _, err := blob.ReaderAt(ctx, st, sidecarPath(prefix, m.Scheme, ".rrsr.bin"))
+	binRA, _, _, err := blob.ReaderAt(ctx, st, vocabsidecar.Path(prefix, m.Scheme, ".rrsr.bin"))
 	if err != nil {
 		return nil, fmt.Errorf("vocab: sidecar %s records: %w", m.Scheme, err)
 	}

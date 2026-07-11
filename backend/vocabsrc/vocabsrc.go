@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/freeeve/libcat/storage/blob"
+	"github.com/freeeve/libcat/storage/vocabsidecar"
 
 	"github.com/freeeve/libcat/backend/store"
 	"github.com/freeeve/libcat/backend/vocab"
@@ -409,7 +410,7 @@ func (s *Service) sweepScheme(ctx context.Context, scheme string) error {
 	if scheme == "" {
 		return nil
 	}
-	if err := vocab.RemoveSidecar(ctx, s.Blob, s.prefix(), scheme); err != nil {
+	if err := vocabsidecar.RemoveSidecar(ctx, s.Blob, s.prefix(), scheme); err != nil {
 		return err
 	}
 	return s.removeCacheDir(ctx, scheme)

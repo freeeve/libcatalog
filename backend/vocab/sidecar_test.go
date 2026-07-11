@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/freeeve/libcat/storage/blob"
+	"github.com/freeeve/libcat/storage/vocabsidecar"
 )
 
 // sidecarFixture stores the shared fixture as an installed snapshot, builds
@@ -231,7 +232,7 @@ func TestSidecarSearchIndex(t *testing.T) {
 func sidecarFiles(t *testing.T, st blob.Store) []string {
 	t.Helper()
 	var out []string
-	for e, err := range st.List(t.Context(), "data/authorities/"+sidecarDirPart) {
+	for e, err := range st.List(t.Context(), "data/authorities/"+vocabsidecar.DirPart) {
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -241,13 +242,13 @@ func sidecarFiles(t *testing.T, st blob.Store) []string {
 }
 
 // TestRemoveSidecarLeavesNothingBuildSidecarWrote is the drift guard for
-// sidecarSuffixes. It enumerates the blob store instead of trusting that list, so an
-// artifact that BuildSidecar starts writing and RemoveSidecar forgets fails here
+// vocabsidecar.Suffixes. It enumerates the blob store instead of trusting that list, so an
+// artifact that BuildSidecar starts writing and vocabsidecar.RemoveSidecar forgets fails here
 // rather than accumulating on an operator's disk (tasks/252).
 func TestRemoveSidecarLeavesNothingBuildSidecarWrote(t *testing.T) {
 	_, st := sidecarFixture(t, []string{"lcsh"})
 	// Plus the pre-v2 blob a rebuild orphans, which removal must also take.
-	legacy := sidecarPath("data/authorities/", "lcsh", ".search.bin")
+	legacy := vocabsidecar.Path("data/authorities/", "lcsh", ".search.bin")
 	if _, err := st.Put(t.Context(), legacy, []byte("legacy"), blob.PutOptions{}); err != nil {
 		t.Fatal(err)
 	}
@@ -258,15 +259,15 @@ func TestRemoveSidecarLeavesNothingBuildSidecarWrote(t *testing.T) {
 		t.Fatalf("BuildSidecar wrote only %d artifacts (%v) -- removing them would prove nothing", len(before), before)
 	}
 
-	if err := RemoveSidecar(t.Context(), st, "data/authorities/", "lcsh"); err != nil {
+	if err := vocabsidecar.RemoveSidecar(t.Context(), st, "data/authorities/", "lcsh"); err != nil {
 		t.Fatal(err)
 	}
 	if after := sidecarFiles(t, st); len(after) != 0 {
-		t.Errorf("RemoveSidecar left %d of %d artifacts behind: %v", len(after), len(before), after)
+		t.Errorf("vocabsidecar.RemoveSidecar left %d of %d artifacts behind: %v", len(after), len(before), after)
 	}
 	// Removing a scheme twice is as harmless as removing it once: the snapshot is
 	// gone by now, and an operator retrying a failed removal must not see an error.
-	if err := RemoveSidecar(t.Context(), st, "data/authorities/", "lcsh"); err != nil {
+	if err := vocabsidecar.RemoveSidecar(t.Context(), st, "data/authorities/", "lcsh"); err != nil {
 		t.Errorf("second removal: %v", err)
 	}
 }
@@ -280,7 +281,7 @@ func TestOrphanSidecarsFindsWhatNoSnapshotBacks(t *testing.T) {
 
 	// Control: with the snapshot present, a live sidecar is not an orphan. Without
 	// this the whole test could pass by reporting everything.
-	if orphans, err := OrphanSidecars(ctx, st, "data/authorities/"); err != nil || len(orphans) != 0 {
+	if orphans, err := vocabsidecar.OrphanSidecars(ctx, st, "data/authorities/"); err != nil || len(orphans) != 0 {
 		t.Fatalf("live sidecars reported as orphans: %+v err=%v", orphans, err)
 	}
 
@@ -288,7 +289,7 @@ func TestOrphanSidecarsFindsWhatNoSnapshotBacks(t *testing.T) {
 	if err := st.Delete(ctx, "data/authorities/vocab/authorities.nq"); err != nil {
 		t.Fatal(err)
 	}
-	orphans, err := OrphanSidecars(ctx, st, "data/authorities/")
+	orphans, err := vocabsidecar.OrphanSidecars(ctx, st, "data/authorities/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,20 +297,20 @@ func TestOrphanSidecarsFindsWhatNoSnapshotBacks(t *testing.T) {
 	for _, o := range orphans {
 		got[o.Scheme] = o.Reason
 	}
-	if len(got) != 2 || got["homosaurus"] != orphanSourceMissing || got["lcsh"] != orphanSourceMissing {
+	if len(got) != 2 || got["homosaurus"] != vocabsidecar.ReasonSourceMissing || got["lcsh"] != vocabsidecar.ReasonSourceMissing {
 		t.Fatalf("orphans = %+v, want homosaurus and lcsh both source-missing", orphans)
 	}
 
 	// Sweeping them leaves the store empty and the detection quiet -- the whole point.
 	for _, o := range orphans {
-		if err := RemoveSidecar(ctx, st, "data/authorities/", o.Scheme); err != nil {
+		if err := vocabsidecar.RemoveSidecar(ctx, st, "data/authorities/", o.Scheme); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if rest := sidecarFiles(t, st); len(rest) != 0 {
 		t.Errorf("sweep left %d files: %v", len(rest), rest)
 	}
-	if again, err := OrphanSidecars(ctx, st, "data/authorities/"); err != nil || len(again) != 0 {
+	if again, err := vocabsidecar.OrphanSidecars(ctx, st, "data/authorities/"); err != nil || len(again) != 0 {
 		t.Errorf("orphans survive their own sweep: %+v err=%v", again, err)
 	}
 }
@@ -320,15 +321,15 @@ func TestOrphanSidecarsFindsWhatNoSnapshotBacks(t *testing.T) {
 func TestOrphanSidecarsCollectsAnUnreadableManifest(t *testing.T) {
 	_, st := sidecarFixture(t, []string{"lcsh"})
 	ctx := t.Context()
-	bad := sidecarPath("data/authorities/", "zzbad", manifestSuffix)
+	bad := vocabsidecar.Path("data/authorities/", "zzbad", vocabsidecar.ManifestSuffix)
 	if _, err := st.Put(ctx, bad, []byte("{ not json"), blob.PutOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	orphans, err := OrphanSidecars(ctx, st, "data/authorities/")
+	orphans, err := vocabsidecar.OrphanSidecars(ctx, st, "data/authorities/")
 	if err != nil {
 		t.Fatal(err)
 	}
-	var bad1 *OrphanSidecar
+	var bad1 *vocabsidecar.OrphanSidecar
 	for i := range orphans {
 		if orphans[i].Scheme == "zzbad" {
 			bad1 = &orphans[i]
@@ -339,7 +340,7 @@ func TestOrphanSidecarsCollectsAnUnreadableManifest(t *testing.T) {
 			t.Errorf("live lcsh reported as an orphan: %+v", orphans[i])
 		}
 	}
-	if bad1 == nil || bad1.Reason != orphanManifestUnreadable {
+	if bad1 == nil || bad1.Reason != vocabsidecar.ReasonManifestUnreadable {
 		t.Fatalf("unreadable manifest not collected as an orphan: %+v", orphans)
 	}
 }
@@ -352,7 +353,7 @@ func TestOrphanSidecarsSpotsAMissingSourceNotATransientError(t *testing.T) {
 	_, st := sidecarFixture(t, []string{"lcsh"})
 	ctx := t.Context()
 	failing := &getFailsStore{Store: st, on: "data/authorities/vocab/authorities.nq"}
-	if _, err := OrphanSidecars(ctx, failing, "data/authorities/"); err == nil {
+	if _, err := vocabsidecar.OrphanSidecars(ctx, failing, "data/authorities/"); err == nil {
 		t.Fatal("a read error on the snapshot was treated as an orphan, not surfaced")
 	}
 }
@@ -378,12 +379,12 @@ func (s *getFailsStore) Get(ctx context.Context, path string) ([]byte, string, e
 // it.
 func TestRemoveSidecarDoesNotReachIntoANeighbouringScheme(t *testing.T) {
 	_, st := sidecarFixture(t, []string{"lcsh"})
-	neighbour := sidecarPath("data/authorities/", "lcsh.local", manifestSuffix)
+	neighbour := vocabsidecar.Path("data/authorities/", "lcsh.local", vocabsidecar.ManifestSuffix)
 	if _, err := st.Put(t.Context(), neighbour, []byte(`{"scheme":"lcsh.local"}`), blob.PutOptions{}); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := RemoveSidecar(t.Context(), st, "data/authorities/", "lcsh"); err != nil {
+	if err := vocabsidecar.RemoveSidecar(t.Context(), st, "data/authorities/", "lcsh"); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := st.Get(t.Context(), neighbour); err != nil {
@@ -391,7 +392,7 @@ func TestRemoveSidecarDoesNotReachIntoANeighbouringScheme(t *testing.T) {
 	}
 	// Control: the scheme actually asked for is gone, so the survival above is not
 	// simply a removal that did nothing.
-	if _, _, err := st.Get(t.Context(), sidecarPath("data/authorities/", "lcsh", manifestSuffix)); !errors.Is(err, blob.ErrNotFound) {
+	if _, _, err := st.Get(t.Context(), vocabsidecar.Path("data/authorities/", "lcsh", vocabsidecar.ManifestSuffix)); !errors.Is(err, blob.ErrNotFound) {
 		t.Fatalf("lcsh manifest survived its own removal: %v", err)
 	}
 }

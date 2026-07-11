@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/freeeve/libcat/storage/blob"
+	"github.com/freeeve/libcat/storage/vocabsidecar"
 )
 
 const (
@@ -242,7 +243,7 @@ func TestSharedSourceReplayStillDemotesTheSidecar(t *testing.T) {
 	}
 	// Break one scheme's sidecar so it cannot open; its source is then parsed,
 	// which makes the sibling resident too.
-	if err := st.Delete(t.Context(), sidecarPath("data/authorities/", "lcsh", ".uri.rril")); err != nil {
+	if err := st.Delete(t.Context(), vocabsidecar.Path("data/authorities/", "lcsh", ".uri.rril")); err != nil {
 		t.Fatal(err)
 	}
 	if err := ix.Reload(t.Context(), st, "data/authorities/", nil); err != nil {

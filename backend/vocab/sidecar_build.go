@@ -1,13 +1,8 @@
 // Sidecar index builder (tasks/167): serializes one scheme's terms into
 // range-servable roaringrange artifacts so the server never materializes a
-// big vocabulary as Go maps. Layout under <prefix>sidecar/:
-//
-//	<scheme>.rrsr.bin/.idx  full Term JSON per doc (RRSR record store)
-//	<scheme>.uri.rril       term URI -> doc, retired terms included
-//	<scheme>.id1/2/3.rril   canon identifier tiers (own/exactMatch/closeMatch),
-//	                        live terms only -- MatchIdentifier's precedence
-//	<scheme>.search.rrt     RRTI over normalized labels; posting IDs doc<<1|alt
-//	<scheme>.manifest.json  source snapshot path+ETag; presence arms the scheme
+// big vocabulary as Go maps. The on-disk layout, the manifest shape and the
+// remove/orphan lifecycle live in storage/vocabsidecar (root); this file is the
+// builder that writes into that layout.
 //
 // Doc ids are the scheme's term URIs in sorted order, so RRIL postings for
 // one key surface the smallest URI first and output is deterministic.
@@ -20,9 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"path"
 	"sort"
-	"strings"
 
 	"github.com/RoaringBitmap/roaring/v2"
 	rr "github.com/freeeve/roaringrange"
@@ -30,42 +23,16 @@ import (
 	"github.com/freeeve/libcodex/rdf"
 
 	"github.com/freeeve/libcat/storage/blob"
+	"github.com/freeeve/libcat/storage/vocabsidecar"
 )
 
-// SidecarManifest arms a scheme for sidecar serving: it names the source
-// snapshot (and its ETag at build time) the artifacts were built from. A
-// mismatched or missing source, or loose quads for the scheme elsewhere in
-// the authorities tree, bypasses the sidecar for that snapshot build -- the
-// map path remains the correctness backstop.
-type SidecarManifest struct {
-	Version    int    `json:"version"`
-	Scheme     string `json:"scheme"`
-	Source     string `json:"source"`
-	SourceETag string `json:"sourceETag"`
-	// SourceSchemes lists every authority scheme the source file carries --
-	// the loader may skip parsing the file only when all of them are
-	// sidecar-armed, so a shared source never silently drops a scheme.
-	SourceSchemes []string `json:"sourceSchemes"`
-	Terms         int      `json:"terms"`
-	Live          int      `json:"live"`
-}
-
-const (
-	sidecarVersion  = 2
-	sidecarDirPart  = "sidecar/"
-	manifestSuffix  = ".manifest.json"
-	identifierTiers = 3
-)
-
-func sidecarPath(prefix, scheme, suffix string) string {
-	return prefix + sidecarDirPart + scheme + suffix
-}
+const identifierTiers = 3
 
 // BuildSidecar builds and stores the sidecar artifacts for scheme from the
 // installed snapshot at source (usually <prefix>vocab/<scheme>.nq). It
 // parses the snapshot with the same routing the map loader uses, so the two
 // paths index identical terms.
-func BuildSidecar(ctx context.Context, st blob.Store, prefix, scheme, source string) (*SidecarManifest, error) {
+func BuildSidecar(ctx context.Context, st blob.Store, prefix, scheme, source string) (*vocabsidecar.SidecarManifest, error) {
 	data, etag, err := st.Get(ctx, source)
 	if err != nil {
 		return nil, fmt.Errorf("vocab: sidecar source %s: %w", source, err)
@@ -89,7 +56,7 @@ func BuildSidecar(ctx context.Context, st blob.Store, prefix, scheme, source str
 	return buildSidecarTerms(ctx, st, prefix, scheme, source, etag, sourceSchemes, byURI, tmp.search[scheme])
 }
 
-func buildSidecarTerms(ctx context.Context, st blob.Store, prefix, scheme, source, sourceETag string, sourceSchemes []string, byURI map[string]*Term, search []searchEntry) (*SidecarManifest, error) {
+func buildSidecarTerms(ctx context.Context, st blob.Store, prefix, scheme, source, sourceETag string, sourceSchemes []string, byURI map[string]*Term, search []searchEntry) (*vocabsidecar.SidecarManifest, error) {
 	uris := make([]string, 0, len(byURI))
 	for uri := range byURI {
 		uris = append(uris, uri)
@@ -178,16 +145,16 @@ func buildSidecarTerms(ctx context.Context, st blob.Store, prefix, scheme, sourc
 		{".search.rrt", searchBuf},
 	}
 	for _, p := range puts {
-		if _, err := st.Put(ctx, sidecarPath(prefix, scheme, p.suffix), p.data, blob.PutOptions{}); err != nil {
+		if _, err := st.Put(ctx, vocabsidecar.Path(prefix, scheme, p.suffix), p.data, blob.PutOptions{}); err != nil {
 			return nil, fmt.Errorf("vocab: put sidecar %s: %w", p.suffix, err)
 		}
 	}
 	// Best-effort removal of the pre-v2 LCVS search blob a rebuild orphans.
-	if err := st.Delete(ctx, sidecarPath(prefix, scheme, ".search.bin")); err != nil && !errors.Is(err, blob.ErrNotFound) {
+	if err := st.Delete(ctx, vocabsidecar.Path(prefix, scheme, ".search.bin")); err != nil && !errors.Is(err, blob.ErrNotFound) {
 		slog.Warn("vocab: could not remove legacy search blob", "scheme", scheme, "err", err)
 	}
-	m := &SidecarManifest{
-		Version:       sidecarVersion,
+	m := &vocabsidecar.SidecarManifest{
+		Version:       vocabsidecar.Version,
 		Scheme:        scheme,
 		Source:        source,
 		SourceETag:    sourceETag,
@@ -200,101 +167,10 @@ func buildSidecarTerms(ctx context.Context, st blob.Store, prefix, scheme, sourc
 		return nil, err
 	}
 	// The manifest lands last: its presence implies a complete artifact set.
-	if _, err := st.Put(ctx, sidecarPath(prefix, scheme, manifestSuffix), mdata, blob.PutOptions{}); err != nil {
+	if _, err := st.Put(ctx, vocabsidecar.Path(prefix, scheme, vocabsidecar.ManifestSuffix), mdata, blob.PutOptions{}); err != nil {
 		return nil, fmt.Errorf("vocab: put sidecar manifest: %w", err)
 	}
 	return m, nil
-}
-
-// sidecarSuffixes is every file a scheme's sidecar occupies, manifest first and
-// the pre-v2 search blob last. TestRemoveSidecarLeavesNothingBuildSidecarWrote
-// holds this in step with the artifacts BuildSidecar puts.
-var sidecarSuffixes = []string{
-	manifestSuffix,
-	".rrsr.bin", ".rrsr.idx",
-	".uri.rril", ".id1.rril", ".id2.rril", ".id3.rril",
-	".search.rrt",
-	".search.bin", // pre-v2 LCVS search blob; a rebuild orphans it
-}
-
-// RemoveSidecar deletes a scheme's sidecar artifacts, undoing BuildSidecar. It is
-// the caller's job to remove the snapshot the manifest names; removing that alone
-// leaves the artifacts resident forever (tasks/252).
-//
-// The manifest goes first, mirroring the order BuildSidecar writes it in: the
-// manifest is what arms a scheme, so a process that dies mid-delete leaves the
-// scheme served from maps rather than armed on a half-deleted index. A missing
-// artifact is not an error -- the set has changed across sidecar versions, and
-// removing a scheme twice must be as harmless as removing it once.
-//
-// Artifacts are keyed by scheme, not by source name. Two sources declaring the same
-// scheme already overwrite each other's sidecar in BuildSidecar; removal follows the
-// same keying, so the survivor serves from maps until its next install.
-func RemoveSidecar(ctx context.Context, st blob.Store, prefix, scheme string) error {
-	for _, suffix := range sidecarSuffixes {
-		path := sidecarPath(prefix, scheme, suffix)
-		if err := st.Delete(ctx, path); err != nil && !errors.Is(err, blob.ErrNotFound) {
-			return fmt.Errorf("vocab: remove sidecar %s: %w", path, err)
-		}
-	}
-	return nil
-}
-
-// Orphan-sidecar reasons, kept distinct because they tell an operator different
-// things: a live snapshot went away under a complete sidecar, versus a manifest
-// that never parsed and so armed nothing to begin with.
-const (
-	orphanSourceMissing      = "the snapshot the manifest names is gone"
-	orphanManifestUnreadable = "the manifest does not parse"
-)
-
-// OrphanSidecar is one scheme's sidecar artifact set that no live snapshot backs,
-// so it serves nothing and RemoveSidecar can collect it (tasks/322).
-type OrphanSidecar struct {
-	Scheme string `json:"scheme"`
-	// Source is the snapshot the manifest named, now missing (empty when the
-	// manifest itself did not parse).
-	Source string `json:"source,omitempty"`
-	Reason string `json:"reason"`
-}
-
-// OrphanSidecars lists the sidecar artifact sets under prefix that no live snapshot
-// backs. RemoveSnapshot deletes a scheme's artifacts as of tasks/252, but a removal
-// before that shipped left them resident, and nothing collects them at boot: the
-// loader detects the same staleness and serves the scheme from maps, but leaves the
-// files where they are. This is the read half of the sweep; the caller deletes.
-//
-// A scheme is an orphan when the snapshot its manifest names is definitively absent
-// -- a not-found on the source blob, never a transient read error, so a blob store
-// hiccup cannot condemn a live index. A manifest that no longer parses is an orphan
-// too: it arms nothing, and its scheme is recovered from the file name (the artifacts
-// are named the same way) so it can still be collected.
-func OrphanSidecars(ctx context.Context, st blob.Store, prefix string) ([]OrphanSidecar, error) {
-	var out []OrphanSidecar
-	for entry, err := range st.List(ctx, prefix+sidecarDirPart) {
-		if err != nil {
-			return nil, fmt.Errorf("vocab: list sidecars: %w", err)
-		}
-		if !strings.HasSuffix(entry.Path, manifestSuffix) {
-			continue
-		}
-		scheme := strings.TrimSuffix(path.Base(entry.Path), manifestSuffix)
-		data, _, err := st.Get(ctx, entry.Path)
-		if err != nil {
-			return nil, fmt.Errorf("vocab: read %s: %w", entry.Path, err)
-		}
-		m := &SidecarManifest{}
-		if err := json.Unmarshal(data, m); err != nil || m.Version != sidecarVersion || m.Scheme == "" {
-			out = append(out, OrphanSidecar{Scheme: scheme, Reason: orphanManifestUnreadable})
-			continue
-		}
-		if _, _, err := st.Get(ctx, m.Source); errors.Is(err, blob.ErrNotFound) {
-			out = append(out, OrphanSidecar{Scheme: m.Scheme, Source: m.Source, Reason: orphanSourceMissing})
-		} else if err != nil {
-			return nil, fmt.Errorf("vocab: stat snapshot %s: %w", m.Source, err)
-		}
-	}
-	return out, nil
 }
 
 // encodeSearch serializes search entries as an RRTI term index (tasks/169):
