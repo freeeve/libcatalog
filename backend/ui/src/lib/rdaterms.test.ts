@@ -9,7 +9,7 @@ describe("rdaterms", () => {
     expect(rdaTerm("http://id.loc.gov/vocabulary/mediaTypes/s")?.label).toBe("audio");
   });
 
-  it("labels the LOC issuance IRIs the crosswalk emits (tasks/189)", () => {
+  it("labels the LOC issuance IRIs the crosswalk emits", () => {
     expect(rdaTerm("http://id.loc.gov/vocabulary/issuance/mono")?.label).toBe("single unit");
     expect(rdaTerm("http://id.loc.gov/vocabulary/issuance/serl")?.label).toBe("serial");
     expect(rdaTerm("http://id.loc.gov/vocabulary/issuance/mulm")?.label).toBe("multipart monograph");

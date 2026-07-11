@@ -30,7 +30,7 @@ import (
 // workers cannot double-run) and streams the output into the blob store:
 // the emitters write per grain through a pipe into PutStream, so a
 // full-corpus export's peak memory is the per-grain working set, not the
-// output (tasks/108). An emit failure aborts the pipe before the store
+// output. An emit failure aborts the pipe before the store
 // commits anything. Failures land in the job's Error with StatusFailed; Run
 // itself errors only on store problems.
 func (s *Service) Run(ctx context.Context, id string) error {
@@ -46,7 +46,7 @@ func (s *Service) Run(ctx context.Context, id string) error {
 	var records int
 	go func() {
 		// The gzip writer sits inside the pipe, so the emitters still stream per
-		// grain and the compressor's window is the only added memory (tasks/282).
+		// grain and the compressor's window is the only added memory.
 		//
 		// Close flushes the compressor and writes the trailer; without it the
 		// object is a truncated gzip stream. On an aborted emit it is skipped and
@@ -147,7 +147,7 @@ func (s *Service) selectionPaths(ctx context.Context, sel Selection) ([]string, 
 
 // emitTo renders the selection in the job's format onto w. Grains stream one
 // at a time and each format emits as it goes, so nothing output-sized
-// accumulates. Authority jobs render from the term index instead (tasks/069)
+// accumulates. Authority jobs render from the term index instead
 // -- still buffered, bounded by the loaded vocabulary rather than the corpus.
 func (s *Service) emitTo(ctx context.Context, w io.Writer, job Job) (int, error) {
 	if job.Authorities != nil {
@@ -206,7 +206,7 @@ func (s *Service) emitNQuads(ctx context.Context, w io.Writer, paths []string) (
 		// Parse to reject a grain the store accepted but no parser will, which is
 		// the error contract this export has always had. The bytes we emit are the
 		// grain's own, not a re-serialization: a grain is already canonical
-		// N-Quads, and re-encoding it is a second chance to differ (tasks/291).
+		// N-Quads, and re-encoding it is a second chance to differ.
 		if _, err := rdf.ParseNQuads(grain); err != nil {
 			return err
 		}
@@ -226,7 +226,7 @@ func (s *Service) emitNQuads(ctx context.Context, w io.Writer, paths []string) (
 // emitMARC round-trips each grain to MARC (lossiness measured in
 // docs/marc-fidelity.md); the framework-aware decode honors editorial
 // lcat:overrides shadows and re-attaches each record's lcat:marcVerbatim
-// sidecar fields, so the crosswalk-lossy tags round-trip (tasks/049).
+// sidecar fields, so the crosswalk-lossy tags round-trip.
 func (s *Service) emitMARC(ctx context.Context, w io.Writer, paths []string) (int, error) {
 	mw := iso2709.NewWriter(w)
 	count := 0
@@ -290,7 +290,7 @@ func (s *Service) emitJSONLD(ctx context.Context, w io.Writer, paths []string) (
 }
 
 // subjectLabel renders one controlled subject for the human-facing CSV
-// (tasks/233). The grain's own skos:prefLabel wins; otherwise the loaded term
+// . The grain's own skos:prefLabel wins; otherwise the loaded term
 // index resolves the authority IRI, which is why a subject reads as a word
 // whether or not its authority terms happen to have been appended to that
 // particular grain. The IRI is the last resort, not the default: a term no
@@ -311,7 +311,7 @@ func (s *Service) subjectLabel(subj project.Subject) string {
 }
 
 // workHoldings summarizes a Work's items across all its instances for the CSV
-// (tasks/058 item 5): how many holdings it has, and the distinct call numbers,
+// : how many holdings it has, and the distinct call numbers,
 // shelving locations and barcodes among them. Distinct rather than positional
 // -- a spreadsheet sorts and pivots on these, and two copies on one shelf
 // should read as one location, not two. Item notes are deliberately absent:
@@ -341,7 +341,7 @@ func workHoldings(w project.Work) (count int, callNumbers, locations, barcodes [
 
 // emitCSV projects each grain with the real projector and writes one row per
 // Work -- the Koha "export search results" analog over the projected shape.
-// Projection is per grain (tasks/108): a grain carries all of its works'
+// Projection is per grain: a grain carries all of its works'
 // statements, so rows match the whole-corpus projection except that a
 // subject label asserted only in a different work's grain no longer applies
 // -- the old three-copies-in-RAM behavior priced that in.

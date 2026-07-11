@@ -201,7 +201,7 @@ const casWriters = 8
 //
 // Single-threaded conformance cannot distinguish the two. ScyllaDB Alternator
 // run with --alternator-write-isolation=unsafe_rmw passes every other test in
-// this file while silently dropping concurrent edits (tasks/165): the queue's
+// this file while silently dropping concurrent edits: the queue's
 // state transitions, the ingest lease, and the record editor's If-Match all
 // rest on this being real.
 func testConcurrentCAS(t *testing.T, s store.Store) {

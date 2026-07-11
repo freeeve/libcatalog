@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Cover art for one work (tasks/215): shows the current cover (the
+  // Cover art for one work: shows the current cover (the
   // editorial-or-feed extra.cover the OPAC's cover slot reads), uploads a
   // replacement, or removes the editorial one. Writes are immediate (like
   // items), not staged ops.
@@ -19,7 +19,7 @@
 
   // An absolute feed/CDN cover (extra.cover passthrough, e.g. OverDrive
   // img-od-cdn) is already resolved -- prefixing apiBase corrupts it into a
-  // same-origin path the server answers with the SPA shell (tasks/374). Only
+  // same-origin path the server answers with the SPA shell. Only
   // a site-relative editorial blob path takes the apiBase prefix, and only
   // that branch can change under this editor, so it alone gets the ?v bump.
   const src = $derived(

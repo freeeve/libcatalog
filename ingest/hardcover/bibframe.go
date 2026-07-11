@@ -31,7 +31,7 @@ func (r record) Work() codexbf.Work {
 	w.Contributions = b.contributions()
 	// Genres that map to a controlled authority become controlled subjects (see
 	// ControlledSubjects); the rest stay uncontrolled tags, so both dimensions coexist
-	// without duplicating a genre (tasks/026).
+	// without duplicating a genre.
 	for _, g := range b.tags() {
 		w.Subjects = append(w.Subjects, codexbf.Subject{Class: "Topic", Label: g})
 	}
@@ -44,13 +44,13 @@ func (r record) Work() codexbf.Work {
 
 // ControlledSubjects promotes the book's mapped genres to controlled-vocabulary subjects
 // (authority URI + localized labels + skos:broader) via the shipped table, so the shared
-// pipeline emits them into the graph as first-class subjects (tasks/026, ingest.SubjectEnricher).
+// pipeline emits them into the graph as first-class subjects (ingest.SubjectEnricher).
 func (r record) ControlledSubjects() []bibframe.AuthoritySubject {
 	return r.ub.Book.controlledSubjects()
 }
 
 // Instance returns this edition format's Instance-level BIBFRAME: transcribed title,
-// the RDA media type that carries the discovery format (tasks/011), the edition's
+// the RDA media type that carries the discovery format, the edition's
 // ISBNs, and a source-tagged Hardcover provenance id for back-links.
 func (r record) Instance() codexbf.Instance {
 	var inst codexbf.Instance
@@ -87,9 +87,9 @@ func (r record) Identity() identity.Record {
 }
 
 // Extras returns the book's non-BIBFRAME display fields carried through to
-// catalog.json's `extra` object via the feed provenance graph (tasks/026): cover URL,
+// catalog.json's `extra` object via the feed provenance graph: cover URL,
 // personal rating, and read date. The description is NOT an extra: it is core
-// bibliographic data, emitted as bf:summary on the Work (tasks/124). Identical across
+// bibliographic data, emitted as bf:summary on the Work. Identical across
 // a book's format records (first wins). Nil when the book supplies none.
 func (r record) Extras() map[string]string {
 	m := map[string]string{}
@@ -172,7 +172,7 @@ func (b book) contributions() []codexbf.Contribution {
 }
 
 // rdaMediaTerm maps a discovery format to its RDA media type (337 -> bf:media), which
-// the projector reads back into the format facet (tasks/011): audio for an audiobook,
+// the projector reads back into the format facet: audio for an audiobook,
 // computer for an ebook, unmediated for a physical book (which the projector renders as
 // "print"). ok is false for a formatless record, so no media statement is emitted.
 func rdaMediaTerm(format string) (codexbf.RDATerm, bool) {

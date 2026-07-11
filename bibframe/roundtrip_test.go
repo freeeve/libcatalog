@@ -9,7 +9,7 @@ import (
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 
-// tasks/003: MARC <-> BIBFRAME round-trip fidelity as a CI gate. MARC -> BIBFRAME is
+// MARC <-> BIBFRAME round-trip fidelity as a CI gate. MARC -> BIBFRAME is
 // lossy (LC's own converters drop data), so the framework measures the loss and
 // pins it rather than assuming fidelity. The harness round-trips the vendored
 // OverDrive MARC Express samples (MARC -> BIBFRAME via Encode -> MARC via Decode) and
@@ -19,14 +19,14 @@ import (
 //      undocumented loss breaks the build).
 
 // marcExpressSamples are the real OverDrive MARC Express records vendored for the
-// MARC-import ramp (tasks/007).
+// MARC-import ramp.
 var marcExpressSamples = []string{
 	"../ingest/overdrive/testdata/marc-express/od-sample-ebook.mrc",
 	"../ingest/overdrive/testdata/marc-express/od-sample-audiobook.mrc",
 }
 
 // The gates consume the exported fidelity table (bibframe/fidelity.go,
-// tasks/049): coreFields must survive on every sample record that carries
+// ): coreFields must survive on every sample record that carries
 // them, and a round-trip that loses anything NOT in the known-loss table is
 // an unexplained regression -- while a listed field that survives is a stale
 // table (TestMARCRoundTripLossTableCurrent). Update docs/marc-fidelity.md and
@@ -129,7 +129,7 @@ func TestMARCRoundTripLossTableCurrent(t *testing.T) {
 }
 
 // control008 slots the round trip must preserve positionally, not merely
-// semantically (tasks/230, 235): the date, the country, and the content
+// semantically: the date, the country, and the content
 // language. Everything else in the 008 is derived or blank by design.
 var control008Slots = []struct {
 	name     string
@@ -143,7 +143,7 @@ var control008Slots = []struct {
 // TestMARCRoundTrip008PositionsSurvive pins libcodex v0.22.0's positional
 // parity. Before it, decode reconstructed only the country, so a saved
 // provision date reappeared in 260 $c with 008/07-10 blank and the fixed-field
-// builder looked like it had discarded the edit (tasks/230). Tag-presence
+// builder looked like it had discarded the edit. Tag-presence
 // gates cannot see that; this one can. A libcodex regression breaks the build
 // rather than the MARC view.
 func TestMARCRoundTrip008PositionsSurvive(t *testing.T) {

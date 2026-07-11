@@ -254,7 +254,7 @@ func TestAutoLink(t *testing.T) {
 	}
 }
 
-// TestMergeSelfGuard covers tasks/200: a self-merge is rejected regardless
+// TestMergeSelfGuard covers a self-merge is rejected regardless
 // of which id form the caller uses -- the guard used to compare the short
 // minted id against the expanded loser IRI and never matched, so one
 // request could retire a live heading into itself.
@@ -298,7 +298,7 @@ func TestMergeSelfGuard(t *testing.T) {
 	}
 }
 
-// TestMergeRefusesAlreadyRetired is the tasks/341 gate: a term already merged
+// TestMergeRefusesAlreadyRetired is the gate: a term already merged
 // into one winner cannot be merged into a different one -- a second appended
 // mergedInto marker would leave a nondeterministic retirement target and move no
 // works. Re-merging into the same winner stays idempotent.
@@ -334,7 +334,7 @@ func TestMergeRefusesAlreadyRetired(t *testing.T) {
 	}
 }
 
-// TestMergeRefusesNamespaceMismatch covers tasks/202 at the service layer:
+// TestMergeRefusesNamespaceMismatch covers at the service layer:
 // a grain stored under one short id but describing a different IRI base
 // (pre-rename or imported namespaces) errors as validation instead of
 // gaining a phantom labelless node.

@@ -51,9 +51,9 @@
     ops: Op[]; // every staged op; filtered to this resource here
     onstage: (op: Op) => void;
     onunstage: (op: Op) => void;
-    /** Identifier value -> BIBFRAME kind (isbn/issn/id) for badges (tasks/073). */
+    /** Identifier value -> BIBFRAME kind (isbn/issn/id) for badges. */
     idKinds?: Record<string, string>;
-    /** The resource's editing profile fields (tasks/295): when present, the form
+    /** The resource's editing profile fields: when present, the form
      *  takes its field set, order, labels, and hidden flags from the deployment's
      *  profile -- the headline promise of the profile mechanism. The presentation
      *  concerns the server has no vocabulary for (kind, options, decode, section,
@@ -64,7 +64,7 @@
 
   const ID_KIND_LABELS: Record<string, string> = { isbn: "ISBN", issn: "ISSN", id: "provider id" };
 
-  // The record editor obeys its editing profile (tasks/295): the profile owns the
+  // The record editor obeys its editing profile: the profile owns the
   // field set, order, labels, and hidden flags; the local presentation table owns
   // kind/options/decode/section/wide, merged by path in buildFieldSpecs. Absent a
   // profile the shipped shape stands. The mount is stable (the caller renders this
@@ -73,7 +73,7 @@
   const specs: FieldSpec[] = buildFieldSpecs(kind === "work" ? WORK_FIELDS : INSTANCE_FIELDS, fields);
   // svelte-ignore state_referenced_locally
   const heading = kind === "work" ? "h2" : "h4";
-  // Subjects and tags render side by side in one full-width row (tasks/193);
+  // Subjects and tags render side by side in one full-width row;
   // everything else flows the two-column worksheet as before.
   const pairedPaths = new Set(["subjects", "tags"]);
   const pairedSpecs = specs.filter((s) => !s.section && pairedPaths.has(s.path));
@@ -84,7 +84,7 @@
   let entry = $state(Object.fromEntries(specs.map((s) => [s.path, { v: "", lang: "", custom: "", langCustom: "" }])));
   let pickerFor = $state<string | null>(null);
   let pickedLabels = $state<Record<string, string>>({});
-  // Vocabulary chips (tasks/071): stored URIs resolved to full terms so
+  // Vocabulary chips: stored URIs resolved to full terms so
   // subjects read as headings, with one expandable neighborhood at a time.
   let resolved = $state<Record<string, Term>>({});
   let expanded = $state<string | null>(null); // `${path}|${uri}`
@@ -117,7 +117,7 @@
     );
   });
 
-  // tasks/193: every resolved term's broader parents resolve too, one
+  // every resolved term's broader parents resolve too, one
   // batched call per level (breadth-first; `attempted` bounds the calls and
   // breaks vocabulary cycles), so SKOS chips can show a root-first path.
   $effect(() => {
@@ -140,7 +140,7 @@
   // Scheme -> whether any resolved term of it carries hierarchy links:
   // SKOS-shaped vocabularies group by root with a path on each chip, flat
   // ones (FAST) stack in compact columns -- the same distinction the
-  // work-search rail draws (tasks/176, tasks/193).
+  // work-search rail draws.
   const schemeHierarchy = $derived.by(() => {
     const h: Record<string, boolean> = {};
     for (const t of Object.values(resolved)) {
@@ -156,7 +156,7 @@
 
   /** Collapses identical values asserted by several feeds -- a multi-feed
    *  cluster carries one statement per graph -- into one display row wearing
-   *  every provenance badge (tasks/196). Ops key on the value, not the
+   * every provenance badge. Ops key on the value, not the
    *  graph, so acting on the merged row acts on every assertion. */
   function mergeProv(values: FieldValue[]): MergedValue[] {
     const out: MergedValue[] = [];
@@ -208,7 +208,7 @@
     return out;
   }
 
-  /** Groups a vocab field's stored values for display (tasks/193): SKOS
+  /** Groups a vocab field's stored values for display: SKOS
    *  terms by their root ancestor (chips carry the intermediate path), flat
    *  schemes' terms per scheme for the column stacks, unresolved values
    *  left to the generic list. Entries sort by label for scanability. */
@@ -260,7 +260,7 @@
   /** Neighborhood "Replace": remove the expanded subject, add the neighbor
    *  -- two ordinary staged ops, so preview/drafts/undo work unchanged.
    *  Replacing with a term the record already carries is just the removal:
-   *  the add would stage an edit that changes nothing (tasks/248). */
+   * the add would stage an edit that changes nothing. */
   function replaceSubject(path: string, fv: FieldValue, next: Term): void {
     // Read the field's state before staging the removal: the ops prop updates
     // through the store, not within this call.
@@ -276,7 +276,7 @@
   /** Neighborhood "Add": the neighbor joins the subjects; the panel stays
    *  open so a cataloger can pull in several narrower terms in a row. A term
    *  the record already carries is not added: the button for it is disabled,
-   *  and this is the guard behind the button (tasks/248). */
+   * and this is the guard behind the button. */
   function addSubject(path: string, next: Term): void {
     if (!wouldChange(next.id, currentIRIs(path))) return;
     pickedLabels[next.id] = bestLabel(next);
@@ -393,7 +393,7 @@
       {:else if fv.iri && spec.kind === "vocab" && fv.annotation}
               {@const p = iriParts(fv.v)}
               <!-- Vocab-index miss, but the grain carries the term's own
-                   skos:prefLabel (tasks/137): show the name; the hint still
+                   skos:prefLabel: show the name; the hint still
                    signals no browse/hierarchy/typeahead for this term. -->
               <span class="v" title={fv.v}>{fv.annotation}</span>
               {#if p.host}<span class="chip-scheme" title={fv.v}>{p.host}</span>{/if}
@@ -404,7 +404,7 @@
               <span class="rdacode" title={fv.v}>{rt.code}</span>
             {:else if fv.iri && spec.path === "links" && /^https?:\/\//.test(fv.v)}
               <!-- The locator's grain-carried 856 $3 label (rdfs:label
-                   annotation, libcodex v0.15.0 / tasks/147) wins; the
+                   annotation, libcodex v0.15.0 /) wins; the
                    URL-shape heuristic covers label-less locators and
                    pre-0.15 grains. -->
               {@const li = linkInfo(fv.v)}
@@ -445,7 +445,7 @@
             {/if}
             {#if fv.annotation && spec.kind !== "vocab"}
               {#if spec.path === "contributors"}
-                <!-- The contribution's bf:role label (tasks/138), presented
+                <!-- The contribution's bf:role label, presented
                      like the public site's "Name (role)". -->
                 <span class="muted">({fv.annotation})</span>
               {:else}
@@ -512,7 +512,7 @@
     <div class="field" class:wide={spec.wide}>
       <svelte:element this={heading} class="fieldhead">{spec.label}</svelte:element>
       {#if spec.kind === "vocab" && values.length > 0}
-        <!-- tasks/193: SKOS terms group under their root ancestor with the
+        <!-- SKOS terms group under their root ancestor with the
              intermediate path on each chip; flat schemes (FAST) stack in
              columns; unresolved values fall through to the plain list. -->
         {@const g = subjectGroups(values)}
@@ -740,7 +740,7 @@
   .field.wide {
     grid-column: 1 / -1;
   }
-  /* tasks/193: subjects and tags share one full-width row -- subjects takes
+  /* subjects and tags share one full-width row -- subjects takes
      the flexible width for its vocabulary groups, tags a fixed rail. */
   .pairrow {
     grid-column: 1 / -1;
@@ -754,7 +754,7 @@
       grid-template-columns: 1fr;
     }
   }
-  /* tasks/193: vocabulary display groups. A SKOS group is headed by its
+  /* vocabulary display groups. A SKOS group is headed by its
      root term; a flat scheme (FAST) stacks its chips in columns. */
   .field > .vgroup {
     justify-self: stretch;
@@ -795,7 +795,7 @@
     padding: 0;
     list-style: none;
   }
-  /* tasks/083: secondary fields fold under one full-width disclosure; the
+  /* secondary fields fold under one full-width disclosure; the
      summary reads like a field label so the closed state stays quiet. */
   .morefields {
     grid-column: 1 / -1;
@@ -844,7 +844,7 @@
     font-family: var(--mono);
     font-size: 0.9em;
   }
-  /* tasks/071: a resolved vocabulary value reads as a heading chip; the
+  /* a resolved vocabulary value reads as a heading chip; the
      caret discloses its SKOS neighborhood inline. */
   .chip {
     display: inline-flex;

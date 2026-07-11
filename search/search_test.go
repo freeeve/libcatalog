@@ -120,7 +120,7 @@ func TestBuildIndexes(t *testing.T) {
 	}
 }
 
-// TestTrigramRecall proves the CJK/unsegmented-script arm (tasks/005 item 3): a
+// TestTrigramRecall proves the CJK/unsegmented-script arm: a
 // Chinese corpus routes to a trigram RRSI index, and a substring query's trigrams
 // recall the doc that contains it (verified through roaringrange's Go RRSI reader,
 // so no browser is needed). Word-level indexing would collapse each title into one

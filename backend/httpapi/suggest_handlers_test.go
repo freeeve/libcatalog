@@ -33,7 +33,7 @@ func newSuggestAPI(t *testing.T) (http.Handler, *suggest.Abuse, func(time.Durati
 		t.Fatal(err)
 	}
 	svc := suggest.New(store.NewMem(), ix, suggest.Caps{})
-	// Open the patron intake (tasks/263); default is off. Disabled/allowlist
+	// Open the patron intake; default is off. Disabled/allowlist
 	// behavior is covered in suggestpolicy_handlers_test.go.
 	if _, err := svc.PutPolicy(t.Context(), suggest.Policy{Enabled: true, FreeText: suggest.FreeTextAny}); err != nil {
 		t.Fatal(err)

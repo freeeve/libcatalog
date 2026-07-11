@@ -8,9 +8,9 @@ import (
 )
 
 // bf:source scheme codes for OverDrive's identifiers and classification, tagged so
-// each is unambiguously recoverable from a grain (ARCHITECTURE §9, tasks/008). They
+// each is unambiguously recoverable from a grain (ARCHITECTURE §9). They
 // are exported so downstream consumers -- notably the runtime availability adapter
-// (tasks/004), which keys on the Reserve ID -- select the right node by scheme.
+// , which keys on the Reserve ID -- select the right node by scheme.
 const (
 	// SourceBISAC is the bf:source of a BISAC subject-category code.
 	SourceBISAC = "bisacsh"
@@ -52,10 +52,10 @@ func (it Item) Work() codexbf.Work {
 		}
 	}
 	// BISAC is a controlled classification: the code carries bf:source "bisacsh" so
-	// the scheme is explicit (tasks/008). The MARC detour dropped these entirely.
+	// the scheme is explicit. The MARC detour dropped these entirely.
 	// The feed's heading text rides the display-only Label (rdfs:label in the
 	// graph, libcodex v0.14.0), so facets show the heading while MARC 084
-	// keeps the code (tasks/142).
+	// keeps the code.
 	for _, b := range it.BISAC {
 		if b.Code != "" {
 			w.Classifications = append(w.Classifications,
@@ -63,7 +63,7 @@ func (it Item) Work() codexbf.Work {
 		}
 	}
 	// The feed description is an HTML fragment; bf:summary carries plain
-	// text (tasks/126, same promotion the Hardcover blurb got in tasks/124).
+	// text (same promotion the Hardcover blurb got).
 	if text := htmlText(it.Description); text != "" {
 		w.Summary = []string{text}
 	}
@@ -79,7 +79,7 @@ func (it Item) Instance() codexbf.Instance {
 		inst.Titles = append(inst.Titles, title)
 	}
 	inst.EditionStatement = it.Edition
-	// Format lives on the Instance, not just the Work content class (tasks/011): when
+	// Format lives on the Instance, not just the Work content class: when
 	// an ebook and audiobook cluster into one Work, the Work class reflects only the
 	// first edition, so per-edition format must be an Instance property. Both are
 	// digital ("online resource" carrier); the RDA media type distinguishes them.
@@ -92,7 +92,7 @@ func (it Item) Instance() codexbf.Instance {
 		inst.Identifiers = append(inst.Identifiers, codexbf.Identifier{Class: "Isbn", Value: isbn})
 	}
 	// The OverDrive title id and Reserve ID are local identifiers, distinguished by
-	// bf:source (tasks/008): the title id carries "overdrive", the Reserve ID
+	// bf:source: the title id carries "overdrive", the Reserve ID
 	// "overdrive-reserve" so the availability adapter can recover it unambiguously.
 	// The Reserve ID is a stable per-edition key (not volatile availability data),
 	// so it stays in the feed grain per the ARCHITECTURE §5 provenance model.
@@ -224,7 +224,7 @@ func (it Item) provisionBF() *codexbf.Provision {
 // leader-byte crosswalk ('i' -> Audio, 'a' -> Text). The Work class is retained for
 // single-format Works, but the projector's format facet reads the Instance media
 // type (rdaMediaTerm) so a clustered mixed-format Work exposes each edition's format
-// (tasks/011).
+// .
 func workClass(typeID string) string {
 	if typeID == "audiobook" {
 		return "Audio"
@@ -236,7 +236,7 @@ func workClass(typeID string) string {
 // audio for an audiobook, computer for an ebook, each carrying the id.loc.gov
 // mediaTypes code ($b) so the grain matches a record-derived BIBFRAME. This
 // per-Instance discriminant is what the projector maps to a discovery format
-// (audiobook vs ebook), so format survives edition clustering (tasks/011).
+// (audiobook vs ebook), so format survives edition clustering.
 func rdaMediaTerm(typeID string) codexbf.RDATerm {
 	if typeID == "audiobook" {
 		return codexbf.RDATerm{Code: "s", Label: "audio"}

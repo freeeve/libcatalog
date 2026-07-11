@@ -148,7 +148,7 @@ func TestApplyKeepsIndexExactWithoutRescan(t *testing.T) {
 	}
 }
 
-// TestDuplicateBarcodes is the tasks/270 report: a barcode held by more than one
+// TestDuplicateBarcodes is the report: a barcode held by more than one
 // item across the corpus is surfaced with the works holding it; a barcode on one
 // item is not.
 func TestDuplicateBarcodes(t *testing.T) {
@@ -172,7 +172,7 @@ func TestDuplicateBarcodes(t *testing.T) {
 	}
 }
 
-// TestDuplicateGroupsExcludesHiddenWorks is the tasks/348 fix: a tombstoned or
+// TestDuplicateGroupsExcludesHiddenWorks is the fix: a tombstoned or
 // suppressed work is retired, so it is not a merge candidate and drops out of the
 // duplicates report -- mirroring DuplicateBarcodes' live-only filter. A group left
 // with fewer than two live works disappears entirely.
@@ -230,7 +230,7 @@ func TestDuplicateGroupsExcludesHiddenWorks(t *testing.T) {
 	}
 }
 
-// TestBarcodeHeldByOther is the tasks/347 write-time check: a barcode on a live
+// TestBarcodeHeldByOther is the write-time check: a barcode on a live
 // item of another instance is a collision; the holding instance itself is not
 // (a re-save); and a suppressed work's barcode is not live, so it frees up.
 func TestBarcodeHeldByOther(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 
 // Blank-node labels in a merged N-Quads document -- SerializeGrains' catalog.nq
 // and the export service's catalog.nq dump, which are required to agree
-// (tasks/291).
+//.
 //
 // A grain is stored as canonical N-Quads: its blank nodes already carry `_:c14nN`
 // labels that are a pure function of the grain's own graph. Merging used to throw
@@ -131,8 +131,8 @@ type grainEntry struct {
 // SerializeGrains alike -- so the file means the same thing whichever wrote it
 // last. It did not: ingest re-encoded the grains through one rdf.Encoder and
 // emitted traversal-order `_:b1, _:b2, …` labels, so a build that ran ingest
-// without serialize exported the unstable dump tasks/291 had just fixed
-// (tasks/298). Callers must emit grains in work-id order.
+// without serialize exported the unstable dump had just fixed
+// . Callers must emit grains in work-id order.
 func WriteMergedGrain(w io.Writer, workID string, grain []byte) error {
 	out := RelabelGrainBlanks(grain, GrainBlankPrefix(GrainPath(workID)))
 	if len(out) > 0 && out[len(out)-1] != '\n' {

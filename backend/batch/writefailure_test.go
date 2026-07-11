@@ -117,7 +117,7 @@ func assertNotLeaky(t *testing.T, msg string) {
 	}
 }
 
-// tasks/272: the raw *os.PathError went into ItemResult.Error and straight on to
+// the raw *os.PathError went into ItemResult.Error and straight on to
 // the screen. The single-record route answers "grain write failed" for the
 // identical failure; so does this one now.
 func TestBatchWriteFailureDoesNotLeakTheStoreError(t *testing.T) {
@@ -171,7 +171,7 @@ func TestBatchWriteFailurePassesAnOpValidationErrorThrough(t *testing.T) {
 }
 
 // A read-only deployment is a policy, not a fault, and the batch route is
-// allowlisted so it reaches the store (tasks/260). Every record used to report
+// allowlisted so it reaches the store. Every record used to report
 // the blob package's internal name, "blob: store is read-only".
 func TestBatchWriteFailureReportsReadOnlyLikeTheGuard(t *testing.T) {
 	svc := serviceOver(t, blob.ReadOnly(seededMem(t)), nil)
@@ -197,7 +197,7 @@ func TestBatchWriteFailureReportsAConflictWithoutThePath(t *testing.T) {
 	}
 }
 
-// The operator needs the path the cataloger must not see. Before tasks/272 it
+// The operator needs the path the cataloger must not see. Before it
 // was rendered and never logged: the one reader who could act on it never saw it.
 func TestBatchWriteFailureLogsTheRawErrorForTheOperator(t *testing.T) {
 	var sb strings.Builder
@@ -229,7 +229,7 @@ func TestBatchWriteFailureWithoutALoggerDoesNotPanic(t *testing.T) {
 
 // The store's own sentinel must survive publish.MutateGrain's wrap, or a
 // read-only deployment reads as a broken one. This is the %v-versus-%w defect
-// tasks/260 found one layer up, asserted here at the layer that wraps.
+// found one layer up, asserted here at the layer that wraps.
 func TestBatchWriteFailurePreservesTheStoreSentinel(t *testing.T) {
 	st := seededMem(t)
 	broken := &putFailBlob{Store: st, failPath: bibframe.GrainPath("wbatch0000001"), err: blob.ErrReadOnly}

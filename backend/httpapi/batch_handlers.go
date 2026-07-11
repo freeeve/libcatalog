@@ -14,7 +14,7 @@ import (
 // count always covers the full selection.
 const resolvePreviewLimit = 50
 
-// registerBatch mounts the batch-operations surface (tasks/047): selection
+// registerBatch mounts the batch-operations surface: selection
 // preview, op-list runs (dry-run and execute), macros, saved queries, and
 // the profile set the SPA's op builder renders from. Librarian-gated like
 // the rest of the editing surface.
@@ -124,7 +124,7 @@ func registerBatch(mux *http.ServeMux, svc *batch.Service, verifier auth.TokenVe
 		w.WriteHeader(http.StatusNoContent)
 	})))
 
-	// Item templates (tasks/069): saved item field sets on the macros
+	// Item templates: saved item field sets on the macros
 	// sharing model; applying one pre-fills the item form.
 	mux.Handle("GET /v1/item-templates", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { NON_SCREEN_ROUTES, ROUTES } from "./router";
 import { chordMap, isCurrent, paletteLabel, SCREENS, sidebarScreens } from "./screens";
 
-// tasks/244: the palette, the "g <letter>" chords, and the sidebar were three
+// the palette, the "g <letter>" chords, and the sidebar were three
 // hand-maintained lists and no two agreed. The palette answered "No matching
 // commands." for Vocabularies, Withdrawals and Profiles -- which does not say
 // "that screen is elsewhere", it says the thing does not exist. These tests are

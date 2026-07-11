@@ -1,12 +1,12 @@
 {{- /*
-  Resolved display title for a taxonomy term page (tasks/149), shared by
+  Resolved display title for a taxonomy term page, shared by
   term.html and head-seo.html so the h1 and the head <title>/og:title agree.
-  Subject terms key by scheme-prefixed slug (tasks/141), so the human label
+  Subject terms key by scheme-prefixed slug, so the human label
   (and its vocabulary) comes from the cached facets.json lookup; languages map
   their 639-2 code to a name and classifications show their projected label, else
-  the raw code their slugged key no longer spells (tasks/142, tasks/276);
+  the raw code their slugged key no longer spells;
   contributors whose key had to lose a `/` recover their name the same way
-  (tasks/276); deployment-defined dimensions resolve their raw label (tasks/143);
+; deployment-defined dimensions resolve their raw label;
   other taxonomies keep the term key as the title.
 
   Context: a term page. Returns a dict of "label" and "scheme" ("" except for
@@ -24,7 +24,7 @@
     {{- $label = . -}}
   {{- end -}}
 {{- else if eq .Data.Plural "contributors" -}}
-  {{- /* Only the names whose key had to lose a `/` are in this map (tasks/276);
+  {{- /* Only the names whose key had to lose a `/` are in this map;
          every other contributor is spelled by its own key. */ -}}
   {{- with index (partialCached "lcat-contributor-names.html" .) .Data.Term -}}
     {{- $label = . -}}

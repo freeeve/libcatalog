@@ -13,7 +13,7 @@ import (
 // Command runs a shell command on every event -- the local dev loop: point
 // it at "lcat serialize && lcat project" targeting a running `hugo server`'s
 // data directory and published edits appear in the discovery site within
-// seconds, no cloud, no CI (the hugo-watcher idea from tasks/054). The
+// seconds, no cloud, no CI (the hugo-watcher idea). The
 // changed blob paths arrive newline-joined in $LCAT_CHANGED_PATHS.
 type Command struct {
 	// Shell command, run via sh -c.

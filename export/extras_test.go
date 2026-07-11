@@ -14,7 +14,7 @@ import (
 // plantExtra appends one lcat:extra/<key> quad to the first Work's grain, the
 // way an ingest mapping or an editorial pass leaves one, and returns that Work's
 // id. It goes in a grain, not in catalog.nq: the exporter derives the nq download
-// from the grains (tasks/304), so a quad that exists only in catalog.nq exists
+// from the grains, so a quad that exists only in catalog.nq exists
 // nowhere the exporter looks.
 func plantExtra(t *testing.T, root, key, value string) string {
 	t.Helper()
@@ -60,7 +60,7 @@ func nqOf(t *testing.T, in string, opts Options) string {
 	return gunzip(t, filepath.Join(opts.Out, "catalog.nq.gz"))
 }
 
-// tasks/277: the nq download is a public surface, so the extra-key allowlist has
+// the nq download is a public surface, so the extra-key allowlist has
 // to govern it the way it governs catalog.json. A private holdings flag ("this
 // library already has it") must not ride the RDF out.
 //
@@ -121,7 +121,7 @@ func TestBothAllowlistsCompose(t *testing.T) {
 
 // A cover the public catalog cannot name is a cover no public page renders, so
 // publishing the blob would disclose exactly what the allowlist withheld -- the
-// tasks/304 class of leak. The covers directory is not written at all, and the
+// class of leak. The covers directory is not written at all, and the
 // build says why rather than leaving an operator to wonder.
 func TestCoversAreWithheldWhenCoverIsNotAllowlisted(t *testing.T) {
 	in := corpus(t, bookRecord("c1", "9780000000011", "Author, A.", "First Book"))

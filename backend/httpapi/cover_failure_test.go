@@ -133,7 +133,7 @@ func TestCoverFailureIsTargetedAtTheCoverShard(t *testing.T) {
 	_ = h
 }
 
-// tasks/266: a failed byte Put must not leave the record claiming a cover whose
+// a failed byte Put must not leave the record claiming a cover whose
 // bytes were never stored. The phantom 404s at a public URL, the editor's Cover
 // panel renders it, and re-uploading hits the same failing Put.
 func TestFailedCoverUploadLeavesNoPhantom(t *testing.T) {
@@ -159,7 +159,7 @@ func TestFailedCoverUploadLeavesNoPhantom(t *testing.T) {
 
 // A failed replacement must restore the cover it was replacing, not clear it.
 // The previous cover's bytes are still stored and still serving; clearing the
-// statement would orphan a working, public image -- the tasks/261 lesson.
+// statement would orphan a working, public image -- the lesson.
 func TestFailedCoverReplacementRestoresThePreviousCover(t *testing.T) {
 	mem := blob.NewMem()
 	bs := &flakyBlob{Store: mem}
@@ -185,7 +185,7 @@ func TestFailedCoverReplacementRestoresThePreviousCover(t *testing.T) {
 	}
 }
 
-// tasks/266's teeth: DELETE answered 204 while the bytes kept serving at the
+// the teeth: DELETE answered 204 while the bytes kept serving at the
 // public, unauthenticated URL, and the grain dropped the only reference that
 // would ever have found them again. A takedown that looks done was not done.
 func TestFailedCoverDeleteIsReportedAndKeepsTheRecordConsistent(t *testing.T) {
@@ -236,7 +236,7 @@ func TestFailedCoverDeleteIsReportedAndKeepsTheRecordConsistent(t *testing.T) {
 
 // Replacing a JPEG with a PNG sweeps the JPEG. If that sweep fails the old
 // image keeps serving at its own public URL while the record points at the new
-// one -- the tasks/243 takedown failure, reached through a store error rather
+// one -- the takedown failure, reached through a store error rather
 // than through the ordering bug 243 fixed. It must not answer 200.
 func TestFailedStaleCoverSweepIsReported(t *testing.T) {
 	mem := blob.NewMem()

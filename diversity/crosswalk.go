@@ -1,7 +1,7 @@
 // Package diversity maps a work's controlled subjects to diversity-audit
-// categories (libcat tasks/365). It is the "content demographics" half of the
+// categories. It is the "content demographics" half of the
 // diversity-audit feature: what works are *about*, derived from their subject
-// headings. Creator demographics are a separate, opt-in axis (tasks/368).
+// headings. Creator demographics are a separate, opt-in axis.
 //
 // The crosswalk is data-driven from an embedded TOML seed, which an operator may
 // override with their own file. Matching a subject to a category is a statement
@@ -26,7 +26,7 @@ var seedTOML []byte
 
 // Category is one diversity-audit category and the controlled subjects that map to
 // it: an exact authority-URI match, a whole-word/phrase match on a subject's
-// heading label (tolerating plural inflections of each keyword, tasks/373), or a
+// heading label (tolerating plural inflections of each keyword), or a
 // whole-vocabulary match by scheme code (e.g. every homosaurus-scheme subject is
 // LGBTQIA+-relevant). The taxonomy is an editorial choice; this is its data shape.
 type Category struct {
@@ -166,7 +166,7 @@ func (c *Crosswalk) Label(id string) string {
 
 // Categorize returns the ids of every category a single subject maps to, in stable
 // reporting order. A subject matches a category by exact authority URI, by its
-// vocabulary scheme code (tasks/373 -- e.g. every homosaurus-scheme subject), or by
+// vocabulary scheme code (e.g. every homosaurus-scheme subject), or by
 // a whole-word/phrase match of any of the category's keywords against the heading
 // label, tolerating plural inflections. Passing "" for an argument skips that
 // dimension.
@@ -201,7 +201,7 @@ func (c *Crosswalk) Categorize(uri, label, scheme string) []string {
 
 // CategorizeSubjects returns the ids of every category any of the given subjects
 // maps to, deduplicated and in stable reporting order -- the work-level roll-up a
-// caller (tasks/366) uses to count a work once per matched category.
+// caller uses to count a work once per matched category.
 func (c *Crosswalk) CategorizeSubjects(subjects []SubjectRef) []string {
 	hit := map[string]bool{}
 	for _, s := range subjects {
@@ -257,7 +257,7 @@ func tokens(s string) []string {
 
 // containsSeq reports whether the keyword token sequence seq occurs contiguously in
 // the heading tokens, where each heading token may also be the plural inflection of
-// its keyword token (tasks/373): "Lesbians" matches keyword "lesbian", "Drag
+// its keyword token: "Lesbians" matches keyword "lesbian", "Drag
 // queens" matches "drag queen". The tolerance is one-directional -- a plural
 // keyword does not match a singular heading -- and deliberately shallow (-s/-es
 // only), so "Gaya" still never matches "gay" and "Poore" never matches "poor".

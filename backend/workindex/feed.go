@@ -1,4 +1,4 @@
-// Change feed for the work index (tasks/156): a best-effort accelerator that
+// Change feed for the work index: a best-effort accelerator that
 // gives cross-container read-your-writes without a corpus List. A write appends
 // its projected entry (or a tombstone) to a small feed blob; a reader replays
 // the feed over its snapshot. The List-diff refresh (workindex.go) stays the

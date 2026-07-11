@@ -1,6 +1,6 @@
 {{- /*
   Contributor term key -> the name as catalogued, for the handful of names the key
-  cannot spell (tasks/276).
+  cannot spell.
 
   A contributor is taxonomy-indexed by its own name, bounded through lcat-cap. That
   partial replaces `/` with `-`, because a key is one path segment and a slash makes
@@ -11,7 +11,7 @@
   all but a few of them key to themselves; an entry each would be a large map built
   to answer nothing. A name absent here is its own heading, which is correct.
 
-  Built via scratch (merge in a loop is quadratic -- tasks/133); call through
+  Built via scratch (merge in a loop is quadratic); call through
   partialCached: nothing here reads page state.
 */ -}}
 {{- $s := newScratch -}}

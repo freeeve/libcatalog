@@ -20,7 +20,7 @@ func coverGrain(t *testing.T, workID string) []byte {
 }
 
 // The editor's Cover panel reads the cover by name, because it is not a profile
-// field and so never appears in the doc's fields map (tasks/242).
+// field and so never appears in the doc's fields map.
 func TestCoverOfReadsEditorialAndFeedCovers(t *testing.T) {
 	const workID = "wcover0000001"
 	grain := coverGrain(t, workID)

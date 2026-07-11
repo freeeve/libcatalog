@@ -72,7 +72,7 @@ func TestBuildBrowse(t *testing.T) {
 	}
 }
 
-// TestBuildBrowseSubjectAncestry checks tasks/174: subject postings roll up
+// TestBuildBrowseSubjectAncestry checks subject postings roll up
 // through skos:broader (a parent category covers its subtree), an ancestor
 // never used as a direct subject is minted with the child's scheme, and
 // browse-subjects.json carries labels, scheme, and broader edges.
@@ -135,7 +135,7 @@ func TestBuildBrowseSubjectAncestry(t *testing.T) {
 	}
 }
 
-// TestBuildBrowseTermSideband checks tasks/178: a minted ancestor fills its
+// TestBuildBrowseTermSideband checks a minted ancestor fills its
 // labels, broader edges, and scheme from Catalog.Terms, and those broader
 // edges extend the rollup walk across ancestors no work carries -- the
 // postings reach a grandparent known only to the sideband.

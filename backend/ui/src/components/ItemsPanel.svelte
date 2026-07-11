@@ -1,8 +1,8 @@
 <script lang="ts">
-  // Holdings editor (tasks/051): the minimal bf:Item rows -- call number,
+  // Holdings editor: the minimal bf:Item rows -- call number,
   // location, barcode, note -- per instance, replaced wholesale on save.
   // Circulation state never lives here. Item templates pre-fill rows and
-  // bulk add generates N copies with sequential barcodes (tasks/069).
+  // bulk add generates N copies with sequential barcodes.
   import { onMount } from "svelte";
   import {
     ApiError,
@@ -29,7 +29,7 @@
   let items = $state<WorkItem[]>([]);
   // The etag of the grain this list was read from. The save is a whole-list
   // replacement, so writing without it deletes whatever another cataloger added
-  // while this panel was open (tasks/273).
+  // while this panel was open.
   let etag = $state("");
   let dirty = $state(false);
   let busy = $state(false);
@@ -57,7 +57,7 @@
     );
   });
 
-  /** Loads the list and the token the save writes back under (tasks/273). */
+  /** Loads the list and the token the save writes back under. */
   async function load(): Promise<void> {
     try {
       const res = await fetchItems(workId);
@@ -94,7 +94,7 @@
     ];
     if (template.barcodePrefix) bulkPrefix = template.barcodePrefix;
     // The width rides into the form the way the prefix does, so it survives
-    // clearing the select and is re-savable (tasks/293).
+    // clearing the select and is re-savable.
     bulkWidth = template.barcodeWidth;
     dirty = true;
   }
@@ -124,7 +124,7 @@
     }
   }
 
-  /** Renames the selected owned template (edit lifecycle, tasks/293). */
+  /** Renames the selected owned template (edit lifecycle). */
   async function renameTemplate(): Promise<void> {
     if (!template || !canManageTemplate) return;
     const label = prompt("Rename template", template.label)?.trim();
@@ -139,7 +139,7 @@
     }
   }
 
-  /** Removes the selected owned template (tasks/293; calls the long-dead
+  /** Removes the selected owned template (calls the long-dead
       deleteItemTemplate). */
   async function removeTemplate(): Promise<void> {
     if (!template || !canManageTemplate) return;
@@ -159,7 +159,7 @@
 
   async function bulk(dryRun: boolean): Promise<void> {
     // Executing a bulk add refetches the list, which would silently drop any
-    // unsaved manual rows/edits -- refuse until they are saved (tasks/114).
+    // unsaved manual rows/edits -- refuse until they are saved.
     if (!dryRun && dirty) {
       error = "save (or remove) the pending item edits before bulk adding";
       return;
@@ -212,7 +212,7 @@
       if (e instanceof ConflictError) {
         // Somebody else edited this record's holdings while the panel was open.
         // Reload rather than overwrite: their copy is a physical book on a
-        // shelf, and this save would have unlinked it (tasks/273).
+        // shelf, and this save would have unlinked it.
         const mine = items.length;
         await load();
         error = `another cataloger changed this record's items while you were editing. Your ${mine} row${mine === 1 ? "" : "s"} were not saved; the list below is theirs. Re-apply your changes and save again.`;

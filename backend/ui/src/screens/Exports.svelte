@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Exports (tasks/048): a new-export form (format + selection, honest about
-  // MARC lossiness) over the tasks/038 job runner, and the job list with
+  // Exports: a new-export form (format + selection, honest about
+  // MARC lossiness) over the job runner, and the job list with
   // live status, record counts, expiry, and download links. Search results
   // and the batch screen deep-link here with the selection prefilled
   // (#/exports?kind=search&q=…).
@@ -11,7 +11,7 @@
   import type { ExportFormat, ExportJob, SavedQuery, Selection } from "../lib/types";
 
   // Prefill from a deep link (kind + query/ids/savedQueryId, plus the facet
-  // filters and tombstoned mode "Export these results…" carries, tasks/254).
+  // filters and tombstoned mode "Export these results…" carries).
   let {
     initialKind = "",
     initialQuery = "",
@@ -28,7 +28,7 @@
     initialTombstoned?: string;
   } = $props();
 
-  // Labels name the file that actually lands (tasks/282): the machine formats
+  // Labels name the file that actually lands: the machine formats
   // download as gzip artifacts, while CSV is decompressed by the browser and
   // saves as a plain .csv.
   const FORMATS: { value: ExportFormat; label: string; note: string }[] = [
@@ -48,7 +48,7 @@
   // fresh mount per deep link).
   // svelte-ignore state_referenced_locally
   // Entire catalog is the default: valid by construction, matching how
-  // "Export these results…" arrives with no query (tasks/197). Deep links
+  // "Export these results…" arrives with no query. Deep links
   // still pick their own kind.
   let kind = $state<Selection["kind"]>(
     initialKind === "ids" || initialKind === "search" || initialKind === "savedQuery" ? initialKind : "all",
@@ -61,7 +61,7 @@
   let savedQueryId = $state(initialSavedQuery);
   let savedQueries = $state<SavedQuery[]>([]);
   let format = $state<ExportFormat>("csv");
-  // Authority exports (tasks/069): terms instead of work grains.
+  // Authority exports: terms instead of work grains.
   let target = $state<"works" | "authorities">("works");
   let vocabPicks = $state<Record<string, boolean>>({});
   let labelFilter = $state("");
@@ -78,7 +78,7 @@
 
   const formatNote = $derived(FORMATS.find((f) => f.value === format)?.note ?? "");
   // The reason the current selection cannot run, or "" when it can --
-  // Preview/Export disable on it instead of round-tripping a 400 (tasks/197).
+  // Preview/Export disable on it instead of round-tripping a 400.
   const selectionGap = $derived.by(() => {
     if (target === "authorities") return "";
     switch (kind) {
@@ -294,7 +294,7 @@
     </div>
     <!-- The filters the works screen was showing when "Export these results…"
          was clicked. They are named on screen because the count depends on them
-         (tasks/254); before, they were silently discarded. -->
+; before, they were silently discarded. -->
     {#if facetsActive}
       <p class="facet-note muted">
         {#if facetsApply}

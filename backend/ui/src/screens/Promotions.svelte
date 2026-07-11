@@ -3,7 +3,7 @@
   // into a controlled term; librarians decide, and approval executes the
   // batch rewrite (the response reports how many works it touched).
   //
-  // Approval runs the rewrite first and only then stamps APPROVED (tasks/300),
+  // Approval runs the rewrite first and only then stamps APPROVED,
   // so a failed rewrite leaves the row PENDING with its Approve button live and
   // the count of what it managed to rewrite recorded. Decided rows carry a
   // Delete, which is the only way out of an approval made with no publisher.
@@ -236,7 +236,7 @@
             {#if librarian}
               <!-- A decided row had no control of any kind. An approval made with
                    no publisher wired is executed nowhere and cannot be re-decided
-                   or re-proposed; deleting it frees the tag (tasks/300). -->
+                   or re-proposed; deleting it frees the tag. -->
               <div class="acts">
                 <button class="button button--quiet" onclick={() => void remove(p)}>Delete</button>
               </div>

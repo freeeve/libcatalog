@@ -20,7 +20,7 @@ import (
 // media masters).
 const attachmentMaxBytes = 20 << 20
 
-// registerAttachments mounts staff work attachments (tasks/229, 058 item
+// registerAttachments mounts staff work attachments (058 item
 // 2): arbitrary working files stored in the blob store with an editorial
 // lcat:attachment statement per file. Librarian-only end to end -- nothing
 // here is projected publicly -- and downloads serve as octet-stream
@@ -90,16 +90,16 @@ func registerAttachments(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 		// Whether the record already claimed this name decides what a failed
 		// byte write must undo, below.
 		existed := slices.Contains(held, name)
-		// An upload never lands on another file's bytes (tasks/236). Replacing
+		// An upload never lands on another file's bytes. Replacing
 		// is a deliberate act, not the default a second POST falls into.
 		if existed && r.URL.Query().Get("replace") != "true" {
 			writeError(w, http.StatusConflict, name+" is already attached; delete it first, or POST with ?replace=true")
 			return
 		}
 		// Grain first: the describes-guard means a typo'd id never stores
-		// orphan bytes (the tasks/215 covers discipline). The cost is that a
+		// orphan bytes (the covers discipline). The cost is that a
 		// failed byte write leaves a statement the bytes do not back, so the
-		// grain write is compensated below rather than abandoned (tasks/261).
+		// grain write is compensated below rather than abandoned.
 		etag, err := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
 			return bibframe.SetAttachment(g, workID, name, true)
 		})
@@ -168,7 +168,7 @@ func registerAttachments(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 		// 204 promises the bytes are gone. When they are not, restore the
 		// statement rather than orphan a file the grain no longer indexes:
 		// staff attachments are the private side of a record, and a librarian
-		// deleting one for a legal reason must not be told it worked (tasks/261).
+		// deleting one for a legal reason must not be told it worked.
 		if err := deleteAttachmentBytes(r, bs, workID, name); err != nil {
 			if _, rerr := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
 				return bibframe.SetAttachment(g, workID, name, true)

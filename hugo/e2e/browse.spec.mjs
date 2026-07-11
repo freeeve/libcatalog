@@ -1,4 +1,4 @@
-// Real-browser E2E for the RoaringRange client browse path (tasks/158): boots
+// Real-browser E2E for the RoaringRange client browse path: boots
 // the WASM reader in Chromium and drives search, facet-only browse, query+facet
 // intersection, and the static-list restore. jsdom cannot run ES modules/WASM,
 // so this is the only automated coverage of the reader path -- see README.md
@@ -37,17 +37,17 @@ const fields = await page.$$eval("#lcat-browse-facets details summary", (els) =>
 check("facet panel renders fields: " + fields.join(","), fields.includes("format") && fields.includes("language"));
 
 // 1a. Subjects group by vocabulary scheme with the configured display names
-//     (tasks/173): homosaurus + fast, no raw "subject" group.
+//: homosaurus + fast, no raw "subject" group.
 check(
   "panel groups subjects per scheme (Homosaurus + FAST)",
   fields.includes("Homosaurus") && fields.includes("FAST") && !fields.includes("subject"),
 );
 
-// 1b. The homosaurus group is a tree (tasks/174): only root concepts show,
+// 1b. The homosaurus group is a tree: only root concepts show,
 //     counts rolled up over their subtrees -- "Gender identity" (w2 direct +
 //     w1/w3 via the narrower concept = 3) and "Trans community" (a concept
 //     no work carries, minted from the catalog's terms sideband with a real
-//     label, tasks/178; w1/w3 via the narrower concept = 2).
+// label; w1/w3 via the narrower concept = 2).
 await page.$$eval("#lcat-browse-facets details", (ds) => ds.forEach((d) => (d.open = true)));
 await page.waitForSelector("#lcat-browse-facets .lcat-facet-caret", { timeout: 10000 });
 const treeRows = await page.$$eval('#lcat-browse-facets li[data-lcat-field="subject"]', (lis) =>
@@ -65,7 +65,7 @@ check(
 );
 
 // 1b'. A minted ancestor with a sideband label renders as a real tree node
-//      (tasks/178) -- here as a root, since no work carries it directly.
+// -- here as a root, since no work carries it directly.
 check(
   "sideband-labeled minted ancestor renders as a root (Trans community, 2)",
   treeRows.some((r) => !r.nested && r.cat.endsWith("homoit9999902") && r.label === "Trans community" && r.count === "2"),
@@ -75,7 +75,7 @@ check(
 //       ancestor (homoit9999901) absent from the sideband: the build mints
 //       it for rolled-up postings, but it must never render -- a label-less
 //       concept would show as a raw authority URI at the top of the tree
-//       (tasks/176).
+//.
 check(
   "unlabeled minted ancestor never renders (no URI rows)",
   !treeRows.some((r) => r.cat.includes("homoit9999901") || r.label.includes("homosaurus.org")),
@@ -102,7 +102,7 @@ await page.click('#lcat-browse-facets li[data-lcat-cat$="homoit0000669"] input[d
 await page.waitForTimeout(400);
 
 // 1e. The per-group filter searches the full vocabulary and renders matches
-//     under their forced-open ancestors (tasks/174).
+// under their forced-open ancestors.
 const treeFilter = '#lcat-browse-facets details:has(.lcat-facet-caret) .lcat-facet-filter';
 await page.fill(treeFilter, "transgender");
 await page.waitForTimeout(300);
@@ -132,7 +132,7 @@ await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampletwo"]', {
 let hrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
 check("facet-only ebook -> exactly wexampletwo", hrefs.length === 1 && hrefs[0].includes("wexampletwo"));
 
-// 2a. Live facet counts (tasks/177): with ebook active, inactive fields
+// 2a. Live facet counts: with ebook active, inactive fields
 //     intersect the survivors (fre drops to 0 and greys, spa keeps 1), the
 //     active format field recounts with its own selection removed so its
 //     other values stay addable (book keeps 2), and the homosaurus root's
@@ -179,7 +179,7 @@ await page.waitForTimeout(500);
 const staticBack = await page.$$eval("#lcat-results li", (lis) => lis.length);
 check("clearing restores static list (" + staticLis + " lis)", staticBack === staticLis);
 
-// 5a. Clearing also restores the cold full-corpus counts (tasks/177).
+// 5a. Clearing also restores the cold full-corpus counts.
 const coldBack = await page.evaluate(() => {
   const cb = document.querySelector('#lcat-browse-facets input[data-field="language"][data-cat="fre"]');
   const li = cb && cb.closest("li");

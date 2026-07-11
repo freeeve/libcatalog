@@ -1,4 +1,4 @@
-# Diversity-audit subject crosswalk (libcat tasks/365).
+# Diversity-audit subject crosswalk.
 #
 # Each [[category]] maps controlled subjects to one diversity category. A work is
 # counted in a category when any of its subjects matches, by any of:
@@ -20,7 +20,7 @@
 #
 # Matching a subject to a category says the work is *about* that topic -- it does
 # NOT assert anything about the identity of the work's creators. Creator
-# demographics are a separate, opt-in axis (tasks/368).
+# demographics are a separate, opt-in axis.
 
 [[category]]
 id = "women-gender"
@@ -54,7 +54,7 @@ uris = []
 id = "lgbtqia"
 label = "LGBTQIA+"
 # schemes: a subject in one of these vocabularies counts regardless of its label
-# -- essentially every Homosaurus term is queer-relevant (tasks/373, from the
+# -- essentially every Homosaurus term is queer-relevant (from the
 # queerbooks/QLL review).
 schemes = ["homosaurus"]
 keywords = [

@@ -1,4 +1,4 @@
-// Original cataloging (tasks/077): blank-record MARC skeletons and the
+// Original cataloging: blank-record MARC skeletons and the
 // validation gate for records that enter the catalog from the editor rather
 // than an external target. A draft stages into a normal batch with source
 // "original", so review, identity matching, commit, and revert are the same

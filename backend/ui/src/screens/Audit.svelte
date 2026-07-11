@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Audit-log reader (tasks/299): the picked month's entries with NO workId
+  // Audit-log reader: the picked month's entries with NO workId
   // filter, so the system-level actions -- user/role changes, profile edits,
   // imports, batch-run summaries -- that carry no work and are therefore
   // invisible in a work's History tab finally have a screen. The server-side
@@ -56,7 +56,7 @@
   }
 
   /** Renders a note for display. A batch run's note is a RunNote JSON blob
-   *  (tasks/239); unpack the fields that describe what the run did rather than
+   *; unpack the fields that describe what the run did rather than
    *  showing raw JSON. Plain-string notes pass through untouched. */
   function formatNote(note: string): string {
     if (!note.startsWith("{")) return note;

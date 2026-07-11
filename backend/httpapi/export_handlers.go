@@ -24,7 +24,7 @@ type exportView struct {
 // links paste into a browser. With the batch service present, a request may
 // carry a batch.Selection (search / saved query / ids / all) that compiles
 // to the id list at create time -- the export snapshots exactly the works
-// the selection matched (tasks/048).
+// the selection matched.
 func registerExports(mux *http.ServeMux, svc *export.Service, batchSvc *batch.Service, verifier auth.TokenVerifier) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 
@@ -159,7 +159,7 @@ func registerExportDownload(mux *http.ServeMux, svc *export.Service) {
 }
 
 // writeExport serves a stored export, honouring the shape it was stored in
-// (tasks/282). Exports are gzipped at rest, and the format decides whether the
+// . Exports are gzipped at rest, and the format decides whether the
 // client is told so:
 //
 //   - a .gz artifact (nquads, jsonld, marc) goes out as application/gzip, bytes
@@ -171,7 +171,7 @@ func registerExportDownload(mux *http.ServeMux, svc *export.Service) {
 // why the response varies on Accept-Encoding, and it is not hypothetical: curl
 // sends no Accept-Encoding by default.
 //
-// Jobs written before tasks/282 hold plain bytes; they are served as they always
+// Jobs written hold plain bytes; they are served as they always
 // were rather than being compressed on the way out.
 func writeExport(w http.ResponseWriter, r *http.Request, job export.Job, data []byte, gzipped bool) {
 	w.Header().Set("Content-Disposition", `attachment; filename="`+path.Base(job.OutputPath)+`"`)

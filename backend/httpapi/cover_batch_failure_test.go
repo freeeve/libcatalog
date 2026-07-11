@@ -146,7 +146,7 @@ func TestCoverBatchSkippedEntryTouchesNothing(t *testing.T) {
 	}
 }
 
-// tasks/268: a failed byte Put left the grain claiming a cover, reported the
+// a failed byte Put left the grain claiming a cover, reported the
 // entry as "skipped", excluded it from applied, and wrote no audit entry --
 // inside a 200. The compensation makes it a true skip again.
 func TestCoverBatchFailedPutLeavesNoPhantom(t *testing.T) {

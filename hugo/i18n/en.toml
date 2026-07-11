@@ -1,4 +1,4 @@
-# libcat Hugo module -- default (English) UI chrome (tasks/016). Hugo merges a
+# libcat Hugo module -- default (English) UI chrome. Hugo merges a
 # module's i18n bundle into the importing site, so these are the defaults every
 # adopter gets. To translate, add i18n/<lang>.toml with the same keys (missing keys
 # fall back to the default content language) -- no template fork. See README.
@@ -19,7 +19,7 @@ other = "Subjects"
 [formats]
 other = "Formats"
 
-# The Work's series membership(s), each with its own enumeration (tasks/309).
+# The Work's series membership(s), each with its own enumeration.
 [series]
 other = "Series"
 
@@ -39,7 +39,7 @@ other = "Contributors"
 [aboutTitle]
 other = "About this title"
 
-# Opt-in "suggest a subject" link in the Subjects section (tasks/355), shown only when
+# Opt-in "suggest a subject" link in the Subjects section, shown only when
 # [params.suggest] subjectUrl is set. A deployment renames it (e.g. "Suggest a
 # Homosaurus subject") by overriding this key.
 [suggestSubject]
@@ -60,14 +60,14 @@ other = "Editions & formats"
 [isbn]
 other = "ISBN"
 
-# Borrow/hold CTA on an edition (tasks/352). lcat-availability.js reveals the button
+# Borrow/hold CTA on an edition. lcat-availability.js reveals the button
 # and points it at the provider deep link once a borrowable/holdable copy resolves;
 # this is only its label. A deployment can override it per its provider ("Open in
 # Libby", "Place a hold", ...).
 [availabilityAction]
 other = "Borrow"
 
-# Availability chip vocabulary (tasks/356). lcat-availability.js renders these once a
+# Availability chip vocabulary. lcat-availability.js renders these once a
 # copy resolves; the {days}/{n}/{date} placeholders are filled client-side (the values
 # are only known then), and holdsOne/holdsOther are the singular/plural the count
 # selects. The script falls back to these English strings when a translation omits a key.
@@ -109,7 +109,7 @@ other = "More like this"
 
 # The rail is computed, not catalogued. Say so where the reader can see it, so a
 # surprising recommendation reads as a machine's guess rather than a librarian's
-# assertion (tasks/284).
+# assertion.
 [moreLikeThisNote]
 other = "Suggested automatically from shared subjects, tags, contributors and series."
 
@@ -117,11 +117,11 @@ other = "Suggested automatically from shared subjects, tags, contributors and se
 other = "Shares"
 
 # Reveals the neighbours past [params] similarShown. Only rendered when the
-# sidecar carries more than the page opens with (tasks/310).
+# sidecar carries more than the page opens with.
 [viewMore]
 other = "View more"
 
-# The page a merged Work id forwards from (tasks/313). Read only when a reader's
+# The page a merged Work id forwards from. Read only when a reader's
 # browser ignores the meta refresh, so it has to stand on its own.
 [retiredHeading]
 other = "This record has moved"
@@ -138,11 +138,11 @@ other = "Back to all works"
 [authorityRecordFor]
 other = "Authority record for {{ .Label }}"
 
-# Header navigation (tasks/118)
+# Header navigation
 [primaryNav]
 other = "Primary"
 
-# SEO head (tasks/119): the synthesized meta description for a Work page
+# SEO head: the synthesized meta description for a Work page
 # without one of its own.
 [workMetaDescription]
 other = "{{ .Title }} by {{ .Authors }} · {{ .SiteTitle }}"
@@ -165,7 +165,7 @@ other = "Close"
 one = "{{ .Count }} work"
 other = "{{ .Count }} works"
 
-# Browse-mode result labels (tasks/281). lcat-browse.js reads these off
+# Browse-mode result labels. lcat-browse.js reads these off
 # #lcat-results as data attributes, so they localize with the page; before, the
 # script's English fallbacks shipped to every language. browseShowing's {shown},
 # {total} and {results} placeholders are substituted by the script.
@@ -178,7 +178,7 @@ other = "results"
 [browseShowing]
 other = "showing the first {shown} of {total} {results}"
 
-# Browse result pager (tasks/301). browseShowingRange labels a later page (the
+# Browse result pager. browseShowingRange labels a later page (the
 # window no longer starts at one); {from}, {to}, {total}, {results} are
 # substituted by the script. The browsePager* strings name the pager's nav
 # landmark, its prev/next controls, and each numbered link ("Page {n}").
@@ -203,7 +203,7 @@ other = "Dark mode"
 [lightMode]
 other = "Light mode"
 
-# Negative facet filters (tasks/144, opt-in via [params.facets] negatives).
+# Negative facet filters (opt-in via [params.facets] negatives).
 # excludedTerm/removeExclusion pass through to the client script with .Label
 # = "%s"; the script substitutes the term's display label.
 [excludeTerm]

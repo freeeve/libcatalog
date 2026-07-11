@@ -15,7 +15,7 @@ import (
 	"github.com/freeeve/libcat/storage/blob"
 )
 
-// tasks/259: the admin configuration surface -- vocabulary sources and copycat
+// the admin configuration surface -- vocabulary sources and copycat
 // targets -- mutated with no audit entry, while USER_CREATE and COVER_SET were
 // audited. These are the highest-blast-radius controls (uninstalling a
 // vocabulary un-resolves every heading through it; repointing a target changes
@@ -105,7 +105,7 @@ func TestVocabSourceChangesAreAudited(t *testing.T) {
 	if e := byAction["VOCAB_SNAPSHOT_INSTALL"]; !strings.Contains(e.Note, "installed 1 terms") || !strings.Contains(e.Note, "upload") {
 		t.Errorf("VOCAB_SNAPSHOT_INSTALL note = %q", e.Note)
 	}
-	// ...and remove records the transition, not just the act (tasks/259).
+	// ...and remove records the transition, not just the act.
 	if e := byAction["VOCAB_SNAPSHOT_REMOVE"]; !strings.Contains(e.Note, "1 terms -> removed") {
 		t.Errorf("VOCAB_SNAPSHOT_REMOVE note = %q (want a term-count transition)", e.Note)
 	}
@@ -114,7 +114,7 @@ func TestVocabSourceChangesAreAudited(t *testing.T) {
 	}
 }
 
-// tasks/267: evicting a cached live pick is librarian-gated and audited -- a pick
+// evicting a cached live pick is librarian-gated and audited -- a pick
 // joins the crosswalk data every cataloger then resolves through.
 func TestVocabCacheRemoveIsAudited(t *testing.T) {
 	queue := suggest.New(store.NewMem(), nil, suggest.Caps{})

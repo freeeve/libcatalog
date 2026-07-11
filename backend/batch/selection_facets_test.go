@@ -1,4 +1,4 @@
-// tasks/254: "Export these results…" sat beside a count of 465 and resolved to
+// "Export these results…" sat beside a count of 465 and resolved to
 // the entire 62,602-work catalog, because no selection could express a facet.
 // A selection now narrows by the same dimensions the works rail offers, using
 // the same bucketing rules (ingest/facets.go), so the count beside the button
@@ -172,7 +172,7 @@ func TestSelectionRejectsAnUnknownTombstonedMode(t *testing.T) {
 	}
 }
 
-// tasks/205's invariant, which facets must not erode: KindAll is the only way to
+// the invariant, which facets must not erode: KindAll is the only way to
 // say "everything". A whitespace query plus a facet is still not a search.
 func TestFacetsDoNotRescueAnEmptySearchQuery(t *testing.T) {
 	svc, _, _, _ := newService(t)
@@ -183,7 +183,7 @@ func TestFacetsDoNotRescueAnEmptySearchQuery(t *testing.T) {
 		Facets: map[string][]string{"tag": {"space opera"}},
 	}, "lib@example.org")
 	if !errors.Is(err, batch.ErrValidation) {
-		t.Fatalf("err = %v, want ErrValidation (tasks/205): 'everything, filtered' is kind=all + facets", err)
+		t.Fatalf("err = %v, want ErrValidation: 'everything, filtered' is kind=all + facets", err)
 	}
 }
 

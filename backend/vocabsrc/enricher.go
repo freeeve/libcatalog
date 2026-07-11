@@ -20,7 +20,7 @@ type Enricher struct {
 	Client *SuggestClient
 	// Index, when set, upgrades each match with the locally-installed term
 	// description (multilingual labels, broader edges) and rides its
-	// skos:broader ancestor chain along as Enrichment.Terms (tasks/178);
+	// skos:broader ancestor chain along as Enrichment.Terms;
 	// a match whose scheme is not installed keeps the suggest-API label.
 	Index *vocab.Index
 	// MinConfidence drops weaker matches. Default 0.9 (exact label only).

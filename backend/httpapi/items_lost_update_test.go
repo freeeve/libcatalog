@@ -1,4 +1,4 @@
-// tasks/273: PUT /v1/works/{id}/items replaced an instance's holdings wholesale
+// PUT /v1/works/{id}/items replaced an instance's holdings wholesale
 // from a list the client built minutes ago, and read no If-Match. Two catalogers
 // with the item panel open on the same record: the second save deleted the
 // first's item, and both were told 200. A barcode names one physical copy, so the

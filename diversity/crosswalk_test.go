@@ -153,7 +153,7 @@ func TestCategorizeSubjectsRollup(t *testing.T) {
 	}
 }
 
-// TestPluralTolerantKeywords is the tasks/373 inflection fix: a heading's plural
+// TestPluralTolerantKeywords is the inflection fix: a heading's plural
 // matches a singular seed keyword, one-directionally and shallowly, and the old
 // substring false-positive guards still hold.
 func TestPluralTolerantKeywords(t *testing.T) {
@@ -179,7 +179,7 @@ func TestPluralTolerantKeywords(t *testing.T) {
 	}
 }
 
-// TestSchemeMatching is the tasks/373 Homosaurus ask: a subject in a
+// TestSchemeMatching is the Homosaurus ask: a subject in a
 // category-relevant vocabulary counts by scheme code alone, whatever its label,
 // and overrides can add schemes to a category.
 func TestSchemeMatching(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 )
 
 // PredAttachment carries one staff attachment's filename as a plain literal
-// on the Work (tasks/229, 058 item 2): scans, correspondence, acquisition
+// on the Work: scans, correspondence, acquisition
 // paperwork -- cataloging working material, stored in the blob store beside
 // the grain and NEVER projected to the public catalog. Being an lcat:
 // statement it survives re-ingest like every curation decision, and clones
@@ -24,7 +24,7 @@ import (
 // AttachmentBlobPath, under a segment derived from it. Conflating the two is
 // what made the old client-side sanitizer lossy, collapsing every non-Latin
 // filename onto its bare extension and letting the next upload overwrite it
-// (tasks/236).
+// .
 const PredAttachment = LcatNS + "attachment"
 
 // maxAttachmentName bounds the display name in bytes. Each byte encodes to at
@@ -37,7 +37,7 @@ const maxAttachmentName = 100
 var attachmentSegment = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,319}$`)
 
 // legacyAttachmentName is the shape attachment names had to satisfy before
-// tasks/236, when the display name *was* the path segment.
+// when the display name *was* the path segment.
 var legacyAttachmentName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$`)
 
 // ValidAttachmentName reports whether name is usable as an attachment's
@@ -100,7 +100,7 @@ func AttachmentBlobPath(workID, name string) (string, error) {
 	return attachmentDir(workID) + seg, nil
 }
 
-// LegacyAttachmentBlobPath is where an attachment uploaded before tasks/236
+// LegacyAttachmentBlobPath is where an attachment uploaded
 // lives: the display name was the segment. Readers fall back to it so the
 // rename of the encoding scheme does not orphan bytes already stored. Empty
 // when name could never have been a pre-236 segment.

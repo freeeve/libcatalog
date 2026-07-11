@@ -26,7 +26,7 @@
   const PROVENANCES = ["PATRON", "PIPELINE", "LIBRARIAN"];
   // Derived from the type union's own array so the filter can never again omit a
   // type the queue renders -- CONCERN was missing here while the union had it
-  // (tasks/333).
+  //.
   const TYPES = SUGG_TYPES;
 
   // Staged decisions mirror to sessionStorage so a reload or a drill-in to
@@ -175,7 +175,7 @@
       // Decisions another moderator resolved first were discarded. Say so, and
       // keep them staged against their new status rather than clearing the
       // moderator's work away with nothing on screen to contradict the notice
-      // (tasks/257).
+      //.
       const stale = res.staleDecisions ?? [];
       if (stale.length > 0) {
         parts.push(`${stale.length} already decided by someone else`);
@@ -290,7 +290,7 @@
         <span class="chip chip--{s.type === 'ADD' ? 'add' : s.type === 'CONCERN' ? 'concern' : 'remove'}">{s.type}</span>
         <a class="work" href={"#/works/" + encodeURIComponent(s.workId)}>{s.workTitle || s.workId}</a>
         {#if s.type === "CONCERN"}
-          <!-- A concern is freetext, not a term (tasks/210): show the note;
+          <!-- A concern is freetext, not a term: show the note;
                approve reads as resolve, reject as dismiss. -->
           <span class="term concern-note" title={s.note}>{s.note}</span>
         {:else}

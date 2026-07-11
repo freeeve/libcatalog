@@ -1,4 +1,4 @@
-// LOC MARC 21 field documentation links (tasks/074): each known tag maps to
+// LOC MARC 21 field documentation links: each known tag maps to
 // its loc.gov page (bd245.html, adleader.html, ...). Only documented tags
 // link -- local/undefined tags render as plain text rather than a 404 --
 // and the grouped local ranges use their shared pages (09X, 59X).

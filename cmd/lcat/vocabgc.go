@@ -17,9 +17,9 @@ import (
 const defaultAuthoritiesPrefix = "data/authorities/"
 
 // runVocabGC reports, and with --reap deletes, the sidecar artifact sets no live
-// snapshot backs (tasks/322).
+// snapshot backs.
 //
-// RemoveSnapshot deletes a scheme's sidecar as of tasks/252, but a removal before
+// RemoveSnapshot deletes a scheme's sidecar as of but a removal before
 // that release left the artifacts resident, and nothing collects them: the loader
 // detects the same staleness at boot and serves the scheme from maps, but leaves the
 // files where they are. They cost object storage and, worse, make the sidecar

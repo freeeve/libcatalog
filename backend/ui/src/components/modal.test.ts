@@ -52,7 +52,7 @@ describe("Modal", () => {
     expect(document.activeElement?.id).toBe("m-first");
   });
 
-  // tasks/250: clicking content that unmounts the focused control drops focus
+  // clicking content that unmounts the focused control drops focus
   // to <body>; a panel-scoped listener would then go deaf. The window-level
   // trap must keep Escape and the Tab cycle alive.
   it("still closes on Escape after content unmounts the focused control", () => {

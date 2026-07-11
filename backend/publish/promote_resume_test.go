@@ -1,4 +1,4 @@
-// tasks/300: the claim that a failed promotion is free to retry rests on
+// the claim that a failed promotion is free to retry rests on
 // PromoteTag's own loop, not on any idempotence in the write:
 //
 //	for _, summary := range summaries {

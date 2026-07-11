@@ -11,7 +11,7 @@ import (
 )
 
 // duplicateView reports that a saved (or previewed) doc's identity collides
-// with a different existing work (tasks/068) -- the editor's non-blocking
+// with a different existing work -- the editor's non-blocking
 // pre-save warning, mirroring the copycat match banner.
 type duplicateView struct {
 	WorkID string `json:"workId"`

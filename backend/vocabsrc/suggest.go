@@ -21,7 +21,7 @@ const (
 	FlavorWikidata = "wikidata"
 	// FlavorVIAF is the VIAF AutoSuggest API.
 	FlavorVIAF = "viaf"
-	// FlavorSearchFAST is OCLC's searchFAST fastsuggest API (tasks/132) -- a
+	// FlavorSearchFAST is OCLC's searchFAST fastsuggest API -- a
 	// Solr-shaped response; the full documented parameter set is required
 	// (the bare query/fl form 400s).
 	FlavorSearchFAST = "searchfast"
@@ -30,7 +30,7 @@ const (
 // SuggestFlavors is the one allow-list of configurable suggest dialects, so the
 // validator, the dispatcher, and the SPA dropdown derive from a single source
 // rather than each keeping its own copy (a flavor added to the dispatcher but
-// not the validator is exactly how searchfast became builtin-only, tasks/336).
+// not the validator is exactly how searchfast became builtin-only).
 var SuggestFlavors = []string{FlavorSuggest2, FlavorWikidata, FlavorVIAF, FlavorSearchFAST}
 
 // ValidSuggestFlavor reports whether f is a configurable suggest dialect.
@@ -263,7 +263,7 @@ func compactID(id string) string {
 	return strings.ReplaceAll(id, " ", "")
 }
 
-// parseSearchFAST reads OCLC fastsuggest's Solr response (tasks/132). The
+// parseSearchFAST reads OCLC fastsuggest's Solr response. The
 // authorized heading is the label; a matched variant form (suggestall differing
 // from auth -- how a used-for hit surfaces) becomes a variant; the MARC heading
 // tag becomes a facet description for the picker badge.

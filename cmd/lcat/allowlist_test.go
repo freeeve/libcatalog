@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// tasks/277: [export] inherits [project]'s allowlists so one policy covers both
+// [export] inherits [project]'s allowlists so one policy covers both
 // public surfaces, and overrides them when it says so. The nil/empty distinction
 // is the whole mechanism: TOML gives an absent key a nil slice and `x = []` an
 // empty non-nil one, and only the first inherits.

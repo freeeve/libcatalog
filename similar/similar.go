@@ -1,5 +1,5 @@
 // Package similar answers "more like this" over a catalog: given a Work, which
-// other Works does it most resemble (tasks/284)?
+// other Works does it most resemble?
 //
 // The method is a two-hop walk over the bipartite graph of Works and their
 // attributes -- series, contributors, tags, subjects. From the focus Work, step
@@ -45,7 +45,7 @@ import (
 // else. It is deliberately not ingest.WorkSummary or project.Work.
 //
 // Both surfaces must recommend the same neighbours -- an OPAC page and the admin
-// editor disagreeing about what a Work resembles is the tasks/253 failure class,
+// editor disagreeing about what a Work resembles is the failure class,
 // where the facet rail and the query disagreed about what was filtered. The
 // guarantee is that each caller converts its own record into this one type
 // (ingest.WorkSummary.SimilarWork, project.Work.SimilarWork), and a test drives
@@ -56,7 +56,7 @@ import (
 // agent labels, languages are local names ("en").
 type Work struct {
 	WorkID string
-	// Tombstoned Works are excluded from the index outright (tasks/280).
+	// Tombstoned Works are excluded from the index outright.
 	Tombstoned bool
 
 	// Held earns the availability bonus: a neighbour the reader can actually
@@ -191,7 +191,7 @@ func attrsOf(s Work, rel Relation) []string {
 
 // Build indexes the catalog. Tombstoned Works are excluded outright: a retired
 // record must not be recommended from elsewhere, and it has no neighbours of its
-// own (tasks/280). Suppressed Works are kept -- the admin surface shows them,
+// own. Suppressed Works are kept -- the admin surface shows them,
 // and the public projection never sees them because it drops them upstream.
 // A repeated WorkID is indexed once, at its first occurrence. Duplicates are a
 // caller error -- ScanSummaries over a prefix that also catches catalog.nq will
@@ -384,7 +384,7 @@ func (ix *Index) Neighbors(workID string, n int) []Scored {
 	}
 	// Sorted, not map order. similar.json is a published artifact: a rail that
 	// reshuffles between two projections of an identical catalog churns the OPAC's
-	// pages and their checksums for nothing (cf. tasks/291).
+	// pages and their checksums for nothing (cf.).
 	//
 	// Go randomizes map iteration, so this fixes the order in which a candidate's
 	// score is accumulated. Float addition is not associative in general; I could

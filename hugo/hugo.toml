@@ -13,24 +13,24 @@
 # the page param the adapter sets; the keys mirror catalog.json field names.
 [taxonomies]
   language = "languages"
-  subject = "subjects"       # controlled-vocabulary subjects (labels; tasks/012)
-  tag = "tags"               # uncontrolled feed genre strings (tasks/012)
-  format = "formats"         # ebook / audiobook, per-Instance format (tasks/011)
+  subject = "subjects"       # controlled-vocabulary subjects (labels)
+  tag = "tags"               # uncontrolled feed genre strings
+  format = "formats"         # ebook / audiobook, per-Instance format
   contributor = "contributors"
   classification = "classifications"
 
 [params]
   # catalogSchemaVersion the module targets; the adapter fails the build loudly on
-  # a mismatch with catalog.json's top-level "version" (tasks/009 contract).
+  # a mismatch with catalog.json's top-level "version" ( contract).
   # Release checklist: this default and project.SchemaVersion move together --
-  # the mismatch only surfaces at an adopter's render (tasks/179).
+  # the mismatch only surfaces at an adopter's render.
   catalogSchemaVersion = 12
 
-  # Multi-vocabulary subjects (tasks/141). The facet sidebar renders one group
+  # Multi-vocabulary subjects. The facet sidebar renders one group
   # per vocabulary scheme; [[params.subjectSchemes]] sets group order and display
   # names (schemes omitted here follow, labeled by their code). Like [taxonomies],
   # Hugo does NOT merge a module's params arrays into the importing site
-  # (tasks/133 gotcha) -- declare this block site-side. Example:
+  # ( gotcha) -- declare this block site-side. Example:
   #
   #   [[params.subjectSchemes]]
   #     scheme = "homosaurus"
@@ -43,7 +43,7 @@
   # with more than 10 entries get a client-side type-to-filter box.
   #facetLimit = 20
 
-  # Deployment-defined facet dimensions (tasks/143): lift a Work extras key
+  # Deployment-defined facet dimensions: lift a Work extras key
   # into a real faceted taxonomy -- sidebar group, term pages, counts. Declare
   # BOTH the [taxonomies] entry and the [params.extraFacets.<name>] block
   # site-side (the [taxonomies] merge gotcha above applies; these are the
@@ -58,7 +58,7 @@
   #     split = ","                 # omit for single-valued extras
   #     title = "Sources"
 
-  # Negative facet filters (tasks/144), OFF by default: exclusion UI (and
+  # Negative facet filters, OFF by default: exclusion UI (and
   # x<taxonomy>=<term> URL state) is not every catalog's call. When enabled,
   # each facet row gets an exclude button, exclusions render as dismissible
   # "Not X" chips above the results, and result cards carrying an excluded
@@ -68,7 +68,7 @@
   #   [params.facets]
   #     negatives = true
 
-  # Shared facet sidebar (tasks/150), OFF by default: the sidebar is
+  # Shared facet sidebar, OFF by default: the sidebar is
   # page-invariant per language, and inlining it multiplies its bytes by
   # every list/term page -- at catalog scale it dominates the deploy. When
   # enabled, the sidebar publishes once per language as a fingerprinted

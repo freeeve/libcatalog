@@ -126,7 +126,7 @@ func writeGrain(t *testing.T, dir, rel, body string) {
 // The property that kills the churn: a grain contributes the same bytes to the
 // merge whether it is merged alone or beside sixty thousand others. Under the old
 // scheme its labels were assigned by a running counter over the whole traversal,
-// so adding an unrelated grain renamed this one's blank nodes (tasks/291).
+// so adding an unrelated grain renamed this one's blank nodes.
 func TestGrainLinesDoNotDependOnTheOtherGrains(t *testing.T) {
 	const one = "_:c14n0 <http://ex.org/p> <http://ex.org/o> <http://ex.org/g> .\n"
 	const two = "_:c14n0 <http://ex.org/q> <http://ex.org/o> <http://ex.org/g> .\n"

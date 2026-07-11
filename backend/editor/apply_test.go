@@ -179,7 +179,7 @@ func TestOpValidation(t *testing.T) {
 	}
 }
 
-// TestAddSubjectWritesLabelCompanion covers tasks/145: an editorial subject
+// TestAddSubjectWritesLabelCompanion covers an editorial subject
 // add also writes the vocabulary's prefLabel into the grain's
 // authority:<scheme> graph (feed parity with ingest.enrichmentQuads), so the
 // doc annotates -- and the Duplicates compare shows names -- with no vocab
@@ -212,7 +212,7 @@ func TestAddSubjectWritesLabelCompanion(t *testing.T) {
 	if strings.Contains(string(updated), "<"+unknown+"> <http://www.w3.org/2004/02/skos/core#prefLabel>") {
 		t.Fatal("unresolvable IRI grew a label")
 	}
-	// The doc now annotates the value from the grain alone (tasks/137/140).
+	// The doc now annotates the value from the grain alone.
 	doc, err := m.ToDoc(updated, workID)
 	if err != nil {
 		t.Fatal(err)
@@ -242,7 +242,7 @@ func TestAddSubjectWritesLabelCompanion(t *testing.T) {
 	}
 }
 
-// TestCardinalityBeyondOne covers tasks/115: field.Max is enforced past the
+// TestCardinalityBeyondOne covers field.Max is enforced past the
 // old Max==1 special case -- an oversized set is rejected, and adds stop once
 // the live values reach the cap.
 func TestCardinalityBeyondOne(t *testing.T) {

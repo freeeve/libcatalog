@@ -1,15 +1,15 @@
 {{ define "main" }}
-{{- /* data-pagefind-body scopes the optional Pagefind index (tasks/017) to Work
+{{- /* data-pagefind-body scopes the optional Pagefind index to Work
        detail pages only: because just this article carries it, list/home/taxonomy
        pages are excluded from the index. data-pagefind-meta captures title/author
        for result cards; data-pagefind-filter reuses the facet dimensions. Inert
        unless the site sets [params.search] engine = "pagefind" and runs the index
        step; the attributes are harmless otherwise. */ -}}
 <article class="lcat-work" data-pagefind-body>
-  {{- /* Hero (tasks/311): cover on the left, everything that names the Work on the
+  {{- /* Hero: cover on the left, everything that names the Work on the
          right, so the title sits beside its object instead of under it. The format
          eyebrow names the one distinguishing carrier (shared lcat-format-carrier
-         rule, tasks/310) -- a plain book gets none, so the line only appears when it
+         rule) -- a plain book gets none, so the line only appears when it
          earns the reader's attention. The subtitle is its own muted line, not a
          run-on span inside the <h1>. When there is no cover the body simply fills
          the row (lcat-hero--cover gates the two-column grid). */ -}}
@@ -24,8 +24,8 @@
       {{- with .Params.subtitle }}<p class="lcat-subtitle">{{ . }}</p>{{ end }}
 
       {{- /* Contributor names link to their term pages, matching the browse cards
-             (tasks/129); raw names are the taxonomy keys (tasks/128), byte-bounded
-             through lcat-cap (tasks/134). */}}
+; raw names are the taxonomy keys, byte-bounded
+             through lcat-cap. */}}
       {{ with .Params.contributorList }}
       <p class="lcat-contribs" data-pagefind-meta="author">
         {{ range $i, $c := . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" (partial "lcat-cap.html" $c.name)) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="contributor">{{ $c.name }}</a>{{ else }}<span data-pagefind-filter="contributor">{{ $c.name }}</span>{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
@@ -34,9 +34,9 @@
     </div>
   </div>
 
-  {{- /* The Work's bf:summary (tasks/124): plain text from the projector, split on
+  {{- /* The Work's bf:summary: plain text from the projector, split on
          blank lines into paragraphs. Inside data-pagefind-body, so blurb text lands
-         in the full-text index. Presented as its own titled section (tasks/311) so
+         in the full-text index. Presented as its own titled section so
          the blurb reads as prose about the title rather than an unlabelled lede. */ -}}
   {{ with .Params.summary }}
   <section class="lcat-section" aria-labelledby="lcat-about">
@@ -47,7 +47,7 @@
   </section>
   {{ end }}
 
-  {{- /* Optional "suggest a subject" intake (tasks/355): a deployment sets
+  {{- /* Optional "suggest a subject" intake: a deployment sets
          [params.suggest] subjectUrl to its own form / endpoint. {workID} and {title}
          placeholders are substituted (URL-encoded) so the intake knows the context.
          Opt-in -- unset, nothing renders and the Subjects section is unchanged. */ -}}
@@ -56,7 +56,7 @@
     {{- $suggestURL = replace (replace . "{workID}" ($.Params.workID | urlquery)) "{title}" ($.Title | urlquery) -}}
   {{- end -}}{{- end -}}
   {{ if or .Params.subjectList $suggestURL }}
-  {{- /* Subjects (tasks/354). Homosaurus subjects are grouped under their
+  {{- /* Subjects. Homosaurus subjects are grouped under their
          skos:broader parent -- the parent's label (resolved by the content adapter
          into .Params.broaderLabels) is a small-caps subheading, its narrower
          concepts the chips beneath. A subject with several parents appears under
@@ -107,7 +107,7 @@
   </section>
   {{ end }}
 
-  {{- /* Opt-in extra-facet chips (tasks/353): a deployment surfaces one of its
+  {{- /* Opt-in extra-facet chips: a deployment surfaces one of its
          [params.extraFacets.<name>] dimensions on the Work page with onDetail = true
          -- e.g. an "On these lists" dimension of curated lists. Each value is a chip
          linking to the same term page the sidebar facet does. Prepared by the content
@@ -125,7 +125,7 @@
   {{ end }}
   {{ end }}
 
-  {{- /* Details (tasks/311): the Work-level facts as a labelled grid of cells
+  {{- /* Details: the Work-level facts as a labelled grid of cells
          instead of one long definition list, so series/formats/language/class sit
          side by side and each reads as a captioned value. Each cell is its own <dl>
          (a dt/dd pair) so the grouping stays valid HTML while the outer grid does
@@ -136,7 +136,7 @@
   <section class="lcat-section" aria-labelledby="lcat-details-head">
     <h2 id="lcat-details-head" class="lcat-section-head">{{ i18n "details" }}</h2>
     <div class="lcat-details">
-      {{- /* Series are Work-level facts (schema v12, tasks/309), not per-edition
+      {{- /* Series are Work-level facts (schema v12), not per-edition
              ones: 490 is transcribed on every printing, and a Work's membership in
              "Firebrand fiction, bk. 2" does not change because you borrowed the
              audiobook. Each entry pairs its own statement with its own enumeration
@@ -160,7 +160,7 @@
       {{ with .Params.formats }}<dl class="lcat-detail"><dt>{{ i18n "formats" }}</dt><dd>
         {{ range $i, $f := . }}{{ if $i }}, {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "formats" "key" $f) }}{{ if $url }}<a href="{{ $url }}" data-pagefind-filter="format">{{ $f }}</a>{{ else }}<span data-pagefind-filter="format">{{ $f }}</span>{{ end }}{{ end }}
       </dd></dl>{{ end }}
-      {{- /* Languages and classifications display their human label (tasks/142);
+      {{- /* Languages and classifications display their human label;
              the pagefind filter carries the same label the facet shows. */}}
       {{ with .Params.languages }}<dl class="lcat-detail"><dt>{{ i18n "language" }}</dt><dd>{{ range $i, $l := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="language">{{ partial "lcat-lang-name.html" $l }}</span>{{ end }}</dd></dl>{{ end }}
       {{ with .Params.classificationList }}<dl class="lcat-detail"><dt>{{ i18n "classification" }}</dt><dd>{{ range $i, $c := . }}{{ if $i }}, {{ end }}<span data-pagefind-filter="classification">{{ or $c.label $c.value }}</span>{{ end }}</dd></dl>{{ end }}
@@ -168,11 +168,11 @@
   </section>
   {{ end }}
 
-  {{- /* Adopter hook (tasks/125): empty by default; an importing site overrides
+  {{- /* Adopter hook: empty by default; an importing site overrides
          work-extra.html to render its passthrough extras here. */ -}}
   {{ partial "work-extra.html" . }}
 
-  {{- /* Whole/part cross-links (schema v11, tasks/222): the projector only
+  {{- /* Whole/part cross-links (schema v11): the projector only
          emits links whose target is in this projection, so every href here
          resolves to a minted Work page. */ -}}
   {{ with .Params.relations }}
@@ -186,7 +186,7 @@
 
   {{ with .Params.instances }}
   {{- /* One DOM attribute per edition per availability adapter, looked up from the
-         scheme -> attribute table in data/lcat/availabilityAttrs.toml (tasks/288).
+         scheme -> attribute table in data/lcat/availabilityAttrs.toml.
          Registering an adapter and adding a row there is enough; this layout does
          not name any provider. A scheme with no row (e.g. OverDrive's "overdrive"
          title id) is deliberately not emitted.
@@ -202,7 +202,7 @@
       <li class="lcat-edition" data-instance="{{ .id }}"{{ with .format }} data-format="{{ . }}"{{ end }}{{ range .providerIds }}{{ $pid := . }}{{ with index $attrs $pid.source }}{{ if findRE "^data-[a-z0-9-]+$" . }}{{ printf " %s=\"%s\"" . (htmlEscape $pid.value) | safeHTMLAttr }}{{ end }}{{ end }}{{ end }}>
         {{ with .format }}<span class="lcat-format">{{ . }}</span>{{ end }}
         {{ with .isbns }}<span class="lcat-isbn">{{ i18n "isbn" }} {{ index . 0 }}</span>{{ end }}
-        {{- /* Publication statement (tasks/351): publisher, place and date are
+        {{- /* Publication statement: publisher, place and date are
                transcribed per Instance, so they render on the edition line, not the
                Work-level Details grid -- a Work's editions differ. Present parts join
                in that order; an absent part drops without leaving a stray comma. */ -}}
@@ -212,12 +212,12 @@
         {{- with .published }}{{ $imprint = $imprint | append . }}{{ end -}}
         {{- with $imprint }}<span class="lcat-imprint">{{ delimit . ", " }}</span>{{ end }}
         {{/* Availability is fetched client-side at view time by lcat-availability.js
-             (libcat tasks/004), keyed on data-overdrive-reserve above; it fills
+, keyed on data-overdrive-reserve above; it fills
              this placeholder in when the site enables [params.availability]. Without
              that config (or JS) the placeholder stays inert -- the static page never
              depends on it. */}}
         <span class="lcat-availability" data-availability role="status" aria-live="polite"></span>
-        {{- /* Borrow/hold CTA (tasks/352): starts hidden. lcat-availability.js points
+        {{- /* Borrow/hold CTA: starts hidden. lcat-availability.js points
                it at the provider deep link and reveals it once availability resolves
                to a borrowable/holdable copy -- so no-JS and unavailable editions show
                no dead button. The label is authored here (localized) since the script
@@ -229,7 +229,7 @@
   </section>
   {{ end }}
 
-  {{- /* "More like this" (tasks/284). Sits below the editions and apart from the
+  {{- /* "More like this". Sits below the editions and apart from the
          lcat-relations block above, which carries relations a cataloger *asserted*
          (hasPart/partOf). These are *computed* -- a two-hop walk over shared
          subjects, tags, contributors and series -- so they are labelled as such and
@@ -239,13 +239,13 @@
          data-pagefind-ignore: a neighbour's title on this page must not make this
          page a search hit for that title. */ -}}
   {{ with .Params.similar }}
-  {{- /* A cover grid, not a list of titles (tasks/310). A reader scans this rail
+  {{- /* A cover grid, not a list of titles. A reader scans this rail
          by spine, the way they scan a shelf; the title is the caption on the
          object, not the object.
 
          .shared arrives as display labels: the content adapter resolves the
          sidecar's authority IRIs against the catalog's Terms sideband, drops any
-         it cannot label, and collapses cross-scheme synonyms (tasks/296, 302). It
+         it cannot label, and collapses cross-scheme synonyms. It
          cannot be resolved here -- a shared concept need not be one this page
          carries.
 
@@ -274,7 +274,7 @@
   <section class="lcat-section lcat-similar" aria-labelledby="lcat-sim" data-pagefind-ignore
     {{- if gt (len .) $shown }} data-similar-shown="{{ $shown }}"{{ end }}>
     <h2 id="lcat-sim" class="lcat-section-head">{{ i18n "moreLikeThis" }}</h2>
-    {{- /* The rail is computed, not catalogued, and tasks/284 put that in writing
+    {{- /* The rail is computed, not catalogued, and put that in writing
            where a reader could see it. The covers took the room, but the claim is
            not one to drop silently: it stays in the document. */}}
     <p class="lcat-visually-hidden">{{ i18n "moreLikeThisNote" }}</p>

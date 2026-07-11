@@ -116,7 +116,7 @@ func seedCSVHoldingsGrain(t *testing.T, bs blob.Store) {
 	}
 }
 
-// TestExportCSVHoldingsColumns covers tasks/058 item 5: the CSV summarizes a
+// TestExportCSVHoldingsColumns covers the CSV summarizes a
 // work's holdings so a cataloger can sort a shelflist or find works with none.
 // Call numbers and locations are distinct -- two copies on one shelf are one
 // location -- while barcodes, which are unique by definition, all appear.
@@ -175,7 +175,7 @@ func TestExportCSVHoldingsColumns(t *testing.T) {
 	}
 }
 
-// TestExportCSVResolvesSubjectLabels covers tasks/233: the human-facing CSV
+// TestExportCSVResolvesSubjectLabels covers the human-facing CSV
 // renders a controlled subject as a word whether its label rides the grain or
 // only the loaded term index, and an unresolvable term stays visible as its
 // IRI rather than being dropped from the row.

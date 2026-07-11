@@ -9,13 +9,13 @@ import (
 	"path"
 )
 
-// runServe serves an already-built static site (tasks/181).
+// runServe serves an already-built static site.
 //
-// It is not only a preview server. tasks/181 specifies it as the OPAC's server --
+// It is not only a preview server. specifies it as the OPAC's server --
 // "--addr :8502 exposes it ... queerbooks can drop scripts/opac-server.go on
 // adoption" -- and both demo catalogs run it that way. A doc comment that said
 // "local preview" is how a directory listing came to read as acceptable
-// (tasks/278). It serves readers.
+// . It serves readers.
 //
 // The point over python http.server is HTTP Range support: the roaringrange WASM
 // reader fetches index artifacts with Range requests, which http.server ignores --
@@ -51,7 +51,7 @@ func runServe(args []string) error {
 // answers 404 -- it hides exactly the URL-shape bugs it exists to surface. A Dewey
 // number "813/.6" mints /classifications/813/.6/, leaving /classifications/813/
 // index-less; under a listing that broken ancestor looked like a working page all
-// the way into a published catalog (tasks/276, tasks/278).
+// the way into a published catalog.
 //
 // It reaches readers too. Hugo emits /page/N/index.html and never /page/index.html,
 // so every paginated libcat site has an index-less /page/ one URL truncation away
@@ -87,13 +87,13 @@ func (n noDirList) Open(name string) (http.File, error) {
 // revalidate before reuse", which FileServer answers with a 304 off Last-Modified.
 // A rebuild is still visible on the next reload, and the 9.9MB record store the
 // browse reader fetches is no longer re-downloaded on every navigation, as
-// `no-store` made it do (tasks/278). It is not `max-age` because serve cannot tell
+// `no-store` made it do. It is not `max-age` because serve cannot tell
 // a fingerprinted asset, which may be cached forever, from an index.html, which may
 // not. `--dev` restores `no-store` for anyone who wants nothing written to the
 // browser cache at all.
 //
 // A retired Work id is answered from the published redirects.json before the file
-// server sees the request (tasks/313): 301 to the survivor, 410 for a tombstone.
+// server sees the request: 301 to the survivor, 410 for a tombstone.
 func serveHandler(dir string, dev bool) http.Handler {
 	files := http.FileServer(noDirList{http.Dir(dir)})
 	retired := newRedirectTable(dir)

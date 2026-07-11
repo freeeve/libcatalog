@@ -3,13 +3,13 @@
 // GraphQL API and yields them as resolvable records for the shared ingest.Run
 // pipeline (ARCHITECTURE §9), so a Hardcover shelf flows through the same
 // identity/clustering and `lcat project` path as any other source -- no bespoke
-// clustering, facet counting, or subject control outside the framework (tasks/026).
+// clustering, facet counting, or subject control outside the framework.
 //
 // Each read book is exploded into one record per collapsed edition format
 // (physical / audiobook / ebook): the records share the book's Work-clustering key
 // (author, title, language) so they cluster into a single Work, while each carries a
 // distinct per-format instance key, so a mixed-format read becomes one Work with an
-// Instance per format -- exactly how OverDrive editions cluster (tasks/011).
+// Instance per format -- exactly how OverDrive editions cluster.
 package hardcover
 
 import (
@@ -21,11 +21,11 @@ import (
 
 // SourceHardcover is the bf:source scheme of a Hardcover instance's provenance id
 // (the book/edition id), tagged so it is recoverable from a grain for back-links
-// (mirrors OverDrive's source-tagged identifiers; ARCHITECTURE §9, tasks/008).
+// (mirrors OverDrive's source-tagged identifiers; ARCHITECTURE §9).
 const SourceHardcover = "hardcover"
 
 // maxGenres caps the genres carried per book (most-voted first), matching the demo's
-// pipeline so the projected tag set stays focused (tasks/026).
+// pipeline so the projected tag set stays focused.
 const maxGenres = 8
 
 // userBook is one row of the Hardcover `user_books` read shelf: the reading-log

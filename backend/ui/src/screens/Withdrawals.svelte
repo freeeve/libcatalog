@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The withdrawal review queue (tasks/078): feed-only works the last
+  // The withdrawal review queue: feed-only works the last
   // reconciliation flagged as gone from their feed. One-key triage --
   // s suppresses (hidden from projection, flag kept as the reason),
   // p keeps (flag cleared, decision pinned so reconciliation never

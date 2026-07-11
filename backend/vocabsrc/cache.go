@@ -16,7 +16,7 @@ import (
 
 // CacheTerm writes a live pick's minimal term description (prefLabel,
 // definition, exactMatch siblings) into the authorities tree under
-// cache/<scheme>/ and swaps the index (tasks/072). A subject picked from a
+// cache/<scheme>/ and swaps the index. A subject picked from a
 // live source labels forever -- across saves and restarts -- and its
 // exactMatch links join the crosswalk data. Re-caching an already-cached
 // term is a no-op.
@@ -65,7 +65,7 @@ func (s *Service) cachePath(scheme, id string) string {
 }
 
 // RemoveCachedTerm deletes one live-pick cache entry and reloads the index --
-// the undo for a click (tasks/267). If it was the scheme's last pick, the
+// the undo for a click. If it was the scheme's last pick, the
 // scheme drops out of cachedSchemes, so the reload also drops it from the filter
 // unless a snapshot or the base filter still keeps it.
 func (s *Service) RemoveCachedTerm(ctx context.Context, scheme, id string) error {
@@ -84,7 +84,7 @@ func (s *Service) RemoveCachedTerm(ctx context.Context, scheme, id string) error
 
 // removeCacheDir deletes every live-pick blob under cache/<scheme>/. It is the
 // cache half of a scheme sweep; RemoveSnapshot uses it so uninstalling a
-// snapshot also clears the scheme's picks (tasks/267).
+// snapshot also clears the scheme's picks.
 func (s *Service) removeCacheDir(ctx context.Context, scheme string) error {
 	prefix := s.prefix() + "cache/" + scheme + "/"
 	for entry, err := range s.Blob.List(ctx, prefix) {

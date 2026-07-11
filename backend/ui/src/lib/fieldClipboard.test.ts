@@ -1,4 +1,4 @@
-// tasks/224: the clipboard round-trips through the module $state -- reads
+// the clipboard round-trips through the module $state -- reads
 // re-proxy stored entries and pushes may receive $state proxies, and
 // structuredClone cannot clone either without a snapshot first.
 import { beforeEach, describe, expect, it } from "vitest";
@@ -16,7 +16,7 @@ const field = (tag: string): MarcField => ({
 describe("fieldClipboard", () => {
   beforeEach(() => clipClear());
 
-  it("push then peek returns a usable plain copy (tasks/224)", () => {
+  it("push then peek returns a usable plain copy", () => {
     clipPush(field("008"));
     const back = clipPeek();
     const sub = back?.subfields?.[0];

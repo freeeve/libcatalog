@@ -1,4 +1,4 @@
-// tasks/284: the "more like this" panel. The rail is computed, not catalogued, so
+// the "more like this" panel. The rail is computed, not catalogued, so
 // every row has to explain itself -- and the explanation arrives as opaque values:
 // subjects are authority IRIs, tags and contributors and series are already human
 // text. A panel that renders "shares https://homosaurus.org/v3/homoit0000669" has
@@ -71,7 +71,7 @@ describe("SimilarPanel", () => {
   });
 
   it("renders one element per shared term, so a comma inside a label is not a separator", async () => {
-    // tasks/302. "Lobel, Arnold." is one contributor and "Lesbians' writings,
+    //. "Lobel, Arnold." is one contributor and "Lesbians' writings,
     // Canadian" is one subject heading; a comma-joined line names four things.
     fetchSimilar.mockResolvedValue({
       similar: [
@@ -104,7 +104,7 @@ describe("SimilarPanel", () => {
     fetchSimilar.mockResolvedValue({
       similar: [{ workId: "wn", title: "A Book", score: 1, shared: ["https://ex.org/unknown"] }],
     });
-    // tasks/071: an unresolvable URI is absent from the map, not null.
+    // an unresolvable URI is absent from the map, not null.
     resolveTermURIs.mockResolvedValue({ terms: {} });
 
     const target = render();

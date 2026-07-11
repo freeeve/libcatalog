@@ -1,4 +1,4 @@
-// Sidecar index builder (tasks/167): serializes one scheme's terms into
+// Sidecar index builder: serializes one scheme's terms into
 // range-servable roaringrange artifacts so the server never materializes a
 // big vocabulary as Go maps. The on-disk layout, the manifest shape and the
 // remove/orphan lifecycle live in storage/vocabsidecar (root); this file is the
@@ -173,7 +173,7 @@ func buildSidecarTerms(ctx context.Context, st blob.Store, prefix, scheme, sourc
 	return m, nil
 }
 
-// encodeSearch serializes search entries as an RRTI term index (tasks/169):
+// encodeSearch serializes search entries as an RRTI term index:
 // each normalized label is a dictionary term whose posting carries doc<<1|alt
 // encoded IDs, so a prefix query range-reads only the dict blocks spanning
 // the prefix plus the matched labels' postings -- nothing but the router FST

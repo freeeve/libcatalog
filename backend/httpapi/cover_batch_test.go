@@ -64,7 +64,7 @@ func buildZip(t *testing.T, entries map[string][]byte) []byte {
 	return buf.Bytes()
 }
 
-// TestCoverBatch covers tasks/220 (058 item 2 remainder): a zip keyed by
+// TestCoverBatch covers (058 item 2 remainder): a zip keyed by
 // work id and by hyphenated ISBN applies covers through the grain-first
 // path; unknown names, phantom ids, and bad types skip with reasons.
 func TestCoverBatch(t *testing.T) {

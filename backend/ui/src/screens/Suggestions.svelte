@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The patron-suggestion policy editor (tasks/263): the opt-in switch, the
+  // The patron-suggestion policy editor: the opt-in switch, the
   // free-text mode, and the allowlist of controlled vocabularies patrons may
   // propose terms from. Admin-only, like its config routes. Off by default;
   // catalogers add any term through the review queue regardless, and every save

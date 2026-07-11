@@ -85,7 +85,7 @@ func TestScanSummaries(t *testing.T) {
 	if len(s.Subjects) != 0 {
 		t.Fatalf("blank-node-only fixture should carry no controlled subjects: %v", s.Subjects)
 	}
-	// lcat:extra/* literals surface raw, keyed without the prefix (tasks/171).
+	// lcat:extra/* literals surface raw, keyed without the prefix.
 	if len(s.Extras) != 2 || s.Extras["sources"] != "overdrive queer scan, loc" || s.Extras["cover"] != "https://img.example/g9.jpg" {
 		t.Fatalf("extras = %v", s.Extras)
 	}
@@ -95,7 +95,7 @@ func TestScanSummaries(t *testing.T) {
 }
 
 // TestSummarizeGrainControlledSubjects covers the IRI-object bf:subject
-// dimension merges rewrite (tasks/046): controlled references surface in
+// dimension merges rewrite: controlled references surface in
 // Subjects, uncontrolled blank-node labels stay in Tags.
 func TestSummarizeGrainControlledSubjects(t *testing.T) {
 	st := enrichFixture(t)
@@ -126,7 +126,7 @@ func TestSummarizeGrainControlledSubjects(t *testing.T) {
 	}
 }
 
-// TestSummarizeGrainSkolemHeading covers tasks/218: a labeled grain-local
+// TestSummarizeGrainSkolemHeading covers a labeled grain-local
 // fragment node under bf:subject (the editor's -ed- skolem write shape) is
 // an uncontrolled heading -- its label joins Tags and no forged subject IRI
 // appears.
@@ -192,12 +192,12 @@ func TestRunEnrichDirect(t *testing.T) {
 			Broader: []string{"http://id.loc.gov/authorities/subjects/sh85045198"},
 		},
 		// The ancestor's own description rides along as a standalone term
-		// (tasks/178): labels + hierarchy quads, no bf:subject link.
+		//: labels + hierarchy quads, no bf:subject link.
 		terms: []bibframe.AuthoritySubject{{
 			URI:    "http://id.loc.gov/authorities/subjects/sh85045198",
 			Labels: map[string]string{"en": "Fiction"},
 		}},
-		// An external-identity link rides in the same enrichment graph (tasks/066).
+		// An external-identity link rides in the same enrichment graph.
 		identities: []ingest.ExternalIdentity{{URI: "https://openlibrary.org/works/OL45804W", Scheme: "openlibrary"}},
 	}
 	n, err := ingest.RunEnrich(t.Context(), st, "data/works/", e)
@@ -212,7 +212,7 @@ func TestRunEnrichDirect(t *testing.T) {
 			t.Fatalf("grain missing %q:\n%s", want, text)
 		}
 	}
-	// The identity link is an owl:sameAs from the Work to the hub URI (tasks/066).
+	// The identity link is an owl:sameAs from the Work to the hub URI.
 	if !strings.Contains(text, "http://www.w3.org/2002/07/owl#sameAs") || !strings.Contains(text, "https://openlibrary.org/works/OL45804W") {
 		t.Fatalf("grain missing owl:sameAs external-identity link:\n%s", text)
 	}
@@ -271,7 +271,7 @@ func (m *mapEnricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([
 }
 
 // TestRunEnrichSharedGrain covers post-merge grains holding two Works
-// (tasks/102): enriching both writes both, and a later run that returns only
+// : enriching both writes both, and a later run that returns only
 // one Work must not wipe the other's statements from the shared graph.
 func TestRunEnrichSharedGrain(t *testing.T) {
 	const bfNS = "http://id.loc.gov/ontologies/bibframe/"
@@ -321,7 +321,7 @@ func TestRunEnrichSharedGrain(t *testing.T) {
 	text := string(grain)
 	for _, want := range []string{"term/Z", "Term Z", "term/Y", "Term Y"} {
 		if !strings.Contains(text, want) {
-			t.Fatalf("selective re-run lost %q (sibling Work wiped, tasks/102):\n%s", want, text)
+			t.Fatalf("selective re-run lost %q (sibling Work wiped):\n%s", want, text)
 		}
 	}
 	if strings.Contains(text, "term/X") {

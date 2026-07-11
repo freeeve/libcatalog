@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Read-only live MARC preview (tasks/070): the staged native ops applied
+  // Read-only live MARC preview: the staged native ops applied
   // server-side to the current doc and re-encoded as MARC, refreshed
   // debounced as edits stage or unstage. Lines differing from the saved
   // state highlight; known-loss tags render muted with the fidelity reason,

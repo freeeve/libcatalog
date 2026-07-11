@@ -35,9 +35,9 @@ func TestBIBFRAMECrosswalk(t *testing.T) {
 	}
 	if c := bib.Work.Classifications; len(c) != 1 || c[0].Value != "FIC073000" || c[0].Source != SourceBISAC ||
 		c[0].Label != "Fiction / LGBTQ+ / Transgender" {
-		t.Errorf("Work.Classifications = %+v, want one BISAC code with source %q and the heading label (tasks/142)", bib.Work.Classifications, SourceBISAC)
+		t.Errorf("Work.Classifications = %+v, want one BISAC code with source %q and the heading label", bib.Work.Classifications, SourceBISAC)
 	}
-	// The HTML description plain-texts into bf:summary (tasks/126).
+	// The HTML description plain-texts into bf:summary.
 	wantSummary := "A stunning debut.\n\nHerculine leaves the city—and her past.\nWhat follows is unforgettable."
 	if s := bib.Work.Summary; len(s) != 1 || s[0] != wantSummary {
 		t.Errorf("Work.Summary = %q, want [%q]", s, wantSummary)
@@ -59,7 +59,7 @@ func TestBIBFRAMECrosswalk(t *testing.T) {
 	if bib.Instance.EditionStatement != "Unabridged" {
 		t.Errorf("EditionStatement = %q", bib.Instance.EditionStatement)
 	}
-	// Format lives on the Instance (tasks/011): an audiobook carries RDA media "audio"
+	// Format lives on the Instance: an audiobook carries RDA media "audio"
 	// and an online-resource carrier, so the projector can facet it independently of
 	// the (clustered) Work class.
 	if m := bib.Instance.Media; len(m) != 1 || m[0].Label != "audio" || m[0].Code != "s" {
@@ -85,21 +85,21 @@ func TestBIBFRAMECrosswalk(t *testing.T) {
 	}
 
 	// The serialized graph must carry the audiobook class, the LC language URI,
-	// both topical subjects, the ISBN, and the bf:source scheme labels (tasks/008),
+	// both topical subjects, the ISBN, and the bf:source scheme labels,
 	// all in the feed:overdrive graph.
 	nq := string(bib.Graph(it.WorkID()).NQuads(rdf.NewIRI("feed:overdrive")))
 	for _, want := range []string{
 		"http://id.loc.gov/ontologies/bibframe/Audio",
-		"http://id.loc.gov/ontologies/bibframe/media", // per-Instance format (tasks/011)
+		"http://id.loc.gov/ontologies/bibframe/media", // per-Instance format
 		"http://id.loc.gov/vocabulary/languages/eng",
 		"9781668128251",
 		"feed:overdrive",
 		SourceBISAC,                      // bf:source "bisacsh" on the BISAC classification
-		"Fiction / LGBTQ+ / Transgender", // BISAC heading as rdfs:label on the node (tasks/142)
+		"Fiction / LGBTQ+ / Transgender", // BISAC heading as rdfs:label on the node
 		SourceReserveID,                  // bf:source "overdrive-reserve" on the Reserve ID
 		"http://id.loc.gov/ontologies/bibframe/source",
-		relatorVocab + "aut", // relator IRI on the primary contribution (tasks/019)
-		relatorVocab + "nrt", // relator IRI on the narrator contribution (tasks/019)
+		relatorVocab + "aut", // relator IRI on the primary contribution
+		relatorVocab + "nrt", // relator IRI on the narrator contribution
 	} {
 		if !strings.Contains(nq, want) {
 			t.Errorf("n-quads missing %q", want)
@@ -149,7 +149,7 @@ func TestIdentityRoundTrip(t *testing.T) {
 }
 
 // hasRole reports whether the contribution carries a role with the given relator IRI
-// and term -- the direct-to-BIBFRAME path mirrors the MARC $4 relator (tasks/019).
+// and term -- the direct-to-BIBFRAME path mirrors the MARC $4 relator.
 func hasRole(c codexbf.Contribution, iri, term string) bool {
 	for _, r := range c.Roles {
 		if r.IRI == iri && r.Term == term {

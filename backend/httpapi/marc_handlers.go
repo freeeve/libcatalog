@@ -17,7 +17,7 @@ import (
 	"github.com/freeeve/libcat/backend/workindex"
 )
 
-// registerMARC mounts the MARC half of the dual-view editor (tasks/049):
+// registerMARC mounts the MARC half of the dual-view editor:
 // GET materializes the grain's records as editable field arrays (verbatim
 // sidecar fields included, lossy tags annotated); POST writes an edited
 // record back as an editorial diff under If-Match, with dryRun returning the
@@ -46,7 +46,7 @@ func registerMARC(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue 
 		})
 	})))
 
-	// Live preview (tasks/070): the staged native ops applied to the current
+	// Live preview: the staged native ops applied to the current
 	// doc, then encoded as MARC -- nothing written. Empty ops previews the
 	// saved state, so the pane snaps back when edits are discarded.
 	mux.Handle("POST /v1/works/{id}/marc/preview", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

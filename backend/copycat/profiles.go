@@ -11,7 +11,7 @@ import (
 	"github.com/freeeve/libcat/backend/store"
 )
 
-// Profile is a saved staging configuration (tasks/068): which targets a
+// Profile is a saved staging configuration: which targets a
 // search fans out to and the overlay policy a staged batch starts with --
 // recurring imports stop re-entering the same choices per batch.
 type Profile struct {

@@ -46,7 +46,7 @@ func TestAddSplitMarkersIdempotent(t *testing.T) {
 	}
 }
 
-// TestSplitTargetForReusesAPriorSplit is the idempotency seam (tasks/323): a split of
+// TestSplitTargetForReusesAPriorSplit is the idempotency seam: a split of
 // exactly the instances an earlier split already pinned reuses that Work, so a retry
 // mints nothing; a different instance set, or an unsplit grain, does not.
 func TestSplitTargetForReusesAPriorSplit(t *testing.T) {
@@ -89,7 +89,7 @@ func TestSplitTargetForReusesAPriorSplit(t *testing.T) {
 	}
 }
 
-// TestSplitReingest is the over-merge half of the tasks/001 gate: a recorded split
+// TestSplitReingest is the over-merge half of the gate: a recorded split
 // pins one Instance of an over-merged Work onto a new Work, and the split
 // reproduces (and stays byte-stable) across re-ingest.
 func TestSplitReingest(t *testing.T) {

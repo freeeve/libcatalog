@@ -1,5 +1,5 @@
 // The record editor's field presentation, split from ProfileForm so the
-// spec-building logic is unit-testable (tasks/295). A profile (the deployment's
+// spec-building logic is unit-testable. A profile (the deployment's
 // editing framework) owns the *set* of fields, their order, labels, and hidden
 // flags; the presentation table here owns the concerns the server has no
 // vocabulary for -- the editable kind, closed-list options, coded-value decode,
@@ -23,7 +23,7 @@ export interface FieldSpec {
    *  searchable picker and labeled chips instead of raw URLs. */
   options?: SearchOption[];
   /** "more" fields fold into the default-collapsed "Additional details"
-   *  disclosure (tasks/083). */
+   * disclosure. */
   section?: "more";
   /** Prose fields (summary) span every worksheet column. */
   wide?: boolean;
@@ -39,7 +39,7 @@ export function termOptions(terms: RdaTerm[]): SearchOption[] {
 // The shipped work-monograph and instance-ebook presentation (profiles/defaults).
 // "readonly" fields surface values living inside typed blank structures
 // (contributions, notes, publication), edited via the MARC tab until the op
-// layer builds structures (tasks/083).
+// layer builds structures.
 export const WORK_FIELDS: FieldSpec[] = [
   { path: "title", label: "Title", kind: "single" },
   { path: "subtitle", label: "Subtitle", kind: "single" },
@@ -52,7 +52,7 @@ export const WORK_FIELDS: FieldSpec[] = [
   { path: "genreForm", label: "Genre / form", kind: "readonly", section: "more" },
   { path: "content", label: "Content type", kind: "iri", options: termOptions(CONTENT_TYPES), section: "more" },
   { path: "classification", label: "Classification", kind: "readonly", section: "more", decode: bisacTerm },
-  // owl:sameAs links written by the identity enrichment pass (tasks/066): read-only
+  // owl:sameAs links written by the identity enrichment pass: read-only
   // (the enricher's/merge's to write, never a cataloger field); IRI values render as
   // links with the enrichment provenance badge.
   { path: "externalIdentities", label: "External identities", kind: "readonly", section: "more" },
@@ -79,7 +79,7 @@ export const INSTANCE_FIELDS: FieldSpec[] = [
 
 /** A field the profile declares but the presentation table does not describe
  *  still has to render: derive an editable kind from its value source so a new
- *  profile field is enterable, not invisible (tasks/295). */
+ * profile field is enterable, not invisible. */
 export function kindFromValueSource(vs?: ProfileValueSource): FieldKind {
   switch (vs?.kind) {
     case "langLiteral":

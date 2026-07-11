@@ -35,7 +35,7 @@ func synthCatalog(n int) *Catalog {
 // BenchmarkCatalogSimilar measures the whole-catalog precompute `lcat project`
 // runs -- Build once, then Neighbors for every Work, in parallel. The serial cost
 // at 62,602 Works is minutes; this is the number that decides whether the sidecar
-// belongs in the build step at all (tasks/284).
+// belongs in the build step at all.
 func BenchmarkCatalogSimilar(b *testing.B) {
 	for _, n := range []int{1000, 10000, 62602} {
 		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {

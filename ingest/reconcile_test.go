@@ -42,7 +42,7 @@ func visibility(t *testing.T, st blob.Store, id string) bibframe.WorkVisibility 
 	return v
 }
 
-// TestReconcile is the tasks/078 acceptance: a feed-only work missing from
+// TestReconcile is the acceptance: a feed-only work missing from
 // the scan is flagged (and under auto-suppress, hidden); works with another
 // bib source or editorial statements are never flagged; a returning work
 // loses the flag and a reconcile-set suppression.

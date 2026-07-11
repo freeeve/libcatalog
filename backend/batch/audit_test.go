@@ -23,7 +23,7 @@ func auditEntries(t *testing.T, queue *suggest.Service) []suggest.AuditEntry {
 	return entries
 }
 
-// tasks/239: a bulk op rewrote a record and the record's own History tab read
+// a bulk op rewrote a record and the record's own History tab read
 // "0 entries", because the run wrote one audit entry carrying no work id. The
 // per-work read filters on WorkID, so an entry without one is attributable to
 // nothing. Every other write path in the codebase sets it.
@@ -134,7 +134,7 @@ func TestRunAuditsOnlySuccessfulRecords(t *testing.T) {
 }
 
 // An item op edits holdings, not work fields, and is audited the same way: the
-// record was rewritten, so its history says so (tasks/058, tasks/239).
+// record was rewritten, so its history says so.
 func TestRunAuditsItemOps(t *testing.T) {
 	svc, st, queue, _ := newService(t)
 	seedShelvedWork(t, st, "wshelf000009", "ishelf000009", "Gideon the Ninth",

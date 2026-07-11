@@ -10,7 +10,7 @@ import (
 )
 
 // LocalAuthorityNS is the IRI namespace for locally minted authority terms
-// (tasks/046). Shared vocabularies (Homosaurus, LCSH) bring their own IRIs;
+// . Shared vocabularies (Homosaurus, LCSH) bring their own IRIs;
 // a heading a deployment coins itself gets one under this namespace so
 // bf:subject references stay absolute IRIs like any other controlled term.
 const LocalAuthorityNS = "https://github.com/freeeve/libcat/authority/"
@@ -38,7 +38,7 @@ func AuthorityGrainPath(id string) string {
 }
 
 // AuthorityTerm is the editable description of one authority concept -- the
-// SKOS fields the authority-topic profile exposes (tasks/046). Maps are
+// SKOS fields the authority-topic profile exposes. Maps are
 // keyed by language tag ("" = untagged).
 type AuthorityTerm struct {
 	URI        string              `json:"uri"`
@@ -167,7 +167,7 @@ func ParseAuthorityGrain(grainNQ []byte, uri, vocab string) (AuthorityTerm, erro
 }
 
 // AuthorityGrainDescribes reports whether the grain carries any statement
-// about uri -- the tasks/202 pre-check a merge runs before asserting a
+// about uri -- the pre-check a merge runs before asserting a
 // marker, so a namespace-mismatched grain errors instead of gaining a
 // phantom node.
 func AuthorityGrainDescribes(grainNQ []byte, uri string) bool {
@@ -189,7 +189,7 @@ func AuthorityGrainDescribes(grainNQ []byte, uri string) bool {
 // index sees the retirement on reload and the decision survives description
 // edits. Idempotent. A loser the grain does not describe is refused: the
 // marker would otherwise mint a phantom labelless node instead of retiring
-// anything (tasks/202 -- reachable when a grain's subject IRI base differs
+// anything (reachable when a grain's subject IRI base differs
 // from the id-derived one, e.g. pre-rename or imported namespaces).
 func AddAuthorityMergeMarker(grainNQ []byte, loserURI, winnerURI, vocab string) ([]byte, error) {
 	ds, err := rdf.ParseNQuads(grainNQ)
@@ -215,12 +215,12 @@ func AddAuthorityMergeMarker(grainNQ []byte, loserURI, winnerURI, vocab string) 
 }
 
 // ReplaceSubjectReference rewrites one Work's controlled-subject reference
-// after an authority merge (tasks/046): the editorial bf:subject link to the
+// after an authority merge: the editorial bf:subject link to the
 // loser is retracted along with every authority-graph statement about the
 // loser the grain carries for the projector's label index, and the winner is
 // appended through the same path suggestion publishing uses. Feed-graph
 // statements are never touched (editorial rewrites do not reach into
-// feed:<provider> graphs); a feed-asserted subject needs the tasks/042
+// feed:<provider> graphs); a feed-asserted subject needs the
 // override semantics instead.
 func ReplaceSubjectReference(grainNQ []byte, workID, loserURI string, winner AuthoritySubject, winnerVocab string) ([]byte, error) {
 	ds, err := rdf.ParseNQuads(grainNQ)

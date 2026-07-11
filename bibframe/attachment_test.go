@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TestAttachments covers tasks/229: statements add and retract editorially
+// TestAttachments covers statements add and retract editorially
 // with the describes-guard and filename validation; clones drop them.
 func TestAttachments(t *testing.T) {
 	grain := sampleGrain(t) // describes w1
@@ -45,7 +45,7 @@ func TestAttachments(t *testing.T) {
 			t.Fatalf("name %q validated", bad)
 		}
 	}
-	// Every script is a legal display name (tasks/236); so are spaces and
+	// Every script is a legal display name; so are spaces and
 	// leading dots, which the encoding -- not the name -- makes path-safe.
 	for _, good := range []string{"a.pdf", "scan_01-final.PNG", "1", "文書.pdf", "Тест.pdf", "con sole.txt", ".hidden"} {
 		if !ValidAttachmentName(good) {
@@ -72,7 +72,7 @@ func TestAttachments(t *testing.T) {
 	}
 }
 
-// TestAttachmentSegmentIsInjective covers tasks/236: two different filenames
+// TestAttachmentSegmentIsInjective covers two different filenames
 // must never address the same bytes. The non-Latin cases are the ones that
 // collapsed onto a shared "pdf" before; "文" vs "x文" is the case a variable
 // leading-prefix scheme would still have collided.
@@ -105,7 +105,7 @@ func TestAttachmentSegmentIsInjective(t *testing.T) {
 // FuzzAttachmentSegment proves injectivity constructively rather than by
 // example: every valid display name encodes to a safe segment that decodes
 // back to exactly that name. A decodable encoding cannot collide, which is
-// the property tasks/236 needed and the old sanitizer lacked.
+// the property needed and the old sanitizer lacked.
 func FuzzAttachmentSegment(f *testing.F) {
 	for _, seed := range []string{"a.pdf", "文書.pdf", "x文", "_", "..hidden", "con sole.txt", "Тест.pdf"} {
 		f.Add(seed)
@@ -156,7 +156,7 @@ func decodeAttachmentSegment(t *testing.T, seg string) string {
 }
 
 // TestLegacyAttachmentBlobPath covers the read fallback: attachments stored
-// before tasks/236 used the display name as the segment, and must not be
+// used the display name as the segment, and must not be
 // orphaned by the new encoding.
 func TestLegacyAttachmentBlobPath(t *testing.T) {
 	if got := LegacyAttachmentBlobPath("wabc123", "scan.pdf"); got != "data/attachments/wa/wabc123/scan.pdf" {

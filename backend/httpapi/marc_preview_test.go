@@ -12,7 +12,7 @@ import (
 	"github.com/freeeve/libcat/backend/store"
 )
 
-// TestMARCPreviewAppliesStagedOps drives the tasks/070 live-preview route: a
+// TestMARCPreviewAppliesStagedOps drives the live-preview route: a
 // staged native work-title edit shows up in the MARC pane (as 240, the
 // Work's title in the crosswalk; 245 stays the Instance's transcribed title)
 // without anything being written, and an empty op list previews the saved

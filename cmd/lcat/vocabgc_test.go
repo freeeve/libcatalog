@@ -47,7 +47,7 @@ func sidecarNames(t *testing.T, bs blob.Store) []string {
 
 // TestVocabGCReapsOrphansAndSparesLiveSidecars drives the command end to end over a
 // real dir store: an orphan (its snapshot removed) is swept, a live sidecar is left
-// intact (tasks/322).
+// intact.
 func TestVocabGCReapsOrphansAndSparesLiveSidecars(t *testing.T) {
 	dir := t.TempDir()
 	bs := blob.NewDir(dir)

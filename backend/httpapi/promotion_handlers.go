@@ -25,7 +25,7 @@ func registerPromotions(mux *http.ServeMux, svc *suggest.Service, publisher Grap
 	moderator := auth.Require(verifier, auth.RoleModerator)
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 	// A failed rewrite is what an operator needs to see; the cataloger gets a
-	// message instead of the store's raw error (tasks/272).
+	// message instead of the store's raw error.
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
@@ -82,7 +82,7 @@ func registerPromotions(mux *http.ServeMux, svc *suggest.Service, publisher Grap
 			return
 		}
 
-		// Execute, then stamp (tasks/300). The rewrite used to run after the
+		// Execute, then stamp. The rewrite used to run after the
 		// APPROVED stamp was already durable, so a store failure partway left a
 		// record the state machine could never leave: DecidePromotion refuses
 		// anything not PENDING, ProposePromotion supersedes only REJECTED, and
@@ -128,7 +128,7 @@ func registerPromotions(mux *http.ServeMux, svc *suggest.Service, publisher Grap
 			// A promotion rewrites every work carrying the tag, so this
 			// is the request that touches the most records at once --
 			// and it concatenated the store's raw error, blob root and
-			// all, into its 500 (tasks/272).
+			// all, into its 500.
 			if errors.Is(err, blob.ErrReadOnly) {
 				writeReadOnly(w)
 				return
@@ -156,7 +156,7 @@ func registerPromotions(mux *http.ServeMux, svc *suggest.Service, publisher Grap
 	})))
 
 	// The escape hatch for a promotion the one-way state machine cannot leave
-	// (tasks/300): notably the record a deployment with no publisher wired
+	//: notably the record a deployment with no publisher wired
 	// approves but never executes. Deleting frees the tag to be proposed again.
 	mux.Handle("DELETE /v1/promotions/{tag}", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())

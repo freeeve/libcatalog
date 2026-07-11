@@ -39,7 +39,7 @@ func cloneSourceGrain(t *testing.T) []byte {
 	// Subjects: a controlled term (an authority IRI) and an uncontrolled
 	// provider heading (a blank node carrying its own label). Both carry to
 	// the clone; the heading skolemizes and still reads as uncontrolled,
-	// because GrainLocalIRI is what tells the readers apart (tasks/218/238).
+	// because GrainLocalIRI is what tells the readers apart.
 	ds.Add(work, rdf.NewIRI(bf+"subject"), rdf.NewIRI("http://id.loc.gov/authorities/subjects/sh85056595"), feed)
 	headingNode := rdf.NewBlank("subj0")
 	ds.Add(work, rdf.NewIRI(bf+"subject"), headingNode, feed)
@@ -111,7 +111,7 @@ func TestCloneGrain(t *testing.T) {
 		}
 	}
 	// Both headings carried: the controlled IRI verbatim, the uncontrolled one
-	// skolemized onto a grain-local node that keeps its label (tasks/238).
+	// skolemized onto a grain-local node that keeps its label.
 	if !strings.Contains(text, "sh85056595") {
 		t.Fatalf("clone lost the controlled subject:\n%s", text)
 	}
@@ -140,7 +140,7 @@ func TestCloneGrain(t *testing.T) {
 	}
 }
 
-// TestCloneOfCloneRemintsGrainLocalNodes covers tasks/238: a clone's own
+// TestCloneOfCloneRemintsGrainLocalNodes covers a clone's own
 // skolems are grain-local nodes, so cloning the clone must re-mint them.
 // Passing them through would leave most of the second grain -- its title node
 // included -- named after the first work, and every descendant after that.

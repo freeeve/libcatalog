@@ -20,7 +20,7 @@ import (
 // deployment with LCSH that is 96% of the resulting file. That is deliberate --
 // the projection needs those quads to label the catalog's subject headings, and a
 // catalog.nq without them ships subject pages whose headings have no labels. Point
-// this at data/works and the build succeeds, quietly (tasks/279).
+// this at data/works and the build succeeds, quietly.
 //
 // It skips catalog.nq itself, and re-emits each grain's statements
 // through one shared encoder -- so blank-node labels stay unique across the corpus
@@ -34,7 +34,7 @@ import (
 // blank-node labels differ. It returns the number of grains merged.
 //
 // A grain's bytes appear in the merge unchanged except for its blank-node labels,
-// which are namespaced by grain id (tasks/291). So a grain contributes the same
+// which are namespaced by grain id. So a grain contributes the same
 // lines whether it is merged alone or with sixty thousand others, and the merged
 // document changes only when a grain does -- which is what lets a published
 // catalog.nq.gz keep its sha256 across a release that changed no data.
@@ -55,7 +55,7 @@ func SerializeGrains(dir string, sink storage.Sink) (int, error) {
 		return 0, err
 	}
 	sort.Slice(grains, func(i, j int) bool { return grains[i].id < grains[j].id })
-	// Blank-node labels are namespaced by grain id (tasks/291), so two grains
+	// Blank-node labels are namespaced by grain id, so two grains
 	// sharing an id would silently merge their blank nodes into one -- a wrong
 	// graph, quietly. Ids are file basenames and unique in practice (work ids,
 	// vocabulary schemes); say so out loud if that ever stops being true.
@@ -80,7 +80,7 @@ func SerializeGrains(dir string, sink storage.Sink) (int, error) {
 		// has always had -- but emit the grain's own bytes, not a re-serialization.
 		// A grain is already canonical N-Quads; re-encoding it is a second chance
 		// to differ, and the difference was a new blank-node label on every release
-		// for a corpus that had not changed (tasks/291).
+		// for a corpus that had not changed.
 		if _, err := rdf.ParseNQuads(b); err != nil {
 			w.Close()
 			return 0, fmt.Errorf("%s: %w", g.path, err)

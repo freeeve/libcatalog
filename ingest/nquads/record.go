@@ -20,7 +20,7 @@ type mappedID struct{ class, source, value, key string }
 // grouped work): the mapped fields plus which source objects attested it.
 type work struct {
 	id           string
-	group        string // grouping id (tasks/182); self when the export has none
+	group        string // grouping id; self when the export has none
 	title        string
 	subtitle     string
 	summary      string
@@ -44,7 +44,7 @@ type work struct {
 
 // record adapts a work to ingest.Record. One record per work subject; records
 // sharing a grouping id cluster into one Work with one Instance each
-// (tasks/182). terms is the shared harvested term-description side.
+// . terms is the shared harvested term-description side.
 type record struct {
 	w        *work
 	terms    *terms
@@ -56,7 +56,7 @@ type record struct {
 // already deduped its works, so the computed author|title key must not
 // re-merge distinct works that share an access point -- while a group's
 // format-bucket records must share the key and cluster into one Work
-// (tasks/182). Cross-feed merging with a primary feed happens only through
+// . Cross-feed merging with a primary feed happens only through
 // the identifier keys (ISBNs and the mapping's keyed schemes -- durable for
 // isbn-less works whose export ids renumber between dumps).
 func (r record) Identity() identity.Record {
@@ -134,13 +134,13 @@ func (r record) Work() codexbf.Work {
 }
 
 // contributions builds the Work's agents: mapped contributor literals when
-// the export carries them, else one author per creator literal (tasks/182).
+// the export carries them, else one author per creator literal.
 // A mapped contributor name is a FINAL sort-form label per the coll-feed
 // contract -- the exporter already inverted transcribed person names and
 // passes provider sortNames (and corporate direct forms) verbatim -- so it
 // rides into the Label unchanged; lastFirst applies only to the creator
-// fallback, whose literals are raw access points (tasks/190). Both paths
-// run the junk/length gate (tasks/186): a record whose every agent is
+// fallback, whose literals are raw access points. Both paths
+// run the junk/length gate: a record whose every agent is
 // debris yields a Work with no contributions -- the raw creator literal
 // still feeds the identity author key regardless (Identity reads it
 // directly).
@@ -189,7 +189,7 @@ var yearLed = regexp.MustCompile(`^\d{4}\b`)
 // it becomes a contributor term slug that overflows the 255-byte filename
 // limit when Hugo mints the term page. Mirrors the coll provider's policy
 // (coll-support parse.go), so a feed flip does not grow contributions the old
-// pipeline dropped (tasks/186).
+// pipeline dropped.
 const maxContributorName = 100
 
 // isJunkContributor reports a "name" that is copyright-line debris or an
@@ -197,7 +197,7 @@ const maxContributorName = 100
 // reserved" fragment, a copyright-holder credit, or a year-led remnant.
 // The year-led test exempts comma-bearing names: "5000, Alaska Thunderfuck"
 // is an inverted sort-form name, not a bare copyright-year line like
-// "2011 EMI Records Ltd." (tasks/190).
+// "2011 EMI Records Ltd.".
 func isJunkContributor(name, role string) bool {
 	lower := strings.ToLower(name)
 	return role == "copyright holder" ||
@@ -274,7 +274,7 @@ func (r record) ControlledSubjects() []ingest.AuthoritySubject {
 
 // DescribedTerms returns the subjects' ancestor-chain descriptions
 // (prefLabel per language + broader), emitted into the feed graph with no
-// bf:subject link so subject trees keep labeled top levels (tasks/180/182).
+// bf:subject link so subject trees keep labeled top levels.
 // The walk is breadth-first over the harvested broader edges, cycle-safe,
 // depth-capped, excludes the subjects themselves (ControlledSubjects already
 // describes them), skips URIs the export says nothing about, and returns

@@ -10,7 +10,7 @@
 // tickers freeze between invocations, so the function also accepts the
 // scheduled drain event {"lcatd":"drain"} (an EventBridge rule in the
 // terraform stack) and runs the vocab-download and export-job drains once
-// per firing instead (tasks/099).
+// per firing instead.
 package main
 
 import (
@@ -38,7 +38,7 @@ func main() {
 	}
 	// The init context is the process lifetime. Ticker workers are replaced
 	// by the scheduled drain event on Lambda -- a frozen process never
-	// advances a goroutine (tasks/099).
+	// advances a goroutine.
 	cfg.DisableTickers = true
 	deps, err := appdeps.Build(context.Background(), cfg, logger)
 	if err != nil {

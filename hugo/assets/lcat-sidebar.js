@@ -1,5 +1,5 @@
 /*
- * Shared facet sidebar loader (libcat tasks/150, opt-in via
+ * Shared facet sidebar loader (opt-in via
  * [params.facets] shared). The sidebar body is published once per language as
  * a fingerprinted fragment asset instead of being inlined into every page;
  * this fetches it (immutable-cached, so one network hit per visit) and
@@ -9,7 +9,7 @@
  * already-rendered DOM) is re-created in place, which does execute; JSON
  * config scripts stay as parsed data. After insertion a lcat:facets-loaded
  * event tells already-running consumers (lcat-browse.js hydrates unlinked
- * rows into reader toggles, tasks/170) the sidebar DOM is ready. On any
+ * rows into reader toggles) the sidebar DOM is ready. On any
  * fetch failure the host's no-JS fallback links are left in place.
  */
 (function () {

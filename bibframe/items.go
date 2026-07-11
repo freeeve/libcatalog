@@ -9,7 +9,7 @@ import (
 	"github.com/freeeve/libcodex/rdf"
 )
 
-// The minimal bf:Item holdings model (tasks/051): call number, shelving
+// The minimal bf:Item holdings model: call number, shelving
 // location, barcode, and a note -- never circulation state, which is the
 // ILS's (ARCHITECTURE §5 keeps live state out of the graph). Items are
 // editorial statements on skolem nodes under their Instance, so they
@@ -82,12 +82,12 @@ func ItemsOf(grainNQ []byte, instanceID string) ([]Item, error) {
 }
 
 // ErrNoSuchInstance refuses an item write against an instance id the grain
-// does not describe (tasks/211); handlers map it to a 400.
+// does not describe; handlers map it to a 400.
 var ErrNoSuchInstance = errors.New("no such instance on this work")
 
 // ErrDuplicateBarcode refuses an item list in which two items carry the same
 // barcode: a barcode names one physical copy, so two copies sharing it cannot be
-// told apart (tasks/343). Handlers map it to a 400.
+// told apart. Handlers map it to a 400.
 var ErrDuplicateBarcode = errors.New("duplicate barcode")
 
 // SetItems replaces an Instance's holdings wholesale: every editorial item
@@ -103,7 +103,7 @@ func SetItems(grainNQ []byte, instanceID string, items []Item) ([]byte, error) {
 	// the IRI from whatever id it was handed, grafting holdings onto a
 	// phantom node that no reader enumerates -- consuming real barcodes and
 	// asserting bf:hasItem on another work's Instance when the id was
-	// copied from the wrong record (tasks/211).
+	// copied from the wrong record.
 	inst := rdf.NewIRI(InstanceIRI(instanceID))
 	described := false
 	for i := range ds.Quads {
@@ -117,7 +117,7 @@ func SetItems(grainNQ []byte, instanceID string, items []Item) ([]byte, error) {
 	}
 	// A barcode names one physical copy, so two items in the same list may not
 	// share one -- the invariant the auto-assign path (workindex.AllocateBarcodes)
-	// already holds, which this wholesale-PUT path used to skip (tasks/343).
+	// already holds, which this wholesale-PUT path used to skip.
 	seen := make(map[string]struct{}, len(items))
 	for _, item := range items {
 		if item.Barcode == "" {

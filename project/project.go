@@ -57,7 +57,7 @@ const (
 	pSimpleAgent       = bflcNS + "simpleAgent"
 	pSimpleDate        = bflcNS + "simpleDate"
 	pDate              = bfNS + "date"
-	// Series as libcodex >= v0.25.0 emits it (tasks/309): one bf:relation per 490
+	// Series as libcodex >= v0.25.0 emits it: one bf:relation per 490
 	// on the Work, discriminated by its bf:relationship IRI, carrying the
 	// enumeration and pointing at a bf:Series through bf:associatedResource.
 	pRelation           = bfNS + "relation"
@@ -84,53 +84,53 @@ const (
 // SchemaVersion is the catalog.json / facets.json / redirects.json schema version.
 // The Hugo module and search-index builder read it to detect a projector/consumer
 // mismatch. v2 added the per-Instance identifier scheme (ProviderID.Source) for the
-// availability adapter (tasks/004/008). v3 split controlled subjects (authority
-// URIs + resolved labels) from uncontrolled feed tags (tasks/012). v4 added
+// availability adapter. v3 split controlled subjects (authority
+// URIs + resolved labels) from uncontrolled feed tags. v4 added
 // per-Instance format (from the Instance's RDA media type) and the Work-level
-// formats facet, so a clustered mixed-format Work exposes each format (tasks/011).
+// formats facet, so a clustered mixed-format Work exposes each format.
 // v5 added subject skos:broader parents (Subject.Broader / SubjectFacet.Broader) so
-// consumers render vocabulary hierarchy without re-reading the graph (tasks/015).
+// consumers render vocabulary hierarchy without re-reading the graph.
 // v6 added the holdings signal (Instance.Held / Work.Held): physical items or a
-// live-availability identifier whose feed still lists the Work (tasks/078).
+// live-availability identifier whose feed still lists the Work.
 // v7 added Work.Summary from bf:summary -- the description/abstract as first-class
-// bibliographic data rather than an adopter extra (tasks/124).
+// bibliographic data rather than an adopter extra.
 // v8 added Subject.Scheme / SubjectFacet.Scheme -- the short vocabulary code
 // derived from the authority-URI namespace -- so a multi-vocabulary corpus can
 // facet and mint term pages per scheme instead of colliding same-label terms
-// from different vocabularies (tasks/141).
+// from different vocabularies.
 // v9 made classifications {value, label} objects (Work.Classifications /
 // Facets.Classifications): value stays the scheme code (what MARC 084 $a
 // carries), label is the human text riding the classification node's
 // rdfs:label -- the display-only channel -- so a facet can show "Fiction /
-// Romance / Contemporary" while exports keep FIC027000 (tasks/142).
+// Romance / Contemporary" while exports keep FIC027000.
 // The code stays verbatim here on purpose. A Dewey number's prime mark (082 $a
 // "813/.6") is data a MARC export must round-trip, so it is not the projector's
 // to strip -- but a slash cannot survive being a URL path segment, so the Hugo
 // module keys the classification taxonomy by the code's slug and shows the code
-// (tasks/276). The URL needed the slug, not the record.
+// . The URL needed the slug, not the record.
 // v10 added Catalog.Terms -- the vocabulary sideband: every referenced subject
 // term plus its transitive skos:broader ancestors, with whatever labels and
 // broader edges the graph carries -- so a consumer can label hierarchy nodes
-// no Work carries directly instead of minting them label-less (tasks/178).
+// no Work carries directly instead of minting them label-less.
 // v11 added Work.Relations -- the editorial whole/part links (hasPart/partOf
 // as {id, title}, restricted to works present in this projection) -- and the
 // Instance series statement/enumeration (bf:seriesStatement 490$a,
 // bf:seriesEnumeration 490$v), so the site cross-links parts and shows
-// series lines (tasks/221/222).
+// series lines.
 // v12 moved series from the Instance to the Work and made them objects:
 // Work.Series []{title, enumeration, issn, traced} replaces Instance.Series
 // []string + Instance.SeriesEnumeration. libcodex v0.25.0 hangs one bf:relation
 // per 490 on the Work, so each enumeration belongs to its own series instead of
 // being paired by list position -- a pairing an RDF graph, being a set, could not
 // preserve. 490$x (ISSN) and ind1=1 (traced) are carried for the first time
-// (tasks/309).
+// .
 const SchemaVersion = 12
 
 // Catalog is the projected corpus: one record per Work, sorted by id.
 type Catalog struct {
 	Version int    `json:"version"`
 	Works   []Work `json:"works"`
-	// Terms is the vocabulary sideband (tasks/178): one entry per referenced
+	// Terms is the vocabulary sideband: one entry per referenced
 	// subject term or transitive skos:broader ancestor that the graph
 	// describes (labels and/or broader edges; bare URIs with nothing to say
 	// are skipped). Sorted by ID.
@@ -142,7 +142,7 @@ type Catalog struct {
 // broader edges resolved from the graph. The sideband exists for hierarchy
 // nodes no Work carries directly: the browse-artifact builder unions subtree
 // postings into ancestors (search.BuildBrowse), and without this it can only
-// mint them label-less (tasks/178).
+// mint them label-less.
 type Term struct {
 	ID      string            `json:"id"`
 	Labels  map[string]string `json:"labels,omitempty"`
@@ -157,7 +157,7 @@ type Work struct {
 	Title    string `json:"title"`
 	Subtitle string `json:"subtitle,omitempty"`
 	// Summary is the Work's description/abstract (bf:summary), first label wins
-	// when a record carries several (tasks/124).
+	// when a record carries several.
 	Summary         string           `json:"summary,omitempty"`
 	Contributors    []Contributor    `json:"contributors,omitempty"`
 	Subjects        []Subject        `json:"subjects,omitempty"`
@@ -168,21 +168,21 @@ type Work struct {
 	// so a clustered mixed-format Work is faceted under each format it offers.
 	Formats   []string   `json:"formats,omitempty"`
 	Instances []Instance `json:"instances,omitempty"`
-	// Held is true when any Instance is held (tasks/078): physical items, or
+	// Held is true when any Instance is held: physical items, or
 	// a live-availability identifier whose feed still lists the Work. Whether
 	// unheld Works are hidden or merely badged is the importing site's call.
 	Held bool `json:"held,omitempty"`
 	// Extra holds the Work's non-BIBFRAME adopter display fields (e.g. cover, rating,
 	// dateRead) a provider carried through the feed graph under bibframe.ExtraPred
-	// (tasks/026). The Hugo module forwards it to page params (tasks/022). Omitted (nil)
+	//. The Hugo module forwards it to page params. Omitted (nil)
 	// when the corpus carries none, so a catalog without extras is unchanged.
 	Extra map[string]string `json:"extra,omitempty"`
-	// Relations are the Work's editorial whole/part links (tasks/221/222),
+	// Relations are the Work's editorial whole/part links,
 	// restricted to works present in this projection -- a link to a
 	// suppressed, tombstoned, or foreign work is omitted rather than
 	// rendered as a dead cross-link.
 	Relations *Relations `json:"relations,omitempty"`
-	// Series are the Work's series memberships, one per 490 (tasks/309).
+	// Series are the Work's series memberships, one per 490.
 	// Work-level, because that is where libcodex >= v0.25.0 hangs them: a
 	// bf:relation whose bf:relationship is .../relationship/series. They used
 	// to be flat literals on the Instance, which paired a statement to its
@@ -192,7 +192,7 @@ type Work struct {
 }
 
 // Series is one series membership: the transcribed statement, this Work's place
-// in it, and the series ISSN (tasks/309).
+// in it, and the series ISSN.
 //
 // Enumeration belongs to the *relation*, not to the series, which is why it can
 // finally be per-series rather than one-per-Instance: "bk. 2 of Firebrand fiction"
@@ -231,7 +231,7 @@ type Contributor struct {
 
 // Classification is one classification of a Work: the scheme code (bf:
 // classificationPortion -- what MARC 084 $a carries) plus the optional human
-// label riding the classification node's rdfs:label (tasks/142). Facets and
+// label riding the classification node's rdfs:label. Facets and
 // term pages key on Value; display prefers Label and falls back to Value, so
 // a corpus without labels renders exactly as before.
 type Classification struct {
@@ -243,18 +243,18 @@ type Classification struct {
 // human labels resolved from the authority's skos:prefLabel / rdfs:label statements
 // in the graph, keyed by language tag (e.g. "en", "es"; "" for an untagged label).
 // Links and facets key on ID; display uses Labels, falling back to ID when the
-// authority provides none (tasks/012). Distinct from an uncontrolled feed Tag.
+// authority provides none. Distinct from an uncontrolled feed Tag.
 //
 // Broader holds the authority URIs of this term's skos:broader parents (sorted,
 // deduped), so a consumer can render vocabulary hierarchy (breadcrumb trails,
-// broader/narrower drill-down) without re-reading the graph (tasks/015). It is
+// broader/narrower drill-down) without re-reading the graph. It is
 // id-only: a parent's label resolves from the parent's own Subject/authority record.
 type Subject struct {
 	ID      string            `json:"id"`
 	Labels  map[string]string `json:"labels,omitempty"`
 	Broader []string          `json:"broader,omitempty"`
 	// Scheme is the short vocabulary code derived from the URI's namespace
-	// (SchemeForURI, tasks/141) -- "homosaurus", "fast", "lcsh", "local";
+	// (SchemeForURI) -- "homosaurus", "fast", "lcsh", "local";
 	// empty for an unrecognized authority.
 	Scheme string `json:"scheme,omitempty"`
 }
@@ -264,7 +264,7 @@ type Subject struct {
 type SchemePrefix struct{ Prefix, Scheme string }
 
 // SubjectSchemePrefixes is the namespace -> scheme table SchemeForURI
-// consults, first match wins (tasks/141). `lcat project --subject-scheme`
+// consults, first match wins. `lcat project --subject-scheme`
 // prepends deployment-specific entries, so a custom authority (or a
 // different code for a known one) overrides these defaults.
 var SubjectSchemePrefixes = []SchemePrefix{
@@ -297,15 +297,15 @@ type Instance struct {
 	Format      string       `json:"format,omitempty"`
 	ISBNs       []string     `json:"isbns,omitempty"`
 	ProviderIDs []ProviderID `json:"providerIds,omitempty"`
-	// Items are the Instance's physical holdings (tasks/051): call number,
+	// Items are the Instance's physical holdings: call number,
 	// shelving location, barcode, note -- never circulation state, which
 	// stays live-only (ARCHITECTURE §5).
 	Items []Item `json:"items,omitempty"`
 	// Held is true when this Instance has >=1 item (physical) or a
 	// live-availability identifier whose feed still lists the Work (digital,
-	// unless the reconciliation flagged the Work withdrawn) -- tasks/078.
+	// unless the reconciliation flagged the Work withdrawn).
 	Held bool `json:"held,omitempty"`
-	// Publication statement transcribed from MARC 260/264 (tasks/351): the
+	// Publication statement transcribed from MARC 260/264: the
 	// agent ($b), the place of publication ($a) and the date. These are
 	// per-Instance -- a Work's 2020 hardback and 2022 ebook differ -- so they
 	// render on the edition line, not the Work-level details.
@@ -314,7 +314,7 @@ type Instance struct {
 	Published string `json:"published,omitempty"`
 }
 
-// Item is one holding of an Instance (the minimal bf:Item model, tasks/051).
+// Item is one holding of an Instance (the minimal bf:Item model).
 type Item struct {
 	CallNumber string `json:"callNumber,omitempty"`
 	Location   string `json:"location,omitempty"`
@@ -325,12 +325,12 @@ type Item struct {
 // ProviderID is one non-ISBN identifier with its bf:source scheme, so a client-side
 // availability adapter selects its key by scheme (e.g. OverDrive's "overdrive-reserve"
 // Reserve ID vs the "overdrive" title id) rather than guessing from a flat list
-// (ARCHITECTURE §9, tasks/004). Source is empty for an untagged identifier.
+// (ARCHITECTURE §9). Source is empty for an untagged identifier.
 //
 // Every scheme is projected; the hugo module decides which ones reach the DOM, via
 // data/lcat/availabilityAttrs.toml. The schemes its bundled adapters resolve are
 // "overdrive-reserve" (OverDrive Reserve ID) and "daia" (DAIA document id, e.g.
-// "ppn:12345" -- tasks/288). A scheme with no adapter is still projected and simply
+// "ppn:12345"). A scheme with no adapter is still projected and simply
 // never queried.
 type ProviderID struct {
 	Source string `json:"source,omitempty"`
@@ -358,7 +358,7 @@ type FacetValue struct {
 
 // ClassificationFacet is one classification facet value: the scheme code (the
 // key), the optional human label (see Classification), and the number of Works
-// carrying it (tasks/142).
+// carrying it.
 type ClassificationFacet struct {
 	Value string `json:"value"`
 	Label string `json:"label,omitempty"`
@@ -367,14 +367,14 @@ type ClassificationFacet struct {
 
 // SubjectFacet is one controlled-subject facet value: the authority URI (the key),
 // its resolved labels, its skos:broader parents (for hierarchy-aware facet
-// drill-down, tasks/015), and the number of Works carrying it. Facets key on ID so a
-// relabel does not churn the facet; display uses Labels (tasks/012).
+// drill-down), and the number of Works carrying it. Facets key on ID so a
+// relabel does not churn the facet; display uses Labels.
 type SubjectFacet struct {
 	ID      string            `json:"id"`
 	Labels  map[string]string `json:"labels,omitempty"`
 	Broader []string          `json:"broader,omitempty"`
 	// Scheme is the vocabulary code (see Subject.Scheme) so a consumer
-	// renders one facet group per vocabulary (tasks/141).
+	// renders one facet group per vocabulary.
 	Scheme string `json:"scheme,omitempty"`
 	Count  int    `json:"count"`
 }
@@ -517,12 +517,12 @@ type Redirect struct {
 // final survivor and sorted by retired id. An empty To is a tombstone -- retired
 // with no successor.
 //
-// Per the tasks/001 decision the projector emits the map and the host serves it.
+// Per the decision the projector emits the map and the host serves it.
 // The host is the Hugo module, which publishes this file to /redirects.json and
 // mints a meta-refresh stub for each merged id, and `lcat serve`, which reads the
-// published map and answers 301 for a merge and 410 for a tombstone (tasks/313).
+// published map and answers 301 for a merge and 410 for a tombstone.
 // Unlike catalog.json and facets.json this artifact is read at request time, so it
-// must reach the served tree. Until tasks/313 nothing published it, nothing read
+// must reach the served tree. Until nothing published it, nothing read
 // it, and every retired permalink answered a bare 404.
 type RedirectMap struct {
 	Version   int        `json:"version"`
@@ -535,7 +535,7 @@ type RedirectMap struct {
 // at the last id reached rather than looping.
 //
 // catalogNQ must not be modified while the returned map is in use: the parse
-// is zero-copy (ParseNQuadsShared, tasks/057), so ids alias the buffer.
+// is zero-copy (ParseNQuadsShared), so ids alias the buffer.
 func Redirects(catalogNQ []byte) (RedirectMap, error) {
 	ds, err := rdf.ParseNQuadsShared(catalogNQ)
 	if err != nil {
@@ -546,7 +546,7 @@ func Redirects(catalogNQ []byte) (RedirectMap, error) {
 
 // RedirectsDataset is Redirects over an already-parsed dataset, so a caller that
 // projects several feeds parses the catalog once rather than once per feed
-// (tasks/279).
+// .
 func RedirectsDataset(ds *rdf.Dataset) RedirectMap {
 	ed := bibframe.EditorialGraph()
 	raw := map[string]string{}
@@ -563,7 +563,7 @@ func RedirectsDataset(ds *rdf.Dataset) RedirectMap {
 		case bibframe.PredTombstoned:
 			// A tombstone with a successor redirects like a merge; one
 			// without leaves an empty-target entry the host serves as gone
-			// (tasks/051).
+			//.
 			if q.O.IsIRI() {
 				raw[fragID(q.S.Value, "Work")] = fragID(q.O.Value, "Work")
 			} else {
@@ -615,12 +615,12 @@ func follow(raw map[string]string, start string) string {
 // Project reads a catalog.nq dataset and projects each Work into a Catalog record.
 // Display/facet fields are drawn from the union of the provider's feed graph and
 // the editorial graph, so curated subjects appear alongside feed data. Editorial
-// lcat:overrides markers shadow the feed first (tasks/042): a property a
+// lcat:overrides markers shadow the feed first: a property a
 // cataloger claimed shows only its editorial values, and deleting the marker
 // resurfaces the feed untouched.
 //
 // catalogNQ must not be modified while the returned Catalog is in use: the
-// parse is zero-copy (ParseNQuadsShared, tasks/057) -- one input-sized
+// parse is zero-copy (ParseNQuadsShared) -- one input-sized
 // allocation saved at corpus scale -- so projected strings alias the buffer.
 func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 	ds, err := rdf.ParseNQuadsShared(catalogNQ)
@@ -633,7 +633,7 @@ func Project(catalogNQ []byte, provider string) (*Catalog, error) {
 // ProjectDataset is Project over an already-parsed dataset. A multi-feed
 // projection views one provenance graph at a time, so it used to reparse the
 // whole catalog once per feed -- five full parses of a 1.76M-quad corpus for
-// three feeds plus Feeds and Redirects (tasks/279). Pair it with LoadDataset.
+// three feeds plus Feeds and Redirects. Pair it with LoadDataset.
 func ProjectDataset(ds *rdf.Dataset, provider string) *Catalog {
 	overrides := bibframe.ScanOverrides(ds)
 	view := mergedView(ds, bibframe.FeedGraph(provider), bibframe.EditorialGraph(), overrides)
@@ -658,7 +658,7 @@ func ProjectDataset(ds *rdf.Dataset, provider string) *Catalog {
 		if !w.IsIRI() || !strings.HasPrefix(w.Value, "#") || !strings.HasSuffix(w.Value, "Work") {
 			continue
 		}
-		// The delete stance (tasks/051): a tombstoned Work leaves the
+		// The delete stance: a tombstoned Work leaves the
 		// projection (its redirect entry comes from Redirects); a suppressed
 		// one merely hides. Both statements are editorial, so they ride the
 		// merged view.
@@ -676,7 +676,7 @@ func ProjectDataset(ds *rdf.Dataset, provider string) *Catalog {
 	return cat
 }
 
-// termSideband collects the vocabulary sideband (tasks/178): every subject
+// termSideband collects the vocabulary sideband: every subject
 // URI the works reference plus its transitive skos:broader closure, emitted
 // as Terms when the graph carries any metadata for them. The closure walks
 // the corpus-wide broader index, so an ancestor chain an enricher described
@@ -726,21 +726,21 @@ type projector struct {
 	// view is the projection graph: the feed graph with editorially-owned
 	// (lcat:overrides) properties filtered out, merged with the editorial
 	// graph -- so cataloger edits project as first-class values for every
-	// field (tasks/045). Editorial statements are blank-free, so the merge
+	// field. Editorial statements are blank-free, so the merge
 	// cannot collide labels.
 	view    *rdf.Graph
 	labels  map[string]map[string]string // authority URI -> language tag -> label
 	broader map[string][]string          // authority URI -> sorted parent (skos:broader) URIs
-	aliases map[string][]string          // authority URI -> tags it subsumes (lcat:tagAlias, tasks/044)
-	extras  map[string]map[string]string // Work node IRI -> extra key -> value (tasks/026)
+	aliases map[string][]string          // authority URI -> tags it subsumes (lcat:tagAlias)
+	extras  map[string]map[string]string // Work node IRI -> extra key -> value
 }
 
 // mergedView builds the projector's feed+editorial view: feed triples with
 // overridden statements shadowed, then editorial triples, in one exactly-
-// sized allocation (tasks/209). GraphViews rather than direct quad
+// sized allocation. GraphViews rather than direct quad
 // iteration: libcodex v0.20.0's cached per-graph counts make Len free after
 // one shared pass and Empty skips the editorial walk entirely, so the view
-// version now beats the fused hand-written merge it replaced (tasks/216).
+// version now beats the fused hand-written merge it replaced.
 // Triple order matches the old pipeline: feed first, editorial appended.
 func mergedView(ds *rdf.Dataset, feed, editorial rdf.Term, overrides bibframe.Overrides) *rdf.Graph {
 	fv, ev := ds.GraphView(feed), ds.GraphView(editorial)
@@ -800,7 +800,7 @@ func (p *projector) summary(w rdf.Term) string {
 }
 
 // formatUnion is the deduped, sorted set of the Work's Instances' formats -- the
-// Work-level formats facet. A clustered ebook+audiobook yields both (tasks/011).
+// Work-level formats facet. A clustered ebook+audiobook yields both.
 func formatUnion(insts []Instance) []string {
 	set := map[string]bool{}
 	for _, i := range insts {
@@ -819,7 +819,7 @@ func (p *projector) contributors(w rdf.Term) []Contributor {
 		primary bool
 	}
 	var es []entry
-	// Dedupe on (name, role) like the other dimensions (tasks/115): a feed and
+	// Dedupe on (name, role) like the other dimensions: a feed and
 	// an editorial contribution node for the same agent -- or a provider
 	// repeating a creator -- must not list the contributor twice. A duplicate
 	// that is primary anywhere stays primary.
@@ -865,7 +865,7 @@ func (p *projector) contributors(w rdf.Term) []Contributor {
 	return out
 }
 
-// series collects the Work's series memberships (tasks/309).
+// series collects the Work's series memberships.
 //
 // libcodex >= v0.25.0 emits one bf:relation per 490, on the Work, following LC's
 // ConvSpec-Process6-Series.xsl. The relation carries the enumeration and points at
@@ -1001,7 +1001,7 @@ func sortedUniqueStrings(in []string) []string {
 }
 
 // relations collects the Work's editorial whole/part link targets as raw
-// ids (tasks/221/222); Project() resolves display titles and drops targets
+// ids; Project() resolves display titles and drops targets
 // absent from the projection in a post-pass over the built catalog, so a
 // link to a suppressed or tombstoned work never renders as a dead
 // cross-link.
@@ -1056,10 +1056,10 @@ func resolveRelations(works []Work) {
 }
 
 // subjectsAndTags splits a Work's bf:subject objects (across the feed and editorial
-// graphs) into two dimensions (tasks/012). An external IRI object is a controlled-
+// graphs) into two dimensions. An external IRI object is a controlled-
 // vocabulary subject: its authority URI plus labels resolved from the graph
 // (buildLabelIndex). A labeled blank node -- or a labeled grain-local fragment
-// node like an editor skolem (tasks/218) -- is an uncontrolled tag: its label
+// node like an editor skolem -- is an uncontrolled tag: its label
 // string. Subjects are deduped by URI and sorted by URI; tags are deduped and
 // sorted.
 //
@@ -1086,7 +1086,7 @@ func (p *projector) subjectsAndTags(w rdf.Term) ([]Subject, []string) {
 				}
 			} else if label, ok := g.Literal(s, pLabel); ok && label != "" {
 				// Blank or grain-local heading node: an uncontrolled
-				// heading's label is a tag (tasks/218).
+				// heading's label is a tag.
 				tags[label] = true
 			}
 		}
@@ -1099,7 +1099,7 @@ func (p *projector) subjectsAndTags(w rdf.Term) ([]Subject, []string) {
 	collect(p.view)
 
 	// A promoted tag disappears where its controlled term is present: the
-	// tag "became" the subject (lcat:tagAlias, tasks/044). Works carrying
+	// tag "became" the subject (lcat:tagAlias). Works carrying
 	// the tag but not the term keep showing it.
 	for id := range subj {
 		for _, aliased := range p.aliases[id] {
@@ -1123,7 +1123,7 @@ func (p *projector) subjectsAndTags(w rdf.Term) ([]Subject, []string) {
 }
 
 // buildLabelIndex indexes the human labels of controlled-vocabulary terms across
-// every graph in the dataset (tasks/012): for each IRI subject of skos:prefLabel or
+// every graph in the dataset: for each IRI subject of skos:prefLabel or
 // rdfs:label, it maps the term URI -> language tag -> label. prefLabel wins over
 // rdfs:label for the same (URI, language). These labels come from authority
 // statements (e.g. an authority:<vocab> graph merged into catalog.nq); the index is
@@ -1163,7 +1163,7 @@ func buildLabelIndex(ds *rdf.Dataset) map[string]map[string]string {
 
 // buildTagAliasIndex indexes lcat:tagAlias statements across every graph:
 // controlled-term URI -> the uncontrolled tag strings it subsumes
-// (tasks/044). Nil when the corpus carries no aliases.
+// . Nil when the corpus carries no aliases.
 func buildTagAliasIndex(ds *rdf.Dataset) map[string][]string {
 	var idx map[string][]string
 	for _, q := range ds.Quads {
@@ -1179,7 +1179,7 @@ func buildTagAliasIndex(ds *rdf.Dataset) map[string][]string {
 }
 
 // buildBroaderIndex indexes the skos:broader hierarchy links of controlled-vocabulary
-// terms across every graph (tasks/015): for each IRI subject with an IRI skos:broader
+// terms across every graph: for each IRI subject with an IRI skos:broader
 // object it maps the term URI -> sorted, deduped parent term URIs. These come from
 // authority statements (e.g. an authority:<vocab> graph). A consumer joins a parent
 // URI back to its own Subject/authority record to render breadcrumb trails. The index
@@ -1207,7 +1207,7 @@ func buildBroaderIndex(ds *rdf.Dataset) map[string][]string {
 }
 
 // buildExtraIndex indexes the non-BIBFRAME adopter "extras" a provider carried through
-// the feed provenance graph (tasks/026): for each Work-node subject with a
+// the feed provenance graph: for each Work-node subject with a
 // bibframe.ExtraPred+<key> literal in feed, it maps the Work node IRI -> key -> value.
 // Restricting to the feed graph keeps the read provenance-scoped, mirroring how extras
 // were emitted. The result is nil when the corpus carries none, so existing catalogs are
@@ -1215,9 +1215,9 @@ func buildBroaderIndex(ds *rdf.Dataset) map[string][]string {
 func buildExtraIndex(ds *rdf.Dataset, feed, editorial rdf.Term) map[string]map[string]string {
 	idx := map[string]map[string]string{}
 	// Feed pass first, editorial pass second: an editorial extra (an
-	// uploaded cover, tasks/215) overlays the feed's value for the same
+	// uploaded cover) overlays the feed's value for the same
 	// key, matching the override model everywhere else. Empty views (no
-	// editorial extras is the common case) cost no walk (tasks/216).
+	// editorial extras is the common case) cost no walk.
 	for _, gv := range []*rdf.GraphView{ds.GraphView(feed), ds.GraphView(editorial)} {
 		if gv.Empty() {
 			continue
@@ -1260,7 +1260,7 @@ func (p *projector) languages(w rdf.Term) []string {
 // classifications collects the Work's classifications, deduped by code. The
 // code is the node's bf:classificationPortion; the optional display label is
 // its rdfs:label -- the display-only channel a scheme-aware crosswalk (or an
-// editorial graph) hangs the human text on (tasks/142). When the same code
+// editorial graph) hangs the human text on. When the same code
 // appears both labeled and bare, the label wins.
 func (p *projector) classifications(w rdf.Term) []Classification {
 	labels := map[string]string{}
@@ -1291,12 +1291,12 @@ func (p *projector) classifications(w rdf.Term) []Classification {
 
 // availabilitySources are the bf:source schemes whose identifiers a runtime
 // availability adapter can resolve -- the digital-holding signal for Held
-// (tasks/078). Bibliographic control numbers (LCCN, local ids) are not
+// . Bibliographic control numbers (LCCN, local ids) are not
 // holdings.
 var availabilitySources = map[string]bool{"overdrive-reserve": true}
 
 func (p *projector) instances(w rdf.Term) []Instance {
-	// A withdrawal flag (tasks/078) means the availability feed stopped
+	// A withdrawal flag means the availability feed stopped
 	// listing this Work: its identifiers no longer count as digital holdings.
 	withdrawn := len(p.view.Objects(w, bibframe.PredWithdrawn)) > 0
 	var out []Instance
@@ -1340,7 +1340,7 @@ func (p *projector) instances(w rdf.Term) []Instance {
 	return out
 }
 
-// publication projects the Instance's publication statement (tasks/351) from the
+// publication projects the Instance's publication statement from the
 // first bf:provisionActivity typed bf:Publication: the transcribed publisher
 // (bflc:simpleAgent), place (bflc:simplePlace) and date (bf:date, or
 // bflc:simpleDate when the controlled date is absent). Distribution/Manufacture
@@ -1364,7 +1364,7 @@ func (p *projector) publication(inst rdf.Term) (publisher, place, date string) {
 	return "", "", ""
 }
 
-// items projects an Instance's holdings (tasks/051), ordered by item node.
+// items projects an Instance's holdings, ordered by item node.
 func (p *projector) items(inst rdf.Term) []Item {
 	nodes := p.view.Objects(inst, pHasItem)
 	if len(nodes) == 0 {

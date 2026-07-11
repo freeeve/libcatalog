@@ -100,7 +100,7 @@ describe("refresh", () => {
   });
 });
 
-// tasks/223: the shell learns the session died through onSessionExpired --
+// the shell learns the session died through onSessionExpired --
 // on a terminal refresh failure or a sibling tab's sign-out, never on a
 // fresh visit that simply has no session.
 describe("session expiry notification", () => {

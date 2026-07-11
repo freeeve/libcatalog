@@ -42,7 +42,7 @@ func TestMergeEmpty(t *testing.T) {
 	}
 }
 
-// TestMergeTermSideband covers tasks/180: Merge carries Catalog.Terms
+// TestMergeTermSideband covers Merge carries Catalog.Terms
 // (dropping it hid every sideband-labeled ancestor from CLI-built
 // deployments, since lcat project always routes through Merge). Shared term
 // ids merge field-wise -- labels fill per language with earlier catalogs
@@ -102,7 +102,7 @@ func TestSanitizeSources(t *testing.T) {
 	}
 }
 
-// tasks/277: extras carry institution-private holdings ("this library already has
+// extras carry institution-private holdings ("this library already has
 // it"). They must stay in the grains and leave the public catalog.
 func TestSanitizeExtras(t *testing.T) {
 	cat := &Catalog{Works: []Work{

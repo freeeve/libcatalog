@@ -6,7 +6,7 @@ import (
 )
 
 // TestHTMLText covers the shapes measured over the qllpoc Thunder page cache
-// (tasks/126): <p>/<br> blocks, <b>/<i>/<strong> inline runs, named and
+// : <p>/<br> blocks, <b>/<i>/<strong> inline runs, named and
 // numeric entities, and whitespace debris.
 func TestHTMLText(t *testing.T) {
 	for name, tc := range map[string]struct{ in, want string }{

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Command palette (Ctrl/Cmd+K, tasks/047): one fuzzy box over navigation
+  // Command palette (Ctrl/Cmd+K): one fuzzy box over navigation
   // actions, "run macro" shortcuts, and jump-to-work (live search once the
   // query stops matching only actions). Modal owns the trap/Escape; the
   // input drives the RowList highlight.
@@ -29,7 +29,7 @@
   // Derived from the one screen table, so a new screen is reachable here the
   // day it routes -- the palette used to be a hand-maintained subset, and
   // answered "No matching commands." for three screens that existed
-  // (tasks/244).
+  //.
   const NAV: Entry[] = SCREENS.map((s) => ({
     id: `nav-${s.route}`,
     label: `Go to ${paletteLabel(s)}`,

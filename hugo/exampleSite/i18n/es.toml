@@ -1,4 +1,4 @@
-# Spanish UI chrome for the bilingual exampleSite (tasks/016). This is an ADOPTER
+# Spanish UI chrome for the bilingual exampleSite. This is an ADOPTER
 # artifact -- the module ships only i18n/en.toml; a site translates by adding a table
 # like this one. Any key omitted here falls back to the module's English default, so
 # a partial translation still builds. No template fork required.
@@ -54,7 +54,7 @@ other = "ISBN"
 [availabilityAction]
 other = "Pedir prestado"
 
-# Vocabulario del indicador de disponibilidad (tasks/356).
+# Vocabulario del indicador de disponibilidad.
 [availAvailableNow]
 other = "Disponible ahora"
 
@@ -128,12 +128,12 @@ other = "Cerrar"
 one = "{{ .Count }} obra"
 other = "{{ .Count }} obras"
 
-# Deployment-defined facet heading (tasks/143): the i18n key named after the
+# Deployment-defined facet heading: the i18n key named after the
 # extraFacets entry wins over its config title.
 [sources]
 other = "Fuentes"
 
-# Negative facet filters (tasks/144).
+# Negative facet filters.
 [excludeTerm]
 other = "Excluir {{ .Label }}"
 
@@ -143,14 +143,14 @@ other = "Sin {{ .Label }}"
 [removeExclusion]
 other = "Quitar la exclusión de {{ .Label }}"
 
-# Language display names (tasks/142): "lang-<639-2 code>" overrides the
+# Language display names: "lang-<639-2 code>" overrides the
 # module's shipped English name table (data/lcat/languageNames.toml) per
 # code -- translate only the codes the corpus carries.
 
 ["lang-eng"]
 other = "Inglés"
 
-# Browse-mode result labels (tasks/281).
+# Browse-mode result labels.
 [browseNoResults]
 other = "Sin coincidencias"
 
@@ -160,7 +160,7 @@ other = "resultados"
 [browseShowing]
 other = "mostrando los primeros {shown} de {total} {results}"
 
-# Paginador de resultados de navegación (tasks/301).
+# Paginador de resultados de navegación.
 [browseShowingRange]
 other = "mostrando {from}–{to} de {total} {results}"
 

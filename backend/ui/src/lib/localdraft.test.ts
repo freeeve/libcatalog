@@ -1,4 +1,4 @@
-// tasks/225: the local draft mirror -- written per edit, offered on mount,
+// the local draft mirror -- written per edit, offered on mount,
 // cleared on save/discard/sign-out -- must round-trip ops and never crash
 // on junk storage.
 import { beforeEach, describe, expect, it } from "vitest";

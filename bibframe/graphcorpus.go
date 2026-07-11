@@ -23,28 +23,28 @@ type WorkGroup struct {
 	Editorial []byte
 	// Extras are the Work's non-BIBFRAME adopter display fields (e.g. cover,
 	// rating, dateRead) that a provider carries through to catalog.json's `extra`
-	// object (tasks/026). They are emitted into the feed provenance graph under
+	// object. They are emitted into the feed provenance graph under
 	// ExtraPred, so their origin is tracked like every other feed statement. Empty
 	// when the provider supplies none, leaving the grain byte-for-byte unchanged.
 	Extras map[string]string
 	// Subjects are controlled-vocabulary subjects (authority URI + localized labels +
 	// skos:broader) a provider derived for the Work, e.g. by promoting genre tags
-	// through an authority table (tasks/026). They are emitted into the feed graph as
+	// through an authority table. They are emitted into the feed graph as
 	// a bf:subject link to the URI plus the authority's prefLabel/broader statements,
-	// so the projector resolves them as controlled subjects (tasks/012/015). Empty
+	// so the projector resolves them as controlled subjects. Empty
 	// when the provider supplies none.
 	Subjects []AuthoritySubject
 	// Terms are standalone vocabulary term descriptions -- typically the
-	// skos:broader ancestor chains of Subjects (tasks/180). They are emitted
+	// skos:broader ancestor chains of Subjects. They are emitted
 	// into the feed graph as the term's prefLabel/broader statements with no
 	// bf:subject link, so ancestor concepts stay labeled in the projection's
-	// term sideband (tasks/178). Empty when the provider supplies none.
+	// term sideband. Empty when the provider supplies none.
 	Terms []AuthoritySubject
 }
 
 // AuthoritySubject is one controlled-vocabulary subject a provider asserts for a Work: a
 // stable authority URI, its human labels by language tag, and its skos:broader parent
-// URIs. It is the graph-emission shape behind ingest.SubjectEnricher (tasks/026).
+// URIs. It is the graph-emission shape behind ingest.SubjectEnricher.
 type AuthoritySubject struct {
 	URI     string
 	Labels  map[string]string // language tag -> label (e.g. "en", "es")
@@ -62,7 +62,7 @@ const (
 // addControlledSubjects attaches a Work's controlled subjects to its feed graph: a
 // bf:subject link from the Work to each authority URI, plus the URI's localized
 // skos:prefLabel and skos:broader statements, so the projector resolves them as
-// controlled subjects with labels and hierarchy (tasks/012/015). Statements are added in
+// controlled subjects with labels and hierarchy. Statements are added in
 // deterministic order (by URI, language, parent); a no-op for an empty slice.
 func addControlledSubjects(g *rdf.Graph, workID string, subs []AuthoritySubject) {
 	if len(subs) == 0 {
@@ -83,7 +83,7 @@ func addControlledSubjects(g *rdf.Graph, workID string, subs []AuthoritySubject)
 }
 
 // addDescribedTerms attaches standalone term descriptions to the feed graph
-// (tasks/180): prefLabel/broader statements only, no bf:subject link -- the
+// : prefLabel/broader statements only, no bf:subject link -- the
 // terms describe vocabulary structure (ancestor chains), not what the Work
 // is about. Deterministic order; a no-op for an empty slice.
 func addDescribedTerms(g *rdf.Graph, terms []AuthoritySubject) {
@@ -127,10 +127,10 @@ func addTermDescription(g *rdf.Graph, s AuthoritySubject) {
 
 // ExtraPred is the reserved predicate namespace for adopter "extras": per-Work fields
 // that are not BIBFRAME (e.g. cover, rating, dateRead) but a provider wants carried
-// through to catalog.json's `extra` object (tasks/026). A key K is emitted as the
+// through to catalog.json's `extra` object. A key K is emitted as the
 // predicate ExtraPred+K on the Work node, in the feed provenance graph; the projector
 // harvests the same namespace back into Work.Extra, and the Hugo module forwards it to
-// page params (tasks/022).
+// page params.
 const ExtraPred = LcatNS + "extra/"
 
 // addWorkExtras attaches a Work's non-BIBFRAME display extras to its graph as
@@ -162,7 +162,7 @@ type GroupInstance struct {
 	Instance   codexbf.Instance
 	// Verbatim carries the record's crosswalk-lossy MARC fields serialized
 	// field-exact (EncodeVerbatimField), emitted into the feed graph under
-	// PredMARCVerbatim so nothing is silently dropped (tasks/049). Empty for
+	// PredMARCVerbatim so nothing is silently dropped. Empty for
 	// non-MARC providers, leaving the grain unchanged.
 	Verbatim []string
 }
@@ -196,7 +196,7 @@ func (wg WorkGroup) graph() *rdf.Graph {
 
 // BuildWorkGrain serializes one WorkGroup to its canonical grain bytes -- the
 // per-Work unit BuildWorks writes, exposed for store-backed ingest
-// (tasks/050), where grains land through blob CAS instead of a Sink.
+// , where grains land through blob CAS instead of a Sink.
 func BuildWorkGrain(wg WorkGroup, provider string) ([]byte, error) {
 	return grainWithEditorial(wg.graph(), FeedGraph(provider), wg.Editorial)
 }
@@ -245,7 +245,7 @@ func BuildWorks(sink storage.Sink, works []WorkGroup, provider string) (BuildSta
 	}
 
 	// The bulk file is the merge of the grains just written, not a second
-	// serialization of the graphs they came from -- see writeCatalog (tasks/298).
+	// serialization of the graphs they came from -- see writeCatalog.
 	sort.Slice(entries, func(i, j int) bool { return entries[i].id < entries[j].id })
 	if err := writeCatalog(sink, entries); err != nil {
 		return stats, err

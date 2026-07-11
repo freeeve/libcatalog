@@ -13,13 +13,13 @@ import (
 
 // runWorkindexSnapshot builds the work-index snapshot from a grain store off the
 // running server -- the offline seed a Lambda deployment needs so its first cold
-// start loads the projection instead of scanning the corpus (tasks/155). It
+// start loads the projection instead of scanning the corpus. It
 // scans the store once and writes the snapshot blob back into it.
 //
 // The snapshot must be built against the same store backend it will serve:
 // ETag schemes differ per backend (dir is content sha256, S3 is MD5-based), so
 // a dir-built snapshot copied into a bucket fails every ETag diff and the
-// first refresh degrades to a full rescan (tasks/162). For S3 targets, point
+// first refresh degrades to a full rescan. For S3 targets, point
 // the tool at the bucket itself.
 //
 //	lcatd workindex-snapshot (--blob-dir <dir> | --s3-bucket <bucket>)

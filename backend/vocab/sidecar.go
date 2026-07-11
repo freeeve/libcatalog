@@ -1,4 +1,4 @@
-// Sidecar index reader (tasks/167): serves one scheme from the artifacts
+// Sidecar index reader: serves one scheme from the artifacts
 // BuildSidecar wrote, holding only the small structures resident -- the URI
 // and identifier RRILs, the RRTI search router, and the RRSR offset index --
 // while search postings and Term payloads range-fetch from the store on
@@ -201,7 +201,7 @@ func (s *sidecarScheme) search(q string, limit int) []*Term {
 // norm is the smallest of its labels matching the prefix, because the term
 // dictionary yields labels in ascending order and the first hit wins the
 // dedupe. That norm, then the term URI, is the map path's sort key too, so
-// Search can merge the two backends into one ordering (tasks/265).
+// Search can merge the two backends into one ordering.
 func (s *sidecarScheme) searchHits(q string, limit int) []searchHit {
 	var docs []uint32
 	var norms []string

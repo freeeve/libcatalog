@@ -27,7 +27,7 @@ describe("subfield line syntax", () => {
     expect(lineToSubfields("$a $b kept")).toEqual([{ code: "b", value: "kept" }]);
   });
 
-  // tasks/227: a literal dollar amount is not a delimiter -- "$2" followed
+  // a literal dollar amount is not a delimiter -- "$2" followed
   // by a digit (no space) must stay inside its value, or a price three
   // fields from the cursor is silently rewritten on save.
   it("keeps dollar amounts inside values", () => {

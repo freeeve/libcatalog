@@ -1,4 +1,4 @@
-// Type-to-filter for facet groups (tasks/141): a case-insensitive substring
+// Type-to-filter for facet groups: a case-insensitive substring
 // match over the group's already-rendered entries -- no index, no fetch. At
 // vocabulary scale (10k+ terms) the sidebar is unscannable without it. Rows
 // hide via the hidden attribute so counts and links stay untouched.

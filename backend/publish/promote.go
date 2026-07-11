@@ -21,7 +21,7 @@ import (
 // graph.
 const aliasGrainPath = "data/authorities/al/aliases.nq"
 
-// PromoteTag executes an approved tag promotion (tasks/044): every Work
+// PromoteTag executes an approved tag promotion: every Work
 // carrying the tag gains the controlled subject (with its authority labels
 // and hierarchy), its editorial lcat:tag is retracted, and the alias grain
 // records lcat:tagAlias so the projector suppresses the residual feed tag
@@ -69,8 +69,8 @@ func (p *Publisher) PromoteTag(ctx context.Context, promo suggest.Promotion, act
 		if err != nil {
 			return rewritten, fmt.Errorf("promote %q on %s: %w", promo.Tag, summary.WorkID, err)
 		}
-		// Keep the shared index exact for this write (tasks/203, the
-		// tasks/195 contract): searches reflect the promotion immediately
+		// Keep the shared index exact for this write (the
+		// contract): searches reflect the promotion immediately
 		// instead of after the refresh TTL.
 		if p.Index != nil {
 			p.Index.Apply(path, etag, written)

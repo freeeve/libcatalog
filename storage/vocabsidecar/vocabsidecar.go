@@ -7,7 +7,7 @@
 // depends on root) and the offline CLI (cmd/lcat) can share it without the CLI
 // having to import the backend module. Keeping the edge one-way -- everything
 // points into root -- is what lets release.sh tag root, hugo and backend in
-// lockstep without the CLI lagging a backend version (tasks/325).
+// lockstep without the CLI lagging a backend version.
 //
 // Layout under <prefix>sidecar/:
 //
@@ -78,7 +78,7 @@ var Suffixes = []string{
 
 // RemoveSidecar deletes a scheme's sidecar artifacts, undoing BuildSidecar. It is
 // the caller's job to remove the snapshot the manifest names; removing that alone
-// leaves the artifacts resident forever (tasks/252).
+// leaves the artifacts resident forever.
 //
 // The manifest goes first, mirroring the order BuildSidecar writes it in: the
 // manifest is what arms a scheme, so a process that dies mid-delete leaves the
@@ -109,7 +109,7 @@ const (
 )
 
 // OrphanSidecar is one scheme's sidecar artifact set that no live snapshot backs,
-// so it serves nothing and RemoveSidecar can collect it (tasks/322).
+// so it serves nothing and RemoveSidecar can collect it.
 type OrphanSidecar struct {
 	Scheme string `json:"scheme"`
 	// Source is the snapshot the manifest named, now missing (empty when the
@@ -119,7 +119,7 @@ type OrphanSidecar struct {
 }
 
 // OrphanSidecars lists the sidecar artifact sets under prefix that no live snapshot
-// backs. RemoveSnapshot deletes a scheme's artifacts as of tasks/252, but a removal
+// backs. RemoveSnapshot deletes a scheme's artifacts as of but a removal
 // before that shipped left them resident, and nothing collects them at boot: the
 // loader detects the same staleness and serves the scheme from maps, but leaves the
 // files where they are. This is the read half of the sweep; the caller deletes.

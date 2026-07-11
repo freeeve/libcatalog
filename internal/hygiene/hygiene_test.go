@@ -22,7 +22,7 @@ var textExtensions = map[string]bool{
 }
 
 // TestNoControlBytesInTextFiles fails on a raw control byte in a tracked text
-// file (tasks/241).
+// file.
 //
 // A single NUL in backend/ui/src/lib/api.ts made grep, git diff, git grep, and
 // most review UIs treat the whole 870-line file as binary. Nothing failed: it

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // "More like this" (tasks/284): the work's computed neighbours, scored live
+  // "More like this": the work's computed neighbours, scored live
   // over the admin corpus by the same scorer the OPAC's build step runs. So this
   // panel shows the rail a reader will get after the next publish -- and it moves
   // as soon as the cataloger re-subjects the record, which is the whole reason it
@@ -82,7 +82,7 @@
         <li>
           <a href="#/works/{n.workId}">{n.title || n.workId}</a>
           {#if n.shared?.length}
-            <!-- One element per term, separated by CSS (tasks/302). Joining on a
+            <!-- One element per term, separated by CSS. Joining on a
                  comma is unreadable: a subject heading ("Lesbians' writings,
                  Canadian") and a contributor ("Elledge, Jim") each carry their own
                  comma, so the line names more things than it lists. -->

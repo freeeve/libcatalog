@@ -1,4 +1,4 @@
-// "More like this" reveal (libcat tasks/310).
+// "More like this" reveal.
 //
 // The rail renders every neighbour the sidecar carries. When that is more than
 // [params] similarShown, the page also emits a hidden "View more" button and this

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Original cataloging (tasks/077): a MARC draft born in the editor -- pick
+  // Original cataloging: a MARC draft born in the editor -- pick
   // a material-type skeleton, edit in the grid or the text surface (the same
   // components the work editor hosts), and stage it for review. Staging runs
   // the minimum-viability gate server-side; refusals come back anchored to
@@ -48,7 +48,7 @@
       templates = (await fetchCopycatTemplates()).templates ?? [];
     } catch {
       // Only the fetch belongs to this message: an error thrown after a
-      // 200 must not masquerade as a load failure (tasks/224).
+      // 200 must not masquerade as a load failure.
       error = "loading the templates failed";
       return;
     }
@@ -57,7 +57,7 @@
 
   /** Starts (or restarts) the draft from a skeleton. Snapshot before the
    *  clone: templates is $state, and structuredClone cannot clone its
-   *  proxies (tasks/224). */
+   * proxies. */
   function pick(id: string): void {
     const tpl = templates.find((t) => t.id === id);
     if (!tpl) return;

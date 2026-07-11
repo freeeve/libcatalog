@@ -5,7 +5,7 @@
   // and help come from the authority-topic profile -- the same profile
   // mechanism records use. The merge tool retires this term into a winner
   // picked from any loaded vocabulary and rewrites every referencing work
-  // (tasks/046).
+  //.
   import { onMount } from "svelte";
   import {
     fetchAuthority,
@@ -47,7 +47,7 @@
   let status = $state("");
   let error = $state("");
   // A save conflict pauses instead of discarding: the cataloger's rows stay
-  // as typed and they choose to overwrite or reload (tasks/114).
+  // as typed and they choose to overwrite or reload.
   let conflicted = $state(false);
 
   const relationPaths = ["broader", "narrower", "related", "exactMatch"];

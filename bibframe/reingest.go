@@ -19,8 +19,8 @@ import (
 type Prior struct {
 	Grains    []identity.GrainIdentity
 	Editorial map[string][]byte // Work id -> raw N-Quads of its non-feed statements
-	Merges    []identity.Merge  // editorial lcat:mergedInto decisions to seed (tasks/001)
-	Pins      []identity.Pin    // editorial lcat:workAssignment split pins to seed (tasks/001)
+	Merges    []identity.Merge  // editorial lcat:mergedInto decisions to seed
+	Pins      []identity.Pin    // editorial lcat:workAssignment split pins to seed
 }
 
 // LoadPrior reads every per-Work grain (*.nq, skipping the bulk catalog.nq) under
@@ -54,7 +54,7 @@ func LoadPrior(dir, provider string) (Prior, error) {
 
 // isWorkGrainName reports whether a file basename is a per-Work grain: *.nq,
 // excluding the bulk catalog.nq -- the one skip rule both prior loaders
-// share (tasks/116).
+// share.
 func isWorkGrainName(base string) bool {
 	return strings.HasSuffix(base, ".nq") && base != "catalog.nq"
 }

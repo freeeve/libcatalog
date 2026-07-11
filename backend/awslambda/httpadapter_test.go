@@ -68,7 +68,7 @@ func TestRequestMapping(t *testing.T) {
 	}
 }
 
-// TestEscapedPathParity covers tasks/104: a percent-escaped path segment must
+// TestEscapedPathParity covers a percent-escaped path segment must
 // reach the mux decoded exactly once, as it does on the standalone server --
 // not double-encoded by a url.URL round trip.
 func TestEscapedPathParity(t *testing.T) {

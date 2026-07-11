@@ -14,7 +14,7 @@ import (
 )
 
 // schemeResolver adapts the vocab index (nil-safe) into the facet counter's
-// IRI -> scheme hook (tasks/174).
+// IRI -> scheme hook.
 func schemeResolver(vx *vocab.Index) func(string) string {
 	if vx == nil {
 		return nil
@@ -33,7 +33,7 @@ func schemeResolver(vx *vocab.Index) func(string) string {
 // The default is exclude. A tombstone says "this record is retired; here is where
 // it went", so a cataloger searching for a book is not looking for one -- and on
 // a catalog that has retired anything at all, the retired records bury the live
-// ones (tasks/280). They stay reachable: "include" shows them alongside, and
+// ones. They stay reachable: "include" shows them alongside, and
 // "only" is the audit question, "what did I retire?".
 //
 // An unrecognized value is refused rather than silently treated as the default: a
@@ -56,7 +56,7 @@ func tombstoneMode(raw string) (keep func(ingest.WorkSummary) bool, ok bool) {
 // publish, not per-keystroke scans).
 type worksList struct {
 	ix *workindex.Index
-	// extraFacets are the extras keys served as facet groups (tasks/171),
+	// extraFacets are the extras keys served as facet groups,
 	// reserved parameter names already filtered out.
 	extraFacets []string
 }
@@ -72,10 +72,10 @@ func (wl *worksList) summaries(r *http.Request) ([]ingest.WorkSummary, error) {
 // window of matches. total counts what a query with no terms would match, so
 // "3 of 41" never says 41 while offering 3 pages of one.
 // extraFacets names the extras keys served as additional facet groups
-// (tasks/171); a key shadowing a built-in parameter is dropped with a
+// ; a key shadowing a built-in parameter is dropped with a
 // warning rather than silently swallowing that parameter. vx (nil when no
 // vocabularies are installed) resolves subject IRIs to their vocabulary
-// scheme, so the rail can group subjects per authority (tasks/174).
+// scheme, so the rail can group subjects per authority.
 func registerWorksList(mux *http.ServeMux, ix *workindex.Index, verifier auth.TokenVerifier, extraFacets []string, vx *vocab.Index) *worksList {
 	wl := &worksList{ix: ix}
 	for _, key := range extraFacets {
@@ -111,7 +111,7 @@ func registerWorksList(mux *http.ServeMux, ix *workindex.Index, verifier auth.To
 				offset = n
 			}
 		}
-		// Facets (tasks/168): filters AND across groups, OR within one;
+		// Facets: filters AND across groups, OR within one;
 		// counts are self-excluding over the query-matched set.
 		groups := workFacetGroups(params, wl.extraFacets, schemeResolver(vx))
 		counter := newFacetCounter(groups)
@@ -122,7 +122,7 @@ func registerWorksList(mux *http.ServeMux, ix *workindex.Index, verifier auth.To
 			// Before the query, before the facets: a retired record is not part
 			// of the set being searched unless it was asked for. Filtering here
 			// rather than in the client keeps matched, the paging window and the
-			// facet counts describing the same set of works (tasks/280).
+			// facet counts describing the same set of works.
 			if !showTombstoned(s) {
 				continue
 			}

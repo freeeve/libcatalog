@@ -18,7 +18,7 @@ var ErrUserExists = errors.New("local: user exists")
 
 // ErrLastAdmin refuses removing the deployment's only admin -- by demotion
 // or deletion -- because no supported path could restore administration
-// afterwards (tasks/207).
+// afterwards.
 var ErrLastAdmin = errors.New("local: cannot remove the last admin")
 
 // ErrUserNotFound reports an operation on an unknown email.
@@ -95,7 +95,7 @@ func (s *Service) CreateUser(ctx context.Context, email, name, password string, 
 			// The profile exists; re-assert its index item anyway so a
 			// create that died between the two writes -- which left the
 			// user invisible to ListUsers -- is repaired by any retry,
-			// including a boot-time Bootstrap re-run (tasks/105).
+			// including a boot-time Bootstrap re-run.
 			_, _ = s.store.Put(ctx, store.Record{Key: usersIndexKey(email)}, store.CondNone)
 			return ErrUserExists
 		}
@@ -106,7 +106,7 @@ func (s *Service) CreateUser(ctx context.Context, email, name, password string, 
 }
 
 // SetRoles replaces a user's roles. Removing admin from the deployment's
-// only admin is refused (tasks/207); the read-then-write window between two
+// only admin is refused; the read-then-write window between two
 // concurrent demotions of two different admins is accepted -- the guard
 // targets the fat-fingered single request, not a coordinated race.
 func (s *Service) SetRoles(ctx context.Context, email string, roles []auth.Role) error {
@@ -194,7 +194,7 @@ func (s *Service) updateUser(ctx context.Context, email string, mutate func(*use
 }
 
 // DeleteUser removes a user (their refresh tokens die at next use).
-// Deleting the deployment's only admin is refused (tasks/207).
+// Deleting the deployment's only admin is refused.
 func (s *Service) DeleteUser(ctx context.Context, email string) error {
 	email = normalizeEmail(email)
 	if last, err := s.isLastAdmin(ctx, email); err != nil {
@@ -233,7 +233,7 @@ func (s *Service) ListUsers(ctx context.Context) ([]UserInfo, error) {
 // (LCATD_BOOTSTRAP_ADMIN). Safe to run on every boot: an existing user is a
 // no-op UNLESS they lack the admin role, in which case admin is re-granted
 // (restored=true) -- the documented recovery hatch must actually recover a
-// demoted bootstrap admin, not silently do nothing (tasks/207).
+// demoted bootstrap admin, not silently do nothing.
 func (s *Service) Bootstrap(ctx context.Context, spec string) (restored bool, err error) {
 	if spec == "" {
 		return false, nil

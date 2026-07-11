@@ -54,7 +54,7 @@ func TestBuiltinsListed(t *testing.T) {
 	if !byName["lcgft"].CanSnapshot() || !byName["lcgft"].CanSuggest() {
 		t.Error("lcgft should suggest and snapshot")
 	}
-	// fast is live-only like lcnaf (tasks/132: the full dump is ~2M concepts; a
+	// fast is live-only like lcnaf (the full dump is ~2M concepts; a
 	// corpus subset supplies display labels). Being suggest-capable it also
 	// registers as a moderated enrichment target at boot (appdeps iterates
 	// CanSuggest sources) -- no fast-specific wiring exists to test.
@@ -64,7 +64,7 @@ func TestBuiltinsListed(t *testing.T) {
 }
 
 // TestViewsListsOrphanInstalls: a snapshot installed without a registered
-// source (an offline vocab-install, tasks/163, or a mem registry that reset)
+// source (an offline vocab-install, or a mem registry that reset)
 // still gets a Vocabularies-screen row, synthesized from its sidecar.
 func TestViewsListsOrphanInstalls(t *testing.T) {
 	s := newService(t)
@@ -76,7 +76,7 @@ func TestViewsListsOrphanInstalls(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The registry forgets the source; the blob-side install remains. Straight to
-	// the store, because DeleteSource now refuses to produce this state (tasks/255)
+	// the store, because DeleteSource now refuses to produce this state
 	// -- the routes that still reach it are the two this test's doc comment names.
 	if err := s.DB.Delete(ctx, store.Record{Key: sourceKey("homosaurus")}, store.CondNone); err != nil {
 		t.Fatal(err)
@@ -197,7 +197,7 @@ func TestSuggestFlavors(t *testing.T) {
 		t.Fatalf("wikidata: %v %+v", err, wd)
 	}
 
-	// searchfast (tasks/132): fst-prefixed, zero-padded idroot maps to the
+	// searchfast: fst-prefixed, zero-padded idroot maps to the
 	// canonical id.worldcat.org URI; auth is the label with a matched variant
 	// form kept; the MARC tag becomes the facet description (150 topical, 155
 	// form/genre).
@@ -265,7 +265,7 @@ func TestConvertFiltersAndTags(t *testing.T) {
 	if err != nil || gzTerms != terms || !bytes.Equal(gzOut, out) {
 		t.Fatalf("gzip convert differs: err=%v terms=%d", err, gzTerms)
 	}
-	// A malformed line refuses the dump (tasks/317). It used to be skipped, which is
+	// A malformed line refuses the dump. It used to be skipped, which is
 	// how a truncated download installed as a smaller vocabulary.
 	if _, _, err := Convert(strings.NewReader("not rdf at all\n"+zinesNT), "lcgft"); err == nil {
 		t.Fatal("a malformed line converted cleanly; a truncated dump would install silently")
@@ -274,8 +274,8 @@ func TestConvertFiltersAndTags(t *testing.T) {
 
 // The operator has to be able to find the bad line. The bad line sits past the first
 // megabyte on purpose: that is where the old chunked bulk parser restarted its line
-// numbering, and a running base had to correct it (tasks/317). The streaming decoder
-// numbers from the start of the dump instead (tasks/320); this test is what says so
+// numbering, and a running base had to correct it. The streaming decoder
+// numbers from the start of the dump instead; this test is what says so
 // from outside, and it fails the same way under either mistake.
 func TestAMalformedLineIsReportedAtItsLineInTheWholeDump(t *testing.T) {
 	var b strings.Builder
@@ -379,7 +379,7 @@ func TestDownloadInstallRemoveLifecycle(t *testing.T) {
 		t.Fatalf("refreshed term missing: %+v", got)
 	}
 	// Control: the install really did build sidecar artifacts, so their absence
-	// after the removal below means the removal took them (tasks/252).
+	// after the removal below means the removal took them.
 	if before := blobPaths(t, s.Blob, s.prefix()+"sidecar/"); len(before) == 0 {
 		t.Fatal("no sidecar artifacts to remove -- the removal check below would pass vacuously")
 	}
@@ -419,7 +419,7 @@ func blobPaths(t *testing.T, st blob.Store, prefix string) []string {
 // TestRemoveSnapshotCleansUpAfterAnOrphanedInstall is the leak the harness actually
 // found: the source row is gone, so RemoveSnapshot cannot ask the registry what
 // scheme to clean up and has to read the install meta instead. Views synthesizes
-// this orphan install precisely so it stays removable (tasks/252).
+// this orphan install precisely so it stays removable.
 func TestRemoveSnapshotCleansUpAfterAnOrphanedInstall(t *testing.T) {
 	s := newService(t)
 	ctx := t.Context()
@@ -441,7 +441,7 @@ func TestRemoveSnapshotCleansUpAfterAnOrphanedInstall(t *testing.T) {
 
 	// The registry loses the record without the blob store hearing about it: an
 	// offline vocab-install, or a deployment whose registry reset. DeleteSource can
-	// no longer produce this state (tasks/255), but these routes still do.
+	// no longer produce this state, but these routes still do.
 	if err := s.DB.Delete(ctx, store.Record{Key: sourceKey("zzleak")}, store.CondNone); err != nil {
 		t.Fatal(err)
 	}
@@ -468,7 +468,7 @@ const zzleakNT = `<http://example.org/z/1> <http://www.w3.org/2004/02/skos/core#
 // TestDeleteSourceRefusesWhileASnapshotIsInstalled makes the screen's tooltip true:
 // "an installed snapshot must be removed first". Nothing enforced it, so one click
 // silently produced an orphan row offering two buttons that could only 404
-// (tasks/255).
+// .
 func TestDeleteSourceRefusesWhileASnapshotIsInstalled(t *testing.T) {
 	s := newService(t)
 	ctx := t.Context()
@@ -551,7 +551,7 @@ func TestDeleteSourceStillDropsABuiltinOverrideWithASnapshotInstalled(t *testing
 }
 
 // TestViewsMarkOrphanInstalls gives the client the one fact it cannot derive: this
-// row has no source record behind it, so Upload and Delete would 404 (tasks/255).
+// row has no source record behind it, so Upload and Delete would 404.
 // An empty SnapshotURL is not a proxy -- an upload-only source has none either.
 func TestViewsMarkOrphanInstalls(t *testing.T) {
 	s := newService(t)
@@ -737,7 +737,7 @@ func TestEnricherReconciles(t *testing.T) {
 	}
 }
 
-// TestEnricherIndexUpgradesTerms covers the local-index arm (tasks/178): a
+// TestEnricherIndexUpgradesTerms covers the local-index arm: a
 // suggest match whose scheme is installed picks up the full term description
 // (multilingual labels, broader edges) and its skos:broader ancestor chain
 // rides along as Enrichment.Terms.
@@ -817,9 +817,9 @@ func (s *syntheticDump) Read(p []byte) (int, error) {
 	}
 }
 
-// TestConvertToStreamsWithBoundedMemory pins the tasks/110 acceptance: a dump far
+// TestConvertToStreamsWithBoundedMemory pins the acceptance: a dump far
 // larger than memory converts with heap growth bounded by the concept set, not by
-// the dump or the output. Since tasks/320 the converter decodes one statement at a
+// the dump or the output. Since the converter decodes one statement at a
 // time, so the concept set is the only thing left that scales with the input.
 func TestConvertToStreamsWithBoundedMemory(t *testing.T) {
 	const n = 400_000 // ~60MB of input, ~60MB of output
@@ -901,7 +901,7 @@ func TestInstallUploadKeepsOldSnapshotOnBadDump(t *testing.T) {
 	}
 }
 
-// TestFastURI covers the idroot -> canonical URI mapping (tasks/132): fst
+// TestFastURI covers the idroot -> canonical URI mapping: fst
 // prefix and zero padding stripped; a malformed idroot yields no URI (the hit
 // is skipped rather than emitting a bogus identifier).
 func TestFastURI(t *testing.T) {
@@ -920,7 +920,7 @@ func TestFastURI(t *testing.T) {
 	}
 }
 
-// TestVocabCacheEvictionAndSweep covers tasks/267: a cached live pick can be
+// TestVocabCacheEvictionAndSweep covers a cached live pick can be
 // evicted one at a time, uninstalling a snapshot sweeps the scheme's cache and
 // sidecar together, and Views reports how each scheme is served.
 func TestVocabCacheEvictionAndSweep(t *testing.T) {
@@ -998,7 +998,7 @@ func TestVocabCacheEvictionAndSweep(t *testing.T) {
 	}
 }
 
-// TestEveryBuiltinFlavorValidates pins tasks/336: a suggest flavor that ships on
+// TestEveryBuiltinFlavorValidates pins a suggest flavor that ships on
 // a builtin source must also pass the user validator, or a librarian cannot
 // configure a second source of the same kind while the builtin quietly works.
 // Builtins are seeded directly and bypass validateSource, which is exactly how
@@ -1014,7 +1014,7 @@ func TestEveryBuiltinFlavorValidates(t *testing.T) {
 	}
 }
 
-// TestPutSourceAcceptsSearchFAST is the user path (tasks/336): a librarian can
+// TestPutSourceAcceptsSearchFAST is the user path: a librarian can
 // register a searchfast source the same way suggest2/wikidata/viaf work, while
 // an actually-unknown flavor is still refused.
 func TestPutSourceAcceptsSearchFAST(t *testing.T) {

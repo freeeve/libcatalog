@@ -1,4 +1,4 @@
-// tasks/305: the merge handler discarded the MergeResult on the error path and
+// the merge handler discarded the MergeResult on the error path and
 // answered a flat `500 merge failed`. The rewrite really had run partway -- some
 // works repointed at the winner, the rest still on the heading -- and the one
 // message guaranteed to stop anyone investigating said nothing happened.

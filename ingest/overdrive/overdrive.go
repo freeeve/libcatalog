@@ -25,7 +25,7 @@ type Item struct {
 	Subtitle    string    `json:"subtitle"`
 	Edition     string    `json:"edition"`
 	Series      string    `json:"series"`
-	Description string    `json:"description"` // HTML fragment; plain-texted into bf:summary (tasks/126)
+	Description string    `json:"description"` // HTML fragment; plain-texted into bf:summary
 	Type        NamedID   `json:"type"`        // {id: ebook|audiobook, name}
 	Publisher   *NamedID  `json:"publisher"`
 	PublishDate string    `json:"publishDate"` // ISO 8601
@@ -73,7 +73,7 @@ type page struct {
 // ReadCache reads every page-*.json in dir (the OverDrive scan cache) and returns
 // all items across the pages, in page order. A dir with no page files is an
 // error, not an empty feed: a mistyped --cache path must not read as "the
-// provider now carries zero titles" (tasks/103).
+// provider now carries zero titles".
 func ReadCache(dir string) ([]Item, error) {
 	if _, err := os.Stat(dir); err != nil {
 		return nil, fmt.Errorf("overdrive cache %s: %w", dir, err)

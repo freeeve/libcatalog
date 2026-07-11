@@ -1,8 +1,8 @@
 /*
-  libcat client-side availability (libcat tasks/004). Live availability is
+  libcat client-side availability. Live availability is
   fetched in the browser at view time and kept OUT of the graph (ARCHITECTURE §5), so
   the static build stays backend-free. Each provider plugs in as an adapter -- the
-  runtime sibling of an ingest provider (tasks/006) -- mapping its source to one
+  runtime sibling of an ingest provider -- mapping its source to one
   normalized model the UI renders:
 
     Availability { provider, id, status, copiesOwned?, copiesAvailable?, holdsCount?,
@@ -43,7 +43,7 @@
   // outage. Degrading a misconfiguration to "unknown" is indistinguishable on the
   // page from a failed fetch, and it issues no request to notice missing -- so it
   // is reported at error level, once per adapter, rather than warned per batch
-  // (tasks/287).
+  //.
   function configError(msg) {
     var e = new Error("lcat-availability: " + msg);
     e.isConfigError = true;
@@ -99,7 +99,7 @@
   // Thunder's public endpoint; "proxied" posts to a configured proxy (for origins
   // where Thunder's CORS is not permissive, or to keep the source behind an edge
   // function) that forwards to the source and returns the *same* {items} response --
-  // so normalization is identical either way (tasks/004 proxy contract).
+  // so normalization is identical either way ( proxy contract).
   function overdriveRequest(ids, cfg) {
     if (cfg.transport === "proxied") {
       if (!cfg.proxyUrl) {
@@ -278,7 +278,7 @@
 
   // registerAdapter binds a provider adapter. providerKey namespaces it; domAttr is
   // the edition element attribute carrying the id it keys on (its ingest counterpart
-  // emits that id, tasks/006/009); batchSize caps ids per fetch; fetchBatch(ids, cfg,
+  // emits that id); batchSize caps ids per fetch; fetchBatch(ids, cfg,
   // deps) returns an id->model map for one batch.
   function registerAdapter(a) {
     adapters[a.providerKey] = a;
@@ -424,9 +424,9 @@
 
   // DEFAULT_STRINGS is the English chip vocabulary and the fallback for any key a
   // deployment's bundle omits. The template emits a localized bundle into the config
-  // (tasks/356); the {days}/{n}/{date} placeholders are filled here because the
+  //; the {days}/{n}/{date} placeholders are filled here because the
   // values are only known client-side (the browse pager localizes the same way,
-  // tasks/281). holdsOne/holdsOther are the CLDR singular/plural the count selects.
+  //). holdsOne/holdsOther are the CLDR singular/plural the count selects.
   var DEFAULT_STRINGS = {
     availableNow: "Available now",
     notAvailable: "Not available",
@@ -547,7 +547,7 @@
   // Every config key any adapter reads, in the spelling it reads. Hugo lowercases
   // param keys when it loads the config, and `jsonify` dumps the map as stored --
   // template lookup hides this because it is case-insensitive, but the browser
-  // receives {"proxyurl": ...} and `cfg.proxyUrl` is undefined (tasks/287).
+  // receives {"proxyurl": ...} and `cfg.proxyUrl` is undefined.
   //
   // Normalizing here, once, at the boundary, means an adopter may write either
   // spelling in TOML (Hugo accepts both, the README documents camelCase) and no
@@ -626,7 +626,7 @@
     if (!doc) return Promise.resolve();
     var cfg = opts.config || readConfig(doc);
     if (!cfg) return Promise.resolve();
-    // The template merges a localized chip vocabulary into the config (tasks/356);
+    // The template merges a localized chip vocabulary into the config;
     // opts.strings lets a caller override it (tests).
     var strings = opts.strings || cfg.strings;
 

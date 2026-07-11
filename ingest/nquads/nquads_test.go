@@ -165,7 +165,7 @@ title = "x"`,
 	}
 }
 
-// collMapping is a coll-feed-shaped mapping (tasks/182): bucket grouping,
+// collMapping is a coll-feed-shaped mapping: bucket grouping,
 // contributor roles, provisions, format, tags/keywords, classifications,
 // extras passthrough, non-key identifier rules, broader harvesting, and a
 // fixed identity language.
@@ -256,7 +256,7 @@ const collNQ = `<urn:coll:work:7:physical> <http://purl.org/dc/terms/isPartOf> <
 `
 
 // TestMergeSeedsFromIsReplacedBy proves the provider surfaces a coll feed's
-// dcterms:isReplacedBy cluster-merges as resolver provider keys (tasks/363), keyed
+// dcterms:isReplacedBy cluster-merges as resolver provider keys, keyed
 // the same way the records are (SchemeID + the durable id-scheme:id).
 func TestMergeSeedsFromIsReplacedBy(t *testing.T) {
 	dir := t.TempDir()
@@ -310,7 +310,7 @@ func buildCollProvider(t *testing.T) ingest.Provider {
 	return p
 }
 
-// TestCollFeedRecords covers the tasks/182 mapping extensions end to end at
+// TestCollFeedRecords covers the mapping extensions end to end at
 // the record level: bucket grouping identity, provider-key round-trips,
 // non-key identifiers, provisions, formats, contributions with roles,
 // subjects with labels + broader, ancestor terms, classifications with
@@ -494,7 +494,7 @@ title = ["http://purl.org/dc/terms/title", "http://example.org/title"]`
 	}
 }
 
-// TestContributionJunkGate covers the tasks/186 policy: both contribution
+// TestContributionJunkGate covers the policy: both contribution
 // paths drop copyright-line debris and overlong non-agent "names" (the
 // coll:32780 conference heading), a record whose every agent is junk yields
 // no contributions, and the raw creator literal still feeds the identity
@@ -543,7 +543,7 @@ func TestContributionJunkGate(t *testing.T) {
 		t.Fatalf("all-junk contributors did not fall back to creator: %+v", got)
 	}
 
-	// Mapped contributor names are final sort-form labels (tasks/190): no
+	// Mapped contributor names are final sort-form labels: no
 	// lastFirst re-inversion of direct forms, and the year-led junk test
 	// exempts comma-bearing inverted names.
 	r = record{w: &work{contributors: []string{
@@ -567,7 +567,7 @@ func TestContributionJunkGate(t *testing.T) {
 	}
 
 	// The identity author key keeps reading the raw creator literal even
-	// when the gate drops it as a contribution (tasks/186: the drop must
+	// when the gate drops it as a contribution (the drop must
 	// not re-merge distinct works or orphan the key).
 	junkOnly := record{
 		w: &work{group: "32780", creators: []string{longName}},

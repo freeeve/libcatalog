@@ -119,11 +119,11 @@ func TestAuthorityCRUDFlow(t *testing.T) {
 	}
 }
 
-// TestAuthoritiesListReportsTrueTotal is the tasks/329 gate: the empty-query
+// TestAuthoritiesListReportsTrueTotal is the gate: the empty-query
 // browse returns a `total` that is the real count of local headings, not the
 // length of the truncated page, so the screen can say how many exist and know
 // the page is capped rather than presenting the fetch limit as a total.
-// TestAuthorityPutCannotForgeMergedInto is the tasks/357 gate: mergedInto is the
+// TestAuthorityPutCannotForgeMergedInto is the gate: mergedInto is the
 // retired/merged marker and Merge is its only legitimate writer (Merge also rewrites
 // every referencing Work to the winner). POST already strips a client-supplied value;
 // PUT must too, else a plain description edit could retire a live heading catalogers
@@ -168,7 +168,7 @@ func TestAuthorityPutCannotForgeMergedInto(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got.Term.MergedInto != "" {
-		t.Errorf("mergedInto = %q, want empty -- PUT must not let a client forge retirement (tasks/357)", got.Term.MergedInto)
+		t.Errorf("mergedInto = %q, want empty -- PUT must not let a client forge retirement", got.Term.MergedInto)
 	}
 	if got.Term.PrefLabel["en"] != "Live heading (edited)" {
 		t.Errorf("prefLabel = %q, want the description edit to have applied", got.Term.PrefLabel["en"])

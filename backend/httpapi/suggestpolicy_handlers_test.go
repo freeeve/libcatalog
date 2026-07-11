@@ -20,7 +20,7 @@ func decodePolicy(t *testing.T, body string) suggest.Policy {
 }
 
 // TestSuggestionPolicyReadWriteAndAudit covers the admin config surface
-// (tasks/263): the default is off, a PUT normalizes and persists the policy and
+// : the default is off, a PUT normalizes and persists the policy and
 // is audited, and both the admin GET and the public read reflect it.
 func TestSuggestionPolicyReadWriteAndAudit(t *testing.T) {
 	queue := suggest.New(store.NewMem(), nil, suggest.Caps{})

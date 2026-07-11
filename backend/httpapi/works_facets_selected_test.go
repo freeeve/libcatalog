@@ -1,4 +1,4 @@
-// tasks/253: the rail is the only account of what the query is. A selected facet
+// the rail is the only account of what the query is. A selected facet
 // value that falls out of its group's top-N -- or whose count under the other
 // groups' filters is zero -- vanished from the response while staying in the
 // query, so the user could not uncheck a filter they could not see.
@@ -175,7 +175,7 @@ func TestPinnedSelectionsAreOrderedDeterministically(t *testing.T) {
 	}
 }
 
-// An extras group (tasks/171, e.g. sources) is capped like tags and pins alike.
+// An extras group (e.g. sources) is capped like tags and pins alike.
 func TestSelectedExtraSurvivesTheTopNCut(t *testing.T) {
 	var works []ingest.WorkSummary
 	for i := 0; i < facetTopN+5; i++ {

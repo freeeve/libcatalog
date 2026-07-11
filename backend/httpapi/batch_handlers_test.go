@@ -138,7 +138,7 @@ func TestBatchOpsFlow(t *testing.T) {
 		t.Fatalf("grain not rewritten:\n%s", grain)
 	}
 
-	// importBatch fails closed with a pointer to tasks/050.
+	// importBatch fails closed with a pointer to.
 	rec = request(t, h, http.MethodPost, "/v1/batch/resolve", "lib-token", "", map[string]any{
 		"selection": map[string]any{"kind": "importBatch"},
 	})
@@ -152,7 +152,7 @@ func TestMacroEndpoints(t *testing.T) {
 
 	// Create a shared parameterized macro.
 	rec := request(t, h, http.MethodPost, "/v1/macros", "lib-token", "", map[string]any{
-		"label": "Series summary", "shared": true, "keys": "4", // "1" is the editor's Native-tab chord (tasks/237)
+		"label": "Series summary", "shared": true, "keys": "4", // "1" is the editor's Native-tab chord
 		"ops": []map[string]any{{
 			"resource": "work", "path": "summary", "action": "set",
 			"values": []map[string]any{{"v": "${series} book.", "lang": "en"}},
@@ -167,7 +167,7 @@ func TestMacroEndpoints(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// tasks/237: a shortcut colliding with an editor chord, or with the macro
+	// a shortcut colliding with an editor chord, or with the macro
 	// just created, refuses at the endpoint rather than silently disabling it.
 	for _, keys := range []string{"2", "4", "zz"} {
 		rec := doJSON(t, h, http.MethodPost, "/v1/macros", "lib-token", map[string]any{
@@ -222,7 +222,7 @@ func TestMacroEndpoints(t *testing.T) {
 	}
 }
 
-// TestExportBatchSelection is the tasks/048 acceptance shape: an export of a
+// TestExportBatchSelection is the acceptance shape: an export of a
 // search selection produces exactly those works, downloadable via the token
 // route, and the job list reflects it.
 func TestExportBatchSelection(t *testing.T) {

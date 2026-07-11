@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// ItemTemplate is a saved item field set (tasks/069): applied it pre-fills
+// ItemTemplate is a saved item field set: applied it pre-fills
 // the item form; its barcode prefix seeds bulk add's auto-incrementing
 // pattern. Personal or library-shared on the macros sharing model.
 type ItemTemplate struct {
@@ -40,7 +40,7 @@ func (s *Service) UpdateItemTemplate(ctx context.Context, id string, t ItemTempl
 }
 
 // DeleteItemTemplate removes a template. The owner may delete; an admin may
-// delete a shared one (tasks/292).
+// delete a shared one.
 func (s *Service) DeleteItemTemplate(ctx context.Context, owner, id string, isAdmin bool) error {
 	return deleteOwned(ctx, s.DB, itemTemplateKind, owner, id, isAdmin)
 }

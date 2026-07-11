@@ -1,4 +1,4 @@
-// Package openlibrary is an offline external-identity enricher (tasks/066): it
+// Package openlibrary is an offline external-identity enricher: it
 // links a Work to its OpenLibrary work id by exact ISBN match, from a
 // pre-downloaded ISBN -> work index (OpenLibrary publishes bulk dumps, so there is
 // no per-record live API on the ingest path). The OpenLibrary URI is attached as an

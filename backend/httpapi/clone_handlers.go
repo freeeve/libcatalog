@@ -12,7 +12,7 @@ import (
 	"github.com/freeeve/libcat/backend/workindex"
 )
 
-// registerClone mounts the clone-work endpoint (tasks/217, 058 item 4): POST
+// registerClone mounts the clone-work endpoint: POST
 // copies a work into a brand-new editorial-only grain -- fresh work/instance
 // ids, provider keys gone, born suppressed -- and returns the new id for the
 // editor to open. This is the first eager create-work path: every other

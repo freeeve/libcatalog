@@ -17,7 +17,7 @@
   --accent: #1e6b4e;     /* curator green */
   --accent-ink: #ffffff;
   --danger: #a34224;     /* date-stamp red */
-  --danger-ink: #ffffff; /* ink ON --danger; see the dark block (tasks/315) */
+  --danger-ink: #ffffff; /* ink ON --danger; see the dark block */
   --ok: #1e6b4e;
   --info: #27567b;       /* archival blue */
   /* Provenance inks (the signature). */
@@ -239,7 +239,7 @@ input[type="radio"] {
 }
 /* When a value carries badges of more than one kind, the rail follows a fixed
    provenance precedence -- editorial > enrichment > feed, the human decision
-   first -- not stylesheet declaration order (tasks/326). The :not(:has())
+   first -- not stylesheet declaration order. The :not(:has())
    guards make the three rules mutually exclusive by rank, so reordering these
    lines can never change which colour a multi-source row shows. */
 .value:has(.badge--editorial) { border-left-color: var(--prov-editorial); }
@@ -294,7 +294,7 @@ html[data-theme="dark"] {
   --rule: #3d443f;
   --accent: #6dbd97;
   --accent-ink: #10261c;
-  /* --danger is two roles at once, and dark mode pulls them apart (tasks/315).
+  /* --danger is two roles at once, and dark mode pulls them apart.
      As INK it must brighten: #a34224 on this surface is 1.8:1, #e09479 is 7.19:1,
      and .error / the queue and batch failure text all read `color: var(--danger)`.
      As a BACKGROUND that same brightening put white on salmon at 2.42:1 -- below

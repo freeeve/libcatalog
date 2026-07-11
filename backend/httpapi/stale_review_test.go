@@ -32,7 +32,7 @@ func postReview(t *testing.T, h http.Handler, token string, body map[string]any)
 	return resp
 }
 
-// tasks/257: "reviewed" counted the decisions submitted, not the ones applied,
+// "reviewed" counted the decisions submitted, not the ones applied,
 // so a moderator whose decision lost a race was told it had been reviewed.
 func TestReviewedCountsOnlyAppliedDecisions(t *testing.T) {
 	h, svc := newModerationAPI(t)

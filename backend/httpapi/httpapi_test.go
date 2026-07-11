@@ -74,7 +74,7 @@ func TestRequestIDsUnique(t *testing.T) {
 	}
 }
 
-// TestV1NeverFallsThroughToSPA covers tasks/201: with the SPA catch-all
+// TestV1NeverFallsThroughToSPA covers with the SPA catch-all
 // mounted, an unmatched /v1 path or method answers JSON 404, never
 // index.html with 200 -- while non-API paths still reach the SPA.
 func TestV1NeverFallsThroughToSPA(t *testing.T) {

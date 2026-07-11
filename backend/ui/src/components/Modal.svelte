@@ -30,7 +30,7 @@
     // working when the dialog's content unmounts the focused control and the
     // browser drops focus to <body>: a panel-scoped listener goes deaf the
     // instant focus leaves it, which killed Escape and let Tab wander onto
-    // controls behind the scrim (tasks/250).
+    // controls behind the scrim.
     window.addEventListener("keydown", onKeydown, true);
     return () => {
       window.removeEventListener("keydown", onKeydown, true);

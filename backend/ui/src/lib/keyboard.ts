@@ -7,7 +7,7 @@
 // allowInInputs); mod chords fire anywhere -- that is their point. "?" is
 // built in: it invokes the registered help presenter with the currently
 // visible bindings. keymapVersion bumps on any registry change so the footer
-// legend re-renders live. A user keymap (tasks/075) re-keys bindings at
+// legend re-renders live. A user keymap re-keys bindings at
 // registration under stable action ids ("scope:default-key") and persists in
 // localStorage; remaps propagate to the legend and overlay because both read
 // the registry.
@@ -73,7 +73,7 @@ const RESERVED: Record<string, string> = {
 
 /** The single-character chords the work editor claims, and what each does.
     WorkEditor binds its handlers onto exactly these keys, so the editor and
-    the macro screen cannot disagree about which are spoken for (tasks/237).
+    the macro screen cannot disagree about which are spoken for.
     "mod+s" is not here: it is not one character, so no macro shortcut can
     reach it. */
 export const EDITOR_CHORDS: Record<string, string> = {
@@ -195,7 +195,7 @@ export function topScope(): string {
     keyed "2" delete the MARC-tab binding -- from the dispatcher and from the
     "?" overlay, which renders from this same registry -- and then leak, since
     the evicted owner's unbind deletes by identity and no longer matched
-    (tasks/237). Re-registering the same id (a remount) still replaces. */
+. Re-registering the same id (a remount) still replaces. */
 export function bindKeys(scope: string, map: Record<string, BindingSpec>, idPrefix = ""): () => void {
   const m = scopeMap(scope);
   const registered: Binding[] = [];
@@ -369,7 +369,7 @@ function lookup(key: string): Binding | undefined {
     elements each key activates. A plain-key binding must never preventDefault
     one of these while that element holds focus, or the element cannot be
     operated from the keyboard: Enter follows a link and presses a button,
-    Space presses a button and toggles a checkbox (WCAG 2.1.1, tasks/319).
+    Space presses a button and toggles a checkbox (WCAG 2.1.1).
     This is narrower than the form-control guard on purpose -- only the
     element's activation key is surrendered, and only to the element that
     consumes it, so j/k/g and the rest still work with a link focused. NumpadEnter
@@ -404,7 +404,7 @@ function onKeydown(ev: KeyboardEvent): void {
   const target = ev.target as HTMLElement | null;
   if (target?.closest?.("input, textarea, select, [contenteditable]") && !chord.startsWith("mod+")) {
     pendingPrefix = "";
-    // Editor field ops opt in to firing over form controls (tasks/075).
+    // Editor field ops opt in to firing over form controls.
     const b = lookup(chord);
     if (b?.allowInInputs) {
       ev.preventDefault();

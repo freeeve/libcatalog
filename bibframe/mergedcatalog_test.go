@@ -1,8 +1,8 @@
-// tasks/298: catalog.nq has more than one writer. BuildWorks and BuildCorpus each
+// catalog.nq has more than one writer. BuildWorks and BuildCorpus each
 // write it during ingest; SerializeGrains rewrites it from the committed grains.
 // The ingest writers re-encoded the graphs through one rdf.Encoder and emitted
 // traversal-order `_:b1, _:b2, …` labels, so a build that ran ingest without
-// serialize published the unstable dump tasks/291 had just fixed. The file meant
+// serialize published the unstable dump had just fixed. The file meant
 // two different things depending on which writer ran last.
 //
 // It means one thing now, and these tests are what hold it there.

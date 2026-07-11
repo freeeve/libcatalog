@@ -147,7 +147,7 @@ func TestSidecarLooseQuads(t *testing.T) {
 	// A loose quad no longer costs the scheme its sidecar. It used to: three
 	// accessors read the sidecar alone, so the loader replayed the whole
 	// snapshot into maps to keep them correct -- 513k LCSH headings for one
-	// cached live pick (tasks/265). The accessors merge now, so the scheme
+	// cached live pick. The accessors merge now, so the scheme
 	// carries a sidecar and a small map overlay together.
 	if n := len(ix.load().sidecar); n != 2 {
 		t.Fatalf("a loose quad demoted a sidecar-backed scheme: %d armed, want 2", n)
@@ -244,7 +244,7 @@ func sidecarFiles(t *testing.T, st blob.Store) []string {
 // TestRemoveSidecarLeavesNothingBuildSidecarWrote is the drift guard for
 // vocabsidecar.Suffixes. It enumerates the blob store instead of trusting that list, so an
 // artifact that BuildSidecar starts writing and vocabsidecar.RemoveSidecar forgets fails here
-// rather than accumulating on an operator's disk (tasks/252).
+// rather than accumulating on an operator's disk.
 func TestRemoveSidecarLeavesNothingBuildSidecarWrote(t *testing.T) {
 	_, st := sidecarFixture(t, []string{"lcsh"})
 	// Plus the pre-v2 blob a rebuild orphans, which removal must also take.
@@ -274,7 +274,7 @@ func TestRemoveSidecarLeavesNothingBuildSidecarWrote(t *testing.T) {
 
 // TestOrphanSidecarsFindsWhatNoSnapshotBacks: the sweep's detection half. A sidecar
 // whose snapshot is present is not an orphan; once the snapshot is gone, it is, and
-// removing it leaves the store clean (tasks/322).
+// removing it leaves the store clean.
 func TestOrphanSidecarsFindsWhatNoSnapshotBacks(t *testing.T) {
 	_, st := sidecarFixture(t, []string{"homosaurus", "lcsh"})
 	ctx := t.Context()
@@ -317,7 +317,7 @@ func TestOrphanSidecarsFindsWhatNoSnapshotBacks(t *testing.T) {
 
 // TestOrphanSidecarsCollectsAnUnreadableManifest: a manifest that no longer parses
 // arms nothing, so it is an orphan too. Its scheme comes from the file name, because
-// the artifacts are named the same way and can still be collected (tasks/322).
+// the artifacts are named the same way and can still be collected.
 func TestOrphanSidecarsCollectsAnUnreadableManifest(t *testing.T) {
 	_, st := sidecarFixture(t, []string{"lcsh"})
 	ctx := t.Context()

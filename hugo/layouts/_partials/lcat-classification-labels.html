@@ -1,6 +1,6 @@
 {{- /*
-  Classification term key -> display text, for term pages (tasks/142). A term page
-  otherwise has only its key, and since tasks/276 that key is a slug: "813-6", not
+  Classification term key -> display text, for term pages. A term page
+  otherwise has only its key, and since that key is a slug: "813-6", not
   the Dewey number "813/.6" the cataloguer transcribed, and not "FIC027000" either.
 
   So the map is keyed by the slug and carries, in order of preference, the human
@@ -14,7 +14,7 @@
   cannot make it worse, and no projected corpus has yet carried two codes differing
   only in punctuation.
 
-  Built via scratch (merge in a loop is quadratic -- tasks/133); call through
+  Built via scratch (merge in a loop is quadratic); call through
   partialCached: nothing here reads page state.
 */ -}}
 {{- $s := newScratch -}}

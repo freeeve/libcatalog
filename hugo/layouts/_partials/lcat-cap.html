@@ -1,7 +1,7 @@
 {{- /*
   Bounds a taxonomy KEY to 100 bytes so a single oversized source label cannot
   mint a term directory past the filesystem's 255-byte name limit and fail the
-  whole build (tasks/134: an anthology record carried a 300+ byte contributor
+  whole build (an anthology record carried a 300+ byte contributor
   list as one label). Longer keys are cut at a rune boundary and suffixed with an
   8-hex-char sha1 of the full key, so two long labels sharing a 100-byte prefix
   still mint distinct term pages. Only the indexed key is bounded -- display
@@ -9,7 +9,7 @@
   that indexes or looks up a contributor term key.
 
   It also replaces `/` with `-`, because a key is one path segment and a slash
-  makes it two (tasks/276). Contributors are the last taxonomy keyed on free text
+  makes it two. Contributors are the last taxonomy keyed on free text
   rather than a slug -- deliberately, since slugging 50,176 real names collapses
   616 groups of them, mostly punctuation variants of one person ("Chesterton,
   G. K." and "Chesterton, G.K."), which is authority control and not a URL fix.

@@ -1,6 +1,6 @@
-// Local mirror of the editor's draft (tasks/225): staged ops written to
+// Local mirror of the editor's draft: staged ops written to
 // localStorage on every edit, so a reload -- crash, accidental Cmd-R, or the
-// dead-session reload of tasks/223 -- can offer the work back. The server
+// dead-session reload -- can offer the work back. The server
 // draft (3s autosave) is the durable cross-device copy; this mirror is the
 // layer that still works when the network or the session does not. Cleared
 // on save, discard, and explicit sign-out (shared terminals).

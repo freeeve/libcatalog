@@ -21,7 +21,7 @@ import (
 // StatusReverted marks a committed batch whose grains were rolled back.
 const StatusReverted = "REVERTED"
 
-// revertRecord is one changed grain's pre/post-commit capture (tasks/068):
+// revertRecord is one changed grain's pre/post-commit capture:
 // enough to restore the prior bytes exactly, or the reason it cannot revert.
 type revertRecord struct {
 	Path string `json:"path"`
@@ -102,7 +102,7 @@ func (s *Service) preCommitSnapshot(ctx context.Context, fresh []StagedRecord) (
 
 // writeRevertSet records the commit's grain-level undo information. A
 // re-commit replaces the previous set wholesale -- reachable only after a
-// revert (Commit refuses a COMMITTED batch, tasks/213), when the store
+// revert (Commit refuses a COMMITTED batch), when the store
 // again holds the true prior state and the re-derivation is correct.
 func (s *Service) writeRevertSet(ctx context.Context, batchID string, changed []string, existed map[string]bool, priors map[string][]byte) error {
 	for rec, err := range s.DB.Query(ctx, "CCREV#"+batchID, "", store.QueryOpt{}) {

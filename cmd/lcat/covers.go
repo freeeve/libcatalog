@@ -22,7 +22,7 @@ const coverPrefix = "data/covers/"
 var coverWorkID = regexp.MustCompile(`^w[a-z0-9]{6,20}$`)
 
 // Orphan reasons, distinguished because they mean different things to an
-// operator: a stale format is the tasks/243 residue, a missing work is a
+// operator: a stale format is the residue, a missing work is a
 // hand-deleted grain, and an unparseable path is something that never came from
 // CoverBlobPath at all.
 //
@@ -31,7 +31,7 @@ var coverWorkID = regexp.MustCompile(`^w[a-z0-9]{6,20}$`)
 // orphan by none of these reasons and --reap never touches it. Keeping a hidden
 // Work's cover in the *store* is correct -- both stances are reversible. Keeping
 // it out of the *public site* is the exporter's job, and it does that now
-// (tasks/304); reaping a blob after it has reached a CDN does not unpublish it.
+// ; reaping a blob after it has reached a CDN does not unpublish it.
 const (
 	reasonStaleFormat = "the work's cover is a different format"
 	reasonNoCover     = "the work has no cover"
@@ -51,9 +51,9 @@ type orphanCover struct {
 }
 
 // runCovers reports, and with --reap deletes, the cover blobs no grain
-// references (tasks/245).
+// references.
 //
-// tasks/243 stopped cover replacement from leaving the previous format behind.
+// stopped cover replacement from leaving the previous format behind.
 // It did not clean up what earlier replacements had already left: those images
 // are still served from a public, unauthenticated, guessable URL, and nothing
 // in the catalog points at them, so nothing would ever collect them. A takedown

@@ -1,5 +1,5 @@
 /*
- * Opt-in negative facet filters (libcat tasks/144): filter works OUT by a
+ * Opt-in negative facet filters: filter works OUT by a
  * facet term. URL state is x<taxonomy>=<term>, repeatable, so exclusions are
  * shareable and bookmarkable. Exclusions are
  * buttons, not links -- "hide X" URLs stay out of crawlers -- and everything
@@ -8,7 +8,7 @@
  * results, and sidebar/pagination links are rewritten to carry the exclusions
  * along while browsing. Like lcat-search.js this filters the CURRENT page's
  * cards only; a fully server-shaped result set is the roaringrange reader's
- * job (tasks/010). No results list on the page (taxonomy landings) still
+ * job. No results list on the page (taxonomy landings) still
  * toggles the URL state, which the rewritten links then carry.
  */
 (function () {
@@ -20,7 +20,7 @@
     try { strings = JSON.parse(cfgEl.textContent); } catch (e) { /* defaults */ }
   }
 
-  // The buttons ship hidden and nearly attribute-free (tasks/148: at catalog
+  // The buttons ship hidden and nearly attribute-free (at catalog
   // scale, repeated attributes cost gigabytes of built HTML). Everything
   // hydrates from the row's anchor: the taxonomy is the term URL's
   // second-to-last path segment (language prefixes and subpath deploys both

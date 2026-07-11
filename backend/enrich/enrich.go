@@ -42,7 +42,7 @@ type Service struct {
 	Queue       *suggest.Service
 	Sources     map[string]Source
 	// Summaries, when set, is the shared maintained summary source
-	// (workindex, tasks/109) queue-mode runs read instead of a per-run
+	// (workindex) queue-mode runs read instead of a per-run
 	// corpus walk; nil falls back to ScanSummaries.
 	Summaries ingest.SummarySource
 }

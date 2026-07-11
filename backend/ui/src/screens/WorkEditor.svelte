@@ -37,11 +37,11 @@
   // svelte-ignore state_referenced_locally
   const session = createEditorSession(workId);
 
-  // Staged-ops guard (tasks/199): in-app navigation asks before discarding
+  // Staged-ops guard: in-app navigation asks before discarding
   // and beforeunload arms the browser's native leave prompt while dirty.
   // The background draft autosave usually makes a discard recoverable; the
   // prompt keeps it deliberate.
-  // The record editor obeys its editing profile (tasks/295): fetch the work's
+  // The record editor obeys its editing profile: fetch the work's
   // profile by the doc's own profileId and hand its field set/order/labels/hidden
   // flags to ProfileForm, so a deployment's override of work-monograph reshapes
   // the editor -- the profile mechanism's headline promise. The form is rendered
@@ -66,7 +66,7 @@
     );
   });
 
-  // The same for the instance form (tasks/345): the doc now names its instance
+  // The same for the instance form: the doc now names its instance
   // profile, so the instance holdings obey the deployment's shape too. When no
   // instance profile is configured (id absent), the form keeps its shipped shape.
   let instanceFields = $state<ProfileField[] | undefined>(undefined);
@@ -105,13 +105,13 @@
   });
 
   let tab = $state<"native" | "marc" | "history">("native");
-  // The live MARC pane (tasks/070): read-only, side by side on wide screens.
+  // The live MARC pane: read-only, side by side on wide screens.
   let marcPane = $state(false);
   let itemCounts = $state<Record<string, number>>({});
   let idKinds = $state<Record<string, string>>({});
 
   /** External heading -> staged op: controlled subject when reconciled,
-   *  tag otherwise (tasks/073). */
+   * tag otherwise. */
   function addLookedUpSubject(c: SubjectCandidate): void {
     if (c.term) {
       session.stage({ resource: "work", path: "subjects", action: "add", value: { v: c.term.id, iri: true } });
@@ -138,7 +138,7 @@
   let splitNotice = $state("");
   let splitError = $state("");
   // Guards the split button while the request is in flight: the server makes a
-  // repeated split idempotent (tasks/323), but there is no reason to fire the second
+  // repeated split idempotent, but there is no reason to fire the second
   // request at all, and a live button after a click reads as "nothing happened".
   let splitBusy = $state(false);
 
@@ -170,7 +170,7 @@
       "1": { description: EDITOR_CHORDS["1"], legend: "tabs", keyLabel: "1/2/3", handler: () => (tab = "native") },
       // legendHidden, not hidden: the footer rail shows one "1/2/3 tabs" row,
       // but the "?" overlay -- the only place to look up what a key does --
-      // must name each tab. These were invisible there (tasks/237).
+      // must name each tab. These were invisible there.
       "2": { description: EDITOR_CHORDS["2"], legendHidden: true, handler: () => (tab = "marc") },
       "3": { description: EDITOR_CHORDS["3"], legendHidden: true, handler: () => (tab = "history") },
       p: { description: EDITOR_CHORDS.p, legend: "preview", handler: () => void session.preview() },
@@ -559,7 +559,7 @@
   .tab-spacer {
     flex: 1;
   }
-  /* tasks/070: the live MARC pane sits beside the native form on wide
+  /* the live MARC pane sits beside the native form on wide
      viewports and stacks below it on narrow ones. */
   .cols.with-pane {
     display: grid;

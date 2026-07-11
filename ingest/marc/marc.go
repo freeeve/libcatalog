@@ -67,7 +67,7 @@ func (p Provider) Records(_ context.Context) ([]ingest.Record, error) {
 
 // FromCodexRecords crosswalks already-parsed MARC records to ingest records
 // -- the same shape file ingest produces, exposed for copy cataloging
-// (tasks/050), where records arrive from Z39.50/SRU targets or staged
+// , where records arrive from Z39.50/SRU targets or staged
 // uploads instead of a file.
 func FromCodexRecords(recs []*codex.Record) []ingest.Record {
 	out := make([]ingest.Record, 0, len(recs))
@@ -87,7 +87,7 @@ func FromCodexRecords(recs []*codex.Record) []ingest.Record {
 // are built: vendor MARC (OverDrive Marc Express among them) embeds HTML
 // character references and markup in 520/505/5xx prose (&#8212;, <b>...) and
 // in transcribed titles (245/246), which would otherwise bake into bf:summary
-// and bf:title literals verbatim (tasks/081, tasks/089). Identifier and heading
+// and bf:title literals verbatim. Identifier and heading
 // fields stay untouched; the verbatim sidecar preserves the original field
 // bytes for fidelity.
 func cleanFreeText(bib *codexbf.BIBFRAME) {
@@ -136,7 +136,7 @@ func Identity(rec *codex.Record) identity.Record {
 
 // record is one MARC record as an ingest.Record: its BIBFRAME (from FromRecord),
 // the identity keys derived from it, and the crosswalk-lossy fields preserved
-// verbatim for the sidecar (tasks/049). Identity is precomputed so the
+// verbatim for the sidecar. Identity is precomputed so the
 // interface's three accessors do not re-crosswalk.
 type record struct {
 	bib      *codexbf.BIBFRAME

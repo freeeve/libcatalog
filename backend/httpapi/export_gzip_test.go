@@ -1,4 +1,4 @@
-// tasks/282: exports are gzipped at rest. The download route decides what the
+// exports are gzipped at rest. The download route decides what the
 // client is told about that -- a .gz artifact for the machine formats, a
 // transparent Content-Encoding for CSV, and plain bytes for a client that
 // refuses gzip (curl sends no Accept-Encoding at all).

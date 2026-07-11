@@ -1,4 +1,4 @@
-// tasks/291: the published catalog.nq.gz changed its sha256 on every release even
+// the published catalog.nq.gz changed its sha256 on every release even
 // when the catalog had not. Blank-node labels were assigned by a running counter
 // over the whole traversal, so any change to the serializer's own traversal order
 // renamed every node. Labels now come from the grain, namespaced by work id.

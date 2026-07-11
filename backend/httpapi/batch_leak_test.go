@@ -1,4 +1,4 @@
-// tasks/272: a batch record whose grain write failed reported the store's raw
+// a batch record whose grain write failed reported the store's raw
 // error -- an absolute path, the shard layout, a temp-file name and a syscall --
 // straight into the results list a cataloger reads. The single-record route
 // answers "grain write failed" for the identical failure, and the read path
@@ -151,7 +151,7 @@ func TestBatchOpsStillSaysNoSuchWork(t *testing.T) {
 	}
 }
 
-// tasks/260 settled that a client must not be able to tell which layer refused
+// settled that a client must not be able to tell which layer refused
 // it. batch cannot import httpapi, so the notice lives in both; this pins them
 // equal rather than trusting two string literals to stay in step.
 func TestReadOnlyNoticeMatchesTheBatchNotice(t *testing.T) {
@@ -160,7 +160,7 @@ func TestReadOnlyNoticeMatchesTheBatchNotice(t *testing.T) {
 	}
 }
 
-// The batch execute route is allowlisted in read-only mode (tasks/260), so it
+// The batch execute route is allowlisted in read-only mode, so it
 // reaches the store. Every record used to report the blob package's own name.
 func TestBatchOpsReportsReadOnlyWithoutNamingThePackage(t *testing.T) {
 	h := batchAPIOver(t, blob.ReadOnly(seedTwo(t)))

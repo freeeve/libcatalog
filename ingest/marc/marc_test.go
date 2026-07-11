@@ -83,7 +83,7 @@ func TestCleanFreeText(t *testing.T) {
 		t.Fatalf("records = %d", len(out))
 	}
 	work, inst := out[0].Work(), out[0].Instance()
-	// Transcribed titles decode entities and strip markup (tasks/081).
+	// Transcribed titles decode entities and strip markup.
 	if got, want := work.Titles[0].MainTitle, "Hamlet — Prince of Denmark"; got != want {
 		t.Errorf("work title = %q, want %q", got, want)
 	}
@@ -151,7 +151,7 @@ func TestMARCProviderClustersAndRoutes(t *testing.T) {
 }
 
 // TestMARCProviderReingestStable proves re-ingesting the same MARC file mints
-// nothing and rewrites byte-identical grains (the tasks/002 no-churn gate, now via
+// nothing and rewrites byte-identical grains (the no-churn gate, now via
 // the MARC provider).
 func TestMARCProviderReingestStable(t *testing.T) {
 	path := writeMARC(t,

@@ -1,4 +1,4 @@
-// Named keymap presets (tasks/075): bundles of action-id -> chord remaps
+// Named keymap presets: bundles of action-id -> chord remaps
 // applied through the keyboard registry in one action. Koha's advanced-editor
 // chords ship as an opt-in preset, minus the reserved ones (Ctrl+C/X/V shadow
 // the system clipboard; Ctrl+D/P/S/H are browser chords) -- those ops keep

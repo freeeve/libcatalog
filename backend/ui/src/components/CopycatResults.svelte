@@ -1,7 +1,7 @@
 <script lang="ts">
   // External-search results as a keyboard triage list (scope "copycat"):
   // j/k move, x or Space toggles the pick, a picks all/none, v toggles the
-  // selected result's full MARC (tasks/074), Enter stages the picked
+  // selected result's full MARC, Enter stages the picked
   // records for review. Checkboxes stay for pointer users.
   import { onMount } from "svelte";
   import { isReadOnly } from "../lib/config";

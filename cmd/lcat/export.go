@@ -11,12 +11,12 @@ import (
 )
 
 // runExport derives the downloadable artifacts from an ingest output root
-// (tasks/172): catalog.nq.gz, catalog.mrc.gz, catalog.xml.gz, and an
+// : catalog.nq.gz, catalog.mrc.gz, catalog.xml.gz, and an
 // integrity manifest for the downloads page.
 //
 // These artifacts are the public site's, so they describe the public collection:
 // a suppressed or tombstoned Work is absent from all of them and its cover is not
-// copied, exactly as `lcat project` omits it from catalog.json (tasks/304). The
+// copied, exactly as `lcat project` omits it from catalog.json. The
 // complete graph of record -- every Work, hidden or not -- lives in the grain tree
 // and is reachable through the librarian-gated backend export service. It is never
 // written into a directory the site serves.

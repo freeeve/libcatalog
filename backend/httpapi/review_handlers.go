@@ -18,7 +18,7 @@ var monthPattern = regexp.MustCompile(`^\d{4}-\d{2}$`)
 
 // requestMonth reads the month=YYYY-MM query parameter shared by the audit
 // and stats reports, defaulting to the current UTC month when it is absent
-// (tasks/234). A month-keyed staff report almost always wants "this month",
+// . A month-keyed staff report almost always wants "this month",
 // and requiring the parameter bought nothing but a round trip to a 400. The
 // distinction is between absent and wrong: a malformed value still refuses,
 // naming the format and an example.
@@ -110,7 +110,7 @@ func registerReview(mux *http.ServeMux, svc *suggest.Service, verifier auth.Toke
 			return
 		}
 		// "reviewed" means reviewed: a decision another moderator resolved
-		// first is reported separately (tasks/257).
+		// first is reported separately.
 		//
 		// The stale decisions are NOT called "skipped": publish.Result already
 		// owns that key in this same object, and the maps.Copy below would

@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
     environment: "jsdom",
     // Vitest stubs CSS imports to "" by default, and the stub wins even over an
     // explicit `?raw` query. contrast.test.ts reads app.css as text to check the
-    // palette's WCAG ratios (tasks/315), so that one file is processed for real.
+    // palette's WCAG ratios, so that one file is processed for real.
     // Scoped rather than global: no component test wants its <style> evaluated.
     // (The pattern is matched against the module id, which carries the `?raw`
     // query, so it cannot be anchored at the extension.)

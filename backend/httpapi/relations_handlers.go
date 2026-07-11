@@ -39,7 +39,7 @@ type relationEntry struct {
 }
 
 // registerRelations mounts the work-to-work relationship surface
-// (tasks/221, 058 item 3): GET lists a work's editorial hasPart/partOf
+// : GET lists a work's editorial hasPart/partOf
 // links with titles; POST adds and DELETE removes a link, writing both
 // directions.
 func registerRelations(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue *suggest.Service, verifier auth.TokenVerifier, logger *slog.Logger) {
@@ -48,14 +48,14 @@ func registerRelations(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, q
 		logger = slog.New(slog.DiscardHandler)
 	}
 	// relationMu serializes the whole check-then-write span of a relation
-	// mutation (tasks/271).
+	// mutation.
 	//
 	// containmentCycle is a time-of-check test over committed grains, and the
 	// two writes that follow land on two different grains. mutateWorkGrain's
 	// compare-and-swap has no shared object to arbitrate on, so two adds fired
 	// in opposite directions each saw a graph without the other's edge, both
 	// passed the guard, and both wrote their forward statement: the cycle the
-	// guard exists to prevent. This is tasks/269's barcode race with a different
+	// guard exists to prevent. This is the barcode race with a different
 	// invariant.
 	//
 	// Relation edits are rare and cataloger-paced, so one lock costs nothing.
@@ -184,7 +184,7 @@ func registerRelations(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, q
 			// rather than report a half-link and prescribe a retry: for an add,
 			// the surviving forward edge is itself a containment claim, and a
 			// retry would be refused by the cycle guard reading the edge this
-			// very request wrote (tasks/271). Compensating leaves nothing
+			// very request wrote. Compensating leaves nothing
 			// applied, so "retry" is true again.
 			if _, cerr := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
 				return bibframe.SetWorkRelation(g, workID, kind.pred, req.Target, !add)
@@ -192,7 +192,7 @@ func registerRelations(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, q
 				logger.Error("relation rollback failed: one work asserts a link the other does not",
 					"workId", workID, "target", req.Target, "kind", req.Kind, "add", add,
 					"actor", id.Email, "inverse", err, "rollback", cerr)
-				// The record changed, so the change is attributable (tasks/268).
+				// The record changed, so the change is attributable.
 				writeRelationAudit(r, queue, id.Email, workID, req.Kind, req.Target, add, true)
 				writeError(w, http.StatusInternalServerError,
 					"the link on "+workID+" was written, its inverse on "+req.Target+" failed, and "+workID+" could not be rolled back: delete the link from both records, then re-add it once")
@@ -220,7 +220,7 @@ func registerRelations(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, q
 // where the two grains disagree: the forward statement was written, its inverse
 // failed, and the rollback failed too. That record changed, so it is in the
 // history -- otherwise the single work needing repair is the one nothing names
-// (tasks/268). A compensated failure changed nothing and is not audited.
+// . A compensated failure changed nothing and is not audited.
 func writeRelationAudit(r *http.Request, queue *suggest.Service, actor, workID, kind, target string, add, stranded bool) {
 	if queue == nil {
 		return
@@ -246,7 +246,7 @@ const relationWalkLimit = 512
 
 // containmentCycle reports whether asserting "whole contains part" would
 // close a cycle, by walking bf:hasPart edges down from part looking for
-// whole (tasks/232). Every link writes its inverse on the target, so the
+// whole. Every link writes its inverse on the target, so the
 // whole containment graph is readable off hasPart edges alone -- A partOf B
 // is stored as B hasPart A -- and the two-work contradiction (A hasPart B
 // plus A partOf B) is simply the depth-1 case of the same walk. A target

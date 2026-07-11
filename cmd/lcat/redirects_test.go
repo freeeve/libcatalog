@@ -67,7 +67,7 @@ func get(t *testing.T, srv *httptest.Server, path string) (int, string, string) 
 	return res.StatusCode, res.Header.Get("Location"), string(body)
 }
 
-// tasks/313. The promise in ARCHITECTURE.md:103: "a merge or split must leave a
+// . The promise in ARCHITECTURE.md:103: "a merge or split must leave a
 // redirect/tombstone so shared links and SEO survive". Both arms, and a live id
 // beside them -- a server that redirected everything would pass an assertion that
 // only looked at the retired ids.

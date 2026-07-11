@@ -93,7 +93,7 @@ type SearchFunc func(ctx context.Context, t Target, terms []FieldTerm, limit int
 // that broke after some records, or one the search limit cut short. Those
 // targets' hits are in results -- a partial success is not a failure, and
 // hiding the hits would throw away the useful half -- but a cataloger deciding
-// "my book is not in this catalog" must be told the set is short (tasks/258).
+// "my book is not in this catalog" must be told the set is short.
 func (s *Service) SearchAll(ctx context.Context, query string, fields []FieldTerm, names []string) ([]SearchResult, map[string]string, map[string]string, error) {
 	terms, err := searchTerms(query, fields)
 	if err != nil {
@@ -141,7 +141,7 @@ func (s *Service) SearchAll(ctx context.Context, query string, fields []FieldTer
 			if err != nil {
 				// An incomplete answer is not a failed one: the records that
 				// arrived are still the cataloger's answer, and dropping them
-				// here is what made a mid-stream break invisible (tasks/258).
+				// here is what made a mid-stream break invisible.
 				if !Incomplete(err) {
 					failures[t.Name] = err.Error()
 					return
@@ -254,7 +254,7 @@ func z3950Query(terms []FieldTerm) z3950.Query {
 // result set is: before the first fetch, and for the whole life of a stream
 // whose server omits the count (SRU 2.0 permits that). It is not zero -- zero is
 // the real answer "nothing matched" -- and collapsing the two would turn "we
-// cannot tell you" into "there is nothing there" (libcodex tasks/106).
+// cannot tell you" into "there is nothing there" (libcodex).
 const unknownTotal = -1
 
 // readUpTo drains a record stream to limit, returning whatever arrived and, when
@@ -262,7 +262,7 @@ const unknownTotal = -1
 //
 // Partial results beat none: a mid-stream break after hits keeps the hits. But
 // the records and the reason are both needed, and the old signature could carry
-// only one, so the reason was dropped (tasks/258). Whether a given error lands
+// only one, so the reason was dropped. Whether a given error lands
 // on the first read or the fiftieth is decided by the remote server's page size
 // -- an implementation detail of that server, not a property of the error -- so
 // the same broken response was reported on page 1 and silently swallowed on
@@ -310,7 +310,7 @@ func advertisedTotal(rd codex.RecordReader) int {
 // Reaching the limit is not the same as being truncated. Before libcodex v0.23.0
 // exposed the advertised total, copycat could not tell "20 matches" from "the
 // first 20 of 4,113", so it warned on every full page -- noise on the common
-// case, and no help on the case that mattered (tasks/258, tasks/274). It can
+// case, and no help on the case that mattered. It can
 // tell now, so a target holding exactly limit records is a complete answer and
 // says nothing.
 func cappedError(total, got, limit int) error {

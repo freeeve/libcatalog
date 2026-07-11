@@ -1,4 +1,4 @@
-// Package lchub is an offline external-identity enricher (tasks/066): it links a
+// Package lchub is an offline external-identity enricher: it links a
 // Work to its Library of Congress bf:Hub (id.loc.gov/resources/hubs) by an exact
 // creator+title+language access-point match, from a pre-downloaded index (LC
 // publishes the hubs as a bulk download; no live API on the ingest path). The Hub

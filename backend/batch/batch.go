@@ -1,6 +1,6 @@
 // Package batch is the one op-list machinery behind Koha's batch record
 // modification, MARC modification templates, and advanced-editor macros
-// (tasks/047): a Selection names a set of Works, an editor.Op list names the
+// : a Selection names a set of Works, an editor.Op list names the
 // edit, and the executor applies it per grain with per-record results --
 // dry-run first, exact quad deltas, everything audited. Saved queries and
 // macros live in the datastore; a shared macro run over a selection is the
@@ -27,7 +27,7 @@ import (
 	"github.com/freeeve/libcat/backend/trigger"
 )
 
-// Selection kinds. importBatch is reserved for copy cataloging (tasks/050)
+// Selection kinds. importBatch is reserved for copy cataloging
 // and rejected until an import surface exists.
 const (
 	KindIDs         = "ids"
@@ -60,13 +60,13 @@ type Selection struct {
 	Query        string   `json:"query,omitempty"`        // kind=search
 	SavedQueryID string   `json:"savedQueryId,omitempty"` // kind=savedQuery
 	// Facets narrows kind=search and kind=all by the same dimensions the works
-	// rail offers -- AND across groups, OR within one (tasks/254). Without them
+	// rail offers -- AND across groups, OR within one. Without them
 	// "Export these results…" resolved to the whole catalog while the screen
 	// beside it said 465.
 	//
 	// They do not rescue kind=search from an empty query: KindAll remains the
 	// only way to say "everything", so a whitespace-only search cannot select
-	// the catalog by accident (tasks/205). "Everything, filtered" is
+	// the catalog by accident. "Everything, filtered" is
 	// kind=all + facets.
 	Facets map[string][]string `json:"facets,omitempty"`
 	// Tombstoned is exclude|include|only over retired records. Unlike the works
@@ -141,20 +141,20 @@ type Service struct {
 	// MaxWorks bounds a run's selection (0 = defaultMaxWorks).
 	MaxWorks int
 	// Summaries, when set, is the shared maintained summary source
-	// (workindex, tasks/109) search selections resolve against instead of a
+	// (workindex) search selections resolve against instead of a
 	// per-run corpus walk; nil falls back to ScanSummaries.
 	Summaries ingest.SummarySource
 	// Labels, when set, writes vocabulary label companions next to term
-	// IRIs a batch edit asserts (editor.ApplyOps, tasks/145).
+	// IRIs a batch edit asserts (editor.ApplyOps).
 	Labels editor.LabelResolver
 	// Index, when set, is kept exact for this run's own writes -- the same
-	// read-your-writes contract the single-record path holds (tasks/195).
+	// read-your-writes contract the single-record path holds.
 	// Without it, batch edits wait out the workindex refresh TTL: invisible
 	// to work search for up to 30s, and a chained batch selection resolves
 	// against the stale index.
 	Index IndexUpdater
 	// Logger, when set, receives the raw store error behind a per-record
-	// failure. The client is shown a mapped message instead (tasks/272).
+	// failure. The client is shown a mapped message instead.
 	Logger *slog.Logger
 }
 
@@ -199,7 +199,7 @@ func (s *Service) Resolve(ctx context.Context, sel Selection, owner string) ([]T
 		// Validate the NORMALIZED query: the scan trims and lowercases, so
 		// a raw check let " " through and an empty normalized query means
 		// no filter at all -- a whitespace-only search silently selected
-		// the entire catalog (tasks/205). KindAll is the only way to say
+		// the entire catalog. KindAll is the only way to say
 		// "everything".
 		q := normQuery(sel.Query)
 		if q == "" {
@@ -219,7 +219,7 @@ func (s *Service) Resolve(ctx context.Context, sel Selection, owner string) ([]T
 			return nil, err
 		}
 		// A legacy saved query that normalizes to nothing fails closed
-		// here instead of meaning "entire catalog" forever (tasks/205).
+		// here instead of meaning "entire catalog" forever.
 		q := normQuery(sq.Query)
 		if q == "" {
 			return nil, fmt.Errorf("%w: saved query %q has an empty query", ErrValidation, sq.Label)
@@ -236,7 +236,7 @@ func (s *Service) Resolve(ctx context.Context, sel Selection, owner string) ([]T
 		}
 		return s.scanAll(ctx, keep)
 	case KindImportBatch:
-		return nil, fmt.Errorf("%w: importBatch selections arrive with copy cataloging (tasks/050)", ErrValidation)
+		return nil, fmt.Errorf("%w: importBatch selections arrive with copy cataloging", ErrValidation)
 	}
 	return nil, fmt.Errorf("%w: unknown selection kind %q", ErrValidation, sel.Kind)
 }
@@ -245,7 +245,7 @@ func (s *Service) Resolve(ctx context.Context, sel Selection, owner string) ([]T
 // otherwise) and filters by the shared summary matcher, so a batch search
 // selects exactly what the works search shows. An empty normalized query is
 // refused outright -- only scanAll (KindAll's path) selects unfiltered, so
-// "no query" can never silently mean "everything" (tasks/205).
+// "no query" can never silently mean "everything".
 func (s *Service) scan(ctx context.Context, query string, keep func(ingest.WorkSummary) bool) ([]Target, error) {
 	q := normQuery(query)
 	if q == "" {
@@ -257,7 +257,7 @@ func (s *Service) scan(ctx context.Context, query string, keep func(ingest.WorkS
 }
 
 // scanAll is the deliberate whole-catalog selection behind KindAll. keep still
-// applies: "the whole catalog" is what the facets say it is (tasks/254).
+// applies: "the whole catalog" is what the facets say it is.
 func (s *Service) scanAll(ctx context.Context, keep func(ingest.WorkSummary) bool) ([]Target, error) {
 	return s.walk(ctx, keep)
 }
@@ -290,7 +290,7 @@ func (s *Service) Run(ctx context.Context, sel Selection, ops []editor.Op, dryRu
 		// Instance ids are minted per grain, so naming one across a selection
 		// edits whichever record happens to own it. Items are addressed as a
 		// set (editor.ResourceItems), never by id, which is why they are the
-		// one non-work resource a batch may reach (tasks/058).
+		// one non-work resource a batch may reach.
 		if op.Resource != "" && op.Resource != "work" && op.Resource != editor.ResourceItems {
 			return RunResult{}, fmt.Errorf("%w: batch ops must target the work or items resource, not instance %q", ErrValidation, op.Resource)
 		}
@@ -311,7 +311,7 @@ func (s *Service) Run(ctx context.Context, sel Selection, ops []editor.Op, dryRu
 	// The records the run actually rewrote, captured here rather than read back
 	// off result.Results: maxItemDiffs nils the diff of every result past the
 	// 50th, so a later read could not tell a rewritten record from an untouched
-	// one, and record 51 would silently lose its audit entry (tasks/239).
+	// one, and record 51 would silently lose its audit entry.
 	var edited []ItemResult
 	for _, t := range targets {
 		item := s.runOne(ctx, t, ops, dryRun)
@@ -340,17 +340,17 @@ func (s *Service) Run(ctx context.Context, sel Selection, ops []editor.Op, dryRu
 	// ops path, whose audit rides on a successful grain write. In read-only
 	// demo mode every grain write fails while the document store stays
 	// writable, so an unconditional audit here would durably record demo
-	// clicks despite the "nothing is saved" contract (tasks/111).
+	// clicks despite the "nothing is saved" contract.
 	if !dryRun && result.Applied > 0 {
 		// Publish every written path to the index feed in one append, so
 		// other containers read-their-writes too; best-effort, the refresh
-		// backstop covers a miss (tasks/195).
+		// backstop covers a miss.
 		if s.Index != nil && len(changed) > 0 {
 			_ = s.Index.AppendFeed(ctx, changed...)
 		}
 		if s.Queue != nil {
 			// One entry per rewritten record, as every other write path does
-			// (tasks/239). The aggregate entry alone named no work, so a bulk
+			//. The aggregate entry alone named no work, so a bulk
 			// op was invisible in the History tab of every record it rewrote --
 			// and for the search and savedQuery kinds the matched set is not
 			// reconstructible afterwards, because the query's results move with
@@ -432,7 +432,7 @@ func (s *Service) runOne(ctx context.Context, t Target, ops []editor.Op, dryRun 
 		item.Error = writeError(err)
 		if s.Logger != nil && item.Error != err.Error() {
 			// The operator needs the path and the syscall; the cataloger needs
-			// neither and must not be shown either. Before tasks/272 the raw
+			// neither and must not be shown either. Before the raw
 			// error was rendered into the results list and logged nowhere, so
 			// the one reader who could act on it was the one who never saw it.
 			s.Logger.Error("batch grain write failed", "work", t.WorkID, "path", t.path, "err", err)
@@ -458,7 +458,7 @@ func readError(err error) string {
 // accept writes. It must read exactly like httpapi's 403 body for the same
 // condition -- a client that can tell the batch route's refusal from the
 // single-record route's has learned something about the server it should not
-// need to know (tasks/260). TestReadOnlyNoticeMatchesTheGuard pins the pair.
+// need to know. TestReadOnlyNoticeMatchesTheGuard pins the pair.
 const ReadOnlyNotice = "read-only demo: changes are not saved"
 
 // writeError maps a publish.MutateGrain failure onto a message fit to put in
@@ -468,7 +468,7 @@ const ReadOnlyNotice = "read-only demo: changes are not saved"
 // are the cataloger's answer and pass through unchanged. Everything the store
 // produced is named rather than quoted: an *os.PathError carrying the blob root,
 // the shard layout and a temp-file name tells the reader nothing they can act on
-// and tells them a good deal about the filesystem (tasks/272). "grain write
+// and tells them a good deal about the filesystem. "grain write
 // failed" says the same amount, and is what the single-record route has always
 // answered for the identical failure.
 func writeError(err error) string {

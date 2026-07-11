@@ -1,4 +1,4 @@
-// Real-browser E2E for the minimal-profile browse path (tasks/170): with
+// Real-browser E2E for the minimal-profile browse path: with
 // taxonomy/term kinds disabled and the shared sidebar on, the sidebar's
 // unlinked facet rows must hydrate into checkbox toggles driving the WASM
 // reader, and the duplicate #lcat-browse-facets panel must stay empty. Usage:
@@ -53,7 +53,7 @@ await page.waitForSelector('#lcat-results a.lcat-result[href*="wexampletwo"]', {
 let hrefs = await page.$$eval("#lcat-results a.lcat-result", (as) => as.map((a) => a.getAttribute("href")));
 check("sidebar toggle ebook -> exactly wexampletwo", hrefs.length === 1 && hrefs[0].includes("wexampletwo"));
 
-// 3a. Live counts paint the hydrated rows too (tasks/177): the ebook
+// 3a. Live counts paint the hydrated rows too: the ebook
 //     survivor set is {House of the Spirits} (spa), so jpn greys to 0 and
 //     spa recounts to 1 -- overriding the fragment's static numbers.
 await page.waitForFunction(
@@ -87,14 +87,14 @@ await page.click('.lcat-facets li[data-lcat-field="format"][data-lcat-cat="ebook
 await page.waitForTimeout(500);
 const staticBack = await page.$$eval("#lcat-results li", (lis) => lis.length);
 check("clearing restores static list (" + staticLis + " lis)", staticBack === staticLis);
-// 5a. Clearing restores the fragment's cold count and ungreys (tasks/177).
+// 5a. Clearing restores the fragment's cold count and ungreys.
 const coldRow = await page.evaluate(() => {
   const li = document.querySelector('.lcat-facets li[data-lcat-field="language"][data-lcat-cat="jpn"]');
   return li && { n: li.querySelector(".lcat-count").textContent, zero: li.classList.contains("lcat-count-zero") };
 });
 check("clearing restores the cold jpn count, ungreyed", coldRow && coldRow.n === "1" && !coldRow.zero);
 
-// 6. Negative filter (tasks/173): hydration unhides the row's exclude toggle;
+// 6. Negative filter: hydration unhides the row's exclude toggle;
 //    pressing it subtracts the category (ebook -> wexampletwo drops).
 const notBtn = '.lcat-facets li[data-lcat-field="format"][data-lcat-cat="ebook"] .lcat-facet-not';
 const notState = await page.$eval(notBtn, (b) => ({
@@ -131,10 +131,10 @@ await page.waitForTimeout(500);
 const staticAgain = await page.$$eval("#lcat-results li", (lis) => lis.length);
 check("clearing after negatives restores static list", staticAgain === staticLis);
 
-// 9. The hydrated homosaurus group upgrades to a vocabulary tree (tasks/174):
+// 9. The hydrated homosaurus group upgrades to a vocabulary tree:
 //    only root concepts render, counts rolled up over their subtrees -- the
 //    direct root (Gender identity) plus the sideband-labeled minted ancestor
-//    (Trans community, tasks/178).
+// (Trans community).
 await page.waitForSelector(".lcat-facets .lcat-facet-caret", { timeout: 10000 });
 const sidebarTree = await page.$$eval('.lcat-facets li[data-lcat-cat*="homosaurus.org"]', (lis) =>
   lis.map((li) => ({
@@ -152,7 +152,7 @@ check(
 );
 // Gender identity's unlabeled minted ancestor (homoit9999901, fixture,
 // absent from the terms sideband) must not have rendered above it as a
-// raw-URI row (tasks/176).
+// raw-URI row.
 const mintedRows = await page.$$eval('.lcat-facets li[data-lcat-cat$="homoit9999901"]', (lis) => lis.length);
 check("unlabeled minted ancestor never renders in the sidebar", mintedRows === 0);
 

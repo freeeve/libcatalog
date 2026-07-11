@@ -264,7 +264,7 @@ func (w *discardCounter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// TestEmitCSVStreamsWithBoundedMemory pins the tasks/108 acceptance on the
+// TestEmitCSVStreamsWithBoundedMemory pins the acceptance on the
 // worst emitter: CSV used to hold the merged corpus, the projected Catalog,
 // and the CSV buffer at once; per-grain projection must keep heap growth
 // well under the input/output scale.

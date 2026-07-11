@@ -68,7 +68,7 @@ type Record interface {
 // crosswalk-lossy MARC fields of its source record, serialized field-exact via
 // bibframe.EncodeVerbatimField. Run writes them into the Instance's feed graph
 // under bibframe.PredMARCVerbatim, so a lossy tag is preserved verbatim rather
-// than silently dropped, and MARC export / the MARC view reproduce it (tasks/049).
+// than silently dropped, and MARC export / the MARC view reproduce it.
 type VerbatimProvider interface {
 	Verbatim() []string
 }
@@ -77,7 +77,7 @@ type VerbatimProvider interface {
 // display fields that are not part of BIBFRAME -- e.g. a cover URL, a personal rating,
 // or a read date. Run writes them into the Work's feed provenance graph under
 // bibframe.ExtraPred, and the projector surfaces them as catalog.json's `extra` object
-// (tasks/026), which the Hugo module forwards to page params (tasks/022). A Record that
+// , which the Hugo module forwards to page params. A Record that
 // does not implement it carries no extras, leaving the graph unchanged. For a clustered
 // Work the first record's extras win, matching how shared Work metadata is taken.
 type ExtraProvider interface {
@@ -92,10 +92,10 @@ type AuthoritySubject = bibframe.AuthoritySubject
 
 // SubjectEnricher is an optional capability a Record may implement to contribute
 // controlled-vocabulary subjects for its Work -- e.g. by promoting free genre tags
-// through an authority table (tasks/026). Run emits each as a bf:subject link to the
+// through an authority table. Run emits each as a bf:subject link to the
 // authority URI plus its skos:prefLabel/broader statements in the feed graph, so the
 // projector resolves them as controlled subjects with labels and hierarchy
-// (tasks/012/015). For a clustered Work the first record's subjects win, matching how
+// . For a clustered Work the first record's subjects win, matching how
 // shared Work metadata and extras are taken; a Record that does not implement it
 // contributes none.
 type SubjectEnricher interface {
@@ -104,10 +104,10 @@ type SubjectEnricher interface {
 
 // TermDescriber is an optional capability a Record may implement to carry
 // standalone vocabulary term descriptions -- typically the skos:broader
-// ancestor chains of its ControlledSubjects (tasks/180). Run emits each as
+// ancestor chains of its ControlledSubjects. Run emits each as
 // the term's skos:prefLabel/broader statements in the feed graph with NO
 // bf:subject link to the Work, so hierarchy nodes above the asserted
-// subjects stay labeled in the projection's term sideband (tasks/178) even
+// subjects stay labeled in the projection's term sideband even
 // though no Work carries them directly. For a clustered Work the first
 // record's terms win, matching ControlledSubjects.
 type TermDescriber interface {
@@ -123,7 +123,7 @@ type MergeSeed struct {
 }
 
 // MergeSeeder is an optional Provider capability declaring cluster-merge provenance
-// from a feed (tasks/363): a source that folds one cluster into another -- a coll
+// from a feed: a source that folds one cluster into another -- a coll
 // feed's dcterms:isReplacedBy, say -- reports each merge here, and Run, after seeding
 // the resolver from the prior grains, merges the retired Work onto the survivor.
 // Without it a re-clustered record whose two prior clusters folded resolves

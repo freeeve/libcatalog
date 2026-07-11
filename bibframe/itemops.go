@@ -9,7 +9,7 @@ import (
 	"github.com/freeeve/libcodex/rdf"
 )
 
-// Batch-addressable item fields (tasks/058 item 5). SetItems replaces an
+// Batch-addressable item fields. SetItems replaces an
 // Instance's holdings wholesale, which is right for the item panel and wrong
 // for a selection: it re-mints every node and churns every quad. An ItemEdit
 // is the surgical shape -- one field, on the items that actually change --

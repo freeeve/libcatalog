@@ -23,7 +23,7 @@ if (!root) {
 }
 
 // walk collects every .html file under dir, relative to it. Fragment assets
-// under /lcat/ (the shared facet sidebar, tasks/150) are not documents --
+// under /lcat/ (the shared facet sidebar) are not documents --
 // they are injected into an audited page -- so they are skipped, not audited
 // for document-level rules they can never satisfy.
 function walk(dir, base, out) {

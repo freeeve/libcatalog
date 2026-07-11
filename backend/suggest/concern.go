@@ -21,7 +21,7 @@ const (
 
 // ConcernScheme is the pseudo-scheme concern ids ride in Term -- reusing
 // the suggestion aggregate's storage/queue/review machinery without a
-// parallel record type (tasks/210). A concern never resolves against a
+// parallel record type. A concern never resolves against a
 // vocabulary and never publishes.
 const ConcernScheme = "concern"
 

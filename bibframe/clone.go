@@ -14,12 +14,12 @@ import (
 // provider keys are gone, and keeping them would trip identifier-based
 // duplicate resolution), the source record's admin metadata (the clone is a
 // fresh editorial description, so its 040 derives from the clone's own graph
-// facts per tasks/192), and holdings (the physical copies belong to the
+// facts), and holdings (the physical copies belong to the
 // source work).
 //
-// Subject and genre headings are NOT dropped, controlled or not (tasks/238).
+// Subject and genre headings are NOT dropped, controlled or not.
 // They were, on the reasoning that a skolemized blank heading "reads as a
-// controlled term everywhere" -- which tasks/218 made false the same week, by
+// controlled term everywhere" -- which made false the same week, by
 // teaching both readers (project.subjectsAndTags, ingest.SummarizeDataset)
 // that a grain-local IRI object of bf:subject is an uncontrolled heading, the
 // same as the blank node it stands in for. See GrainLocalIRI. Uncontrolled
@@ -33,7 +33,7 @@ func cloneDropsSubgraph(q *rdf.Quad) bool {
 		PredHasItem:
 		return true
 	case PredHasPart, PredPartOf:
-		// Work-to-work links are stored in both grains (tasks/221); a clone
+		// Work-to-work links are stored in both grains; a clone
 		// carrying its source's side would be a half-link no other grain
 		// reciprocates.
 		return true
@@ -42,7 +42,7 @@ func cloneDropsSubgraph(q *rdf.Quad) bool {
 }
 
 // CloneGrain builds a brand-new work grain from a source grain's
-// description (tasks/217, 058 item 4): the work and every instance are
+// description: the work and every instance are
 // re-minted, every kept statement lands in the editorial graph (the clone
 // has no feed -- it is hand-authored from here on), identifier / admin-
 // metadata / holdings subgraphs are dropped, lcat curation markers (tags,
@@ -113,7 +113,7 @@ func CloneGrain(src []byte, workID string) ([]byte, string, error) {
 	// Grain-local IRIs re-mint because GrainLocalIRI means "a node THIS grain
 	// minted". A source that was itself cloned already carries #<sourceID>n<k>
 	// nodes; passing them through would leave most of the new grain -- its
-	// title node included -- named after an ancestor work, forever (tasks/238).
+	// title node included -- named after an ancestor work, forever.
 	// The Work and the instances are already in rename, so they keep their
 	// dedicated identities.
 	//
@@ -152,7 +152,7 @@ func CloneGrain(src []byte, workID string) ([]byte, string, error) {
 // GrainLocalIRI reports whether an IRI value is grain-local -- a fragment
 // node the grain itself minted (#<id>Work, #<id>Instance, an editor or
 // clone skolem) rather than a reference into an external vocabulary. The
-// subjects model keys on this (tasks/218): a bf:subject object that is a
+// subjects model keys on this: a bf:subject object that is a
 // grain-local node is an uncontrolled heading whose rdfs:label is the
 // value, never a controlled term, exactly like the blank nodes it stands
 // in for.

@@ -1,4 +1,4 @@
-// tasks/273: the item panel saved a whole-list replacement built from a list it
+// the item panel saved a whole-list replacement built from a list it
 // had loaded minutes earlier, sending no If-Match. The second of two catalogers
 // deleted the first one's copy, and the panel said "saved 2 items". A barcode
 // names one physical book on one shelf.
@@ -63,7 +63,7 @@ function button(host: HTMLElement, label: string): HTMLButtonElement {
 }
 
 /** Save is gated on `dirty`, so a save is only reachable after a human edits a
- *  row -- which is exactly the read-modify-write cycle tasks/273 is about. */
+ * row -- which is exactly the read-modify-write cycle is about. */
 function editFirstBarcode(host: HTMLElement, value: string): void {
   const input = host.querySelector('input[aria-label="Barcode"]') as HTMLInputElement;
   input.value = value;

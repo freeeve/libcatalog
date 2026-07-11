@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Copy cataloging (tasks/050): search external Z39.50/SRU targets, stage
+  // Copy cataloging: search external Z39.50/SRU targets, stage
   // hits (or a .mrc upload) into a reviewable batch, then triage the batch
   // by keyboard in CopycatReview. Targets are admin-configured. Search
   // results, picks, and the open batch live in screenState so a drill-in
@@ -40,7 +40,7 @@
   /** Blurbs for the one-click presets, keyed by target name. The preset *config*
    *  (url/protocol/indexes/version/schema) is served from the backend so it
    *  cannot drift from the seeded defaults -- how the k10plus preset came to lack
-   *  its PICA indexes (tasks/256). These are the human copy the wire config lacks;
+   * its PICA indexes. These are the human copy the wire config lacks;
    *  a preset with no blurb falls back to its name. */
   const SUGGESTED_BLURBS: Record<string, string> = {
     loc: "Library of Congress (Z39.50, anonymous)",
@@ -49,7 +49,7 @@
     "indexdata-test": "Index Data public test server (tiny sample set)",
   };
 
-  /** The fielded access points shared by both protocols (tasks/074). */
+  /** The fielded access points shared by both protocols. */
   const FIELD_INDEXES = [
     { index: "title", label: "Title" },
     { index: "author", label: "Author" },
@@ -62,7 +62,7 @@
 
   const SCOPE = "copycat";
 
-  /** A ?batch= deep link (the tasks/077 stage flow) opens that batch. */
+  /** A ?batch= deep link (the stage flow) opens that batch. */
   let { batchId = "" }: { batchId?: string } = $props();
 
   const st = screenState("copycat", () => ({
@@ -83,7 +83,7 @@
   let targets = $state<CopycatTarget[]>([]);
   let suggestedTargets = $state<CopycatTarget[]>([]);
   let newTarget = $state<CopycatTarget>({ name: "", url: "", protocol: "sru" });
-  // The add form's advanced SRU knobs (tasks/256): version/schema bind onto
+  // The add form's advanced SRU knobs: version/schema bind onto
   // newTarget; index overrides are a repeatable access-point -> CQL-index list
   // assembled into newTarget.indexes on submit.
   let newIndexes = $state<{ index: string; cql: string }[]>([]);
@@ -104,7 +104,7 @@
   let quickAutoStage = $state(false);
 
   /** The active staging profile: its targets scope the search, its policy
-   *  pre-sets staged batches (tasks/068). */
+   * pre-sets staged batches. */
   const profile = $derived(profiles.find((p) => p.name === st.profileName) ?? null);
 
   const isAdmin = $derived(($sessionStore?.roles ?? []).includes("admin"));
@@ -207,7 +207,7 @@
 
   /** Suggested presets not yet configured -- suppressed when a target already
    *  has that name OR that URL, so the good seeded k10plus-sru hides the k10plus
-   *  preset that points at the same server (tasks/256). */
+   * preset that points at the same server. */
   const suggestions = $derived(
     suggestedTargets
       .filter((s) => !targets.some((t) => t.name === s.name || t.url === s.url))
@@ -218,7 +218,7 @@
     error = "";
     try {
       // Forward the whole target -- version, schema, and indexes included -- so a
-      // preset with SRU knobs keeps them (tasks/256). blurb is UI-only.
+      // preset with SRU knobs keeps them. blurb is UI-only.
       await putCopycatTarget({ name: s.name, url: s.url, protocol: s.protocol, version: s.version, schema: s.schema, indexes: s.indexes });
       await loadTargets();
     } catch (e) {
@@ -387,7 +387,7 @@
       await loadBatches();
     } catch (e) {
       // A COMMITTED batch is refused server-side (409): its revert-set is the
-      // only undo for the works it created (tasks/340). Surface that reason.
+      // only undo for the works it created. Surface that reason.
       error = humanApiMessage(e, "deleting the batch failed");
     }
   }
@@ -751,7 +751,7 @@
     color: var(--accent);
   }
   /* A target that answered incompletely is not a failed target: amber, not the
-     danger red its hits would be filed under otherwise (tasks/258). */
+     danger red its hits would be filed under otherwise. */
   .warn {
     color: var(--pend-ink);
   }

@@ -14,7 +14,7 @@ import (
 // with minted two-tier ids via the Hardcover provider and the shared ingest.Run
 // pipeline: a book's editions cluster into one Work with an Instance per format, and its
 // non-BIBFRAME display fields (cover, rating, dateRead) ride through the feed graph to
-// catalog.json's `extra` (tasks/026). It is a convenience alias for
+// catalog.json's `extra`. It is a convenience alias for
 // `lcat ingest --provider hardcover` that also supplies the API token and page size and
 // offers a schema-introspection affordance. The token comes from --token or
 // $HARDCOVER_API_TOKEN / $HARDCOVER_TOKEN and is never written to disk.

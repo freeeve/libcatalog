@@ -1,17 +1,17 @@
 {{- /*
   URL-safe slug the content adapter indexes subject/tag taxonomy values by
-  (tasks/023). Lowercases, collapses every run of characters that are not a Unicode
+. Lowercases, collapses every run of characters that are not a Unicode
   letter or decimal digit to a single hyphen, and trims hyphens. This strips the
   ASCII punctuation `urlize` leaves in the path (`+`, `/`, ...) -- which a CDN like
   S3/CloudFront mis-decodes (a literal `+` becomes a space -> 404) -- while keeping
   Unicode letters, which Hugo then percent-encodes (CDN-safe).
 
-  Links to term pages are NEVER reconstructed from this slug (tasks/128: `| urlize`
+  Links to term pages are NEVER reconstructed from this slug (`| urlize`
   and Hugo's own term slugging disagree on periods) -- they resolve through
   lcat-term-url.html, which asks Hugo for the minted page. This partial's only
   link-side use is computing the adapter-indexed KEY passed to that lookup.
 
-  Output is byte-bounded through lcat-cap.html (tasks/134) so one oversized
+  Output is byte-bounded through lcat-cap.html so one oversized
   source label cannot mint a term directory past the filesystem name limit.
 */ -}}
 {{- partial "lcat-cap.html" (. | lower | replaceRE "[^\\p{L}\\p{Nd}]+" "-" | replaceRE "(^-+|-+$)" "") -}}

@@ -1,10 +1,10 @@
 {{- /*
-  Exclude affordance for one facet term row (tasks/144) -- rendered only when
+  Exclude affordance for one facet term row -- rendered only when
   the site opts in ([params.facets] negatives = true). A button, not a link:
   exclusion URLs must not be crawlable, and lcat-negatives.js owns the URL
   state (x<taxonomy>=<term>, repeatable).
 
-  Deliberately minimal markup (tasks/148: at catalog scale every sidebar row
+  Deliberately minimal markup (at catalog scale every sidebar row
   repeats on every page, and redundant attributes cost gigabytes of built
   HTML): the button ships hidden and nameless; lcat-negatives.js derives the
   taxonomy, term, and display label from the row's anchor, sets

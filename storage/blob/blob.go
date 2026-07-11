@@ -80,7 +80,7 @@ type Signer interface {
 }
 
 // RangeReader is an optional Store capability: read [offset, offset+length)
-// of an object without fetching the whole blob (tasks/167 -- range-served
+// of an object without fetching the whole blob (range-served
 // vocabulary index artifacts). Implementations return exactly length bytes
 // unless the range runs past the object's end, where they return the
 // available prefix (io.ReaderAt semantics come from the ReaderAt adapter,
@@ -143,7 +143,7 @@ func (r *rangeReaderAt) ReadAt(p []byte, off int64) (int, error) {
 }
 
 // StreamPutter is an optional Store capability: write an object from a
-// reader without holding the whole payload in memory (tasks/108/110 --
+// reader without holding the whole payload in memory (
 // full-corpus exports and vocabulary snapshot installs are output-sized).
 // DirStore streams into its temp file; the S3 store spools to a local temp
 // file for a seekable upload body. Use the PutStream helper rather than

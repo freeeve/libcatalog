@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Duplicate-detection worklist (tasks/051): Works sharing a clustering key
+  // Duplicate-detection worklist: Works sharing a clustering key
   // (author+title+language) but holding separate ids. The group list is a
   // keyboard list (scope "duplicates", Enter/o expands); an expanded group
   // pushes the "duplicates-compare" scope where 1-9 pick the survivor by
@@ -169,7 +169,7 @@
   }
 
   /** Display values: an IRI whose grain carries a name (the doc annotation,
-   *  tasks/140) or that names a known closed-list term (RDA media/carrier,
+   *) or that names a known closed-list term (RDA media/carrier,
    *  MARC language) shows the name; the raw value stays in the title tooltip. */
   function values(workId: string, path: string): { text: string; raw: string }[] {
     return (st.docs[workId]?.work.fields[path] ?? []).map((v) => ({

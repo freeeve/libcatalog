@@ -1,4 +1,4 @@
-// Package authoritiesvc is the local-authority editing service (tasks/046):
+// Package authoritiesvc is the local-authority editing service:
 // CRUD over authority grains for a deployment's own headings, authority
 // merge with corpus-wide reference rewrite, and the on-save auto-linker that
 // turns string subjects into moderated linking suggestions. It is SKOS-native
@@ -63,12 +63,12 @@ type Service struct {
 	AuthoritiesPrefix string
 	// Schemes filters the vocab reload (nil = every authority graph).
 	Schemes []string
-	// SchemesFn, when set, supersedes Schemes -- the tasks/067 seam: installed
+	// SchemesFn, when set, supersedes Schemes -- the seam: installed
 	// vocabulary snapshots widen the effective filter at reload time, so an
 	// authority edit's reload never drops an installed scheme.
 	SchemesFn func(context.Context) ([]string, error)
 	// Summaries, when set, is the shared maintained summary source
-	// (workindex, tasks/109) merge rewrites scan instead of a per-run
+	// (workindex) merge rewrites scan instead of a per-run
 	// corpus walk; nil falls back to ScanSummaries.
 	Summaries ingest.SummarySource
 	Logger    *slog.Logger
@@ -80,7 +80,7 @@ type MergeResult struct {
 	Winner string `json:"winner"`
 	// Rewritten counts the Work grains repointed at the winner. On a failure it
 	// is what the pass managed before it stopped, and it is meaningful: the works
-	// it counts really are repointed (tasks/305).
+	// it counts really are repointed.
 	Rewritten int `json:"rewritten"`
 	// Carriers is how many Works named the loser when the pass began. Rewritten <
 	// Carriers means the merge did not finish and the heading is still live; the
@@ -187,7 +187,7 @@ func (s *Service) Merge(ctx context.Context, loserID string, winner vocab.TermRe
 	// /v1/authorities returns); expand it so the self-merge guard compares
 	// like with like -- it used to compare the short id against the
 	// expanded loser IRI and never matched, letting a term merge into
-	// itself and silently retire (tasks/200). Expansion also makes the
+	// itself and silently retire. Expansion also makes the
 	// stored marker, the rewrites, and the winnerSubject lookup carry the
 	// canonical IRI, as every non-local winner already does.
 	if winner.Scheme == LocalScheme && IDPattern.MatchString(winner.ID) {
@@ -203,7 +203,7 @@ func (s *Service) Merge(ctx context.Context, loserID string, winner vocab.TermRe
 	}
 	// The grain is keyed by short id, so Get succeeds for any minted id --
 	// but the marker must land on a subject the grain actually describes,
-	// or the merge mints a phantom labelless node (tasks/202: pre-rename /
+	// or the merge mints a phantom labelless node (pre-rename /
 	// imported grains carry a different IRI base than the id-derived one).
 	if !bibframe.AuthorityGrainDescribes(loserGrain, loserURI) {
 		return MergeResult{}, fmt.Errorf("%w: authority grain for %s does not describe %s -- namespace mismatch", ErrValidation, loserID, loserURI)
@@ -213,7 +213,7 @@ func (s *Service) Merge(ctx context.Context, loserID string, winner vocab.TermRe
 	// loser with two contradictory mergedInto statements whose effective winner is
 	// nondeterministic (quad order), and the re-merge would move no works (the
 	// first merge already repointed the carriers off the loser). Refuse it,
-	// symmetric to the self-merge and namespace guards (tasks/341). Re-merging into
+	// symmetric to the self-merge and namespace guards. Re-merging into
 	// the same winner stays idempotent.
 	if prior, err := bibframe.ParseAuthorityGrain(loserGrain, loserURI, LocalScheme); err != nil {
 		return MergeResult{}, err
@@ -235,7 +235,7 @@ func (s *Service) Merge(ctx context.Context, loserID string, winner vocab.TermRe
 	}
 	result := MergeResult{Loser: loserURI, Winner: winner.ID, Carriers: len(carriers)}
 
-	// Rewrite the works, THEN retire the loser (tasks/305). The marker is a
+	// Rewrite the works, THEN retire the loser. The marker is a
 	// durable claim that every carrying Work now points at the winner; writing it
 	// first meant a rewrite that failed partway left that claim standing over a
 	// catalog describing one concept two ways -- some works on the winner, the
@@ -244,7 +244,7 @@ func (s *Service) Merge(ctx context.Context, loserID string, winner vocab.TermRe
 	// loser grain. Marking last leaves a failure fully resumable by re-issuing the
 	// same merge, which is what the handler now tells the operator to do.
 	//
-	// Same execute-then-stamp shape as tasks/300's promotion.
+	// Same execute-then-stamp shape as the promotion.
 	var changed []string
 	finish := func(err error) (MergeResult, error) {
 		// Both outcomes are audited and both reload. The audit entry is the only
@@ -296,7 +296,7 @@ func (s *Service) Merge(ctx context.Context, loserID string, winner vocab.TermRe
 // AutoLink matches a just-saved Work's uncontrolled string subjects against
 // the authority labels of every loaded scheme and lands whole-heading
 // matches in the moderation queue as PIPELINE suggestions -- never writing
-// the link itself (tasks/046). Returns the number of candidate links handed
+// the link itself. Returns the number of candidate links handed
 // to the queue; the queue is create-only and tombstone-aware, so re-running
 // on every save never duplicates, and a tag whose term the Work already
 // carries as a controlled subject produces no candidate.

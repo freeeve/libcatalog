@@ -4,7 +4,7 @@ import (
 	codex "github.com/freeeve/libcodex"
 )
 
-// DecodeGrainMARCSource is DecodeGrainMARC plus the tasks/192 cataloging-
+// DecodeGrainMARCSource is DecodeGrainMARC plus the cataloging-
 // source derivation: given the deployment's MARC organization code, each
 // decoded record's 040 derives from graph facts AT DECODE TIME -- the field
 // is never stored, so it cannot drift from the named-graph provenance that

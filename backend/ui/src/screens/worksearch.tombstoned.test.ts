@@ -1,4 +1,4 @@
-// tasks/280: work search hid nothing. On the playground that meant 49 retired
+// work search hid nothing. On the playground that meant 49 retired
 // e2e sentinels above one real book. Retired records are now excluded unless a
 // "Show tombstoned" checkbox asks for them -- and the ask goes to the server, so
 // the counts, the paging window and the facet rail describe the set on screen.
@@ -121,7 +121,7 @@ describe("work search tombstoned filter", () => {
 
   // The status line is a contract, not just copy: the e2e suite reads
   // "<n> in catalog" off it to prove a facet narrowed the result set. Putting a
-  // qualifier between the number and the words broke that (tasks/280), so the
+  // qualifier between the number and the words broke that, so the
   // phrase stays intact and any qualifier goes after it.
   it("keeps the '<n> in catalog' phrase intact in both modes", async () => {
     const { host } = await mountSearch();

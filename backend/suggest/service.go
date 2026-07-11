@@ -43,7 +43,7 @@ func (s *Service) SetClock(now func() time.Time) { s.now = now }
 // bumpRate applies the shared per-supporter submission caps: bump-then-
 // check windowed counters; a rejected attempt stays counted, which only
 // makes the cap stricter under abuse. Term suggestions and concerns share
-// one budget (tasks/210).
+// one budget.
 func (s *Service) bumpRate(ctx context.Context, supporterHash string, now time.Time) error {
 	day := now.Format("2006-01-02")
 	hour := now.Format("2006010215")
@@ -76,7 +76,7 @@ func (s *Service) Submit(ctx context.Context, in SubmitInput) (SubmitResult, err
 		return SubmitResult{}, fmt.Errorf("suggest: invalid reason %q", in.Reason)
 	}
 	result := SubmitResult{}
-	// The patron policy (tasks/263) gates this intake: resolveTerm with
+	// The patron policy gates this intake: resolveTerm with
 	// patron=true refuses a disabled deployment, a scheme outside the allowlist,
 	// or a folk tag the free-text mode forbids.
 	term, folkNew, err := s.resolveTerm(ctx, in.Term, true)
@@ -139,7 +139,7 @@ func (s *Service) Submit(ctx context.Context, in SubmitInput) (SubmitResult, err
 // runs a folk term through normalization and its lifecycle gate. Returns the
 // canonicalized ref and whether a novel folk term was just proposed.
 func (s *Service) resolveTerm(ctx context.Context, ref vocab.TermRef, patron bool) (vocab.TermRef, bool, error) {
-	// The patron-suggestion policy (tasks/263) applies only to the anonymous
+	// The patron-suggestion policy applies only to the anonymous
 	// intake (Submit). A cataloger path (ManualTerm) passes patron=false and is
 	// never gated -- the cataloger is the authority, the policy is the public
 	// intake gate.
@@ -180,7 +180,7 @@ func (s *Service) resolveTerm(ctx context.Context, ref vocab.TermRef, patron boo
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		// A novel folk tag: refused when the policy admits only tags already in
-		// use (tasks/263), before it is created.
+		// use, before it is created.
 		if patron && pol.FreeText == FreeTextExisting {
 			return ref, false, ErrNovelTagOff
 		}

@@ -20,7 +20,7 @@
       await loginLocal(email, password);
       sessionStore.set(session());
       // No navigate here: the shell's auth gate routes to the stashed
-      // pre-login hash (tasks/225), falling back to the dashboard.
+      // pre-login hash, falling back to the dashboard.
     } catch (e) {
       error = e instanceof Error ? e.message : "login failed";
     } finally {

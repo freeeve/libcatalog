@@ -1,7 +1,7 @@
-// Faceted filters over the works list (tasks/168): cataloger-shaped slices
+// Faceted filters over the works list: cataloger-shaped slices
 // of the workindex summaries -- visibility, holdings, completeness gaps,
 // controlled subjects, raw tags, and configured extras dimensions like
-// provenance sources (tasks/171). Filters AND across groups and OR within
+// provenance sources. Filters AND across groups and OR within
 // one; each group's counts are computed with every other group's filters
 // applied (self-excluding), the standard facet UX. Everything derives from
 // fields the summary already carries -- no grain reads.
@@ -16,7 +16,7 @@ import (
 )
 
 // facetCount is one value of one facet group with its work count. Scheme is
-// set only on controlled-subject values (tasks/174): the vocabulary the IRI
+// set only on controlled-subject values: the vocabulary the IRI
 // resolves to, so the rail can group per vocabulary and name the authority.
 type facetCount struct {
 	Value  string `json:"value"`
@@ -34,7 +34,7 @@ type facetGroup struct {
 	capped   bool // top-N response cap for open-ended vocabularies
 	// schemeOf, when set, annotates each value with its vocabulary scheme,
 	// and the top-N cap applies per scheme so a large vocabulary cannot
-	// crowd a smaller one out of the rail (tasks/174).
+	// crowd a smaller one out of the rail.
 	schemeOf func(string) string
 }
 
@@ -47,11 +47,11 @@ var reservedWorkParams = map[string]bool{
 }
 
 // workFacetGroups assembles one request's facet groups: the five built-ins,
-// then one group per configured extras key (tasks/171) bucketing on the
+// then one group per configured extras key bucketing on the
 // summary's comma-split extras value. schemeOf (nil-safe) resolves a subject
-// IRI to its vocabulary scheme for per-vocabulary grouping (tasks/174).
+// IRI to its vocabulary scheme for per-vocabulary grouping.
 // The bucketing rules live in ingest (ingest/facets.go) so a batch/export
-// selection resolves by exactly the rule the rail draws (tasks/254). This file
+// selection resolves by exactly the rule the rail draws. This file
 // keeps what is a listing concern: which groups a request asks for, the
 // self-excluding counts, and the response cap.
 func workFacetGroups(q url.Values, extras []string, schemeOf func(string) string) []facetGroup {
@@ -141,11 +141,11 @@ const facetTopN = 20
 
 // result renders the counts: fixed-vocabulary groups list every nonzero
 // value; open-ended groups list the top facetTopN by count then value. A
-// scheme-annotated group (subjects, tasks/174) caps per scheme instead, so
+// scheme-annotated group (subjects) caps per scheme instead, so
 // every vocabulary keeps a presence in the rail.
 //
 // A value the request selected is always listed, whatever its count and
-// whatever the cap (tasks/253). The rail is the client's only account of what
+// whatever the cap. The rail is the client's only account of what
 // the query is: a filter that is applied but not displayed cannot be removed,
 // and it silently corrupts every number read off that screen. Two ways a
 // selection used to disappear, both covered here -- it ranks below the cap, or
@@ -177,7 +177,7 @@ func (c *facetCounter) result() map[string][]facetCount {
 }
 
 // facet builds one response value, annotating its vocabulary scheme when the
-// group carries one (tasks/174).
+// group carries one.
 func (c *facetCounter) facet(group facetGroup, value string, count int) facetCount {
 	fc := facetCount{Value: value, Count: count}
 	if group.schemeOf != nil {

@@ -1,4 +1,4 @@
-// The Work-level series line, and the param name it does NOT take (libcat tasks/309).
+// The Work-level series line, and the param name it does NOT take.
 //
 // Schema v12 moved series from the instance to the work and made them objects.
 // The adapter passes them as `seriesList`, not `series`, and that is not a

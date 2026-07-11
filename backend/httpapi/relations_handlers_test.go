@@ -32,7 +32,7 @@ func seedBareWorkGrain(t *testing.T, bs blob.Store, workID, title string) {
 	}
 }
 
-// TestWorkRelationsAPI covers tasks/221: linking writes both directions,
+// TestWorkRelationsAPI covers linking writes both directions,
 // listing resolves titles, unlinking retracts both sides, and phantom /
 // self links refuse before anything is written.
 func TestWorkRelationsAPI(t *testing.T) {
@@ -98,7 +98,7 @@ func TestWorkRelationsAPI(t *testing.T) {
 	}
 }
 
-// TestWorkRelationCycles covers tasks/232: an add that would make a work both
+// TestWorkRelationCycles covers an add that would make a work both
 // contain and be contained by another refuses before either side is written,
 // as does a longer cycle through the hasPart walk -- while a diamond (two
 // routes to one part) and an idempotent re-add stay allowed.

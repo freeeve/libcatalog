@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The text surface of the MARC editor (tasks/076): the whole record as an
+  // The text surface of the MARC editor: the whole record as an
   // editable mrk-style buffer -- plain monospace textarea, a line-number
   // gutter that flags parse errors, fixed-field lines openable in the
   // positional builder, and the field-clipboard chords working on the caret

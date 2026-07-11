@@ -22,7 +22,7 @@ var errStorage = errors.New("induced storage failure")
 // flakyBlob fails writes to paths under a prefix, leaving every other path --
 // notably the grain tree -- working. This is the reporter's chmod on
 // data/attachments, in a test: the grain store stays writable, so a failure is
-// attributable to the byte write alone (tasks/261).
+// attributable to the byte write alone.
 type flakyBlob struct {
 	blob.Store
 	failPutPrefix    string
@@ -124,7 +124,7 @@ func TestAttachmentHappyPath(t *testing.T) {
 	}
 }
 
-// tasks/261, the phantom: an upload whose bytes cannot be stored returned 500
+// the phantom: an upload whose bytes cannot be stored returned 500
 // and left the record claiming an attachment that 404s on download -- and, the
 // second time, refused the retry with 409 because the name was already there.
 func TestFailedUploadLeavesNoPhantomAttachment(t *testing.T) {
@@ -181,7 +181,7 @@ func TestFailedReplaceKeepsTheExistingAttachment(t *testing.T) {
 	}
 }
 
-// tasks/261, the mirror: DELETE discarded bs.Delete's error and answered 204,
+// the mirror: DELETE discarded bs.Delete's error and answered 204,
 // so a librarian deleting an attachment for a legal reason was told it worked
 // while the bytes stayed on disk.
 func TestFailedDeleteReportsAndKeepsTheRecordIntact(t *testing.T) {

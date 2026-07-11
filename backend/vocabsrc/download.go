@@ -25,7 +25,7 @@ import (
 	"github.com/freeeve/libcat/backend/vocab"
 )
 
-// Status is the download-job lifecycle (the tasks/038 export shape).
+// Status is the download-job lifecycle (the export shape).
 type Status string
 
 const (
@@ -246,7 +246,7 @@ func (e convertError) Error() string { return e.err.Error() }
 func (e convertError) Unwrap() error { return e.err }
 
 // installFrom converts a dump stream directly into the snapshot blob --
-// peak memory is the converter's chunk, not the dump (tasks/110) -- then
+// peak memory is the converter's chunk, not the dump -- then
 // writes the sidecar and swaps the index; the shared back half of download
 // and upload. A conversion failure (bad bytes, over-cap, zero concepts)
 // aborts the pipe before the store commits anything, so a previously
@@ -290,7 +290,7 @@ func (s *Service) installFrom(ctx context.Context, src Source, r io.Reader, prov
 	if _, err := s.Blob.Put(ctx, s.metaPath(src.Name), meta, blob.PutOptions{ContentType: "application/json"}); err != nil {
 		return 0, err
 	}
-	// Sidecar index artifacts (tasks/167): built per install so big schemes
+	// Sidecar index artifacts: built per install so big schemes
 	// serve range-fetched instead of as resident maps. A build failure keeps
 	// the install -- the map path serves the scheme until the next rebuild.
 	if m, err := vocab.BuildSidecar(ctx, s.Blob, s.prefix(), src.Scheme, s.snapshotPath(src.Name)); err != nil {
@@ -340,7 +340,7 @@ var keepPredicates = map[string]bool{
 
 const skosPrefLabel = "http://www.w3.org/2004/02/skos/core#prefLabel"
 
-// Defensive ceilings on snapshot conversion (tasks/110). SnapshotURL is
+// Defensive ceilings on snapshot conversion. SnapshotURL is
 // admin-set, so these bound mistakes and hostile endpoints rather than
 // gatekeep: the size cap counts decompressed bytes (a gzip bomb hits it as
 // it expands, and download and upload paths pass through here alike), the
@@ -422,13 +422,13 @@ func Convert(r io.Reader, scheme string) ([]byte, int, error) {
 // ConvertTo streams a SKOS N-Triples/N-Quads dump (gzipped or plain) into
 // authority-tree N-Quads under the authority:<scheme> graph, keeping only the
 // predicates the index reads. It decodes one statement at a time, so peak memory
-// is a statement plus the concept-count set, not the dump (tasks/110). Common
+// is a statement plus the concept-count set, not the dump. Common
 // wrong-format uploads (zip archives, XML exports) are named outright --
 // publishers like OCLC FAST distribute both. maxBytes caps the decompressed
 // input (0 = the 4GB default). Returns the distinct prefLabel-bearing concept
 // count.
 //
-// A malformed line refuses the whole dump, naming the line (tasks/317). It used to
+// A malformed line refuses the whole dump, naming the line. It used to
 // be skipped, and that was not a decision -- it was whatever libcodex's parser did.
 // The dumps that trip it are the ones you most want refused: a 5,242,880-byte
 // homosaurus-v4.nt, cut mid-IRI at exactly 5MiB, converts cleanly under a lenient
@@ -437,7 +437,7 @@ func Convert(r io.Reader, scheme string) ([]byte, int, error) {
 // real LC/Homosaurus/FAST dumps were parsed strictly to check this; the only one
 // that failed was that truncated download.
 //
-// The line number in that refusal is the dump's own (tasks/320). This used to feed
+// The line number in that refusal is the dump's own. This used to feed
 // 1MB chunks to rdf.ParseNQuads and add a running base to each SyntaxError.Line,
 // because a bulk parser numbers from the start of the bytes it was handed; the
 // streaming decoder numbers from the start of the stream, so the base is gone and

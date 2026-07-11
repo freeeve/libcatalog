@@ -24,7 +24,7 @@ import (
 // conditional PUTs.
 //
 // Computed ETags are cached against each file's (mtime, size), so List stats
-// rather than reads files whose cache entry is current (tasks/109) -- the same
+// rather than reads files whose cache entry is current -- the same
 // best-effort stance as the CAS: an external writer that preserves both mtime
 // and size can serve a stale tag until the next content read.
 type DirStore struct {
@@ -233,7 +233,7 @@ func (d *DirStore) PutStream(ctx context.Context, path string, r io.Reader, opts
 // directory boundaries. The walk is scoped to the deepest directory the
 // prefix names, files whose cached ETag is current are stat'd rather than
 // read, and a file deleted mid-walk is skipped instead of truncating the
-// listing (tasks/109).
+// listing.
 func (d *DirStore) List(ctx context.Context, prefix string) iter.Seq2[Entry, error] {
 	return func(yield func(Entry, error) bool) {
 		walkRoot := d.root

@@ -39,7 +39,7 @@ func newModerationAPI(t *testing.T) (http.Handler, *suggest.Service) {
 		t.Fatal(err)
 	}
 	svc := suggest.New(store.NewMem(), ix, suggest.Caps{})
-	// Open the patron intake (tasks/263); default is off.
+	// Open the patron intake; default is off.
 	if _, err := svc.PutPolicy(t.Context(), suggest.Policy{Enabled: true, FreeText: suggest.FreeTextAny}); err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestModerationFlow(t *testing.T) {
 	}
 }
 
-// TestMonthDefaultsToCurrentUTC covers tasks/234: on the month-keyed staff
+// TestMonthDefaultsToCurrentUTC covers on the month-keyed staff
 // reports an absent month means "this month", while a malformed one still
 // refuses. Absent and wrong are different answers, not the same 400.
 func TestMonthDefaultsToCurrentUTC(t *testing.T) {

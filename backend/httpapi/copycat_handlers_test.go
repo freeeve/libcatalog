@@ -64,7 +64,7 @@ func TestCopycatFlow(t *testing.T) {
 		t.Fatalf("search = %d %s", rec.Code, rec.Body.String())
 	}
 
-	// Fielded search (tasks/074): fields ride the same endpoint and AND on;
+	// Fielded search: fields ride the same endpoint and AND on;
 	// an unknown index is refused.
 	rec = request(t, h, http.MethodPost, "/v1/copycat/search", "lib-token", "", map[string]any{
 		"query":  "gideon",
@@ -135,7 +135,7 @@ func TestCopycatFlow(t *testing.T) {
 	}
 }
 
-// TestOriginalRecordFlow is the tasks/077 surface: templates list, the
+// TestOriginalRecordFlow is the surface: templates list, the
 // field-anchored refusal, and staging a titled draft as source "original".
 func TestOriginalRecordFlow(t *testing.T) {
 	h, _ := newCopycatAPI(t)

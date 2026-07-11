@@ -27,7 +27,7 @@ type FieldValue struct {
 	// "editorial:", "enrichment:locsh").
 	Prov string `json:"prov"`
 	// Overridden marks feed values shadowed by an lcat:overrides marker
-	// (tasks/042).
+	//.
 	Overridden bool `json:"overridden,omitempty"`
 	// Annotation is the field's display-only qualifier resolved from the
 	// value's structure node (e.g. a heading's bf:source label, a
@@ -35,7 +35,7 @@ type FieldValue struct {
 	// ignores it.
 	Annotation string `json:"annotation,omitempty"`
 	// Primary marks a chained value whose structure head is typed
-	// bflc:PrimaryContribution (tasks/138) -- the author sorts before the
+	// bflc:PrimaryContribution -- the author sorts before the
 	// narrator. Display-only; ToGrain ignores it.
 	Primary bool `json:"primary,omitempty"`
 	// Node is the value's subject term in N-Quads syntax -- the resource
@@ -58,7 +58,7 @@ type WorkDoc struct {
 	WorkID string `json:"workId"`
 	// ProfileID shapes the Work fields; InstanceProfileID the Instances' --
 	// exposed so the editor can drive each form from the deployment's profile
-	// rather than a hardcoded field list (tasks/295, tasks/345). Empty when no
+	// rather than a hardcoded field list. Empty when no
 	// instance profile is configured.
 	ProfileID         string        `json:"profileId"`
 	InstanceProfileID string        `json:"instanceProfileId,omitempty"`
@@ -94,7 +94,7 @@ func (m *Mapper) ToDoc(grainNQ []byte, workID string) (*WorkDoc, error) {
 	// A multi-feed cluster describes the same instance IRI in several
 	// graphs, and ScanGrain reports it once per graph -- deduped here or
 	// the doc grows empty husk entries (the first claims every quad) whose
-	// duplicate ids crash the editor's keyed tab list (tasks/196).
+	// duplicate ids crash the editor's keyed tab list.
 	var instanceIDs []string
 	seenInst := map[string]bool{}
 	for _, inst := range gi.Instances {
@@ -193,7 +193,7 @@ func claimFields(ds *rdf.Dataset, claimed []bool, node rdf.Term, profile *profil
 		if len(field.Predicates) == 1 {
 			values = claimDirect(ds, claimed, node, field.Predicates[0], overrides, false)
 			// A direct field's annotation chain resolves from each IRI
-			// value's own node (tasks/137/140): subjects carry the
+			// value's own node: subjects carry the
 			// grain-written skos:prefLabel of the authority IRI, so the
 			// doc shows names even when no vocab snapshot is installed.
 			if len(field.Annotation) > 0 {
@@ -216,7 +216,7 @@ func claimFields(ds *rdf.Dataset, claimed []bool, node rdf.Term, profile *profil
 			// Each hop keeps its structure head (the first-hop node, e.g.
 			// the bf:Contribution): the annotation chain and the primary
 			// marker hang off it, not off the deepest intermediate
-			// (tasks/138). For 2-hop chains head and node coincide, so
+			//. For 2-hop chains head and node coincide, so
 			// annotation behavior there is unchanged.
 			type chainHop struct{ head, node rdf.Term }
 			hops := []chainHop{{head: node, node: node}}
@@ -276,12 +276,12 @@ func claimDirect(ds *rdf.Dataset, claimed []bool, subject rdf.Term, predicate st
 			continue
 		}
 		// A structured object stays passthrough. That means blank nodes and,
-		// since tasks/238, the grain-local IRIs a clone or the editor mints
+		// since the grain-local IRIs a clone or the editor mints
 		// for them: an uncontrolled bf:subject heading skolemized to
 		// #<id>n<k> is the same node it was as _:b0, and rendering it as a
 		// controlled-term chip would put a raw fragment IRI in front of the
 		// cataloger. GrainLocalIRI is the seam the projector and the ingest
-		// summarizer already read this way (tasks/218).
+		// summarizer already read this way.
 		if !q.O.IsLiteral() && !(q.O.IsIRI() && !bibframe.GrainLocalIRI(q.O.Value)) {
 			continue
 		}
@@ -304,9 +304,9 @@ func claimDirect(ds *rdf.Dataset, claimed []bool, subject rdf.Term, predicate st
 // structure node: the distinct literals at the end of the annotation chain,
 // sorted and joined. When the leaf literals carry language tags, one
 // language is chosen first -- English, then untagged, then the
-// lexicographically first tag (the tasks/116 PickLabel order) -- so a
+// lexicographically first tag (the PickLabel order) -- so a
 // multilingual vocabulary annotates as one label, not a concatenation of
-// translations (tasks/145). Nothing is claimed -- the annotation's quads
+// translations. Nothing is claimed -- the annotation's quads
 // stay in passthrough.
 func annotationLabel(ds *rdf.Dataset, node rdf.Term, chain []string) string {
 	terms := []rdf.Term{node}
@@ -354,7 +354,7 @@ func annotationLabel(ds *rdf.Dataset, node rdf.Term, chain []string) string {
 }
 
 // isPrimaryContribution reports whether a chained value's structure head is
-// typed bflc:PrimaryContribution (tasks/138), so the doc can sort the
+// typed bflc:PrimaryContribution, so the doc can sort the
 // primary agent (the author) before added contributions (the narrator).
 func isPrimaryContribution(ds *rdf.Dataset, head rdf.Term) bool {
 	const primaryType = "http://id.loc.gov/ontologies/bflc/PrimaryContribution"

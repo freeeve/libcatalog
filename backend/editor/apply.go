@@ -14,7 +14,7 @@ import (
 )
 
 // skosPrefLabel is the annotation predicate the label-companion contract
-// keys on (tasks/145): a direct IRI field whose annotation chain is exactly
+// keys on: a direct IRI field whose annotation chain is exactly
 // this predicate gets a grain-written label next to every added link, the
 // same shape the ingest enrichers emit.
 const skosPrefLabel = "http://www.w3.org/2004/02/skos/core#prefLabel"
@@ -50,7 +50,7 @@ type Op struct {
 	Where *string `json:"where,omitempty"`
 }
 
-// ResourceItems addresses every bf:Item in the grain at once (tasks/058). It
+// ResourceItems addresses every bf:Item in the grain at once. It
 // is the only resource an op list can name that is not a single node: item
 // ids are minted per grain, so a selection cannot name them, but "every copy
 // shelved in Stacks" is exactly what a batch relocation means.
@@ -65,10 +65,12 @@ const ResourceItems = "items"
 //   - Removing an editorial value retracts its quad.
 //   - Any edit that suppresses feed values (remove/set/clear touching them)
 //     claims the field with an lcat:overrides marker and re-asserts the
-//     surviving values editorially -- the tasks/042 semantics, so the feed
-//     stays untouched and revert is always possible.
 //
-// Label companions (tasks/145): when labels is non-nil, every IRI the patch
+// surviving values editorially -- the semantics, so the feed
+//
+//	stays untouched and revert is always possible.
+//
+// Label companions: when labels is non-nil, every IRI the patch
 // asserts on a prefLabel-annotated field also gets its vocabulary labels
 // written into the grain's authority:<scheme> graph, so the grain stays
 // self-describing (Duplicates compare, exports, the projection's label
@@ -162,7 +164,7 @@ func applyLabelCompanions(m *Mapper, grain []byte, added []rdf.Quad, labels Labe
 }
 
 // liveCount counts the field values an add stacks onto: everything except
-// feed values already shadowed by an override marker (tasks/115).
+// feed values already shadowed by an override marker.
 func liveCount(values []FieldValue) int {
 	n := 0
 	for _, v := range values {

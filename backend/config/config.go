@@ -36,14 +36,14 @@ type Config struct {
 	// S3Endpoint and DynamoEndpoint override AWSEndpoint for one service each.
 	// The off-AWS deployment is two unrelated servers -- MinIO for blobs,
 	// ScyllaDB Alternator or DynamoDB Local for documents -- so one endpoint
-	// for both stores cannot address it (tasks/054, tasks/165). Empty falls
+	// for both stores cannot address it. Empty falls
 	// back to AWSEndpoint.
 	S3Endpoint     string
 	DynamoEndpoint string
 	// ShutdownDelay, when positive, holds the server open after SIGTERM with
 	// readiness already failing, so an orchestrator has time to take this
 	// replica out of its load balancer before connections start being refused
-	// (tasks/054). Zero (the default) drains immediately, which is what a
+	//. Zero (the default) drains immediately, which is what a
 	// single-process or local run wants. In Kubernetes set it to comfortably
 	// more than one readiness period, e.g. 5s.
 	ShutdownDelay time.Duration
@@ -89,7 +89,7 @@ type Config struct {
 	VocabSchemes []string
 	// ExtraFacets lists the lcat:extra/* keys the admin works view facets
 	// on (LCATD_EXTRA_FACETS, comma-separated). Defaults to "sources" --
-	// the provenance dimension (tasks/171); set it empty to disable.
+	// the provenance dimension; set it empty to disable.
 	ExtraFacets []string
 	// VocabUploadCapMB bounds hand-uploaded vocabulary dumps (0 = the 512MB
 	// default). Synchronous in-memory installs need some ceiling; size it
@@ -97,7 +97,7 @@ type Config struct {
 	VocabUploadCapMB int
 	// VocabSnapshotCapMB bounds a downloaded snapshot dump's decompressed
 	// size (0 = the 4GB default) -- the defensive ceiling against a hostile
-	// or misconfigured snapshot endpoint (tasks/110).
+	// or misconfigured snapshot endpoint.
 	VocabSnapshotCapMB int
 	// AuthoritiesPrefix is the blob path prefix holding authority grains.
 	// Default "data/authorities/".
@@ -118,17 +118,17 @@ type Config struct {
 	RebuildCmd string
 	RebuildDir string
 	// TriggerSQSURL / TriggerEventBus dispatch grains-changed events to AWS
-	// messaging (tasks/159) -- the async job seam: a queue worker (ECS
+	// messaging -- the async job seam: a queue worker (ECS
 	// RunTask, Step Functions) runs the incremental rebuild instead of a
 	// synchronous local command.
 	TriggerSQSURL   string
 	TriggerEventBus string
 	// RebuildDebounce, when positive, coalesces a burst of publishes into one
-	// trigger event delivered after that quiet period (tasks/159).
+	// trigger event delivered after that quiet period.
 	RebuildDebounce time.Duration
 
 	// BrandCSS, when set, is the path of a CSS file that re-brands the SPA
-	// at boot without a rebuild (tasks/135): the server reads it once,
+	// at boot without a rebuild: the server reads it once,
 	// serves it at /brand.css, and links it from index.html after app.css,
 	// so its rules (typically :root / html[data-theme="dark"] token
 	// overrides) win the cascade. An unreadable file fails the boot.
@@ -141,12 +141,12 @@ type Config struct {
 	// DisableTickers skips the container-shaped background workers (the
 	// 15s vocab-download and export-job drains). Set programmatically by
 	// serverless entrypoints, which drain on scheduled invocations instead
-	// -- a frozen Lambda never advances a ticker goroutine (tasks/099).
+	// -- a frozen Lambda never advances a ticker goroutine.
 	DisableTickers bool
 
 	// OrgCode is the deployment's MARC organization code. When set, MARC
 	// surfaces (the MARC view, exports) derive each record's 040 cataloging
-	// source from graph facts at decode time (tasks/192): locally edited
+	// source from graph facts at decode time: locally edited
 	// records gain this code as a modifying-agency $d, born-digital records
 	// synthesize 040 $a/$c. Empty disables the derivation.
 	OrgCode string
@@ -156,7 +156,7 @@ type Config struct {
 	EnrichLocsh string
 
 	// EnrichOpenLibrary enables the OpenLibrary external-identity source
-	// (tasks/066) when set to "queue" or "direct". It needs
+	// when set to "queue" or "direct". It needs
 	// EnrichOpenLibraryDump; without it the source stays off.
 	EnrichOpenLibrary string
 	// EnrichOpenLibraryDump is the path to an OpenLibrary editions dump the

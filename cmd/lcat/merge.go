@@ -9,7 +9,7 @@ import (
 	"github.com/freeeve/libcat/bibframe"
 )
 
-// runMerge records an editorial merge decision (tasks/001) by adding an
+// runMerge records an editorial merge decision by adding an
 // lcat:mergedInto statement to the surviving Work's grain, so the decision is
 // durable and preserved across re-ingest. The merge takes effect on the next
 // ingest, which resolves the retired Work's Instances onto the survivor and drops

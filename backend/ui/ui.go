@@ -33,13 +33,13 @@ func IsPlaceholder() bool {
 }
 
 // brandPath is the stable route a deployment's LCATD_BRAND_CSS stylesheet
-// is served at (tasks/135).
+// is served at.
 const brandPath = "brand.css"
 
 // Handler serves the embedded SPA with history-API fallback: unknown
 // non-asset paths get index.html so client-side routes deep-link.
 //
-// A non-empty brandCSS (the LCATD_BRAND_CSS file, read at boot -- tasks/135)
+// A non-empty brandCSS (the LCATD_BRAND_CSS file, read at boot)
 // is served at /brand.css and linked from index.html at the end of <head>,
 // after the built app.css, so its rules win the cascade: a deployment
 // re-brands the app.css tokens (or anything else) by authoring plain CSS,

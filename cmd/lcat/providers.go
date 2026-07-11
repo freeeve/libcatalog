@@ -13,8 +13,8 @@ import (
 // providerRegistry builds the registry of first-party ingest providers. Registration
 // is explicit here (not init()) so the built-in set is auditable in one place; a
 // deployment composes its own registry the same way -- its provider's package plus
-// one Register call, no libcat fork (ARCHITECTURE §9a, tasks/006). The generic
-// mapped providers (marc, nquads, csv) are the config-driven on-ramp (tasks/172):
+// one Register call, no libcat fork (ARCHITECTURE §9a). The generic
+// mapped providers (marc, nquads, csv) are the config-driven on-ramp:
 // bespoke Go providers stay the exception, not the price of admission.
 func providerRegistry() *ingest.Registry {
 	reg := ingest.NewRegistry()

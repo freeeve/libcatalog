@@ -1,11 +1,11 @@
 // Package workindex maintains an in-memory identity index over the work-grain
 // tree: provider keys, clustering keys, barcodes, and work summaries per
 // grain. It exists so interactive request paths cost O(1) blob reads instead
-// of re-walking the corpus (tasks/106). Freshness is two-layered: reads
+// of re-walking the corpus. Freshness is two-layered: reads
 // refresh by ETag diff on a short TTL (one List per window; only changed
 // grains are re-fetched and re-scanned), and the API's own write paths push
 // their writes in synchronously via Apply, so a session always reads its own
-// writes. Writers outside the process (or outside httpapi, until tasks/107
+// writes. Writers outside the process (or outside httpapi,
 // and 109 route them here) become visible within one TTL.
 package workindex
 
@@ -46,14 +46,14 @@ type grainEntry struct {
 	barcodes []string
 	items    []itemBarcode
 	// hidden is true when the grain's Work is suppressed or tombstoned; its
-	// barcodes are then not "live" for uniqueness (tasks/347).
+	// barcodes are then not "live" for uniqueness.
 	hidden    bool
 	summaries []ingest.WorkSummary
 }
 
 // itemBarcode is one item's barcode and the instance it hangs off, so barcode
 // uniqueness can tell a re-save of an instance's own items from a collision with
-// a different instance (tasks/347).
+// a different instance.
 type itemBarcode struct {
 	barcode    string
 	instanceID string
@@ -68,7 +68,7 @@ type Index struct {
 	ttl          time.Duration
 	snapshotPath string
 
-	// Change feed (tasks/156): a best-effort accelerator for cross-container
+	// Change feed: a best-effort accelerator for cross-container
 	// read-your-writes. The List-diff refresh above stays the correctness
 	// backstop, so any feed error is logged and ignored, never fatal.
 	feedPath      string
@@ -98,17 +98,17 @@ type Index struct {
 	barcodes   map[string]bool
 	// barcodeHolders maps a barcode to every item holding it, one entry per item
 	// occurrence, each tagged with its work, instance, and whether the work is
-	// live (not suppressed/tombstoned). The duplicate report (tasks/270) and the
-	// write-time uniqueness constraint (tasks/347) both derive from it.
+	// live (not suppressed/tombstoned). The duplicate report and the
+	// write-time uniqueness constraint both derive from it.
 	barcodeHolders map[string][]BarcodeHolder
 	summaries      []ingest.WorkSummary
 	paths          map[string]string
 	// generation counts derived-view rebuilds. A consumer that caches something
-	// expensive keyed on the corpus (the similarity index, tasks/284) reads it
+	// expensive keyed on the corpus (the similarity index) reads it
 	// together with the summaries and rebuilds only when it moves.
 	generation uint64
 
-	// Snapshot prime drift (tasks/162): after a snapshot load, the first
+	// Snapshot prime drift: after a snapshot load, the first
 	// reconcile counts how many primed entries the ETag diff re-fetched
 	// anyway. refetched near primed means the snapshot was built against a
 	// store with a different ETag scheme, so priming bought nothing.
@@ -145,7 +145,7 @@ func (ix *Index) Refresh(ctx context.Context) error {
 
 // RefreshNow reconciles against a fresh listing regardless of the TTL -- for
 // callers about to make corpus-accuracy-sensitive decisions (a copycat
-// commit's re-match, tasks/107). Still an ETag diff: only changed grains are
+// commit's re-match). Still an ETag diff: only changed grains are
 // re-read.
 func (ix *Index) RefreshNow(ctx context.Context) error {
 	ix.mu.Lock()
@@ -201,7 +201,7 @@ func (ix *Index) Summaries(ctx context.Context) ([]ingest.WorkSummary, error) {
 
 // SummariesWithPaths returns every work's summary plus each work's grain
 // path -- the ingest.SummarySource contract the worker paths consume
-// (tasks/109). Both return values are shared: read-only.
+// . Both return values are shared: read-only.
 func (ix *Index) SummariesWithPaths(ctx context.Context) ([]ingest.WorkSummary, map[string]string, error) {
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
@@ -214,7 +214,7 @@ func (ix *Index) SummariesWithPaths(ctx context.Context) ([]ingest.WorkSummary, 
 // SummariesWithGeneration returns every work's summary and the generation of the
 // derived view they came from. The pair is read under one lock: a caller that read
 // the summaries and the generation separately could cache a stale index under a
-// fresh generation and never rebuild it (tasks/284). The slice is shared: read-only.
+// fresh generation and never rebuild it. The slice is shared: read-only.
 func (ix *Index) SummariesWithGeneration(ctx context.Context) ([]ingest.WorkSummary, uint64, error) {
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
@@ -261,7 +261,7 @@ func (ix *Index) DuplicateGroups(ctx context.Context) (map[string][]string, erro
 			// A tombstoned or suppressed work is already retired -- it is not an
 			// actionable merge candidate, and listing it clutters the dedup queue
 			// with dead entries. Skip it, mirroring DuplicateBarcodes' live-only
-			// filter so the two maintenance reports agree (tasks/348). byCluster
+			// filter so the two maintenance reports agree. byCluster
 			// itself keeps every work for identity resolution (ClusterOwners); the
 			// liveness filter is a report-time concern.
 			if e := ix.grains[ref.Path]; e != nil && e.hidden {
@@ -284,7 +284,7 @@ func (ix *Index) DuplicateGroups(ctx context.Context) (map[string][]string, erro
 
 // SeedResolver seeds r with every committed work/instance identity and merge
 // marker in the corpus, in grain path order -- what copycat's match pass
-// needs from LoadPriorStore, without the per-request corpus read (tasks/107).
+// needs from LoadPriorStore, without the per-request corpus read.
 func (ix *Index) SeedResolver(ctx context.Context, r *identity.Resolver) error {
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
@@ -312,7 +312,7 @@ func (ix *Index) SeedResolver(ctx context.Context, r *identity.Resolver) error {
 // marker lives in the survivor's grain (bibframe.AddMergeMarker), not the loser's,
 // so a merge endpoint cannot see it by reading the loser's own grain; it consults
 // the indexed markers instead. Lets a second, contradictory merge of the same
-// loser be refused before it writes a second marker (tasks/339).
+// loser be refused before it writes a second marker.
 func (ix *Index) MergedInto(ctx context.Context, workID string) (string, bool, error) {
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
@@ -353,7 +353,7 @@ func (ix *Index) GrainPaths(ctx context.Context) (map[string]bool, error) {
 // copy and reserves nothing, so two allocators that overlap anywhere in that
 // span choose the same numbers. The grain write cannot arbitrate it either --
 // two bulk adds against two different works compare-and-swap on two different
-// objects, and both succeed (tasks/269).
+// objects, and both succeed.
 //
 // A barcode names one physical copy, so a duplicate is not a stale read to be
 // retried; it is the wrong label on a book. Serializing the whole span is the
@@ -390,7 +390,7 @@ func (ix *Index) Barcodes(ctx context.Context) (map[string]bool, error) {
 
 // BarcodeHolder is one item that holds a barcode: its work, its instance, and
 // whether that work is live (not suppressed/tombstoned). Uniqueness is judged
-// among live holders only -- a withdrawn copy's barcode may be reused (tasks/347).
+// among live holders only -- a withdrawn copy's barcode may be reused.
 type BarcodeHolder struct {
 	WorkID     string
 	InstanceID string
@@ -400,7 +400,7 @@ type BarcodeHolder struct {
 // DuplicateBarcode is one barcode held by more than one live item in the corpus,
 // with the works that hold it. A barcode names one physical copy, so a duplicate
 // is a data-quality defect a librarian needs to find before uniqueness can be
-// enforced on writes (tasks/270).
+// enforced on writes.
 type DuplicateBarcode struct {
 	Barcode string   `json:"barcode"`
 	Count   int      `json:"count"`   // number of live items holding it
@@ -410,7 +410,7 @@ type DuplicateBarcode struct {
 // DuplicateBarcodes reports every barcode held by more than one live item across
 // the corpus, sorted by barcode. Count is the number of live item occurrences (so
 // a barcode on two items of one work counts twice and is reported); WorkIDs is the
-// sorted, de-duplicated set of works holding it (tasks/270).
+// sorted, de-duplicated set of works holding it.
 func (ix *Index) DuplicateBarcodes(ctx context.Context) ([]DuplicateBarcode, error) {
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
@@ -444,9 +444,9 @@ func (ix *Index) DuplicateBarcodes(ctx context.Context) ([]DuplicateBarcode, err
 
 // BarcodeHeldByOther reports whether barcode is already held by a live item on a
 // different instance than (workID, instanceID) -- the write-time uniqueness check
-// (tasks/347). It excludes the given instance so re-saving that instance's own
+// . It excludes the given instance so re-saving that instance's own
 // items is not a self-collision. Answers from the in-memory holders map under the
-// index lock, with no whole-corpus copy (tasks/085 sizing).
+// index lock, with no whole-corpus copy ( sizing).
 func (ix *Index) BarcodeHeldByOther(ctx context.Context, barcode, workID, instanceID string) (bool, BarcodeHolder, error) {
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
@@ -604,7 +604,7 @@ func scanEntry(etag string, grain []byte) (*grainEntry, error) {
 		summaries: ingest.SummarizeDataset(ds),
 	}
 	// item IRI -> instance id, from the bf:hasItem edges, so each barcode can be
-	// attributed to its instance (tasks/347). Works for both IRI and blank-node
+	// attributed to its instance. Works for both IRI and blank-node
 	// item nodes, unlike parsing the item IRI shape.
 	itemInst := map[string]string{}
 	for _, q := range ds.Quads {

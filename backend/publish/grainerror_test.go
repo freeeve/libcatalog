@@ -51,7 +51,7 @@ func seeded(t *testing.T) blob.Store {
 	return st
 }
 
-// tasks/272: MutateGrain returned the store's read error, the store's write
+// MutateGrain returned the store's read error, the store's write
 // error and the caller's own mutate error the same way, so no caller could sort
 // them. The store's two now wrap ErrGrainStore.
 func TestMutateGrainWrapsAWriteFailure(t *testing.T) {
@@ -78,7 +78,7 @@ func TestMutateGrainWrapsAReadFailure(t *testing.T) {
 
 // A read-only store is a deployment policy, not a fault. Its sentinel must
 // survive the wrap or every caller reports a broken server -- the %v-versus-%w
-// defect tasks/260 found in the single-record route's own CAS loop.
+// defect found in the single-record route's own CAS loop.
 func TestMutateGrainKeepsTheStoreSentinelReachable(t *testing.T) {
 	_, err := publish.MutateGrain(t.Context(), blob.ReadOnly(seeded(t)), grainPath, keep)
 

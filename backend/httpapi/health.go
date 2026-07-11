@@ -6,7 +6,7 @@ import (
 )
 
 // Health separates the two questions an orchestrator asks a replica, which are
-// not the same question (tasks/054).
+// not the same question.
 //
 // Liveness ("is this process wedged?") must stay true for as long as the
 // process can answer at all. A liveness probe that fails restarts the

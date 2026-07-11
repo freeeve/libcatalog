@@ -14,12 +14,12 @@ import (
 	"github.com/freeeve/libcat/backend/suggest"
 )
 
-// registerCopycat mounts the copy-cataloging surface (tasks/050): external
+// registerCopycat mounts the copy-cataloging surface: external
 // target search (librarian), staged batches with match review and commit
 // (librarian), and target configuration (admin). queue, when set, receives an
 // audit entry per target-configuration change -- a target decides which server
 // records are copied from, so who repointed or removed one must be legible
-// (tasks/259).
+// .
 func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.TokenVerifier, queue *suggest.Service) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 	admin := auth.Require(verifier, auth.RoleAdmin)
@@ -47,7 +47,7 @@ func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.Tok
 
 	// The one-click preset row: the curated open sources, served from the same Go
 	// table the seeder derives from so the UI cannot keep a copy that drifts
-	// (tasks/256). Blurbs are added UI-side, keyed by name.
+	//. Blurbs are added UI-side, keyed by name.
 	mux.Handle("GET /v1/copycat/targets/suggested", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"targets": copycat.SuggestedTargets})
 	})))
@@ -92,11 +92,11 @@ func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.Tok
 		}
 		// warnings are the targets that answered, incompletely. Their hits are in
 		// results; a client that renders only failures would tell a cataloger the
-		// short set is the whole set (tasks/258).
+		// short set is the whole set.
 		writeJSON(w, http.StatusOK, map[string]any{"results": results, "failures": failures, "warnings": warnings})
 	})))
 
-	// Original cataloging (tasks/077): blank-record skeletons, and staging a
+	// Original cataloging: blank-record skeletons, and staging a
 	// record born in the editor rather than fetched from a target.
 	mux.Handle("GET /v1/copycat/templates", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		templates, err := copycat.LoadTemplates()
@@ -225,7 +225,7 @@ func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.Tok
 		writeJSON(w, http.StatusOK, batch)
 	})))
 
-	// Revert (tasks/068): roll a committed batch back grain by grain;
+	// Revert: roll a committed batch back grain by grain;
 	// post-commit editorial edits survive as reported skips.
 	mux.Handle("POST /v1/copycat/batches/{id}/revert", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
@@ -236,7 +236,7 @@ func registerCopycat(mux *http.ServeMux, svc *copycat.Service, verifier auth.Tok
 		writeJSON(w, http.StatusOK, result)
 	})))
 
-	// Staging profiles (tasks/068): saved import configurations.
+	// Staging profiles: saved import configurations.
 	mux.Handle("GET /v1/copycat/profiles", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		profiles, err := svc.Profiles(r.Context())
 		if writeCopycatError(w, err) {

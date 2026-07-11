@@ -65,13 +65,13 @@ func reasonOf(t *testing.T, orphans []orphanCover, path string) orphanCover {
 	return orphanCover{}
 }
 
-// tasks/245: a cover replaced with a different format before v0.95.0 left the
+// a cover replaced with a different format before v0.95.0 left the
 // old image stored and publicly served, referenced by nothing.
 func TestFindOrphanCoversDistinguishesItsReasons(t *testing.T) {
 	bs := blob.NewMem()
 	ctx := t.Context()
 
-	// The tasks/243 residue: the grain says .png, the .jpg is still stored.
+	// The residue: the grain says .png, the .jpg is still stored.
 	seedCoverWork(t, bs, "wstale0000001", "covers/wstale0000001.png", "png", "jpg")
 	// A work with a stored cover and no cover statement at all.
 	seedCoverWork(t, bs, "wnocover00001", "", "png")

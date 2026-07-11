@@ -1,4 +1,4 @@
-// tasks/258: a copycat target whose stream broke partway used to answer as a
+// a copycat target whose stream broke partway used to answer as a
 // clean success. Downstream, "The targets' records carry no headings this work
 // lacks" is a claim about records that were never read. A partial answer must
 // be visible, and it must not suppress the headings that did arrive.

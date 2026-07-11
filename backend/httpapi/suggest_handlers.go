@@ -40,7 +40,7 @@ func registerSuggestions(mux *http.ServeMux, svc *suggest.Service, abuse *sugges
 		writeJSON(w, http.StatusOK, map[string]string{"challenge": abuse.Challenge()})
 	})
 
-	// Anonymous report-a-problem (tasks/210): same challenge, honeypot,
+	// Anonymous report-a-problem: same challenge, honeypot,
 	// and rate budget as term suggestions; the note lands in the review
 	// queue as a CONCERN and never touches the graph.
 	mux.HandleFunc("POST /v1/concerns", func(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +116,7 @@ func registerSuggestions(mux *http.ServeMux, svc *suggest.Service, abuse *sugges
 			writeError(w, http.StatusConflict, "declined")
 		case errors.Is(err, suggest.ErrRateLimited):
 			writeError(w, http.StatusTooManyRequests, "rate limited")
-		// Patron-policy refusals (tasks/263) carry their own message so the
+		// Patron-policy refusals carry their own message so the
 		// client can explain why -- suggestions off, scheme not open, or the
 		// free-text rule -- rather than a bare "declined".
 		case errors.Is(err, suggest.ErrSuggestionsOff),

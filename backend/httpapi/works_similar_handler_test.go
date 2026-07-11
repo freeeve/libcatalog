@@ -1,4 +1,4 @@
-// tasks/284: GET /v1/works/{id}/similar -- the admin half of "more like this".
+// GET /v1/works/{id}/similar -- the admin half of "more like this".
 // The OPAC precomputes the same rail at build time; this scores it live off a
 // cached index so an editor who has just re-subjected a work sees the neighbours
 // move.
@@ -126,7 +126,7 @@ func TestWorksSimilarWorkWithNoNeighboursIsEmptyNotMissing(t *testing.T) {
 }
 
 // A tombstoned work is excluded from the scorer, so it has no neighbours and is
-// nobody's neighbour (tasks/280). It still exists, so it is 200-empty, not 404 --
+// nobody's neighbour. It still exists, so it is 200-empty, not 404 --
 // the two must stay distinguishable.
 func TestWorksSimilarTombstonedIsNeitherNeighbourNorMissing(t *testing.T) {
 	h, bs := newRecordsAPI(t)

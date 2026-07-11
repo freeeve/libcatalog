@@ -1,4 +1,4 @@
-// tasks/374: an absolute feed/CDN cover URL must render as-is. CoverPanel used
+// an absolute feed/CDN cover URL must render as-is. CoverPanel used
 // to prepend apiBase() unconditionally, turning the OverDrive CDN URL into a
 // same-origin path the server answers with the SPA HTML shell -- a broken image
 // for every work whose cover is a feed passthrough.

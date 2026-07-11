@@ -16,7 +16,7 @@ func TestStoreSelectionDefaults(t *testing.T) {
 	}
 }
 
-// TestEnrichOpenLibraryConfig locks the OpenLibrary enrichment knobs (tasks/066):
+// TestEnrichOpenLibraryConfig locks the OpenLibrary enrichment knobs:
 // a mode must be queue/direct, and enabling it requires the dump path.
 func TestEnrichOpenLibraryConfig(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {

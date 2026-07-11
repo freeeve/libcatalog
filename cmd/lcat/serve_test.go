@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestServeHandlerRange pins the reason `lcat serve` exists (tasks/181): the
+// TestServeHandlerRange pins the reason `lcat serve` exists: the
 // roaringrange reader fetches index artifacts with HTTP Range requests, so
 // the preview server must answer 206 partial content with exactly the
 // requested bytes -- python http.server ignores Range and silently breaks
@@ -44,7 +44,7 @@ func TestServeHandlerRange(t *testing.T) {
 	}
 	// no-cache, not no-store: the browser may keep the record store and revalidate
 	// it, so a rebuild is still visible on reload without re-downloading megabytes
-	// of artifacts on every navigation (tasks/278).
+	// of artifacts on every navigation.
 	if got := res.Header.Get("Cache-Control"); got != "no-cache" {
 		t.Fatalf("Cache-Control = %q, want no-cache", got)
 	}

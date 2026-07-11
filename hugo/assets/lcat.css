@@ -1,7 +1,7 @@
 /* libcat reference styles: accessible, desktop-credible, override-friendly. Every
    component is driven by the --lcat-* tokens below, so an adopter re-themes by re-setting
    those variables in their own stylesheet (loaded after this one) -- no need to shadow
-   assets/lcat.css or reimplement any chrome (tasks/025). Uses system fonts and CSS grid.
+   assets/lcat.css or reimplement any chrome. Uses system fonts and CSS grid.
 
    The default identity is "library-ish but modern": work titles in a zero-payload
    system serif (the bookish register), UI chrome in a clean sans, catalog-drawer
@@ -37,7 +37,7 @@
    below that both sets `display` and gets hidden from JS therefore needs this
    restated -- and twice we restated it per component and once we forgot, leaving
    the browse paginator on screen and clickable while browse owned the list
-   (tasks/303). State it once, for every element, present and future.
+. State it once, for every element, present and future.
 
    `!important` is the point, not a shortcut: the whole failure is that a later,
    more specific author rule wins. An adopter who wants a hidden element shown
@@ -165,14 +165,14 @@ summary:focus-visible {
   color: var(--lcat-accent-ink);
   text-decoration: none;
 }
-/* The default mark (logo.html, tasks/166) inherits currentColor from the anchor,
+/* The default mark (logo.html) inherits currentColor from the anchor,
    so it tracks the theme -- including a forced data-lcat-theme -- for free. */
 .lcat-logo {
   height: 1.5em;
   width: auto;
   flex: none;
 }
-/* Buttons (tasks/120): the module owns both the tokens and these pairings, so the
+/* Buttons: the module owns both the tokens and these pairings, so the
    AA contrast of each variant holds in light AND dark mode without per-adopter
    auditing. --solid and --ghost are made for accent-filled surfaces (a hero);
    --surface is the neutral chip that flips with the theme. Works on <a> and
@@ -206,7 +206,7 @@ summary:focus-visible {
   border-color: var(--lcat-on-accent);
 }
 
-/* Primary nav (tasks/118): configuration-driven from [[menu.main]]; sits in the
+/* Primary nav: configuration-driven from [[menu.main]]; sits in the
    header flex between brand and search, wrapping on narrow viewports. */
 .lcat-nav ul {
   display: flex;
@@ -250,9 +250,9 @@ summary:focus-visible {
   border-radius: 4px;
   cursor: pointer;
 }
-/* Optional Pagefind search UI (tasks/017): the Component UI lives in a modal
+/* Optional Pagefind search UI: the Component UI lives in a modal
    <dialog>, not the header -- in the header flex row its results drawer joined
-   header layout and its page-width filter grid misrendered (tasks/127). Pagefind
+   header layout and its page-width filter grid misrendered. Pagefind
    ships its own pagefind-ui.css; the custom properties align it with lcat.css.
    Only present when [params.search] engine = "pagefind". */
 .lcat-search-trigger {
@@ -347,13 +347,13 @@ summary:focus-visible {
   color: var(--lcat-muted);
   font-size: 0.85em;
 }
-/* A subject term page's vocabulary qualifier (tasks/141). */
+/* A subject term page's vocabulary qualifier. */
 .lcat-term-scheme {
   color: var(--lcat-muted);
   font-size: 0.7em;
   font-weight: 400;
 }
-/* Per-group type-to-filter (tasks/141). */
+/* Per-group type-to-filter. */
 .lcat-facet-filter {
   width: 100%;
   margin-top: 0.5rem;
@@ -387,7 +387,7 @@ summary:focus-visible {
 .lcat-facets li a:hover .lcat-facet-value {
   text-decoration: underline;
 }
-/* Browse-mode facet toggles (tasks/170): unlinked rows hydrate into checkbox
+/* Browse-mode facet toggles: unlinked rows hydrate into checkbox
    labels driving the client-side reader; mirror the anchor row's layout. */
 .lcat-facets li > label {
   flex: 1 1 auto;
@@ -403,7 +403,7 @@ summary:focus-visible {
 }
 /* Shrink/wrap rules keyed to the value span itself, not the row markup, so
    linked, hydrated, and panel rows all confine long labels to the sidebar's
-   fixed track instead of painting over the results column (tasks/173). */
+   fixed track instead of painting over the results column. */
 .lcat-facets .lcat-facet-value,
 .lcat-browse-facets .lcat-facet-value {
   flex: 1 1 auto;
@@ -414,7 +414,7 @@ summary:focus-visible {
 .lcat-browse-facets .lcat-count {
   flex: none;
 }
-/* Subject vocabulary trees (tasks/174): expand carets on concepts with
+/* Subject vocabulary trees: expand carets on concepts with
    narrower terms, children indented under their parent. The leaf spacer
    keeps siblings aligned. */
 .lcat-facet-caret {
@@ -435,7 +435,7 @@ summary:focus-visible {
 }
 .lcat-facets .lcat-facet-children,
 .lcat-browse-facets .lcat-facet-children {
-  /* Shrinkable (tasks/176): with flex-shrink 0 the 1.1rem indent margin
+  /* Shrinkable: with flex-shrink 0 the 1.1rem indent margin
      overflowed the row by one indent per nesting level, and a deep branch's
      min-content width compounded until the group slid under the results
      column -- the same treatment 173 gave flat rows. */
@@ -455,14 +455,14 @@ summary:focus-visible {
   min-width: 0;
   max-width: 100%;
 }
-/* Live counts (tasks/177): a category with no hits in the current result set
+/* Live counts: a category with no hits in the current result set
    greys out instead of hiding, so the rail stays stable while filtering. */
 .lcat-facets li.lcat-count-zero > label,
 .lcat-browse-facets li.lcat-count-zero > label {
   opacity: 0.55;
 }
-/* Fallback facet panel rows (tasks/158): same toggle-row layout as hydrated
-   sidebar rows (tasks/173). */
+/* Fallback facet panel rows: same toggle-row layout as hydrated
+   sidebar rows. */
 .lcat-browse-facets ul {
   list-style: none;
   margin: 0.5rem 0 0;
@@ -482,7 +482,7 @@ summary:focus-visible {
   padding: 0.15rem 0;
   cursor: pointer;
 }
-/* Shared-sidebar fallback (tasks/150): taxonomy landing links shown before the
+/* Shared-sidebar fallback: taxonomy landing links shown before the
    fragment loads, without JS, or when the fetch fails. */
 .lcat-facets-fallback {
   list-style: none;
@@ -497,7 +497,7 @@ summary:focus-visible {
 .lcat-facets-fallback li a:hover {
   text-decoration: underline;
 }
-/* Negative facet filters (tasks/144): the per-row exclude button, the "Not X"
+/* Negative facet filters: the per-row exclude button, the "Not X"
    chips above the results, and the class lcat-negatives.js hides cards with.
    The exclusion state borrows the availability "none" red. */
 .lcat-facet-not {
@@ -556,7 +556,7 @@ summary:focus-visible {
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--lcat-border);
 }
-/* The generic section index (tasks/290): /lists/, and any prose section an
+/* The generic section index: /lists/, and any prose section an
    adopter adds. Deliberately not .lcat-results -- these are pages, not works. */
 .lcat-pagelist {
   list-style: none;
@@ -583,7 +583,7 @@ summary:focus-visible {
   margin-bottom: 0;
 }
 /* Card is a flex row so an optional cover sits beside the text block; with covers off
-   the body is the lone flex child and fills the width (tasks/025). */
+   the body is the lone flex child and fills the width. */
 .lcat-card {
   display: flex;
   gap: 1rem;
@@ -611,7 +611,7 @@ summary:focus-visible {
 .lcat-role {
   font-style: italic;
 }
-/* Work summary (bf:summary, tasks/124): measure-capped prose so a long blurb reads
+/* Work summary (bf:summary): measure-capped prose so a long blurb reads
    comfortably next to full-width sections. */
 .lcat-summary {
   max-width: 65ch;
@@ -641,7 +641,7 @@ summary:focus-visible {
 .lcat-tags li a:hover {
   text-decoration: underline;
 }
-/* Opt-in "suggest a subject" link (tasks/355): a quiet action at the foot of the
+/* Opt-in "suggest a subject" link: a quiet action at the foot of the
    Subjects section, set apart from the term chips it follows. */
 .lcat-suggest {
   margin: 0.8rem 0 0;
@@ -653,7 +653,7 @@ summary:focus-visible {
 .lcat-suggest-link:hover {
   color: var(--lcat-accent);
 }
-/* Homosaurus subjects grouped under their broader term (tasks/354): the parent label
+/* Homosaurus subjects grouped under their broader term: the parent label
    is a small-caps subheading, echoing the facet-drawer register, over its narrower
    chips. */
 .lcat-subject-group {
@@ -691,14 +691,14 @@ summary:focus-visible {
   font-family: var(--lcat-mono);
   font-size: 0.85em;
 }
-/* Per-edition publication statement (tasks/351): publisher, place, date. Muted,
+/* Per-edition publication statement: publisher, place, date. Muted,
    set apart from the format and ISBN on the same line. */
 .lcat-imprint {
   color: var(--lcat-muted);
   font-size: 0.9em;
   margin-left: 0.5rem;
 }
-/* Live availability (tasks/004, chipped in tasks/352): a pill outlined and inked in
+/* Live availability (chipped): a pill outlined and inked in
    the resolved status colour. Empty (unknown or not-yet-fetched) stays invisible so
    it never shows a misleading state or an empty outline. */
 .lcat-availability {
@@ -724,7 +724,7 @@ summary:focus-visible {
 .lcat-availability[data-status="unavailable"] {
   color: var(--lcat-avail-none);
 }
-/* Borrow/hold CTA (tasks/352): the solid button, sized down to sit inline on the
+/* Borrow/hold CTA: the solid button, sized down to sit inline on the
    edition line. Hidden until lcat-availability.js reveals it, so [hidden] applies. */
 .lcat-availability-cta {
   margin-left: 0.5rem;
@@ -737,7 +737,7 @@ summary:focus-visible {
 .lcat-meta dt {
   font-weight: 600;
 }
-/* "More like this" (tasks/284, redesigned in tasks/310). A shelf, not a list: the
+/* "More like this" (redesigned). A shelf, not a list: the
    reader scans by cover and reads the caption only once something catches them.
 
    The columns are auto-fit rather than a fixed 8: the tile has a minimum legible
@@ -821,7 +821,7 @@ summary:focus-visible {
   line-height: 1.3;
 }
 /* One <span> per shared term, separated by CSS rather than by a comma in the text
-   (tasks/302). Subject headings and contributor names carry their own commas --
+. Subject headings and contributor names carry their own commas --
    "Lesbians' writings, Canadian" is one heading, "Elledge, Jim" is one person --
    so a comma-joined line reads as more terms than it names. Still true where the
    terms now live: a screen reader announces the separator. */
@@ -847,7 +847,7 @@ summary:focus-visible {
 .lcat-similar-more:hover {
   border-color: var(--lcat-fg, #111);
 }
-/* Optional cover art (tasks/025): rendered by lcat-cover.html only when the site sets
+/* Optional cover art: rendered by lcat-cover.html only when the site sets
    [params] covers = true. Set BOTH width and height in CSS per variant -- the <img>
    carries width/height HTML hints for CLS, and without an explicit CSS height that hint
    would win and distort the box, so object-fit would crop to a thin slice. */
@@ -878,7 +878,7 @@ summary:focus-visible {
   font-size: 1.1rem;
 }
 /* Hugo's _internal/pagination.html emits .pagination > .page-item > .page-link. The
-   client browse pager (tasks/301) mirrors the same shape under .lcat-browse-pager --
+   client browse pager mirrors the same shape under .lcat-browse-pager --
    a distinct class so the "static pager is hidden" checks key on ul.pagination alone.
    Size the links as >=44px button targets (WCAG 2.5.8) rather than bare text links. */
 .pagination,
@@ -946,7 +946,7 @@ summary:focus-visible {
   color: var(--lcat-muted);
 }
 
-/* Work-detail hero (tasks/311): the cover and the naming block (eyebrow, title,
+/* Work-detail hero: the cover and the naming block (eyebrow, title,
    subtitle, contributors) share a row on a wide screen and stack on a narrow one.
    lcat-hero--cover is present only when a cover actually renders, so the two-column
    track is never asked to leave an empty gutter on a coverless record. */
@@ -994,7 +994,7 @@ summary:focus-visible {
   margin: 0 0 0.5rem;
 }
 
-/* Titled sections on the work page (tasks/311): About, Details, Subjects, Editions
+/* Titled sections on the work page: About, Details, Subjects, Editions
    and the rest each get a small-caps head over a hairline rule, so the page reads as
    a stack of captioned blocks rather than a run of bare h2s. */
 .lcat-section {
@@ -1012,7 +1012,7 @@ summary:focus-visible {
   border-bottom: 1px solid var(--lcat-border);
 }
 
-/* Details grid (tasks/311): the Work-level facts as captioned cells that wrap to fill
+/* Details grid: the Work-level facts as captioned cells that wrap to fill
    the row, instead of one tall definition list. Each cell is a <dl> pairing a
    small-caps label with its value. */
 .lcat-details {

@@ -1,5 +1,5 @@
 {{- /*
-  The taxonomy key a controlled subject is indexed by (tasks/141). Input dict:
+  The taxonomy key a controlled subject is indexed by. Input dict:
   "label" (the localized display label) and "scheme" (the short vocabulary
   code from catalog.json, may be empty). A scheme prefixes the key -- slugged,
   "fast lesbians" -> fast-lesbians -- so the same label in two vocabularies
@@ -7,7 +7,7 @@
   colliding on one. Scheme-less subjects key by label alone, so a
   single-vocabulary corpus without scheme data (schema v7 sites re-projecting
   later) keeps its existing term URLs. Every subject indexing and link site
-  computes keys through here; byte-bounding rides on lcat-slug (tasks/134).
+  computes keys through here; byte-bounding rides on lcat-slug.
 */ -}}
 {{- $key := .label -}}
 {{- with .scheme -}}{{- $key = printf "%s %s" . $key -}}{{- end -}}

@@ -12,7 +12,7 @@ import (
 //
 // "Newest first" is the whole contract of the audit trail, and a bulk run
 // writes several entries inside one microsecond, so this surfaced the moment
-// per-record entries existed (tasks/239): a reader taking the first BATCH_EDIT
+// per-record entries existed: a reader taking the first BATCH_EDIT
 // row got an arbitrary one.
 func TestAuditIsNewestFirstWhenNanosEndInZero(t *testing.T) {
 	svc, _ := newService(t)

@@ -25,7 +25,7 @@
   // Clicking a neighbor unmounts the button that held focus, so the browser
   // drops focus to <body>. Move it deliberately to the identity heading of the
   // term just walked to (or the panel as a fallback) so focus never leaves the
-  // dialog and a screen reader announces the new term (tasks/250). The Modal's
+  // dialog and a screen reader announces the new term. The Modal's
   // window-level trap is the safety net; this is the polite version.
   async function refocus(): Promise<void> {
     await tick();
@@ -46,7 +46,7 @@
 <div class="hood" bind:this={hood} tabindex="-1">
   <!-- The identity block lives here, driven by this panel's own current, so
        the heading, URI, definition and variants always name the same term the
-       "Use this term" button stages (tasks/251). -->
+       "Use this term" button stages. -->
   <h3 class="ident" tabindex="-1">
     {#if current.path?.length}<span class="path">{current.path.map((p) => p.label).join(" › ") + " › "}</span>{/if}{bestLabel(current)}
   </h3>

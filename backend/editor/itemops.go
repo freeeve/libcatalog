@@ -6,7 +6,7 @@ import (
 	"github.com/freeeve/libcat/bibframe"
 )
 
-// Item ops (tasks/058 item 5) let the tasks/047 op machinery reach holdings.
+// Item ops let the op machinery reach holdings.
 // Until now the item panel wrote holdings with bibframe.SetItems, outside the
 // op list entirely: a batch relocation meant opening every record. An op with
 // resource "items" edits one field on every bf:Item in the grain, so drafts,

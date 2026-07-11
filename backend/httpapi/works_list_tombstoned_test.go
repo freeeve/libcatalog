@@ -1,4 +1,4 @@
-// tasks/280: the admin work search listed tombstoned records alongside live
+// the admin work search listed tombstoned records alongside live
 // ones, undifferentiated. On the demo playground that meant 49 retired e2e
 // sentinels and one real book. A tombstone says "this record is retired"; a
 // cataloger searching for a book is not looking for one.

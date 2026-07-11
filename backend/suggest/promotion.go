@@ -12,7 +12,7 @@ import (
 )
 
 // Promotion proposes elevating an uncontrolled tag to a controlled term
-// (tasks/044): on approval the publisher rewrites every carrying Work
+// : on approval the publisher rewrites every carrying Work
 // (subject added; editorial tag retracted) and records lcat:tagAlias so the
 // projector suppresses the tag where the term is present and pickers
 // auto-suggest the term. One open promotion per normalized tag.
@@ -26,7 +26,7 @@ type Promotion struct {
 	DecidedAt  time.Time     `json:"decidedAt,omitzero"`
 	// Works counts the grain rewrites the promotion performed, summed across
 	// attempts: a rewrite that fails partway records what it managed before the
-	// failure, and the retry that finishes it adds its own (tasks/300).
+	// failure, and the retry that finishes it adds its own.
 	//
 	// It is rewrites, not distinct works, and for a folk tag those are the same
 	// number. They diverge only for a tag a provider feed also asserts: PromoteTag
@@ -131,7 +131,7 @@ var ErrPromotionNotPending = errors.New("suggest: promotion is not pending")
 // decide is the one-way PENDING -> APPROVED|REJECTED transition, stamped in a
 // single CAS write together with the rewrite count.
 //
-// The count travels with the status deliberately (tasks/300). Approving in one
+// The count travels with the status deliberately. Approving in one
 // write and stamping the count in another left a window in which a promotion read
 // as APPROVED with `works: 0` -- indistinguishable from an approval whose rewrite
 // never ran, which is the state this whole task is about.
@@ -163,7 +163,7 @@ func (s *Service) decide(ctx context.Context, tag string, status Status, actor s
 // ApprovePromotion stamps a pending proposal APPROVED, adding works to the count
 // already recorded by any failed attempt. Call it only after the rewrite it
 // describes has succeeded: the durable record of an intention must not outlive a
-// failure to carry it out (tasks/300).
+// failure to carry it out.
 func (s *Service) ApprovePromotion(ctx context.Context, tag, actor string, works int) (Promotion, error) {
 	return s.decide(ctx, tag, StatusApproved, actor, works)
 }
@@ -178,7 +178,7 @@ func (s *Service) RejectPromotion(ctx context.Context, tag, actor string) (Promo
 // a promotion whose rewrite failed partway records how far it got. The promotion
 // stays PENDING and the Approve button stays live: PromoteTag skips works that no
 // longer carry the tag, so a retry resumes where the failure left off, and the
-// counts accumulate across attempts (tasks/300).
+// counts accumulate across attempts.
 func (s *Service) RecordPromotionWorks(ctx context.Context, tag string, works int) error {
 	if works == 0 {
 		return nil

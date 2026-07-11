@@ -13,7 +13,7 @@ import (
 // (marker alone), and one-click revert (delete the marker and the editorial
 // values; the feed resurfaces) -- all without reification, and surviving
 // re-ingest because the editorial graph is preserved verbatim
-// (ARCHITECTURE §5, tasks/042).
+// (ARCHITECTURE §5).
 const PredOverrides = LcatNS + "overrides"
 
 // OverridePatch builds the editorial patch claiming ownership of the given

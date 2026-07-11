@@ -1,4 +1,4 @@
-// Retired Work ids reach the published site (libcat tasks/313).
+// Retired Work ids reach the published site.
 //
 // `redirects.json` was emitted by every build, published nowhere, and read by
 // nobody: 2710 once-public permalinks answered a bare 404. The module now does two

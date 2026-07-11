@@ -17,7 +17,7 @@ const ProviderName = "hardcover"
 
 // Provider is the Hardcover ingest provider. It either fetches a user's Read shelf
 // live over the GraphQL API (with a bearer token) or replays a captured shelf JSON
-// from Source -- the latter powers offline rebuilds and the golden test (tasks/026).
+// from Source -- the latter powers offline rebuilds and the golden test.
 type Provider struct {
 	feed   string
 	source string // optional path to a captured user_books JSON array; empty = live fetch

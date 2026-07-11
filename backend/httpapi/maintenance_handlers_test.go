@@ -24,7 +24,7 @@ func newMaintenanceAPI(t *testing.T) (http.Handler, blob.Store) {
 	return New(Deps{Blob: bs, DB: store.NewMem(), Verifier: verifier}), bs
 }
 
-// TestWithdrawnQueue is the tasks/078 review surface: a reconciliation-
+// TestWithdrawnQueue is the review surface: a reconciliation-
 // flagged work appears in the queue; "suppress" hides it (leaving the flag
 // as the reason) and "keep" clears the flag with a sticky keep decision.
 func TestWithdrawnQueue(t *testing.T) {
@@ -151,7 +151,7 @@ func seedBarcodeWork(t *testing.T, bs blob.Store, workID, barcode string) {
 	}
 }
 
-// TestDuplicateBarcodesReport is the tasks/270 report route: a barcode held by
+// TestDuplicateBarcodesReport is the report route: a barcode held by
 // more than one item across the corpus is surfaced with the works holding it.
 func TestDuplicateBarcodesReport(t *testing.T) {
 	bs := blob.NewMem()
@@ -174,7 +174,7 @@ func TestDuplicateBarcodesReport(t *testing.T) {
 	}
 }
 
-// TestItemPutRejectsBarcodeHeldByAnother is the tasks/347 constraint: a PUT that
+// TestItemPutRejectsBarcodeHeldByAnother is the constraint: a PUT that
 // assigns a barcode already held by a live item on a different instance is
 // refused (409); re-saving the instance's own barcode is not a collision.
 func TestItemPutRejectsBarcodeHeldByAnother(t *testing.T) {
@@ -208,7 +208,7 @@ func TestItemPutRejectsBarcodeHeldByAnother(t *testing.T) {
 	}
 }
 
-// TestTombstoneRejectsSelfRedirect pins the tasks/342 guard: a tombstone whose
+// TestTombstoneRejectsSelfRedirect pins the guard: a tombstone whose
 // redirectTo is the work being tombstoned would republish a permalink that loops
 // (the successor IS the retired page), so it is refused -- symmetric to the
 // relations (target != work) and merge (from != to) self-guards. A tombstone to a
@@ -231,7 +231,7 @@ func TestTombstoneRejectsSelfRedirect(t *testing.T) {
 	}
 }
 
-// TestItemsRoundTrip is the tasks/051 acceptance: bf:Item fields round-trip
+// TestItemsRoundTrip is the acceptance: bf:Item fields round-trip
 // grain -> editor -> projection.
 func TestItemsRoundTrip(t *testing.T) {
 	h, bs := newMaintenanceAPI(t)
@@ -246,7 +246,7 @@ func TestItemsRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The items PUT is a client-token PUT (tasks/273): read the list, edit it,
+	// The items PUT is a client-token PUT: read the list, edit it,
 	// write it back under the token the read handed out.
 	_, etag := getItems(t, h)
 	rec := request(t, h, http.MethodPut, "/v1/works/"+workID+"/items", "lib-token", etag, map[string]any{
@@ -343,7 +343,7 @@ func TestDuplicatesWorklist(t *testing.T) {
 	}
 }
 
-// TestItemWritesRejectPhantomInstance covers tasks/211: both item write
+// TestItemWritesRejectPhantomInstance covers both item write
 // routes refuse an instanceId the work's grain does not describe -- a typo
 // or an id copied from another record used to graft holdings onto a
 // phantom IRI no reader enumerates, consuming real barcodes.

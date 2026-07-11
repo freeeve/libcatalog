@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Staff attachments for one work (tasks/229, 058 item 2): scans,
+  // Staff attachments for one work: scans,
   // correspondence, acquisition paperwork -- blob-stored working material,
   // never projected publicly. Writes are immediate (like items and covers),
   // not staged ops. Downloads go through fetch so the bearer rides along.
@@ -29,7 +29,7 @@
     if (!file) return;
     // The name is stored as it arrived, in any script. Only names no encoding
     // can rescue are refused, and they are refused rather than rewritten: a
-    // second upload must never land on the first one's bytes (tasks/236).
+    // second upload must never land on the first one's bytes.
     const why = attachmentNameError(file.name);
     if (why) {
       error = `${why} -- rename the file and retry`;

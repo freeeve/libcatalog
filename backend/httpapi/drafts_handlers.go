@@ -13,7 +13,7 @@ import (
 // draft is a per-user editor draft: an opaque client payload (op list /
 // form state) keyed to a work, autosave-friendly. One draft slot per (user,
 // work): the id IS the work id, so a work can never accumulate several drafts
-// for one user (tasks/297). Body is omitempty so the list projection can drop
+// for one user. Body is omitempty so the list projection can drop
 // it -- the point read carries the body.
 type draft struct {
 	ID        string          `json:"id"`
@@ -47,7 +47,7 @@ func registerDrafts(mux *http.ServeMux, db store.Store, librarian func(http.Hand
 		}
 		// The id is the work id: one slot per (user, work). Upsert rather than
 		// reject a second write so a second tab's autosave lands last-writer-
-		// wins on the shared slot instead of erroring (tasks/297).
+		// wins on the shared slot instead of erroring.
 		d.ID = d.WorkID
 		d.UpdatedAt = time.Now().UTC()
 		data, _ := json.Marshal(d)
@@ -72,7 +72,7 @@ func registerDrafts(mux *http.ServeMux, db store.Store, librarian func(http.Hand
 				// The list is a hot-path call on every editor open; drop the
 				// body so it never fans out a megabyte per draft. The point
 				// read carries the body for the one draft the editor wants
-				// (tasks/297).
+				//.
 				d.Body = nil
 				drafts = append(drafts, d)
 			}

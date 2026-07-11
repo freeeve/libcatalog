@@ -11,7 +11,7 @@
 # data/lcat/availabilityAttrs.toml -- site data wins over module data.
 #
 # Attribute names must match ^data-[a-z0-9-]+$; page.html drops anything else
-# rather than emit it (tasks/288).
+# rather than emit it.
 
 "overdrive-reserve" = "data-overdrive-reserve"
 "daia" = "data-daia-id"

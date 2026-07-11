@@ -1,4 +1,4 @@
-// tasks/228: a mounted FixedFieldGrid survives a tag change (in-place tag
+// a mounted FixedFieldGrid survives a tag change (in-place tag
 // edits, keyed lists shifting), so its slot table must follow the tag --
 // a stale table mislabels positions and writes runs at wrong byte offsets.
 import { afterEach, describe, expect, it } from "vitest";

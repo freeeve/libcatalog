@@ -11,7 +11,7 @@ import (
 // The note this replaces was json.Marshal(results)[:512]. Past a handful of
 // works the cut landed mid-token, so the note stopped being parseable, and a
 // slice at a byte boundary can split a UTF-8 rune. A RunNote truncates the
-// *list* and says how many it dropped (tasks/239).
+// *list* and says how many it dropped.
 func TestRunNoteStaysParseableAndSaysWhatItDropped(t *testing.T) {
 	var works []string
 	for i := 0; i < maxNotedWorks+37; i++ {

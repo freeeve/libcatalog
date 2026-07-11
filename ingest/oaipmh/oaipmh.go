@@ -1,5 +1,5 @@
 // Package oaipmh is the OAI-PMH bibliographic harvest provider (feature
-// ils-import, tasks/361): it pulls MARC records from an ILS's OAI-PMH endpoint and
+// ils-import): it pulls MARC records from an ILS's OAI-PMH endpoint and
 // yields them through the same crosswalk + clustering pipeline as file MARC ingest,
 // so onboarding an ILS that speaks OAI-PMH (Koha, Evergreen, and many others) is a
 // Register call plus config, no libcat fork.
@@ -9,7 +9,7 @@
 // (from/until) and set selectors. Each record's MARCXML metadata is decoded to a
 // codex.Record and crosswalked by the shared marc.FromCodexRecords path. Records
 // the endpoint marks deleted are skipped -- a full harvest's withdrawal
-// reconciliation (tasks/078) removes anything no longer present; explicit
+// reconciliation removes anything no longer present; explicit
 // incremental-deletion signalling is a follow-up.
 package oaipmh
 

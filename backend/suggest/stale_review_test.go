@@ -2,7 +2,7 @@ package suggest
 
 import "testing"
 
-// tasks/257, the reported race: two moderators work the same queue, A resolves
+// the reported race: two moderators work the same queue, A resolves
 // a suggestion, and B's decision -- staged before A applied -- arrives stale.
 // Review is right to refuse it. The bug was that it said nothing, so the caller
 // counted the request back to the human as work done.

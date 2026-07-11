@@ -18,9 +18,9 @@ func subjectHeading(rec *codex.Record, tag, label string) (codex.Field, bool) {
 }
 
 // TestDecodeGrainMARCControlledSubjects proves SKOS-shaped controlled
-// subjects reach MARC output (tasks/136): the emission writes bf:subject +
+// subjects reach MARC output: the emission writes bf:subject +
 // skos:prefLabel, and the crosswalk (native since libcodex v0.15.0, which
-// retired this repo's decode-local shim -- tasks/147) renders them as
+// retired this repo's decode-local shim) renders them as
 // `650 _7 $a Label $2 code $0 iri`, with the stored grain untouched.
 func TestDecodeGrainMARCControlledSubjects(t *testing.T) {
 	grain, _ := marcGrainFixture(t)

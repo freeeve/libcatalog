@@ -8,7 +8,7 @@ import (
 )
 
 // Coalesce batches a burst of events into one downstream Notify carrying the
-// union of changed paths (tasks/159): an editing session's stream of
+// union of changed paths: an editing session's stream of
 // publishes becomes one incremental rebuild instead of one per save. The
 // batch fires after Window of quiet, or MaxDelay after its first event,
 // whichever comes first. Notify itself never blocks on the downstream --

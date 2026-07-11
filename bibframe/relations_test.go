@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestWorkRelations covers tasks/221: relation statements add and remove
+// TestWorkRelations covers relation statements add and remove
 // editorially with the describes-guard, read back sorted, and never ride a
 // clone (a clone carrying its source's side would be a half-link).
 func TestWorkRelations(t *testing.T) {
@@ -42,7 +42,7 @@ func TestWorkRelations(t *testing.T) {
 		t.Fatalf("after remove = %+v", rel)
 	}
 
-	// tasks/232: the grain refuses to hold both directions between one pair,
+	// the grain refuses to hold both directions between one pair,
 	// whichever side is asserted second, and removal is unaffected.
 	if _, err := SetWorkRelation(grain, "w1", PredHasPart, "w0ccc000ccc00", true); err == nil {
 		t.Fatal("hasPart accepted over an existing partOf to the same work")

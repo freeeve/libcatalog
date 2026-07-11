@@ -44,7 +44,7 @@ func TestSubsetFromNT(t *testing.T) {
 	}
 }
 
-// TestSubsetFromNTHTTPS covers tasks/100: an https catalog URI must still count
+// TestSubsetFromNTHTTPS covers an https catalog URI must still count
 // and must be emitted under https, matching the exact-match index -- id.loc.gov
 // serves the concept keyed on the canonical http URI.
 func TestSubsetFromNTHTTPS(t *testing.T) {
@@ -83,7 +83,7 @@ func TestSubsetFromNTHTTPS(t *testing.T) {
 	}
 }
 
-// TestConceptURL covers the per-term fetch suffix (tasks/130): id.loc.gov's
+// TestConceptURL covers the per-term fetch suffix: id.loc.gov's
 // .skos.nt convention stays the default; Homosaurus-style plain .nt works via
 // --fetch-suffix; http URIs are fetched over https either way.
 func TestConceptURL(t *testing.T) {
@@ -95,7 +95,7 @@ func TestConceptURL(t *testing.T) {
 	}
 }
 
-// homosaurusDump is a Homosaurus-shaped whole-vocabulary dump (tasks/130): three
+// homosaurusDump is a Homosaurus-shaped whole-vocabulary dump: three
 // concepts with prefLabels and hierarchy, plus non-SKOS noise, plus a subject
 // outside the namespace that must never be kept.
 const homosaurusDump = `<https://homosaurus.org/v3/homoit0000027> <http://www.w3.org/2004/02/skos/core#prefLabel> "Aromantic"@en .

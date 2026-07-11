@@ -1,10 +1,10 @@
-// Facet dimensions over a WorkSummary (tasks/168, tasks/171, tasks/254).
+// Facet dimensions over a WorkSummary.
 //
 // These live next to WorkSummary rather than in the HTTP layer because two
 // callers must agree on them exactly: the works listing, which counts and
 // filters facets for the rail, and a batch/export selection, which resolves the
 // same filters into a set of Works. When they drifted, "Export these results…"
-// offered the entire catalog (tasks/254). One definition, two callers.
+// offered the entire catalog. One definition, two callers.
 package ingest
 
 import (
@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// Facet group names. Anything else is an extras key (tasks/171).
+// Facet group names. Anything else is an extras key.
 const (
 	FacetVisibility = "visibility"
 	FacetHoldings   = "holdings"
@@ -23,7 +23,7 @@ const (
 
 // Visibility buckets a summary into exactly one value: what the public
 // projection does with it. A withdrawn-but-kept Work is public by the curator's
-// decision (tasks/078).
+// decision.
 func Visibility(s WorkSummary) string {
 	switch {
 	case s.Tombstoned:
@@ -124,7 +124,7 @@ func MatchesGroup(s WorkSummary, group string, selected []string) bool {
 // MatchesFacets reports whether a summary passes every group's filter: AND
 // across groups, OR within one. This is the rule the facet rail draws and the
 // rule an export selection must resolve by, or the count beside the button and
-// the count in the file disagree (tasks/254).
+// the count in the file disagree.
 func MatchesFacets(s WorkSummary, filters map[string][]string) bool {
 	for group, selected := range filters {
 		if !MatchesGroup(s, group, selected) {

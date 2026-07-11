@@ -8,7 +8,7 @@ import (
 	"github.com/freeeve/libcat/backend/store"
 )
 
-// TestLastAdminGuard covers tasks/207: the deployment's only admin can be
+// TestLastAdminGuard covers the deployment's only admin can be
 // neither demoted nor deleted, a second admin unlocks both, and Bootstrap
 // re-grants admin to an existing demoted user instead of no-oping.
 func TestLastAdminGuard(t *testing.T) {
@@ -43,7 +43,7 @@ func TestLastAdminGuard(t *testing.T) {
 	}
 }
 
-// TestBootstrapRestoresDemotedAdmin covers tasks/207's recovery hatch: an
+// TestBootstrapRestoresDemotedAdmin covers 's recovery hatch: an
 // existing bootstrap user lacking admin gets it back, loudly signaled.
 func TestBootstrapRestoresDemotedAdmin(t *testing.T) {
 	svc, st := newService(t)

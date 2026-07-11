@@ -25,7 +25,7 @@ const (
 // Three terms, and only one is referenced by the Work:
 //
 //	sh-child   <- the Work's subject
-//	sh-parent  <- reached only through skos:broader (the tasks/178 case)
+//	sh-parent <- reached only through skos:broader (the case)
 //	sh-unused  <- referenced by nothing, like the other 450,000 in LCSH
 func authorityCorpus(t *testing.T) string {
 	t.Helper()
@@ -68,7 +68,7 @@ func has(qs []string, substr string) bool {
 	return false
 }
 
-// tasks/279. The whole point: a projection over the filtered dataset is the same
+// . The whole point: a projection over the filtered dataset is the same
 // projection. Everything below explains *why* it can be, but this is the promise.
 func TestFilteredLoadProjectsIdenticallyToTheWholeCorpus(t *testing.T) {
 	path := authorityCorpus(t)
@@ -123,7 +123,7 @@ func TestLoadDatasetDropsTheAuthorityPredicatesNothingReads(t *testing.T) {
 
 // An ancestor no Work names still has to carry its label: the browse artifact
 // unions subtree postings into it, and without a label it mints it label-less
-// (tasks/178). This is the closure the seed alone would miss.
+// . This is the closure the seed alone would miss.
 func TestLoadDatasetKeepsBroaderAncestorsNoWorkReferences(t *testing.T) {
 	ds, err := LoadDataset(authorityCorpus(t))
 	if err != nil {
@@ -172,14 +172,14 @@ func TestLoadDatasetKeepsNonAuthorityGraphsWhole(t *testing.T) {
 	}
 }
 
-// A truncated catalog.nq is an error, not a smaller catalog (libcodex tasks/115,
+// A truncated catalog.nq is an error, not a smaller catalog (libcodex
 // filed from here; strict since libcodex v0.26.0).
 //
 // This inverts the test that used to live here, which pinned the old silent-skip
 // so it would fail loudly the day libcodex changed. It did. What remains is the
 // property that mattered all along: the build refuses a short read of its own
 // input rather than projecting a catalog missing whatever came after the bad byte
-// and exiting 0 -- the failure class tasks/246 refuses everywhere else.
+// and exiting 0 -- the failure class refuses everywhere else.
 func TestATruncatedCatalogIsRefused(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "catalog.nq")
 	good := `<#waaWork> <` + rdfNS_ + `type> <` + bfIRI + `Work> <feed:marc> .` + "\n"
@@ -229,7 +229,7 @@ func TestLoadDatasetReportsAMissingFile(t *testing.T) {
 	}
 }
 
-// BenchmarkLoadDataset and BenchmarkProjectDataset guard the two costs tasks/279
+// BenchmarkLoadDataset and BenchmarkProjectDataset guard the two costs
 // measured: the load's memory (report allocs) and the per-feed projection, which
 // used to reparse the whole corpus. Run against a real corpus with
 // LCAT_BENCH_NQ=/path/to/catalog.nq; skipped otherwise, since a synthetic corpus

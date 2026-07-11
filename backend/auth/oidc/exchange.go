@@ -42,7 +42,7 @@ func ExchangeHandler(cfg ExchangeConfig) http.Handler {
 	}
 	// Discovery resolves once per handler, like the JWKS cache: without this
 	// every exchange pays an extra upstream round trip when TokenEndpoint is
-	// left to discovery, which is how appdeps builds it (tasks/115). A failed
+	// left to discovery, which is how appdeps builds it. A failed
 	// discovery is not cached, so a transiently-down issuer retries.
 	var epMu sync.Mutex
 	cachedEndpoint := ""

@@ -1,5 +1,5 @@
 /** Guards debounced/refreshing fetches against out-of-order responses
- *  (tasks/112): each call takes a ticket, and a response is applied only if
+ *: each call takes a ticket, and a response is applied only if
  *  its ticket is still the latest -- a slower earlier request can never
  *  overwrite a newer one's results.
  *

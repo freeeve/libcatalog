@@ -1,6 +1,6 @@
 <script lang="ts">
-  // The field clipboard as a visible pane (tasks/076): cut/copied fields
-  // (tasks/075 ops, either surface) listed newest-first as their text lines;
+  // The field clipboard as a visible pane: cut/copied fields
+  // ( ops, either surface) listed newest-first as their text lines;
   // each pastes back into the hosting editor through onpaste, so the same
   // pane serves grid and text mode.
   import { clipAt, clipClear, clipRemove, fieldClipboard } from "../lib/fieldClipboard.svelte";

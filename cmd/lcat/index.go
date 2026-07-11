@@ -46,7 +46,7 @@ func indexCatalog(catalogJSON, out string) error {
 		return err
 	}
 	// The browse artifacts (facet sidecar + record store + doc map) the client
-	// WASM reader opens for search/facets/details (tasks/158).
+	// WASM reader opens for search/facets/details.
 	if err := search.BuildBrowse(&cat, sink); err != nil {
 		return err
 	}

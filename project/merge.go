@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Merge unions per-feed projections by work id (tasks/172). Project views one
+// Merge unions per-feed projections by work id. Project views one
 // provenance graph at a time (feed:<provider> + editorial:), so a multi-feed
 // corpus projects each feed separately and merges here: earlier catalogs win a
 // shared id -- list the primary feed first, its records are richer than a
@@ -16,11 +16,11 @@ import (
 // serialize` regenerates it, since each ingest run rewrites catalog.nq with
 // only its own run's works.
 //
-// The vocabulary sideband (Catalog.Terms, tasks/178) merges by term id,
+// The vocabulary sideband (Catalog.Terms) merges by term id,
 // field-wise: labels fill per language (earlier catalogs win a language, like
 // works win an id), broader edges union, the first non-empty scheme sticks --
 // per-feed projections describe the same authority term from different
-// coverage, so the union is at least as rich as any one input (tasks/180).
+// coverage, so the union is at least as rich as any one input.
 func Merge(cats []*Catalog) *Catalog {
 	merged := &Catalog{Version: SchemaVersion}
 	seen := map[string]bool{}
@@ -70,7 +70,7 @@ func Merge(cats []*Catalog) *Catalog {
 
 // SanitizeSources rewrites every Work's extra "sources" attribution list to
 // the public allowlist, dropping the key when nothing public remains, and
-// returns how many attributions were stripped (tasks/172). Provenance under
+// returns how many attributions were stripped. Provenance under
 // lcat:extra/sources may name sources whose attribution must not leak on a
 // public surface; the same allowlist governs the nq download (export
 // package). Values are comma-joined by convention and compared trimmed; kept
@@ -105,7 +105,7 @@ func SanitizeSources(cat *Catalog, public map[string]bool) int {
 }
 
 // SanitizeExtras drops every Work extra whose key is not on the public
-// allowlist, and returns how many values it removed (tasks/277).
+// allowlist, and returns how many values it removed.
 //
 // `lcat:extra/*` is the adopter passthrough, so it carries whatever the ingest
 // mapping put there -- including institution-private holdings ("this library

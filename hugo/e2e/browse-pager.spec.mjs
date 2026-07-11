@@ -1,4 +1,4 @@
-// Real-browser E2E for the browse result pager (tasks/301).
+// Real-browser E2E for the browse result pager.
 //
 // Before this, browse rendered the first PAGE (60) of a match set and the reader
 // had no way to reach result 61: a facet on a public catalog could hold 21,792

@@ -10,7 +10,7 @@ import (
 	"github.com/freeeve/libcat/storage/blob"
 )
 
-// RunStore is Run over a blob.Store (tasks/050): the same prior-load /
+// RunStore is Run over a blob.Store: the same prior-load /
 // resolve / cluster / build pipeline, with grains written under ETag
 // optimistic concurrency so a concurrent editorial save is never clobbered
 // -- the copy-cataloging commit path. Unchanged grains are not rewritten, so

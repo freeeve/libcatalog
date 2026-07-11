@@ -40,7 +40,7 @@ func TestItemTemplatesCRUDAndSharing(t *testing.T) {
 		t.Fatalf("get shared = %+v, %v", got, err)
 	}
 	// ...a non-owner, non-admin librarian may not update or delete it -- the
-	// owner-gating rule, kept for personal records (tasks/292).
+	// owner-gating rule, kept for personal records.
 	if _, err := svc.UpdateItemTemplate(ctx, shared.ID, shared, "eve@example.org", false); !errors.Is(err, batch.ErrForbidden) {
 		t.Fatalf("non-owner update err = %v", err)
 	}

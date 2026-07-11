@@ -40,7 +40,7 @@ func TestRunAuditJSON(t *testing.T) {
 			{ID: "w2", Title: "B", Subjects: []project.Subject{subj("Immigrants"), subj("Women authors")}},
 			{ID: "w3", Title: "C", Subjects: []project.Subject{subj("Cooking")}},
 			{ID: "w4", Title: "D"}, // no signal: dilutes coverage
-			{ID: "w5", Title: "E", Tags: []string{"LGBTQIA+ (Fiction)"}}, // tag-only work counts (tasks/372)
+			{ID: "w5", Title: "E", Tags: []string{"LGBTQIA+ (Fiction)"}}, // tag-only work counts
 		},
 	}
 	catPath := writeCatalog(t, cat)
@@ -102,7 +102,7 @@ func TestRunAuditRequiresCatalog(t *testing.T) {
 	}
 }
 
-// TestRunAuditFilter is the tasks/373 scoping ask: --filter key=value audits only
+// TestRunAuditFilter is the scoping ask: --filter key=value audits only
 // the matching sub-collection (comma-joined extras match per element), --source is
 // sugar for the sources extra, and the JSON report names its scope.
 func TestRunAuditFilter(t *testing.T) {
@@ -159,7 +159,7 @@ func TestRunAuditFilter(t *testing.T) {
 	}
 }
 
-// TestRunAuditGraph is the tasks/372 graph mode: --graph audits a catalog.nq
+// TestRunAuditGraph is the graph mode: --graph audits a catalog.nq
 // dataset directly (the full corpus), resolving each subject's URI, its
 // skos:prefLabel/rdfs:label, and its scheme from the URI namespace -- so a
 // Homosaurus subject with a keyword-less label still counts via the scheme

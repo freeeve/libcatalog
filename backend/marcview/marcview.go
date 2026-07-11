@@ -1,10 +1,10 @@
-// Package marcview is the MARC half of the dual-view editor (tasks/049): it
+// Package marcview is the MARC half of the dual-view editor: it
 // materializes a grain's records as an editable field array (via the
 // framework-aware decode, so overrides shadow and verbatim sidecar fields
 // appear), and writes an edited array back as a *diff* -- the edited record
 // re-crosswalks to BIBFRAME, the result is compared to the original decode
 // per (subject, predicate) group, and only the changed groups land as
-// editorial quads with the tasks/042 override semantics. Untouched fields
+// editorial quads with the override semantics. Untouched fields
 // are byte-for-byte no-ops; crosswalk-lossy tags round-trip through the
 // lcat:marcVerbatim sidecar instead of the graph.
 package marcview
@@ -58,7 +58,7 @@ var ErrValidation = errors.New("marcview: invalid record")
 
 // RecordToDoc materializes one parsed MARC record as a field array -- the
 // copy-cataloging search results and staged imports speak this shape too
-// (tasks/050).
+// .
 func RecordToDoc(rec *codex.Record) RecordDoc {
 	doc := RecordDoc{Leader: rec.Leader().String()}
 	for _, f := range rec.Fields() {
@@ -90,7 +90,7 @@ func View(grain []byte) ([]RecordDoc, error) {
 }
 
 // ViewSource is View with the deployment's MARC organization code: each
-// record's 040 derives from graph facts at decode time (tasks/192). Empty
+// record's 040 derives from graph facts at decode time. Empty
 // org decodes unchanged.
 func ViewSource(grain []byte, org string) ([]RecordDoc, error) {
 	recs, err := bibframe.DecodeGrainMARCSource(grain, org)
@@ -137,7 +137,7 @@ func fromCodexField(f codex.Field) Field {
 // leader accessors are read-defensive (a short leader reads as 0 at every
 // position), so an unvalidated truncated leader would be accepted and silently
 // reclassify the record's type/level/encoding to their defaults instead of
-// being refused (tasks/344). An empty leader is left unset (codex defaults it).
+// being refused. An empty leader is left unset (codex defaults it).
 func applyLeader(rec *codex.Record, leader string) error {
 	if leader == "" {
 		return nil

@@ -59,7 +59,7 @@ func locations(t *testing.T, grain []byte) []string {
 	return out
 }
 
-// TestSetItemsRefusesDuplicateBarcodesInOneList pins the tasks/343 guard: two
+// TestSetItemsRefusesDuplicateBarcodesInOneList pins the guard: two
 // items in one wholesale PUT may not share a barcode (a barcode names one
 // physical copy), the invariant the auto-assign path already holds. Empty
 // barcodes are exempt -- several items may legitimately carry none.

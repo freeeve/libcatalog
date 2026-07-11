@@ -1,13 +1,13 @@
 {{- /*
   Facet sidebar body from the projector's facets.json (precomputed value+count
-  per dimension; tasks/009). Controlled subjects (tasks/012) carry {id, labels,
+  per dimension). Controlled subjects carry {id, labels,
   count} and display their localized label; the other dimensions are {value,
   count}. Each value links to its Hugo taxonomy term page. Falls back silently
   when facets.json is absent.
 
   Called only by facets.html, which either inlines this output (default) or
-  publishes it once per language as a fetched fragment asset (tasks/150).
-  Rendered once per language either way (tasks/133: at 50k works the sidebar
+  publishes it once per language as a fetched fragment asset.
+  Rendered once per language either way (at 50k works the sidebar
   otherwise re-renders on every list/term page -- 4 of the 14 build minutes).
   Keep it page-invariant: nothing here may read page state, only facets.json,
   site, and i18n. The script tags at the bottom belong in the body, not the
@@ -15,10 +15,10 @@
   fragment, so a facet feature added here never touches per-page bytes.
 
   Rows without a term page (the minimal profile disables taxonomy/term kinds,
-  tasks/157) carry data-lcat-field/-cat -- the reader's [field, category]
+) carry data-lcat-field/-cat -- the reader's [field, category]
   filter pair, category being the raw indexed value (search.BuildBrowse keys
   subjects by id, everything else by raw value). lcat-browse.js hydrates such
-  rows into toggles driving the client-side reader (tasks/170); without the
+  rows into toggles driving the client-side reader; without the
   reader they stay plain text, exactly as before.
 */ -}}
 {{- $facets := "" -}}
@@ -28,7 +28,7 @@
 {{- with $facets -}}
 <nav class="lcat-facets" aria-label="{{ i18n "filterWorks" }}">
   {{- /* Controlled subjects, one collapsible group per vocabulary scheme
-         (tasks/141). [[params.subjectSchemes]] ({scheme, name}) sets order and
+. [[params.subjectSchemes]] ({scheme, name}) sets order and
          display names; schemes it omits follow in facet order under their code.
          A single-scheme (or scheme-less, pre-v8) corpus renders exactly the
          one "Subjects" group it always had. */ -}}
@@ -86,14 +86,14 @@
       <ul>
         {{- range first $facetLimit . }}
         {{- /* tags and classifications are taxonomy-indexed by their lcat-slug
-               (tasks/023, tasks/276) and contributors by their lcat-cap-bounded name
-               (tasks/134); the other dimensions index the raw value -- pass whichever
+ and contributors by their lcat-cap-bounded name
+; the other dimensions index the raw value -- pass whichever
                key was indexed. This rail reads facets.json, which carries the raw
                code, so the slug is recomputed here rather than read: get it wrong and
                lcat-term-url asks Hugo for a page that does not exist and every
                classification row silently renders unlinked. */}}
         {{- $key := .value }}{{ if or (eq $dim.key "tags") (eq $dim.key "classifications") }}{{ $key = partial "lcat-slug.html" .value }}{{ else if eq $dim.key "contributors" }}{{ $key = partial "lcat-cap.html" .value }}{{ end }}
-        {{- /* Display labels (tasks/142): language codes map to names, a
+        {{- /* Display labels: language codes map to names, a
                classification shows its label when the projection carries one;
                both keep keying/linking on the raw value. */}}
         {{- $display := .value }}{{ if eq $dim.key "languages" }}{{ $display = partial "lcat-lang-name.html" .value }}{{ else if eq $dim.key "classifications" }}{{ $display = or .label .value }}{{ end }}
@@ -104,7 +104,7 @@
     </details>
     {{- end -}}
   {{- end -}}
-  {{- /* Deployment-defined dimensions (tasks/143): one group per
+  {{- /* Deployment-defined dimensions: one group per
          [params.extraFacets.<name>], counts straight from Hugo's taxonomy
          machinery (the site declares the matching [taxonomies] entry, so a
          config typo means no group, not a broken one). Heading: i18n key
@@ -114,7 +114,7 @@
     {{- with index site.Taxonomies $name -}}
     {{- /* Resolve term pages up front: under the minimal profile none exist
            (and the reader has no extra-facet field to hydrate against,
-           tasks/170), so the whole group is skipped instead of rendering a
+), so the whole group is skipped instead of rendering a
            heading over an empty list. */ -}}
     {{- $total := len . -}}
     {{- $rows := slice -}}
@@ -141,10 +141,10 @@
     {{- end -}}
   {{- end -}}
 </nav>
-{{- /* Type-to-filter over the rendered facet entries (tasks/141) -- pure
-       client-side, so this partial stays page-invariant (tasks/133). */ -}}
+{{- /* Type-to-filter over the rendered facet entries -- pure
+       client-side, so this partial stays page-invariant. */ -}}
 {{ with resources.Get "lcat-facets.js" }}{{ with . | fingerprint }}<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" defer></script>{{ end }}{{ end }}
-{{- /* Negative facet filters (tasks/144, opt-in): the config carries the
+{{- /* Negative facet filters (opt-in): the config carries the
        localized chip strings with "%s" where the script substitutes the
        term's display label. Also pure client-side and page-invariant. */ -}}
 {{- if site.Params.facets.negatives }}

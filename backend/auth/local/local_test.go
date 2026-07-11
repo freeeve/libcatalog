@@ -202,7 +202,7 @@ func TestBootstrap(t *testing.T) {
 	}
 }
 
-// TestDummyHashBurnsRealWork guards the anti-enumeration path (tasks/105): the
+// TestDummyHashBurnsRealWork guards the anti-enumeration path: the
 // unknown-user branch verifies against dummyPasswordHash, which must be a
 // well-formed PHC string -- a parse error would return before the argon2 work
 // and silently reintroduce the timing oracle.
@@ -217,7 +217,7 @@ func TestDummyHashBurnsRealWork(t *testing.T) {
 }
 
 // TestRateWindowExpires asserts the login pre-read stamps a TTL on the
-// counter window (tasks/105): without one, every clean login leaves a
+// counter window: without one, every clean login leaves a
 // permanent counter item behind.
 func TestRateWindowExpires(t *testing.T) {
 	svc, db := newService(t)
@@ -241,7 +241,7 @@ func TestRateWindowExpires(t *testing.T) {
 }
 
 // TestCreateUserRepairsIndex covers the non-atomic profile+index create
-// (tasks/105): when the index item is missing (a create that died between the
+// : when the index item is missing (a create that died between the
 // two writes), retrying the create must repair it even though the profile
 // already exists.
 func TestCreateUserRepairsIndex(t *testing.T) {

@@ -14,7 +14,7 @@ const feedPrefix = "feed:"
 // sorted. It answers "what could this catalog be projected as?", which is the
 // question a caller needs when a requested provider projects nothing: the
 // difference between a catalog that is empty and a catalog whose feeds simply
-// were not asked for (tasks/246).
+// were not asked for.
 func Feeds(catalogNQ []byte) ([]string, error) {
 	ds, err := rdf.ParseNQuadsShared(catalogNQ)
 	if err != nil {
@@ -23,7 +23,7 @@ func Feeds(catalogNQ []byte) ([]string, error) {
 	return FeedsDataset(ds), nil
 }
 
-// FeedsDataset is Feeds over an already-parsed dataset (tasks/279).
+// FeedsDataset is Feeds over an already-parsed dataset.
 func FeedsDataset(ds *rdf.Dataset) []string {
 	seen := map[string]bool{}
 	for _, q := range ds.Quads {

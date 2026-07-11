@@ -10,7 +10,7 @@ import (
 // benchGrains loads up to 2,000 real grains: point LCAT_BENCH_GRAINS at a
 // data/works tree (e.g. an ingest output). Skips when unset -- per-grain
 // numbers on synthetic fixtures flatter the paths that matter at corpus
-// scale (tasks/121).
+// scale.
 func benchGrains(b *testing.B) [][]byte {
 	b.Helper()
 	root := os.Getenv("LCAT_BENCH_GRAINS")
@@ -39,7 +39,7 @@ func benchGrains(b *testing.B) [][]byte {
 }
 
 // BenchmarkSummarizeGrain covers the workindex-refresh and batch-scan hot
-// path: one call per changed grain at boot and per TTL refresh (tasks/106).
+// path: one call per changed grain at boot and per TTL refresh.
 func BenchmarkSummarizeGrain(b *testing.B) {
 	grains := benchGrains(b)
 	b.ReportAllocs()

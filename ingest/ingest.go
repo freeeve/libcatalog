@@ -23,7 +23,7 @@ type Result struct {
 	Retired         int
 	Conflicts       []string
 	// WorkIDs are the Works this run's records resolved to -- the presence
-	// set the feed reconciliation pass (tasks/078) diffs the corpus against.
+	// set the feed reconciliation pass diffs the corpus against.
 	WorkIDs []string
 }
 
@@ -78,11 +78,11 @@ func Run(prov Provider, out string) (Result, error) {
 // into WorkGroups (first record wins shared metadata and per-record
 // capabilities; duplicate Instances emit once), and carries each Work's
 // preserved editorial statements. Shared by the directory Run and the
-// store-backed RunStore (tasks/050).
+// store-backed RunStore.
 func cluster(recs []Record, prior bibframe.Prior, mergeSeeds []MergeSeed) ([]bibframe.WorkGroup, Result, *identity.Resolver) {
 	r := identity.NewResolver()
 	identity.SeedResolver(r, prior.Grains)
-	// Seed editorial merges and split pins (tasks/001): a merge resolves a retired
+	// Seed editorial merges and split pins: a merge resolves a retired
 	// Work's Instances onto the survivor; a pin forces an over-merged Instance onto
 	// its split-off Work. Neither can be undone by the computed key.
 	for _, m := range prior.Merges {
@@ -91,7 +91,7 @@ func cluster(recs []Record, prior bibframe.Prior, mergeSeeds []MergeSeed) ([]bib
 	for _, p := range prior.Pins {
 		r.SeedPin(p.Instance, p.Work)
 	}
-	// Seed feed cluster-merges (tasks/363): a source that folded one cluster into
+	// Seed feed cluster-merges: a source that folded one cluster into
 	// another names the pair by provider id; translate each to Work ids through the
 	// now-seeded resolver and merge the retired Work onto the survivor, so a
 	// re-clustered record resolves to the survivor's prior grain instead of orphaning
@@ -120,17 +120,17 @@ func cluster(recs []Record, prior bibframe.Prior, mergeSeeds []MergeSeed) ([]bib
 			wg = &bibframe.WorkGroup{WorkID: a.WorkID, Work: rec.Work()}
 			// The first record of a clustered Work also supplies its non-BIBFRAME
 			// display extras (cover/rating/dateRead), carried through to catalog.json's
-			// `extra` object via the feed provenance graph (tasks/026).
+			// `extra` object via the feed provenance graph.
 			if ep, ok := rec.(ExtraProvider); ok {
 				wg.Extras = ep.Extras()
 			}
 			// The first record likewise contributes the Work's controlled subjects
-			// (authority URIs + labels + broader), emitted into the feed graph (tasks/026).
+			// (authority URIs + labels + broader), emitted into the feed graph.
 			if se, ok := rec.(SubjectEnricher); ok {
 				wg.Subjects = se.ControlledSubjects()
 			}
 			// And its standalone term descriptions (ancestor chains): labels +
-			// hierarchy only, no subject link (tasks/180).
+			// hierarchy only, no subject link.
 			if td, ok := rec.(TermDescriber); ok {
 				wg.Terms = td.DescribedTerms()
 			}
@@ -145,7 +145,7 @@ func cluster(recs []Record, prior bibframe.Prior, mergeSeeds []MergeSeed) ([]bib
 			Instance:   rec.Instance(),
 		}
 		// A MARC-sourced record's crosswalk-lossy fields ride along verbatim
-		// (tasks/049), so the loss table stays a rendering concern, not a
+		//, so the loss table stays a rendering concern, not a
 		// data loss.
 		if vp, ok := rec.(VerbatimProvider); ok {
 			gi.Verbatim = vp.Verbatim()

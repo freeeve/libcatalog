@@ -151,7 +151,7 @@ func TestValidateDryRun(t *testing.T) {
 	}
 }
 
-// TestMutateMissingWork404 covers tasks/115: mutate routes distinguish a
+// TestMutateMissingWork404 covers mutate routes distinguish a
 // missing work (404, matching the read paths) from a real conflict (409).
 func TestMutateMissingWork404(t *testing.T) {
 	h, _ := newRecordsAPI(t)
@@ -168,7 +168,7 @@ func TestMergeSplitBatch(t *testing.T) {
 	_ = seedWorkGrain(t, bs)
 	// The survivor grain carries an instance (the split below pins it) and
 	// the retiring work really exists -- merge/split refuse phantom ids
-	// since tasks/214.
+	//.
 	ds := &rdf.Dataset{}
 	feed := bibframe.FeedGraph("overdrive")
 	ds.Add(rdf.NewIRI(bibframe.WorkIRI(editWorkID)), rdf.NewIRI("http://id.loc.gov/ontologies/bibframe/title"), rdf.NewLiteral("A Book", "", ""), feed)
@@ -258,7 +258,7 @@ func TestMergeSplitBatch(t *testing.T) {
 	}
 }
 
-// TestSecondContradictoryMergeIsRefused is the tasks/339 gate: a loser already
+// TestSecondContradictoryMergeIsRefused is the gate: a loser already
 // merged into one survivor cannot be merged into a different one -- that would
 // leave two mergedInto markers and let the resolver pick a survivor by grain scan
 // order. Re-merging into the same survivor stays idempotent.
@@ -304,7 +304,7 @@ func TestSecondContradictoryMergeIsRefused(t *testing.T) {
 	}
 }
 
-// TestSplitIsIdempotent is the tasks/323 gate: splitting the same instance twice --
+// TestSplitIsIdempotent is the gate: splitting the same instance twice --
 // a retry, a double-click, a lost response -- must reuse the first split's Work rather
 // than mint a second, so the source grain never carries two contradictory
 // workAssignment pins for one instance.
@@ -388,7 +388,7 @@ func TestDraftsCRUD(t *testing.T) {
 	}
 }
 
-// TestDraftSlotIsUniquePerWork is the tasks/297 gate: a (user, work) pair owns
+// TestDraftSlotIsUniquePerWork is the gate: a (user, work) pair owns
 // exactly one draft slot, so repeated POSTs of the same work -- two tabs, two
 // devices, an autosave retry -- never pile up rival drafts the resume banner
 // then has to pick between by lowest random id. The last write wins the slot.
@@ -444,7 +444,7 @@ func TestDraftSlotIsUniquePerWork(t *testing.T) {
 	}
 }
 
-// TestMergeSplitRejectPhantomIDs covers tasks/214: merge refuses a retiring
+// TestMergeSplitRejectPhantomIDs covers merge refuses a retiring
 // work that has no grain, and split refuses instances the source grain does
 // not describe -- both markers are permanent identity-resolver instructions
 // with no removal route, so a typo must not write false provenance or

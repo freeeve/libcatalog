@@ -12,7 +12,7 @@ import (
 	"github.com/freeeve/libcat/backend/vocab"
 )
 
-// TestTermsResolveBatch drives the tasks/071 chip-resolver: URIs resolve to
+// TestTermsResolveBatch drives the chip-resolver: URIs resolve to
 // terms across schemes without the caller naming one; unresolvable URIs are
 // silently absent.
 func TestTermsResolveBatch(t *testing.T) {
@@ -59,7 +59,7 @@ func TestTermsResolveBatch(t *testing.T) {
 	}
 }
 
-// TestTermsSearchPath drives the tasks/079 picker breadcrumb: search hits
+// TestTermsSearchPath drives the picker breadcrumb: search hits
 // carry their broader-chain path; root terms simply omit it.
 func TestTermsSearchPath(t *testing.T) {
 	data, err := os.ReadFile("../vocab/testdata/authorities.nq")

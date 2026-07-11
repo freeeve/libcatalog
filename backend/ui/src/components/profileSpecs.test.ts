@@ -1,4 +1,4 @@
-// tasks/295: the record editor now takes its field set, order, labels, and hidden
+// the record editor now takes its field set, order, labels, and hidden
 // flags from the deployment's editing profile, merged onto the local presentation
 // table by path. These tests pin the merge logic and guard the presentation from
 // drifting out from under the shipped work profile.
@@ -61,7 +61,7 @@ describe("WORK_FIELDS presentation", () => {
 describe("INSTANCE_FIELDS presentation", () => {
   it("covers every field the shipped instance-ebook profile declares", () => {
     // instance-ebook.json declared series/seriesEnumeration that the hand-copied
-    // presentation never had (tasks/345) -- exactly the drift tasks/295 predicted.
+    // presentation never had -- exactly the drift predicted.
     // Pin the presentation to the shipped profile so it cannot recur.
     const presented = new Set(INSTANCE_FIELDS.map((s) => s.path));
     const missing = (instanceEbook.fields as { path: string }[]).map((f) => f.path).filter((p) => !presented.has(p));

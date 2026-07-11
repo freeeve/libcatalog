@@ -1,4 +1,4 @@
-// Real-browser E2E for the scope of the browse base set (tasks/281).
+// Real-browser E2E for the scope of the browse base set.
 //
 // lcat-browse.js built its base set with `catalog.search(q, 0, PAGE, 0, [])`,
 // where PAGE = 60 is a *page length*. So every facet the reader picked was
@@ -89,7 +89,7 @@ const railCount = () =>
   }, SUBJECT);
 const clickFacet = () =>
   page.evaluate((s) => document.querySelector(`#lcat-browse-facets input[data-cat="${s}"]`).click(), SUBJECT);
-// Ask the screen, not the DOM attribute (tasks/303). This read `!nav.hidden` and
+// Ask the screen, not the DOM attribute. This read `!nav.hidden` and
 // so passed for two releases over a paginator that was on screen and clickable:
 // `hidden` hides only via the UA `[hidden] { display: none }` rule, and lcat.css's
 // `.pagination { display: flex }` outranked it. The attribute was set the whole
@@ -154,7 +154,7 @@ check(`facet alone: ${f1.total} == ${EXPECT.facetOnly}`, f1.total === EXPECT.fac
 
 // 6. The static pager pages the unfiltered corpus and drops the reader's query.
 //    It must not be reachable while browse owns the list -- not merely carry the
-//    attribute that is supposed to hide it (tasks/303).
+// attribute that is supposed to hide it.
 const pagerState = await page.$$eval("ul.pagination", (els) =>
   els.map((el) => `hidden=${el.hasAttribute("hidden")} display=${getComputedStyle(el).display} h=${el.offsetHeight}`),
 );

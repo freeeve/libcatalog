@@ -3,7 +3,7 @@ package ingest
 import "github.com/freeeve/libcat/similar"
 
 // SimilarWork converts an admin-side summary into the similarity scorer's input
-// (tasks/284). It is one of exactly two converters; project.Work.SimilarWork is
+// . It is one of exactly two converters; project.Work.SimilarWork is
 // the other, and a test drives both from the same graph and requires equal
 // results, because an OPAC rail and an admin panel that disagree about what a
 // Work resembles is a bug the reader can see and nobody can explain.
@@ -12,7 +12,7 @@ import "github.com/freeeve/libcat/similar"
 // which never reaches the scorer at all; the admin surface shows suppressed Works
 // and so must recommend them. Tombstoned Works are passed through with the flag
 // set and excluded by similar.Build -- retiring a record must not leave it
-// recommended from elsewhere (tasks/280).
+// recommended from elsewhere.
 //
 // Held collapses the two digital/physical signals the summary carries separately
 // into the one predicate project.Work.Held already publishes.

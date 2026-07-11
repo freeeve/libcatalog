@@ -83,7 +83,7 @@ func TestProject(t *testing.T) {
 		t.Errorf("contributors = %+v, want %+v", w.Contributors, wantContribs)
 	}
 	// The editorial IRI subject is controlled -- carried as {URI, resolved labels};
-	// the feed genre string is an uncontrolled tag. They no longer conflate (tasks/012).
+	// the feed genre string is an uncontrolled tag. They no longer conflate.
 	wantSubjects := []Subject{{
 		ID:      "https://homosaurus.org/v3/homoit0000669",
 		Labels:  map[string]string{"en": "Transgender people", "es": "Personas trans"},
@@ -99,7 +99,7 @@ func TestProject(t *testing.T) {
 	if !reflect.DeepEqual(w.Languages, []string{"eng"}) {
 		t.Errorf("languages = %v", w.Languages)
 	}
-	// A classification is {code, optional rdfs:label} (tasks/142): the labeled
+	// A classification is {code, optional rdfs:label}: the labeled
 	// node carries its display text, the bare one falls back to code-only.
 	wantClassifications := []Classification{
 		{Value: "FIC027000"},
@@ -116,7 +116,7 @@ func TestProject(t *testing.T) {
 		!reflect.DeepEqual(inst.ProviderIDs, []ProviderID{{Source: "overdrive", Value: "11682058"}}) {
 		t.Errorf("instance = %+v", inst)
 	}
-	// The publication statement (tasks/351) projects from the bf:Publication
+	// The publication statement projects from the bf:Publication
 	// provision only: publisher/place/date are transcribed, and the Distribution
 	// provision's agent must not leak into the publisher.
 	if inst.Publisher != "Simon & Schuster" || inst.Place != "New York" || inst.Published != "2024" {
@@ -124,14 +124,14 @@ func TestProject(t *testing.T) {
 			inst.Publisher, inst.Place, inst.Published)
 	}
 	// The Instance's RDA media type "computer" projects to the ebook format, and the
-	// Work's formats facet is the union of its Instances' formats (tasks/011).
+	// Work's formats facet is the union of its Instances' formats.
 	if !reflect.DeepEqual(w.Formats, []string{"ebook"}) {
 		t.Errorf("formats = %v, want [ebook]", w.Formats)
 	}
 }
 
 // clusteredFormats is one Work with two Instances -- an ebook (media "computer") and
-// an audiobook (media "audio") -- the edition-clustering case tasks/011 targets.
+// an audiobook (media "audio") -- the edition-clustering case targets.
 const clusteredFormats = `<#w9Work> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://id.loc.gov/ontologies/bibframe/Work> <feed:overdrive> .
 <#w9Work> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#i9aInstance> <feed:overdrive> .
 <#w9Work> <http://id.loc.gov/ontologies/bibframe/hasInstance> <#i9bInstance> <feed:overdrive> .
@@ -143,7 +143,7 @@ _:ma <http://www.w3.org/2000/01/rdf-schema#label> "computer" <feed:overdrive> .
 _:mb <http://www.w3.org/2000/01/rdf-schema#label> "audio" <feed:overdrive> .
 `
 
-// TestClusteredFormats is the tasks/011 acceptance: a clustered ebook+audiobook Work
+// TestClusteredFormats is the acceptance: a clustered ebook+audiobook Work
 // exposes both formats via its Instances, and both appear in the Work-level union and
 // the formats facet.
 func TestClusteredFormats(t *testing.T) {
@@ -220,7 +220,7 @@ _:cB <http://id.loc.gov/ontologies/bibframe/role> _:rB <editorial:> .
 _:rB <http://www.w3.org/2000/01/rdf-schema#label> "author" <editorial:> .
 `
 
-// TestContributorsDeduped covers tasks/115: two contribution nodes carrying
+// TestContributorsDeduped covers two contribution nodes carrying
 // the same (name, role) -- e.g. a feed and an editorial re-assertion --
 // project as one contributor, like every other deduped dimension.
 func TestContributorsDeduped(t *testing.T) {
@@ -254,7 +254,7 @@ func TestFacets(t *testing.T) {
 	}) {
 		t.Errorf("contributor facet = %+v", f.Contributors)
 	}
-	// Controlled subjects and feed tags facet separately (tasks/012): the Homosaurus
+	// Controlled subjects and feed tags facet separately: the Homosaurus
 	// URI is the sole subject facet (with resolved labels), "Fiction" the sole tag.
 	wantSubj := []SubjectFacet{{
 		ID:      "https://homosaurus.org/v3/homoit0000669",
@@ -273,7 +273,7 @@ func TestFacets(t *testing.T) {
 		t.Errorf("format facet = %+v, want [{ebook 1}]", f.Formats)
 	}
 	// The classification facet keys on the code and carries the display label
-	// when the graph has one (tasks/142).
+	// when the graph has one.
 	wantCls := []ClassificationFacet{
 		{Value: "FIC027000", Count: 1},
 		{Value: "FIC073000", Label: "Fiction / LGBTQ+ / Transgender", Count: 1},
@@ -323,7 +323,7 @@ func TestRedirectsCycleSafe(t *testing.T) {
 	}
 }
 
-// TestSubjectBroader covers the skos:broader projection (tasks/015): a term's parents
+// TestSubjectBroader covers the skos:broader projection: a term's parents
 // are emitted sorted + deduped, non-IRI broader objects are ignored, and a subject
 // with no broader omits the field.
 func TestSubjectBroader(t *testing.T) {
@@ -359,7 +359,7 @@ func TestSubjectBroader(t *testing.T) {
 	}
 }
 
-// TestTermSideband covers the vocabulary sideband (tasks/178): Catalog.Terms
+// TestTermSideband covers the vocabulary sideband: Catalog.Terms
 // carries every referenced subject plus its transitive skos:broader closure
 // when the graph has metadata for them -- including an ancestor chain an
 // enricher described with no work link -- and skips URIs the graph says
@@ -413,7 +413,7 @@ func TestTermSidebandSkipsBareURIs(t *testing.T) {
 	}
 }
 
-// TestWorkExtras covers the adopter-extras projection (tasks/026): a Work's
+// TestWorkExtras covers the adopter-extras projection: a Work's
 // bibframe.ExtraPred literals in the projected provider's feed graph surface as
 // Work.Extra; an extra predicate in another graph is ignored (provenance-scoped); and a
 // Work with no extras omits the field.
@@ -447,7 +447,7 @@ func TestWorkExtras(t *testing.T) {
 	}
 }
 
-// TestWorkSummary covers the bf:summary projection (tasks/124): the label of the
+// TestWorkSummary covers the bf:summary projection: the label of the
 // Work's first labeled bf:Summary node surfaces as Work.Summary; an unlabeled
 // summary node is skipped in favor of a later labeled one; a Work without a
 // summary omits the field.
@@ -476,7 +476,7 @@ _:s1 <http://www.w3.org/2000/01/rdf-schema#label> "A haunting debut novel." <fee
 	}
 }
 
-// TestRelationsAndSeries covers tasks/222 (schema v11): editorial
+// TestRelationsAndSeries covers (schema v11): editorial
 // whole/part links project as {id, title} restricted to the projection --
 // a link to a suppressed work is dropped -- and instance series
 // statement/enumeration carry through.
@@ -517,7 +517,7 @@ _:tb <http://id.loc.gov/ontologies/bibframe/mainTitle> "The Part" <feed:overdriv
 		t.Fatalf("part relations = %+v", part.Relations)
 	}
 	// The fixture carries the pre-v0.25.0 flat literals on the Instance, so this
-	// also pins the legacy fallback (tasks/309): a grain tree written by an older
+	// also pins the legacy fallback: a grain tree written by an older
 	// libcodex keeps projecting its series rather than losing them at the bump.
 	if !reflect.DeepEqual(whole.Series, []Series{{Title: "Big Series", Enumeration: "v. 2"}}) {
 		t.Fatalf("legacy series = %+v", whole.Series)
@@ -527,7 +527,7 @@ _:tb <http://id.loc.gov/ontologies/bibframe/mainTitle> "The Part" <feed:overdriv
 	}
 }
 
-// TestSkolemSubjectIsTag covers tasks/218: a labeled grain-local fragment
+// TestSkolemSubjectIsTag covers a labeled grain-local fragment
 // node under bf:subject (the editor's -ed- skolem write shape) projects as
 // an uncontrolled tag, never as a controlled subject with a forged URI.
 func TestSkolemSubjectIsTag(t *testing.T) {

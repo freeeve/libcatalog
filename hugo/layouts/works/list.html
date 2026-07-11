@@ -1,6 +1,6 @@
 {{- /* /works/ -- the Works browse. Section-specific so that the generic
        layouts/list.html can be what its name says: an index of a section's own
-       pages. Before tasks/290 one list.html served the home page, /works/, and
+       pages. Before one list.html served the home page, /works/, and
        every other section, and could only be right for two of the three. */ -}}
 {{ define "sidebar" }}
 <aside class="lcat-sidebar" aria-label="{{ i18n "facets" }}">{{ partialCached "facets.html" . }}</aside>

@@ -1,4 +1,4 @@
-// Item ops for the batch screen (tasks/058 item 5). Holdings used to be
+// Item ops for the batch screen. Holdings used to be
 // reachable only one record at a time, through the editor's item panel;
 // `resource: "items"` lets a batch run reshelve a selection through the same
 // audited op list, with the same dry-run diff.

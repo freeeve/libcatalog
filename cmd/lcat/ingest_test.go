@@ -16,7 +16,7 @@ func (emptyProvider) Name() string                                         { ret
 func (emptyProvider) Role() ingest.Role                                    { return ingest.RoleIngest }
 func (emptyProvider) Records(ctx context.Context) ([]ingest.Record, error) { return nil, nil }
 
-// TestRunIngestRefusesEmptyReconcile covers tasks/103: a zero-record scan must
+// TestRunIngestRefusesEmptyReconcile covers a zero-record scan must
 // not reconcile (it would withdraw every feed-only work) unless explicitly
 // allowed.
 func TestRunIngestRefusesEmptyReconcile(t *testing.T) {

@@ -9,11 +9,11 @@ import (
 
 // Mapping declares how a deployment's N-Quads export maps onto ingest records
 // -- the whole provider config, written as a TOML file so adopting a new
-// dcterms-shaped export means editing a mapping, not writing Go (tasks/172).
+// dcterms-shaped export means editing a mapping, not writing Go.
 // Only subjects under WorkPrefix are read as work records; skos prefLabel and
 // broader statements on any other subject are harvested as authority-term
 // descriptions for the works' controlled subjects (and their ancestor
-// chains, tasks/182).
+// chains).
 type Mapping struct {
 	// WorkPrefix is the IRI prefix of work subjects; the remainder is the
 	// export's work id.
@@ -31,7 +31,7 @@ type Mapping struct {
 	// resolution identity (identity.WorkKey folds author|title|LANG) while
 	// Work.Languages keeps the export's real values. Set it when replacing a
 	// provider that keyed everything under one language, so freshly-minted
-	// WorkIDs match the old provider's (tasks/182); leave empty to key by
+	// WorkIDs match the old provider's; leave empty to key by
 	// the record's language.
 	IdentityLanguage string `toml:"identity-language"`
 	// IDOrder orders records for deterministic ingest: "lexical" (default) or
@@ -49,18 +49,18 @@ type Mapping struct {
 	// other scheme becomes a durable source-tagged id key
 	// ("<scheme>:<value>"). The table form ({class, source, key}) covers
 	// non-key identifiers -- display ISBNs, ASINs, availability ids -- that
-	// must ride the Instance without becoming resolution keys (tasks/182).
+	// must ride the Instance without becoming resolution keys.
 	Identifiers map[string]IdentifierRule `toml:"identifiers"`
 	// Languages maps the export's language codes to ISO 639-2/B. An unmapped
 	// three-letter code passes through; anything else falls back to
 	// DefaultLanguage.
 	Languages map[string]string `toml:"languages"`
 	// KeywordSource is the bf:source on "keyword" topic subjects (e.g.
-	// "overdrive"); "tag" topics always carry none (tasks/182).
+	// "overdrive"); "tag" topics always carry none.
 	KeywordSource string `toml:"keyword-source"`
 	// ExtrasPrefix, when set, harvests every work statement whose PREDICATE
 	// starts with it as a display extra: key = the predicate remainder,
-	// value = the literal, verbatim (tasks/182). First statement wins a key.
+	// value = the literal, verbatim. First statement wins a key.
 	// The [sources] mechanism owns its extra key; on a collision it wins.
 	ExtrasPrefix string `toml:"extras-prefix"`
 	// Classifications describes the "classification" field's objects.
@@ -72,7 +72,7 @@ type Mapping struct {
 // ClassificationMapping maps "classification" predicate objects -- coded IRIs
 // like urn:bisac:FIC000000 -- to BIBFRAME classifications: Value is the IRI
 // minus Prefix, Label the IRI's harvested skos:prefLabel, Source the scheme
-// code (tasks/182).
+// code.
 type ClassificationMapping struct {
 	// Prefix is the object-IRI prefix stripped to form the code value.
 	Prefix string `toml:"prefix"`
@@ -174,13 +174,13 @@ type SourcesMapping struct {
 	Tentative []string `toml:"tentative"`
 }
 
-// mappedFields are the record fields Predicates may target (tasks/172, the
-// tasks/182 extensions marked): work-level, bucket-level, and the
+// mappedFields are the record fields Predicates may target (the
+// extensions marked): work-level, bucket-level, and the
 // term-description fields harvested from non-work subjects.
 var mappedFields = map[string]bool{
 	"title": true, "creator": true, "identifier": true, "subject": true,
 	"source": true, "language": true, "prefLabel": true,
-	// tasks/182:
+	//
 	"subtitle": true, "summary": true, "contributor": true,
 	"publisher": true, "issued": true, "format": true,
 	"tag": true, "keyword": true, "classification": true,

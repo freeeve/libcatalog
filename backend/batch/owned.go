@@ -14,16 +14,16 @@ import (
 // record shapes (macros, item templates): one record per item, living in the
 // owner's partition or the library-shared one. A personal record is writable
 // only by its owner; a library-shared record is also writable by an admin, who
-// is its custodian once it is library property (tasks/292).
+// is its custodian once it is library property.
 //
 // Owner is a bare email address, which behaves as an ownership key. The sharp
 // edge -- deleting a user leaves their library-shared records orphaned, and a
 // re-issued address inherits them -- is closed by reassigning those shared
-// records to the deleting admin at delete time (tasks/332,
+// records to the deleting admin at delete time (
 // Service.ReassignSharedRecords). The residual is that a re-created account with
 // the same address still sees the departed user's *personal* (non-shared)
 // records, which are lower stakes (private op templates, never library
-// property). Decision (tasks/332): the email stays the key -- a stable,
+// property). Decision: the email stays the key -- a stable,
 // non-recyclable user id would remove even that residual, but it is a
 // disproportionate migration for a private-records-only surprise now that shared
 // records are reassigned, not inherited.
@@ -37,7 +37,7 @@ type OwnedMeta struct {
 }
 
 // ownedKind describes one owned/shared record family for the generic CRUD
-// engine (tasks/116): its partition/sort-key prefixes, its validation, and
+// engine: its partition/sort-key prefixes, its validation, and
 // access to the embedded meta (generics cannot reach promoted fields).
 type ownedKind[T any] struct {
 	pk, sk   string
@@ -76,7 +76,7 @@ func createOwned[T any](ctx context.Context, db store.Store, k ownedKind[T], ite
 
 // writable reports whether a caller may update or delete a record: its owner
 // always may, and an admin may act on a library-shared one as its custodian
-// (tasks/292). A personal record stays private to its owner even from an admin,
+// . A personal record stays private to its owner even from an admin,
 // which is the property owner-gating was protecting.
 func writable(m OwnedMeta, owner string, isAdmin bool) bool {
 	return m.Owner == owner || (isAdmin && m.Shared)
@@ -108,7 +108,7 @@ func updateOwned[T any](ctx context.Context, db store.Store, k ownedKind[T], id 
 	}
 	// Write the new partition before deleting the old one: a fault between
 	// the two leaves a harmless duplicate instead of losing the record
-	// (tasks/115).
+	//.
 	if err := putOwned(ctx, db, k, item, store.CondNone); err != nil {
 		return zero, err
 	}
@@ -121,7 +121,7 @@ func updateOwned[T any](ctx context.Context, db store.Store, k ownedKind[T], id 
 }
 
 // deleteOwned removes an owned item. The owner may delete; an admin may delete
-// a shared one, so an orphaned library record has a custodian (tasks/292).
+// a shared one, so an orphaned library record has a custodian.
 func deleteOwned[T any](ctx context.Context, db store.Store, k ownedKind[T], owner, id string, isAdmin bool) error {
 	item, err := getOwned(ctx, db, k, owner, id)
 	if err != nil {
@@ -187,7 +187,7 @@ func listOwned[T any](ctx context.Context, db store.Store, k ownedKind[T], owner
 // that `from` owns to `to`, re-putting each in place (shared records keep the
 // shared partition regardless of owner, so the key does not move). Returns the
 // updated metas. Used when a user is deleted so their shared records keep a live
-// owner instead of being silently orphaned (tasks/332).
+// owner instead of being silently orphaned.
 func reassignShared[T any](ctx context.Context, db store.Store, k ownedKind[T], from, to string) ([]OwnedMeta, error) {
 	var out []OwnedMeta
 	for rec, err := range db.Query(ctx, k.pk+sharedPartition, k.sk, store.QueryOpt{}) {

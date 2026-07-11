@@ -107,7 +107,7 @@ func TestBulkAddSequentialBarcodesAreDistinct(t *testing.T) {
 	}
 }
 
-// tasks/269: two simultaneous bulk adds to the SAME work chose their barcodes
+// two simultaneous bulk adds to the SAME work chose their barcodes
 // from an index snapshot taken before either wrote, and mutateWorkGrain's CAS
 // retry faithfully appended the stale allocation to the winning grain.
 func TestBulkAddConcurrentSameWorkMintsNoDuplicates(t *testing.T) {
@@ -207,7 +207,7 @@ func (c *conflictOnceBlob) Put(ctx context.Context, path string, data []byte, op
 	return c.Store.Put(ctx, path, data, opts)
 }
 
-// tasks/269: a CAS retry re-runs the closure because the grain moved. Barcodes
+// a CAS retry re-runs the closure because the grain moved. Barcodes
 // chosen against the superseded grain must not be laundered into the winner.
 func TestBulkAddRetryReallocatesAgainstTheFreshGrain(t *testing.T) {
 	mem := blob.NewMem()

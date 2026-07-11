@@ -1,10 +1,10 @@
 <script lang="ts">
-  // The MARC editing grid (tasks/049): one row per field -- tag, indicators,
+  // The MARC editing grid: one row per field -- tag, indicators,
   // and the "$a … $b …" subfield line (control fields edit their raw value)
   // -- keyboard-first: Enter in a row's line inserts a fresh row below, tag
   // order is the cataloger's own. Fixed fields (leader, 006/007/008) expand
   // into positional builders. Lossy tags carry a non-blocking warning: their
-  // edits persist verbatim, not modeled. The field-op family (tasks/075) --
+  // edits persist verbatim, not modeled. The field-op family --
   // copy/cut/paste through the app clipboard, duplicate, © ℗ $ inserts, LOC
   // help -- registers in the host screen's keyboard scope with
   // allowInInputs, so the chords fire from the grid's inputs and stay

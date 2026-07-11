@@ -135,7 +135,7 @@ func scanPinsDataset(ds *rdf.Dataset) []identity.Pin {
 // Every pinned Instance must be one the grain describes: a pin is a
 // permanent instruction to the identity resolver (SeedPin), so a typo or an
 // id from another record would silently strand that Instance on a work id
-// with no grain at the next ingest (tasks/214, the tasks/211 invariant).
+// with no grain at the next ingest (the invariant).
 func AddSplitMarkers(grainNQ []byte, newWork, fromWork string, instanceIDs []string) ([]byte, error) {
 	ds, err := rdf.ParseNQuads(grainNQ)
 	if err != nil {
@@ -173,7 +173,7 @@ func AddSplitMarkers(grainNQ []byte, newWork, fromWork string, instanceIDs []str
 // given instances in this grain, or "" if there is none. A retried or double-clicked
 // split reuses that id instead of minting a fresh one, so AddSplitMarkers finds every
 // marker already present and no-ops -- the endpoint is idempotent, and the grain never
-// ends up with two workAssignment pins for one instance (tasks/323).
+// ends up with two workAssignment pins for one instance.
 //
 // The match is on the exact instance set: a split of [i1] and a later split of
 // [i1, i2] are different operations, not a retry of the first, so the second mints its

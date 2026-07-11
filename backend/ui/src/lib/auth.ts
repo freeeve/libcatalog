@@ -19,7 +19,7 @@ let expiresAt = 0;
 // True from token adoption until clearSession: "this tab believes it is
 // signed in". expireSession keys its notification on this rather than on
 // the token fields, which the 401-retry path clears before the refresh
-// attempt runs (tasks/223).
+// attempt runs.
 let sessionLive = false;
 
 export interface Session {
@@ -146,7 +146,7 @@ function exchange(grant: Record<string, string>): Promise<Response> {
   });
 }
 
-// Session-expiry listeners (tasks/223): fired when a session that was
+// Session-expiry listeners: fired when a session that was
 // believed alive turns out to be gone -- a terminal refresh failure or a
 // sibling tab's sign-out -- never on a fresh visit with no session. The
 // shell subscribes and swaps the header identity for a re-auth prompt

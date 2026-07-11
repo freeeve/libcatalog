@@ -210,7 +210,7 @@ func fetchConcept(client *http.Client, uri, suffix string) ([]byte, error) {
 
 // conceptURL is a concept's per-term fetch URL: the URI forced to https plus the
 // authority's suffix convention -- id.loc.gov serves <uri>.skos.nt, Homosaurus
-// plain <uri>.nt (tasks/130).
+// plain <uri>.nt.
 func conceptURL(uri, suffix string) string {
 	return strings.Replace(uri, "http://", "https://", 1) + suffix
 }
@@ -273,7 +273,7 @@ func subsetFromNT(scheme, namespace string, order []string, nts map[string][]byt
 			continue
 		}
 		// A malformed line now drops the whole concept rather than the one statement
-		// (libcodex v0.26.0, tasks/317). That is the right trade for a per-concept
+		// (libcodex v0.26.0). That is the right trade for a per-concept
 		// body: a concept kept without its prefLabel is a heading with no heading,
 		// and this loop already announces what it skipped.
 		ds, err := rdf.ParseNQuads(body)
@@ -317,7 +317,7 @@ func subsetFromNT(scheme, namespace string, order []string, nts map[string][]byt
 
 // subsetFromDump filters a whole-vocabulary N-Triples/N-Quads dump to the
 // catalog's concepts -- or, with all, to every in-namespace concept -- emitting
-// the same graph-tagged snapshot as per-term harvesting (tasks/130): one request
+// the same graph-tagged snapshot as per-term harvesting: one request
 // for a ~4k-term vocabulary like Homosaurus instead of thousands. URI scheme
 // normalization mirrors subsetFromNT: a concept the catalog carries takes the
 // catalog's exact URI form (the index matches URIs exactly); any other
@@ -327,7 +327,7 @@ func subsetFromNT(scheme, namespace string, order []string, nts map[string][]byt
 // keeping nothing is fatal here, unlike a per-concept fetch skip.
 //
 // Since libcodex v0.26.0 a malformed line refuses the dump outright, naming it
-// (tasks/317). That is a smaller safety net than it sounds: a truncated download
+// . That is a smaller safety net than it sounds: a truncated download
 // used to parse as a well-formed, shorter vocabulary, and the "kept nothing" guard
 // below only fires when the *wrong* dump is fetched, never when the right one
 // arrives half-written.
@@ -393,7 +393,7 @@ func subsetFromDump(scheme, namespace string, uris []string, all bool, dump []by
 }
 
 // subsetFromCatalog emits the snapshot purely from catalog.json's own
-// subjects[].labels and broader links (tasks/137): the ingest emission
+// subjects[].labels and broader links: the ingest emission
 // already wrote every used term's prefLabel into the feed graphs, and the
 // projector carried them here, so a corpus-sized index needs no network at
 // all -- the route for authorities whose per-term endpoints are flaky or

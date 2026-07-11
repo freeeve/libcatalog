@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Batch operations (tasks/047): pick a selection (search, ids, saved
+  // Batch operations: pick a selection (search, ids, saved
   // query, or the whole corpus), build an op list by hand or load a macro
   // (a shared macro run here is a modification template), always dry-run
   // first -- the exact quad deltas per work -- then execute with per-record
@@ -32,7 +32,7 @@
   let coversError = $state("");
   let coversResult = $state<CoverBatchResponse | null>(null);
 
-  /** Uploads the picked zip of covers keyed by workId/ISBN (tasks/220). */
+  /** Uploads the picked zip of covers keyed by workId/ISBN. */
   async function uploadCovers(): Promise<void> {
     if (!coverZip) return;
     coversBusy = true;
@@ -69,7 +69,7 @@
   let preview = $state<BatchTarget[]>([]);
 
   // A batch selection is query/id-defined, so it has no single work profile to
-  // derive a field list from (tasks/346). Rather than hardcode work-monograph --
+  // derive a field list from. Rather than hardcode work-monograph --
   // which offered the wrong fields for a work on fastadd -- let the cataloger pick
   // which work profile's fields the op-builder shows; default to work-monograph.
   let allProfiles = $state<Record<string, ProfileSummary>>({});
@@ -86,7 +86,7 @@
 
   /** Params as sent: a cleared field is OMITTED, same as never touched --
    *  blank means "use the default", which is what the placeholder promises
-   *  (tasks/231). The server treats "" the same way; this keeps the wire
+   *. The server treats "" the same way; this keeps the wire
    *  shape identical for both histories of the same blank field. */
   const sentParams = $derived(Object.fromEntries(Object.entries(paramValues).filter(([, v]) => v !== "")));
   let opRows = $state<OpRow[]>([emptyRow()]);
@@ -94,7 +94,7 @@
   let result = $state<BatchRunResult | null>(null);
   // The payload the last dry run previewed. Execute is enabled only while the
   // current inputs still serialize to it, so editing an op, macro, param, or
-  // the selection after the dry run re-requires a fresh preview (tasks/113).
+  // the selection after the dry run re-requires a fresh preview.
   let dryRunFor = $state("");
   let busy = $state(false);
   let error = $state("");

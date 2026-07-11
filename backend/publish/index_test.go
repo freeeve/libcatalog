@@ -11,7 +11,7 @@ import (
 	"github.com/freeeve/libcat/backend/vocab"
 )
 
-// fakeIndex records the read-your-writes calls publish must make (tasks/203).
+// fakeIndex records the read-your-writes calls publish must make.
 type fakeIndex struct {
 	applied map[string]string // grain path -> etag
 	grains  map[string]int    // grain path -> written bytes
@@ -32,7 +32,7 @@ func (f *fakeIndex) AppendFeed(_ context.Context, paths ...string) error {
 	return nil
 }
 
-// TestPromoteTagUpdatesIndex covers tasks/203: an approved promotion keeps
+// TestPromoteTagUpdatesIndex covers an approved promotion keeps
 // the shared work index exact -- Apply per rewritten work grain, one
 // AppendFeed over the work paths only (the alias grain feeds the rebuild
 // trigger, never the index feed).
@@ -73,7 +73,7 @@ func TestPromoteTagUpdatesIndex(t *testing.T) {
 	}
 
 	// The alias bookkeeping lands OUTSIDE the authority: namespace, so the
-	// vocab loader can never mint an "aliases" scheme from it (tasks/204).
+	// vocab loader can never mint an "aliases" scheme from it.
 	alias, _, err := grains.Get(t.Context(), aliasGrainPath)
 	if err != nil {
 		t.Fatal(err)
@@ -84,7 +84,7 @@ func TestPromoteTagUpdatesIndex(t *testing.T) {
 }
 
 // TestPublishApprovedUpdatesIndex covers the same contract on the approved-
-// suggestions path, which shares the Publisher (tasks/203).
+// suggestions path, which shares the Publisher.
 func TestPublishApprovedUpdatesIndex(t *testing.T) {
 	pub, grains, queue, _ := newPublisher(t)
 	ix := &fakeIndex{}

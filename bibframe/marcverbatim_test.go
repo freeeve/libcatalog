@@ -114,7 +114,7 @@ func TestDecodeGrainMARCVerbatim(t *testing.T) {
 }
 
 // TestDecodeGrainMARCSameAs758 proves the external-identity link now reaches MARC:
-// libcodex v0.29.0's crosswalk (libcat tasks/066, requested via libcodex 121) turns a
+// libcodex v0.29.0's crosswalk (requested via libcodex 121) turns a
 // Work's owl:sameAs -- the hub URI the identity enrichment writes -- into a MARC 758
 // Resource Identifier with the URI in $1. Closes the KnownLoss 758 gap.
 func TestDecodeGrainMARCSameAs758(t *testing.T) {

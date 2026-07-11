@@ -56,7 +56,7 @@ import (
 func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi.Deps, error) {
 	deps := httpapi.Deps{Logger: logger, OrgCode: cfg.OrgCode}
 	// A configured scheme filter always admits the local scheme, or a fresh
-	// deployment could never index its first minted authority (tasks/046).
+	// deployment could never index its first minted authority.
 	vocabSchemes := cfg.VocabSchemes
 	if len(vocabSchemes) > 0 && !slices.Contains(vocabSchemes, authoritiesvc.LocalScheme) {
 		vocabSchemes = append(vocabSchemes, authoritiesvc.LocalScheme)
@@ -97,14 +97,14 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		deps.ReadOnly = true
 		logger.Info("read-only mode", "enabled", true)
 	}
-	// The shared work index (tasks/106): built here rather than inside httpapi
+	// The shared work index: built here rather than inside httpapi
 	// so it can warm in the background while the server starts, instead of the
 	// first editor request paying the corpus scan.
 	if deps.Blob != nil {
 		widx := workindex.New(deps.Blob, "data/works/")
 		deps.WorkIndex = widx
 		// Prime from the persisted snapshot before serving so a cold start skips
-		// the corpus scan (tasks/155); a missing/corrupt snapshot just leaves the
+		// the corpus scan; a missing/corrupt snapshot just leaves the
 		// index empty to warm from the store.
 		if err := widx.LoadSnapshot(ctx); err != nil {
 			logger.Warn("work index snapshot load", "err", err)
@@ -115,7 +115,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 				return
 			}
 			// A snapshot whose ETags mostly missed bought nothing: it was
-			// likely built against a different store backend (tasks/162).
+			// likely built against a different store backend.
 			if primed, refetched := widx.SnapshotDrift(); primed > 0 && refetched*2 >= primed {
 				logger.Warn("work index snapshot etag drift -- snapshot likely built against a different store backend; rebuild with lcatd workindex-snapshot against this store",
 					"primed", primed, "refetched", refetched)
@@ -132,7 +132,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 	if deps.Blob != nil {
 		// The authority-source service resolves the effective scheme filter
 		// (configured base + installed snapshots) before the index loads, so
-		// installed vocabularies survive restarts (tasks/067).
+		// installed vocabularies survive restarts.
 		vsrc := &vocabsrc.Service{
 			DB: db, Blob: deps.Blob, AuthoritiesPrefix: cfg.AuthoritiesPrefix,
 			BaseSchemes: vocabSchemes, MaxSnapshotMB: cfg.VocabSnapshotCapMB,
@@ -157,7 +157,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		}
 		// Container worker: drain queued vocabulary downloads on a ticker.
 		// Serverless entrypoints disable tickers and drain on schedule
-		// (tasks/099).
+		//.
 		if !cfg.ReadOnly && !cfg.DisableTickers {
 			go func() {
 				ticker := time.NewTicker(15 * time.Second)
@@ -190,7 +190,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 	if cfg.RebuildCmd != "" {
 		fan = append(fan, &trigger.Command{Cmd: cfg.RebuildCmd, Dir: cfg.RebuildDir, Logger: logger})
 	}
-	// Async job dispatch (tasks/159): a queue worker runs the incremental
+	// Async job dispatch: a queue worker runs the incremental
 	// rebuild instead of a synchronous local command.
 	if cfg.TriggerSQSURL != "" {
 		q, err := awstrigger.NewSQS(ctx, cfg.TriggerSQSURL, cfg.AWSEndpoint)
@@ -212,7 +212,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 	if len(fan) > 0 {
 		notifier = fan
 	}
-	// A publish burst coalesces into one trigger event (tasks/159).
+	// A publish burst coalesces into one trigger event.
 	if cfg.RebuildDebounce > 0 && len(fan) > 0 {
 		notifier = &trigger.Coalesce{Next: notifier, Window: cfg.RebuildDebounce, Logger: logger}
 		logger.Info("trigger", "debounce", cfg.RebuildDebounce)
@@ -224,7 +224,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			Summaries: deps.WorkIndex, Logger: logger,
 		}
 		// Keep the shared index exact for publish writes, like the
-		// single-record and batch paths (tasks/195/203). Guarded: a
+		// single-record and batch paths. Guarded: a
 		// typed-nil *workindex.Index must not masquerade as an updater.
 		if deps.WorkIndex != nil {
 			pub.Index = deps.WorkIndex
@@ -253,7 +253,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			Labels: deps.Vocab.LabelResolver(), Logger: logger,
 		}
 		// Keep the shared index exact for batch writes, like the
-		// single-record path (tasks/195). Guarded: a typed-nil
+		// single-record path. Guarded: a typed-nil
 		// *workindex.Index must not masquerade as an updater.
 		if deps.WorkIndex != nil {
 			deps.Batch.Index = deps.WorkIndex
@@ -277,7 +277,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			return httpapi.Deps{}, err
 		}
 		if restored, err := svc.Bootstrap(ctx, cfg.BootstrapAdmin); restored {
-			logger.Warn("bootstrap re-granted admin to an existing demoted user (tasks/207)", "spec", "LCATD_BOOTSTRAP_ADMIN")
+			logger.Warn("bootstrap re-granted admin to an existing demoted user", "spec", "LCATD_BOOTSTRAP_ADMIN")
 		} else if err != nil {
 			return httpapi.Deps{}, fmt.Errorf("bootstrap admin: %w", err)
 		}
@@ -348,7 +348,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			Enricher: locsh.New(), Mode: enrich.Mode(cfg.EnrichLocsh), Scheme: "lcsh",
 		}
 	}
-	// OpenLibrary external-identity enrichment (tasks/066): build the ISBN -> work
+	// OpenLibrary external-identity enrichment: build the ISBN -> work
 	// index from the configured offline dump once at boot, then link Works by exact
 	// ISBN. Direct mode writes the owl:sameAs; queue-mode moderation of identity
 	// links is a later concern (the queue path handles subject candidates, not
@@ -369,7 +369,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		}
 	}
 	// Every registered suggest-capable authority source doubles as a
-	// moderated enrichment target (tasks/067) -- admin-triggered, queue mode.
+	// moderated enrichment target -- admin-triggered, queue mode.
 	if deps.VocabSources != nil && deps.Suggest != nil {
 		sources, err := deps.VocabSources.Sources(ctx)
 		if err != nil {
@@ -384,7 +384,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			}
 			// The local vocab index (when the scheme is installed) upgrades
 			// matches to full term descriptions and rides their ancestor
-			// chains along (tasks/178).
+			// chains along.
 			enr := vocabsrc.NewEnricher(src, nil)
 			enr.Index = deps.Vocab
 			enrichSources[src.Name] = enrich.Source{
@@ -392,7 +392,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			}
 		}
 	}
-	// Every loaded vocabulary is a crosswalk target (tasks/072): walking
+	// Every loaded vocabulary is a crosswalk target: walking
 	// subjects' exactMatch/closeMatch links into it queues moderated
 	// equivalent-heading suggestions. Vocabularies installed later join at
 	// the next restart.
@@ -418,7 +418,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		deps.Exports = exports
 		// Container worker: drain queued export jobs on a ticker.
 		// Serverless entrypoints disable tickers and drain on schedule
-		// (tasks/099).
+		//.
 		if !cfg.ReadOnly && !cfg.DisableTickers {
 			go func() {
 				ticker := time.NewTicker(15 * time.Second)
@@ -444,7 +444,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 // Lambda an ephemeral key is an error, not a warning: each concurrent
 // sandbox would mint its own key, so tokens issued by one sandbox fail
 // verification on the next -- intermittent 401s, not just
-// sessions-die-on-restart (tasks/115). The same applies to any
+// sessions-die-on-restart. The same applies to any
 // horizontally-scaled deployment, which we cannot detect; the warning says
 // so.
 func signingKey(encoded string, logger *slog.Logger) (ed25519.PrivateKey, error) {

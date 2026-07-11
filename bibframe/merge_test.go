@@ -58,7 +58,7 @@ func TestRetiredWorks(t *testing.T) {
 	}
 }
 
-// TestMergeReingest is the end-to-end tasks/001 gate: a recorded merge moves the
+// TestMergeReingest is the end-to-end gate: a recorded merge moves the
 // retired Work's Instance onto the survivor, retires the old grain, keeps the
 // decision durable, and re-ingests byte-identically.
 func TestMergeReingest(t *testing.T) {

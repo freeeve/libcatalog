@@ -1,6 +1,6 @@
 /*
  * Client-side ranked search + facet filtering over the RoaringRange WASM reader
- * (libcat tasks/158). Opt-in via [params.search] engine = "roaringrange".
+ *. Opt-in via [params.search] engine = "roaringrange".
  *
  * Progressive enhancement: the server-rendered work list (task 157) is the
  * default view. When the visitor types a query or selects a facet, this module
@@ -12,38 +12,38 @@
  * list. If the reader or artifacts are unavailable, the static list stays and
  * nothing regresses.
  *
- * One read shape over one shared doc space (tasks/177, the POC's browse()):
+ * One read shape over one shared doc space (the POC's browse()):
  * a ranked base set -- RrsCatalog.search(q, ..., []) for a query, else every
  * doc id -- then RrfFacets.filterIds(base, filters) + records.getMany for the
  * survivors; a query with no filters renders straight from the search call.
  *
- * Facet UI (tasks/170): sidebar rows the templates could not link (the
+ * Facet UI: sidebar rows the templates could not link (the
  * minimal profile has no term pages) ship data-lcat-field/-cat attributes;
  * once the reader boots they hydrate into checkbox toggles, making the
  * i18n'd, scheme-grouped sidebar the facet UI. In shared-sidebar mode the
  * fragment arrives async, so hydration also runs on the loader's
  * lcat:facets-loaded event -- and while that fragment is still in flight the
  * fallback panel holds off, so it never flashes over a sidebar about to take
- * over (tasks/173). Only when no hydratable rows exist (term pages present,
+ * over. Only when no hydratable rows exist (term pages present,
  * or no sidebar at all) does the fallback panel render from
  * RrfFacets.facets() into the #lcat-browse-facets host the list template
  * emits -- subjects grouped by vocabulary scheme with localized labels from
- * browse-subjects.json, like the static rail (tasks/173).
+ * browse-subjects.json, like the static rail.
  *
- * Negative filters (tasks/144) in browse mode (tasks/173): when the site opts
+ * Negative filters in browse mode: when the site opts
  * in, every row ships a hidden .lcat-facet-not button; hydration unhides it
  * as an exclude toggle (aria-pressed), and selected() emits those rows as
  * {field, category, exclude: true} entries -- the reader subtracts their
  * posting sets. A row is include- or exclude-filtered, never both.
  *
- * Live facet counts (tasks/177): while a query or
+ * Live facet counts: while a query or
  * filter is active, every rendered count re-derives from the result set --
  * each category's postings intersected with the surviving ids -- so the rail
  * never promises a result set it will not deliver. That held only because the
  * base set is the whole ranked match set: `search(q, 0, len, ...)` bounds its
  * ids by `len` but never its facetCounts, so asking for a page and treating it
  * as the corpus made the rail advertise a number the click could not deliver
- * (tasks/281). An active field's counts
+ *. An active field's counts
  * are recomputed with its own selections removed (Pagefind-style drill-down:
  * its other values stay addable), zero-count rows grey out rather than
  * disappear so the rail stays stable, and clearing query + filters restores
@@ -51,7 +51,7 @@
  */
 import init, { RrsCatalog, RrfFacets, RrsRecords } from "/lcat/roaringrange.js";
 
-// Three distinct numbers, one of which used to be all three (tasks/281).
+// Three distinct numbers, one of which used to be all three.
 const PAGE = 60; // result cards rendered; the reader's search page is NOT this
 const CATS_SHOWN = 40; // per-field category cap in the panel, by descending count
 
@@ -116,11 +116,11 @@ function start() {
       results.getAttribute("data-lcat-showing") ||
       "showing the first {shown} of {total} {results}",
     // "showing {from}-{to} of {total} {results}" -- rendered on later pages, where
-    // "the first" no longer describes the window (tasks/301).
+    // "the first" no longer describes the window.
     showingRange:
       results.getAttribute("data-lcat-showingrange") ||
       "showing {from}–{to} of {total} {results}",
-    // Browse pager labels (tasks/301): the nav landmark's accessible name, the
+    // Browse pager labels: the nav landmark's accessible name, the
     // prev/next controls, and the per-number link name ("Page {n}").
     pagerLabel:
       results.getAttribute("data-lcat-pagerlabel") || "Search results pages",
@@ -143,7 +143,7 @@ function start() {
         .then(() =>
           Promise.all([
             // Index + facets, deliberately WITHOUT the record store. search()
-            // returns record bytes for every id it returns, and since tasks/281
+            // returns record bytes for every id it returns, and
             // it is asked for the whole ranked match set, not a page of sixty --
             // attaching records here would decode thousands of them per
             // keystroke to render sixty cards. The separate RrsRecords handle
@@ -188,7 +188,7 @@ function start() {
 
   /** selected returns the active filters: checked [field, category] pairs
    * from the panel and any hydrated sidebar rows, plus {field, category,
-   * exclude} entries for pressed exclude toggles (tasks/173). The reader
+   * exclude} entries for pressed exclude toggles. The reader
    * accepts both entry shapes in one array. */
   function selected() {
     const boxes = Array.from(
@@ -250,7 +250,7 @@ function start() {
    * in which case the duplicate panel is skipped or torn down. When the site
    * opted into negatives, each row's shipped-hidden exclude button becomes an
    * exclude toggle; include and exclude on one row are mutually exclusive
-   * (tasks/173). Idempotent: already-hydrated rows are left alone. */
+   *. Idempotent: already-hydrated rows are left alone. */
   function adoptSidebar() {
     const rows = document.querySelectorAll(".lcat-facets li[data-lcat-field]");
     if (!rows.length) return false;
@@ -300,7 +300,7 @@ function start() {
    * loader host is on the page but no facet nav has been inserted yet. While
    * pending, the fallback panel holds off -- rendering it would flash a flat,
    * unlabeled panel that the arriving fragment immediately tears down
-   * (tasks/173). If the fetch fails the loader keeps its static fallback
+   *. If the fetch fails the loader keeps its static fallback
    * links, which remain the (JS-free) facet UI. */
   function sharedPending() {
     return (
@@ -339,7 +339,7 @@ function start() {
   }
 
   /** subjectMeta lazily fetches browse-subjects.json (subject id -> labels,
-   * vocabulary scheme, skos:broader parents; tasks/173/174); an absent or
+   * vocabulary scheme, skos:broader parents); an absent or
    * failed sidecar degrades to flat, ungrouped raw ids. */
   let subjectMetaP = null;
   function subjectMeta() {
@@ -351,7 +351,7 @@ function start() {
     return subjectMetaP;
   }
 
-  // ---- Subject vocabulary trees (tasks/174, ported from an earlier POC) ----
+  // ---- Subject vocabulary trees (ported from an earlier POC) ----
   //
   // browse-subjects.json + the sidecar's ancestry-expanded postings give a
   // complete client-side model: children/roots per scheme, and a parent's
@@ -373,9 +373,9 @@ function start() {
   /** subjectEngine builds the vocabulary model once per page: display labels,
    * counts from the sidecar, children/roots per scheme, and which schemes
    * have any hierarchy at all. A minted, still label-less ancestor (the
-   * build creates those to close ancestry holes in the postings, tasks/174)
+   * build creates those to close ancestry holes in the postings)
    * is not a display node: rendering one would put a raw authority URI at
-   * the top of the tree (tasks/176) -- instead each concept's parent links
+   * the top of the tree -- instead each concept's parent links
    * pass through such nodes to the nearest displayable ancestor, and a
    * concept with none becomes a root. */
   function subjectEngine() {
@@ -476,7 +476,7 @@ function start() {
    * rendered instances: a polyhierarchical concept renders once under each
    * parent, and selected() reads every rendered input, so a toggle on one
    * instance must carry to its twins or a "cleared" filter stays active
-   * (tasks/178). */
+   *. */
   function syncTwins(li) {
     const id = li.getAttribute("data-lcat-cat");
     const cb = li.querySelector("input[data-cat]");
@@ -597,7 +597,7 @@ function start() {
 
   /** ancestryOf collects id plus every displayable ancestor into set,
    * walking the pass-through parent graph so unlabeled minted ancestors
-   * never enter a rendered branch (tasks/176). */
+   * never enter a rendered branch. */
   function ancestryOf(eng, id, set) {
     let frontier = [id];
     for (let depth = 0; depth < 12 && frontier.length; depth++) {
@@ -630,7 +630,7 @@ function start() {
     });
     // A facet deep link may target a subject in a collapsed branch that has no
     // row yet -- force its branch open so reconstructFacets can then check it
-    // (tasks/349). Only during a pending cold restore, so normal renders are
+    //. Only during a pending cold restore, so normal renders are
     // unaffected.
     if (facetRestorePending) {
       urlSelection.forEach((f) => {
@@ -690,7 +690,7 @@ function start() {
     }
     applyTreeState(ul, state);
     // Fresh rows rendered the cold counts; repaint from the live set when a
-    // query/filter is active (tasks/177).
+    // query/filter is active.
     applyLiveCounts();
   }
 
@@ -716,7 +716,7 @@ function start() {
 
   /** treeifySidebar upgrades hydrated subject groups whose scheme carries
    * broader links into expandable trees over the full vocabulary
-   * (tasks/174). Flat schemes keep their hydrated rows and the fragment's
+   *. Flat schemes keep their hydrated rows and the fragment's
    * rendered-rows filter. Idempotent per group. */
   function treeifySidebar() {
     return subjectEngine().then((eng) => {
@@ -733,7 +733,7 @@ function start() {
         renderTree(eng, scheme, ul, "");
         wireTreeFilter(eng, scheme, details, ul);
       });
-      // Trees now rendered; apply a pending facet deep link (tasks/349).
+      // Trees now rendered; apply a pending facet deep link.
       reconstructFacets();
     });
   }
@@ -791,8 +791,8 @@ function start() {
 
   /** renderPanel builds the fallback facet panel from the sidecar. Subjects
    * render one group per vocabulary scheme in [params.subjectSchemes] order
-   * with localized labels (tasks/173); a scheme with broader links renders
-   * as an expandable tree, flat schemes as filtered lists (tasks/174). */
+   * with localized labels; a scheme with broader links renders
+   * as an expandable tree, flat schemes as filtered lists. */
   function renderPanel() {
     if (!panel || !facets) return;
     const fields = facets.facets() || [];
@@ -811,7 +811,7 @@ function start() {
         // in config order, unlisted ones after in first-seen order. A single
         // (or unknown-scheme) vocabulary keeps the one localized group.
         // Minted label-less plumbing nodes stay out of flat groups just as
-        // renderTree keeps them out of trees (tasks/176).
+        // renderTree keeps them out of trees.
         const byScheme = new Map();
         (f.cats || []).forEach((c) => {
           if (eng.meta[c.name] && !eng.displayable(c.name)) return;
@@ -857,15 +857,15 @@ function start() {
       });
       panel.hidden = false;
       // A deep link (?q=) can refresh before the panel exists; repaint the
-      // fresh rows from the live set (tasks/177).
+      // fresh rows from the live set.
       applyLiveCounts();
       // The panel (and its subject trees) now exist; apply a pending facet deep
-      // link now that its rows are in the DOM (tasks/349).
+      // link now that its rows are in the DOM.
       reconstructFacets();
     });
   }
 
-  // ---- Live facet counts (tasks/177) ----
+  // ---- Live facet counts ----
   //
   // While a query/filter is active: liveCounts holds field -> category ->
   // count over the current result set, liveIds the per-active-field id sets
@@ -969,7 +969,7 @@ function start() {
 
   /** renderCards renders curPage's window of cards and its count. off is the
    * page's start offset into the result set, so the count reads "the first N"
-   * on page one and a "{from}-{to}" range beyond it (tasks/301). */
+   * on page one and a "{from}-{to}" range beyond it. */
   function renderCards(recs, total, off) {
     off = off || 0;
     const html = [];
@@ -983,9 +983,9 @@ function start() {
     // `total + (total >= PAGE ? "+" : "")`, where the "+" meant "at least this
     // many" on the query path (the set was truncated to PAGE) and "exactly this
     // many" on the filter path (it was not) -- the same glyph, opposite meanings
-    // (tasks/281). Now: an exact count, and when the list is one page of a larger
+    //. Now: an exact count, and when the list is one page of a larger
     // set, a sentence that says which slice this is -- the browse pager beneath
-    // it reaches the rest (tasks/301), where before the count only said how many
+    // it reaches the rest, where before the count only said how many
     // were held back.
     if (countEl) {
       if (total <= PAGE) {
@@ -1004,7 +1004,7 @@ function start() {
       }
     }
     // The static pager below pages the server-rendered, unfiltered corpus, so it
-    // stays hidden while browse owns the list (tasks/281); restore() brings it
+    // stays hidden while browse owns the list; restore() brings it
     // back. The browse pager (renderPage) reaches the rest of THIS result set.
     setPagerHidden(true);
   }
@@ -1017,10 +1017,10 @@ function start() {
     });
   }
 
-  // ---- Browse result pager (tasks/301) ----
+  // ---- Browse result pager ----
   //
   // The static Hugo pager pages the server-rendered, unfiltered corpus, so it is
-  // hidden while browse owns the list (renderCards, tasks/281). This pager pages
+  // hidden while browse owns the list (renderCards). This pager pages
   // the browse *result set* instead: curIds is the whole filtered/ranked id set
   // already in hand, so paging is a re-slice + records.getMany of the next
   // window -- no new reader call. It carries its own class (not .pagination) so
@@ -1031,7 +1031,7 @@ function start() {
   let pageSeq = 0; // guards concurrent page renders independently of query seq
   let pagerHost = null;
 
-  // Facet deep links (tasks/349): the selection encoded in the URL (?f=/?x=),
+  // Facet deep links: the selection encoded in the URL (?f=/?x=),
   // reconstructed into the facet UI on load and back/forward. facetRestorePending
   // holds while a cold load waits for the async facet UI to build, so renderTree
   // can force-open a restored subject's branch and pendingPage survives until the
@@ -1081,7 +1081,7 @@ function start() {
    * text query (q) and the active facet selection (repeated f= includes and x=
    * excludes, each "field:category"), preserving any foreign params already in
    * the URL. The single source both the address bar and the pager links draw
-   * from, so a pager link never drops the facets (tasks/301, 349). */
+   * from, so a pager link never drops the facets. */
   function selectionParams() {
     const params = new URLSearchParams(window.location.search);
     const q = input.value.trim();
@@ -1098,7 +1098,7 @@ function start() {
 
   /** pageHref builds the URL for page p (1-based in the URL, omitted for page
    * one), carrying the active query and facets so the link is shareable and
-   * degrades to a real navigation if the click handler is gone (tasks/301, 349). */
+   * degrades to a real navigation if the click handler is gone. */
   function pageHref(p) {
     const params = selectionParams();
     if (p > 0) params.set("page", String(p + 1));
@@ -1214,7 +1214,7 @@ function start() {
   /** updateURL syncs the active query, facet selection, and page into the
    * address bar so a faceted page is shareable and the back button returns to
    * the state the reader left. Query/facet changes replace (no history spam); a
-   * pager click pushes (tasks/301, 349). */
+   * pager click pushes. */
   function updateURL(replace) {
     const params = selectionParams();
     if (curIds && curPage > 0) params.set("page", String(curPage + 1));
@@ -1377,7 +1377,7 @@ function start() {
    * late load) the facet UI exists, so the selection is reconciled synchronously
    * and rendered; on a cold load it is deferred until the async facet UI builds
    * (reconstructFacets), so pendingPage and the query render together with the
-   * restored facets rather than flashing an unfiltered page first (tasks/349). */
+   * restored facets rather than flashing an unfiltered page first. */
   function applyURLState() {
     const params = new URLSearchParams(window.location.search);
     const q = params.get("q") || "";
@@ -1414,7 +1414,7 @@ function start() {
   function refresh() {
     // The page to land on comes from a deep link / back-forward navigation
     // (applyURLState); a fresh interaction resets to page one. Read it before
-    // the async boot so a later refresh cannot steal it (tasks/301).
+    // the async boot so a later refresh cannot steal it.
     const startPage = pendingPage;
     pendingPage = 0;
     const q = input.value.trim();
@@ -1431,14 +1431,14 @@ function start() {
         if (!ok || mine !== seq) return; // reader down, or a newer interaction won
         // One ranked base set (query results, or the whole doc space), then
         // facet filtering over it -- the POC's single-pass browse() shape, so
-        // the same survivors drive results AND live counts (tasks/177).
+        // the same survivors drive results AND live counts.
         //
         // The base set is the WHOLE ranked match set, not a page of it. `len`
         // bounds search()'s ids; it never bounds its facetCounts. Passing PAGE
         // here meant the rail advertised a category's true count while every
         // facet click intersected with sixty ids, so no filtered selection could
         // ever return more than sixty works -- 51 of 8307 on a real catalog
-        // (tasks/281). A query cannot match more docs than the corpus holds, so
+        //. A query cannot match more docs than the corpus holds, so
         // allIds.length is an exact bound, and the total below is exact.
         const baseP =
           q !== ""
@@ -1498,7 +1498,7 @@ function start() {
 
   // Drive the list from the address bar: an initial ?q=/?page= (a deep link, or
   // the no-JS form landing here) and every subsequent back/forward navigation
-  // (tasks/301). A bare page load with no query leaves the static list in place.
+  //. A bare page load with no query leaves the static list in place.
   window.addEventListener("popstate", applyURLState);
   if (window.location.search) applyURLState();
 }

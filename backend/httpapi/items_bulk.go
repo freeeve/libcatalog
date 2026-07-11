@@ -42,13 +42,13 @@ func bulkItems(callNumber, location, note string, barcodes []string) []bibframe.
 	return out
 }
 
-// registerItemsBulk mounts bulk item creation (tasks/069): N copies in one
+// registerItemsBulk mounts bulk item creation: N copies in one
 // action with an auto-incrementing barcode pattern. dryRun previews the
 // generated list without writing.
 //
 // Barcodes are allocated inside the grain-mutation closure, under the index's
 // process-wide allocation lock, and checked against the corpus set plus the
-// items already on the fresh grain. Before tasks/269 they were chosen once from
+// items already on the fresh grain. Before they were chosen once from
 // an index snapshot taken before the write and never revisited, so two
 // simultaneous adds handed the same barcode to two items -- and across two works
 // nothing could even detect it, there being no shared object to compare and
@@ -56,7 +56,7 @@ func bulkItems(callNumber, location, note string, barcodes []string) []bibframe.
 //
 // The check is against every barcode the index knows about. It is not a
 // uniqueness constraint: nothing rejects a duplicate typed by hand into the item
-// editor (tasks/270).
+// editor.
 func registerItemsBulk(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue *suggest.Service, librarian func(http.Handler) http.Handler) {
 	mux.Handle("POST /v1/works/{id}/items/bulk", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
@@ -99,7 +99,7 @@ func registerItemsBulk(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, q
 		if !ok {
 			return
 		}
-		// The instance must belong to THIS work (tasks/211): an id typo or a
+		// The instance must belong to THIS work: an id typo or a
 		// copy-paste from another record used to graft holdings onto a
 		// phantom IRI no reader enumerates -- consuming real barcodes.
 		// Rejected on dryRun too, so the preview cannot promise barcodes an

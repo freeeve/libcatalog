@@ -203,7 +203,7 @@ func (s *Store) Query(ctx context.Context, pk, skPrefix string, opt store.QueryO
 				ConsistentRead:            aws.Bool(true),
 			}
 			// Push the limit down so a small page does not read (and pay
-			// for) a full 1MB partition page (tasks/115). +1 covers the
+			// for) a full 1MB partition page. +1 covers the
 			// client-side cursor check without a second round trip.
 			if opt.Limit > 0 {
 				in.Limit = aws.Int32(int32(opt.Limit - count + 1))

@@ -19,7 +19,7 @@ var htmlTag = regexp.MustCompile(`</?[a-zA-Z][^>]*>`)
 // double-escape (&amp;#8212;), so a single pass would only peel one layer. The
 // providers apply this to prose and transcribed titles at ingest, so grains
 // store clean text and every downstream projection and export inherits it
-// (tasks/081, tasks/089). Headings and identifiers are deliberately left
+// . Headings and identifiers are deliberately left
 // untouched.
 func CleanText(s string) string {
 	if !strings.ContainsAny(s, "&<") {

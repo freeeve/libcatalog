@@ -1,4 +1,4 @@
-// The palette, checked rather than asserted (tasks/315).
+// The palette, checked rather than asserted.
 //
 // a11y.test.ts skips axe's color-contrast rule -- jsdom has no rendering engine --
 // and says instead that "the palette in app.css is chosen for WCAG AA contrast".
@@ -77,7 +77,7 @@ describe("palette", () => {
     for (const [bg, ink] of inkOn) {
       it(`${theme}: ${ink} on ${bg} holds AA`, () => {
         expect(t[bg], `${bg} undefined in ${theme}`).toBeTruthy();
-        expect(t[ink], `${ink} undefined in ${theme} -- a background token with no ink token is how tasks/315 happened`).toBeTruthy();
+        expect(t[ink], `${ink} undefined in ${theme} -- a background token with no ink token is how happened`).toBeTruthy();
         expect(contrast(t[ink], t[bg])).toBeGreaterThanOrEqual(AA_NORMAL);
       });
     }

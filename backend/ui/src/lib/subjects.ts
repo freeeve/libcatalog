@@ -1,4 +1,4 @@
-// Which IRI values a record's field already carries (tasks/248).
+// Which IRI values a record's field already carries.
 //
 // The subject neighborhood exists to crosswalk a term onto a record -- pull the
 // LCSH equivalent onto a record that has the homosaurus term. Records where a

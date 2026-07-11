@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Macro management (tasks/047): list own + shared macros, edit the
+  // Macro management: list own + shared macros, edit the
   // definition (label, shortcut key, sharing, parameters, the op list as
   // JSON), delete, or jump to the batch screen to run one over a selection.
   // Recording happens in the work editor ("Save staged edits as macro…");
@@ -31,14 +31,14 @@
   const me = $derived($sessionStore?.email ?? "");
   const isAdmin = $derived(canAdmin($sessionStore));
   // A macro is manageable by its owner, and -- since a shared macro is library
-  // property -- by an admin acting as its custodian (tasks/292). The server
+  // property -- by an admin acting as its custodian. The server
   // enforces the same rule; this shows the controls it would honour.
   function canManage(m: Macro): boolean {
     return m.owner === me || (isAdmin && !!m.shared);
   }
   // The shortcut is checked where it is chosen: the editor's chords and the
   // other macros' keys are both known here, and the cataloger is the only one
-  // who can pick a different key (tasks/237). The server refuses the same
+  // who can pick a different key. The server refuses the same
   // collisions; this is so nobody has to discover them by being refused.
   const otherMacroKeys = $derived(macros.filter((m) => m.id !== editing?.id && m.keys).map((m) => m.keys!));
   const keyError = $derived(shortcutKeyError(keys.trim(), otherMacroKeys));

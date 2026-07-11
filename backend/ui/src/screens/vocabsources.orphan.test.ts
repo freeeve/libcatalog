@@ -1,4 +1,4 @@
-// tasks/255: the Vocabularies screen offered an orphan install two buttons that
+// the Vocabularies screen offered an orphan install two buttons that
 // could only 404. An orphan row is synthesized from a snapshot with no source
 // record behind it (an offline vocab-install, or a registry reset), so Upload and
 // Delete source have nothing to act on -- both reach GetSource and answer

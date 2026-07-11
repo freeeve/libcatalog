@@ -20,7 +20,7 @@ func stampOp() []editor.Op {
 	}}
 }
 
-// TestMacroShortcutValidation covers tasks/237: a macro may not take a chord
+// TestMacroShortcutValidation covers a macro may not take a chord
 // the editor already binds, may not carry a shortcut that can never fire, and
 // may not shadow another macro's key.
 func TestMacroShortcutValidation(t *testing.T) {

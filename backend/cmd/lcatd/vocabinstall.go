@@ -15,7 +15,7 @@ import (
 )
 
 // runVocabInstall installs a vocabulary snapshot into a blob store off the
-// running server -- how a serverless deployment adds a vocabulary (tasks/163).
+// running server -- how a serverless deployment adds a vocabulary.
 // On Lambda the async download worker never runs, and without a document store
 // the source registry resets every cold start; the durable artifacts are the
 // blob-side snapshot and sidecar, which this writes through the same
@@ -105,7 +105,7 @@ func runVocabInstall(args []string) error {
 }
 
 // runVocabIndex (re)builds the sidecar index artifacts for already-installed
-// vocabulary snapshots (tasks/167) -- how an existing deployment adopts
+// vocabulary snapshots -- how an existing deployment adopts
 // range-served vocabularies without reinstalling the dumps.
 //
 //	lcatd vocab-index (--blob-dir <dir> | --s3-bucket <bucket>) [--aws-endpoint <url>]

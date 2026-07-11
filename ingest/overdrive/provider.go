@@ -14,7 +14,7 @@ const ProviderName = "overdrive"
 // Provider is the OverDrive reference ingest provider (ARCHITECTURE §9): it reads a
 // cached Thunder scan and yields its items as resolvable records for the shared
 // ingest.Run pipeline. It holds only build-time config; the live availability half
-// is a separate runtime adapter (tasks/004).
+// is a separate runtime adapter.
 type Provider struct {
 	feed  string
 	cache string
@@ -54,7 +54,7 @@ func (p Provider) Records(_ context.Context) ([]ingest.Record, error) {
 		// Thunder titles carry HTML character references and markup (e.g.
 		// "LEGO&#174; Creations", "Qing&#8212;Min Ning"); normalize the transcribed
 		// text at the source so both the BIBFRAME titles and the identity
-		// clustering key see clean values (tasks/081). Subjects and creators are
+		// clustering key see clean values. Subjects and creators are
 		// headings and stay untouched.
 		it.Title = ingest.CleanText(it.Title)
 		it.Subtitle = ingest.CleanText(it.Subtitle)

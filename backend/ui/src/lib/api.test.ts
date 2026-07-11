@@ -372,7 +372,7 @@ describe("401 retry", () => {
   });
 });
 
-// tasks/337: service-internal error prefixes must not reach a cataloger's error
+// service-internal error prefixes must not reach a cataloger's error
 // banner. humanApiMessage strips the "pkg:" and its "invalid request:/invalid
 // source:" tail; every error-surfacing screen routes through it.
 describe("humanApiMessage", () => {
@@ -402,7 +402,7 @@ describe("humanApiMessage", () => {
   });
 });
 
-// tasks/337: the anti-drift guard. A screen that assigns the raw ApiError
+// the anti-drift guard. A screen that assigns the raw ApiError
 // message straight to its error banner re-leaks the package prefix (the exact
 // regression 337 fixed on nine screens). No screen source may pair
 // `instanceof ApiError` with a bare `e.message` on the same line -- the humanizer

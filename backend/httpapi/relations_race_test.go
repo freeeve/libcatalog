@@ -89,7 +89,7 @@ func TestRelationCycleGuardRefusesSequentialOppositeAdds(t *testing.T) {
 	}
 }
 
-// tasks/271: containmentCycle is a time-of-check test run before either grain
+// containmentCycle is a time-of-check test run before either grain
 // is written. Two adds fired in opposite directions each saw a graph without
 // the other's edge, both passed, and both wrote their forward statement -- a
 // C hasPart D hasPart C cycle, across two grains the backstop cannot compare.
@@ -258,7 +258,7 @@ func (c *relationConflictBlob) Put(ctx context.Context, path string, data []byte
 	return c.Store.Put(ctx, path, data, opts)
 }
 
-// tasks/271: relationMu keeps other relation edits out, but a plain grain write
+// relationMu keeps other relation edits out, but a plain grain write
 // -- PUT /v1/works/{id}, a batch patch -- can still move the graph under a
 // relation add and lose it the CAS. The guard passed before the write, against a
 // graph that no longer exists. The retry must re-check against the graph it is
@@ -316,7 +316,7 @@ func (g *grainPutFailBlob) Put(ctx context.Context, path string, data []byte, op
 	return g.Store.Put(ctx, path, data, opts)
 }
 
-// tasks/271: when the inverse write fails, the forward statement used to stay,
+// when the inverse write fails, the forward statement used to stay,
 // and the 500 told the cataloger to "retry to converge". Compensate instead, so
 // nothing is applied and the retry the message prescribes is actually possible.
 func TestRelationFailedInverseRollsBackTheForwardLink(t *testing.T) {
@@ -406,7 +406,7 @@ func (s *strandFailBlob) Put(ctx context.Context, path string, data []byte, opts
 
 // When the rollback fails too, one work asserts a link the other does not. That
 // record changed, so it must be attributable -- and the error must name the real
-// repair rather than prescribe a retry the cycle guard would refuse (tasks/271).
+// repair rather than prescribe a retry the cycle guard would refuse.
 func TestRelationStrandedLinkIsAuditedAndNamesTheRepair(t *testing.T) {
 	mem := blob.NewMem()
 	a, b := "wrelstrna12", "wrelstrnb12"

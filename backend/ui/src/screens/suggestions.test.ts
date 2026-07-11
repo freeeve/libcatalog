@@ -1,4 +1,4 @@
-// The suggestion-policy editor (tasks/263, the UI half of the backend policy):
+// The suggestion-policy editor (the UI half of the backend policy):
 // it loads the stored policy and the registered vocabularies, and a save PUTs
 // exactly the edited {enabled, freeText, schemes}.
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -90,7 +90,7 @@ function schemeBox(host: HTMLElement, scheme: string): HTMLInputElement {
   return box;
 }
 
-describe("Suggestion policy editor (tasks/263)", () => {
+describe("Suggestion policy editor", () => {
   it("reflects the stored policy and lists loaded vocabularies", async () => {
     const { host } = await mountScreen({
       enabled: false,

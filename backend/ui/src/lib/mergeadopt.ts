@@ -1,4 +1,4 @@
-// Per-field adoption for the duplicate merge chooser (tasks/058 item 6). The
+// Per-field adoption for the duplicate merge chooser. The
 // compare table used to be read-only: a cataloger picked a survivor and then
 // re-typed, in its editor, whatever the losing record held. Adoption stages
 // that copy as ordinary editor ops against the survivor, applied before the

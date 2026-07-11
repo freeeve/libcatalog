@@ -64,7 +64,7 @@ func setTitleOps(title string) []map[string]any {
 	}}
 }
 
-// tasks/249, the reported repro: applying the same ops three times wrote three
+// the reported repro: applying the same ops three times wrote three
 // RECORD_EDIT rows, all naming the same etag, two of them for saves whose diff
 // was empty. The history must be a faithful account of what happened, and two
 // of those three things did not happen.

@@ -1,4 +1,4 @@
-// The Execute gate (tasks/113): a destructive batch execute is enabled only
+// The Execute gate: a destructive batch execute is enabled only
 // while the current inputs match what the last dry run previewed -- editing a
 // param (or op/selection) after the dry run disables it until a fresh one.
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -150,7 +150,7 @@ describe("BatchOps execute gate", () => {
   });
 });
 
-describe("BatchOps profile picker (tasks/346)", () => {
+describe("BatchOps profile picker", () => {
   it("offers a work-profile selector when several exist and switches the field list", async () => {
     setConfig({
       apiBase: "",

@@ -3,7 +3,7 @@
 {{ end }}
 
 {{ define "main" }}
-{{- /* Display title resolution lives in lcat-term-title.html (tasks/149),
+{{- /* Display title resolution lives in lcat-term-title.html,
        shared with head-seo.html so the head <title>/og:title match the h1. */ -}}
 {{- $t := partial "lcat-term-title.html" . -}}
 <h1><span class="lcat-facet-dim">{{ .Data.Singular | humanize }}:</span> {{ $t.label }}{{ with $t.scheme }} <span class="lcat-term-scheme">({{ . }})</span>{{ end }}</h1>

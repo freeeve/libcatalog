@@ -172,7 +172,7 @@ test("overdriveRequest: proxied without proxyUrl errors; direct without slug err
 
 test("proxied transport yields identical normalized models to direct", async () => {
   // Same underlying availability, fetched two ways -> the models must match exactly
-  // (tasks/004: "proxy fallback produces identical normalized output").
+  // ("proxy fallback produces identical normalized output").
   const table = { r1: { id: "r1", ownedCopies: 3, availableCopies: 0, holdsCount: 5, estimatedWaitDays: 12, availabilityType: "normal" } };
   const directCfg = { slug: "queerliblib" };
   const proxiedCfg = { transport: "proxied", proxyUrl: "https://edge.example/avail", slug: "queerliblib" };
@@ -413,7 +413,7 @@ test("readConfig: disabled and absent return null", () => {
   assert.equal(A.readConfig(fakeDoc("not json")), null);
 });
 
-// ---- Hugo lowercases param keys (tasks/287) ----
+// ---- Hugo lowercases param keys ----
 // The end-to-end proof lives in availability_seam_test.cjs, which reads the
 // bytes Hugo actually emits. These pin the normalizer's contract.
 

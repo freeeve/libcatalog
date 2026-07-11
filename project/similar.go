@@ -42,7 +42,7 @@ type SimilarIndex struct {
 }
 
 // SimilarWork converts a projected Work into the similarity scorer's input
-// (tasks/284). It is one of exactly two converters -- ingest.WorkSummary.SimilarWork
+// . It is one of exactly two converters -- ingest.WorkSummary.SimilarWork
 // is the other -- and a test drives both from the same graph and requires equal
 // results, so the OPAC's precomputed rail and the admin's live panel cannot drift.
 //
@@ -58,7 +58,7 @@ func (w Work) SimilarWork() similar.Work {
 	for _, s := range w.Subjects {
 		subjects = append(subjects, s.ID)
 	}
-	// Series are Work-level since tasks/309, so the scorer no longer collects them
+	// Series are Work-level since so the scorer no longer collects them
 	// across Instances and de-duplicates. The *titles* are what links two Works:
 	// "bk. 2" and "bk. 7" of one series are neighbours, and an enumeration shared
 	// by two unrelated series is a coincidence.
@@ -139,7 +139,7 @@ func (c *Catalog) SimilarOptions() similar.Options {
 // The pass is parallel across Works. Neighbors is read-only on a built Index, so
 // this is embarrassingly parallel, and it needs to be: at 62,602 Works a serial
 // pass is ~84 s and ~43 GB of allocation churn, on top of a projector that
-// already peaks near 2 GB (tasks/279). Build itself stays serial -- it is 44 ms.
+// already peaks near 2 GB. Build itself stays serial -- it is 44 ms.
 func (c *Catalog) Similar(limit int) *SimilarIndex {
 	idx := &SimilarIndex{Version: SimilarSchemaVersion, Limit: limit, Works: map[string][]SimilarNeighbor{}}
 	if limit <= 0 || len(c.Works) == 0 {

@@ -81,7 +81,7 @@ func summarySetOps(text string) []editor.Op {
 	}}
 }
 
-// TestListQueriesSortsByLabel is the first test to read ListQueries back (tasks/294):
+// TestListQueriesSortsByLabel is the first test to read ListQueries back:
 // it returned whatever the store's sort-key iterator yielded, and the key embeds a
 // crypto/rand id, so the order was arbitrary and the query just saved did not land last.
 // The labels are created in reverse-alphabetical order so that creation order, label
@@ -237,7 +237,7 @@ func TestMacroCRUDAndParams(t *testing.T) {
 
 	m, err := svc.CreateMacro(ctx, batch.Macro{
 		OwnedMeta: batch.OwnedMeta{Label: "Stamp summary"},
-		Keys:      "4", // "1" is the editor's Native-tab chord (tasks/237)
+		Keys:      "4", // "1" is the editor's Native-tab chord
 		Ops: []editor.Op{{
 			Resource: "work", Path: "summary", Action: "set",
 			Values: []editor.OpValue{{V: "${text} (stamped)", Lang: "en"}},
@@ -262,7 +262,7 @@ func TestMacroCRUDAndParams(t *testing.T) {
 	}
 	// A blank value means "use the default", same as omitted -- the client's
 	// applyParams already reads it that way, and the parameter field
-	// advertises the default as its placeholder (tasks/231; the ui
+	// advertises the default as its placeholder (the ui
 	// macros.test.ts table carries this same fixture).
 	ops, err = batch.ApplyParams(m, map[string]string{"text": ""})
 	if err != nil || ops[0].Values[0].V != "No summary (stamped)" {
@@ -316,7 +316,7 @@ func TestMacroCRUDAndParams(t *testing.T) {
 	}
 	// An admin is the shared macro's custodian: it may relabel it (staying
 	// shared, owner unchanged) and delete it -- the recovery path when the
-	// owner's account is gone (tasks/292).
+	// owner's account is gone.
 	relabel := got
 	relabel.Label = "Stamp summary (curated)"
 	curated, err := svc.UpdateMacro(ctx, m.ID, relabel, "boss@example.org", true)
@@ -374,7 +374,7 @@ func TestSharedMacroOverSelection(t *testing.T) {
 	}
 }
 
-// fakeIndex records the read-your-writes calls Run must make (tasks/195).
+// fakeIndex records the read-your-writes calls Run must make.
 type fakeIndex struct {
 	applied map[string]string // grain path -> etag
 	grains  map[string]int    // grain path -> written bytes
@@ -395,7 +395,7 @@ func (f *fakeIndex) AppendFeed(_ context.Context, paths ...string) error {
 	return nil
 }
 
-// TestRunUpdatesIndex covers tasks/195: an executed batch keeps the shared
+// TestRunUpdatesIndex covers an executed batch keeps the shared
 // work index exact for its own writes -- Apply per written grain with the
 // reported etag, one AppendFeed over the changed paths -- while a dry run
 // touches nothing. Before this, batch edits stayed invisible to work search
@@ -446,7 +446,7 @@ func TestRunUpdatesIndex(t *testing.T) {
 	}
 }
 
-// TestWhitespaceQueriesRejected covers tasks/205: a query that normalizes
+// TestWhitespaceQueriesRejected covers a query that normalizes
 // to nothing is refused everywhere -- resolve, run, saved-query creation,
 // and legacy saved queries at resolution -- so only KindAll can select the
 // whole catalog.

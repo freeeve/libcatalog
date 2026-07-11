@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Positional builder for the leader and 006/007/008 (tasks/049): each
+  // Positional builder for the leader and 006/007/008: each
   // defined position renders as a labeled input (with a datalist of known
   // values where the definition names them); everything else stays exactly
   // as the raw value holds it. The raw line is always visible underneath, so
@@ -20,7 +20,7 @@
   // Derived, NOT computed once: the mounted instance survives a tag change
   // (a row's tag edited in place, keyed lists shifting which field lands
   // here), and a stale slot table mislabels every position and writes runs
-  // at the wrong byte offsets (tasks/228).
+  // at the wrong byte offsets.
   const slots = $derived(fixedSlots(tag));
   const listId = (i: number): string => `ffg-${tag}-${i}`;
 </script>

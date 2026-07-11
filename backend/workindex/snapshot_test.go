@@ -133,7 +133,7 @@ func TestSnapshotCorruptFallsBack(t *testing.T) {
 }
 
 // etagRewriter presents the wrapped store's content under a different ETag
-// scheme -- the tasks/162 failure: a snapshot built via one backend (dir,
+// scheme -- the failure: a snapshot built via one backend (dir,
 // sha256 ETags) serving a store with another (S3, MD5-based ETags).
 type etagRewriter struct {
 	blob.Store

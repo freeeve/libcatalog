@@ -1,5 +1,5 @@
 // Renders the instance links field and pins the enriched link display:
-// a grain-carried 856 $3 annotation wins (libcodex v0.15.0, tasks/147),
+// a grain-carried 856 $3 annotation wins (libcodex v0.15.0),
 // OverDrive URL shapes get heuristic labels otherwise, image links get an
 // inline thumbnail, and unrecognized links keep the compact host › tail
 // form.

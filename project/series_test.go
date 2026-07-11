@@ -26,7 +26,7 @@ func (p seriesProvider) Records(context.Context) ([]ingest.Record, error) { retu
 // Instance literals this code used to read were pinned by exactly such a fixture,
 // so when libcodex v0.25.0 moved series onto a bf:relation on the Work, the
 // projector returned empty and every test stayed green: the fixture agreed with
-// the reader, and neither agreed with libcodex (tasks/309).
+// the reader, and neither agreed with libcodex.
 func projectMARC(t *testing.T, recs ...*codex.Record) *Catalog {
 	t.Helper()
 	dir := t.TempDir()
@@ -56,7 +56,7 @@ func seriesRecord(control, title string, f490 ...codex.Field) *codex.Record {
 	return r
 }
 
-// tasks/309. Two 490s, each with its own $v. The flat shape paired a statement to
+// . Two 490s, each with its own $v. The flat shape paired a statement to
 // an enumeration by list position, and an RDF graph is a set -- so this record
 // used to yield one enumeration for the whole Instance, and the projector took
 // whichever came first. Each enumeration now belongs to its own relation.
@@ -115,7 +115,7 @@ func TestASeriesWithNoStatementIsDropped(t *testing.T) {
 // it may map in future. The original reason ("a MARC record cannot produce a
 // competing relation") held only for 765/830; 780/785 do emit one, so
 // TestANonSeriesRelationFromAReal780RecordIsNotProjectedAsASeries below now pins
-// the same guard on a real record too (tasks/314).
+// the same guard on a real record too.
 func TestANonSeriesRelationIsNotProjectedAsASeries(t *testing.T) {
 	const bf = "http://id.loc.gov/ontologies/bibframe/"
 	nq := `<#waaWork> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <` + bf + `Work> <feed:marc> .
@@ -149,14 +149,14 @@ _:ot <` + bf + `mainTitle> "Original Title" <feed:marc> .
 	}
 }
 
-// The real-record companion to the fixture test above (tasks/314, answering
+// The real-record companion to the fixture test above (answering
 // libcodex 112): a record carrying a 490 and a 780 produces exactly the competing
 // pair the guard must tell apart. libcodex maps 780 (preceding title) to a
 // bf:relation whose relationship is *not* series (ind2=0 -> `continues`), while
 // the 490 maps to a series relation. The projector must take only the 490's
 // series and never the 780's preceding title. This exercises the real
 // FromRecord -> Project pipeline, so it is immune to the fixture-agrees-with-the-
-// reader failure that let the flat-shape bug ship green (tasks/309); deleting the
+// reader failure that let the flat-shape bug ship green; deleting the
 // relationship check would surface the 780's $t "Old Title" as a spurious series,
 // the mis-read libcodex 112 warned about.
 func TestANonSeriesRelationFromAReal780RecordIsNotProjectedAsASeries(t *testing.T) {

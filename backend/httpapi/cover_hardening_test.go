@@ -41,7 +41,7 @@ func getCover(t *testing.T, h http.Handler, file string, ifNoneMatch string) *ht
 	return rec
 }
 
-// tasks/243 finding 1: the old image kept serving from its public,
+// finding 1: the old image kept serving from its public,
 // unauthenticated, guessable URL after being replaced. Nothing referenced it, so
 // nothing would ever collect it -- and a cataloger replaces a cover exactly when
 // the old one must stop being published.
@@ -101,7 +101,7 @@ func TestReplacingACoverWithTheSameFormatKeepsIt(t *testing.T) {
 	_ = bs
 }
 
-// tasks/243 finding 2: the declared content type was trusted and the bytes never
+// finding 2: the declared content type was trusted and the bytes never
 // looked at, so an HTML document was stored and served as image/png, and a JPEG
 // uploaded as image/png was stored at a .png path.
 func TestCoverUploadChecksTheBytesAgainstTheDeclaredType(t *testing.T) {
@@ -139,7 +139,7 @@ func TestCoverUploadChecksTheBytesAgainstTheDeclaredType(t *testing.T) {
 	}
 }
 
-// tasks/243 finding 3: no validator on a publicly cached response, so a
+// finding 3: no validator on a publicly cached response, so a
 // same-format correction kept serving the old image from caches for an hour.
 func TestCoverResponseIsRevalidatable(t *testing.T) {
 	h, bs := newRecordsAPI(t)
@@ -185,7 +185,7 @@ func TestCoverResponseIsRevalidatable(t *testing.T) {
 	_ = bs
 }
 
-// tasks/243 finding 4: RFC 9110 §8.3.1 makes media type and subtype
+// finding 4: RFC 9110 §8.3.1 makes media type and subtype
 // case-insensitive, so "Image/PNG" is a correct spelling and was 415'd.
 func TestCoverContentTypeIsCaseInsensitive(t *testing.T) {
 	h, bs := newRecordsAPI(t)
@@ -206,7 +206,7 @@ func TestCoverContentTypeIsCaseInsensitive(t *testing.T) {
 	_ = bs
 }
 
-// tasks/242: the editor's Cover panel read the cover out of doc.work.fields,
+// the editor's Cover panel read the cover out of doc.work.fields,
 // where no profile declares it, so every reloaded page reported "none" -- and
 // Remove renders only when the panel knows a cover exists. A cataloger facing a
 // rights complaint had no control to click.

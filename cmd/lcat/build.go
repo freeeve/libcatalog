@@ -17,7 +17,7 @@ import (
 )
 
 // runBuild drives the whole static-site pipeline from one deployment config
-// file (tasks/172): ingest every [[source]] -> serialize -> project -> export
+// file: ingest every [[source]] -> serialize -> project -> export
 // -> index -> hugo, so an adopter's rebuild is `lcat build`, not a shell
 // script. Steps run only when their config section is present; --only narrows
 // a run to named steps for iteration.
@@ -59,7 +59,7 @@ func runBuild(args []string) error {
 			providers = cfg.feeds()
 		}
 		// A build ingests before it projects, so zero works means the pipeline
-		// produced nothing -- fail rather than publish an empty site (tasks/246).
+		// produced nothing -- fail rather than publish an empty site.
 		if err := projectCatalog(projectOptions{
 			CatalogPath:   filepath.Join(cfg.Out, "catalog.nq"),
 			Providers:     providers,
@@ -117,9 +117,9 @@ type buildSource struct {
 	// Params are provider parameters (ingest.Config.Params).
 	Params map[string]string `toml:"params"`
 	// Reconcile flags feed-only works the scan no longer lists: review |
-	// auto-suppress (tasks/078).
+	// auto-suppress.
 	Reconcile string `toml:"reconcile"`
-	// ReconcileAllowEmpty lets a zero-record scan reconcile (tasks/103).
+	// ReconcileAllowEmpty lets a zero-record scan reconcile.
 	ReconcileAllowEmpty bool `toml:"reconcile-allow-empty"`
 }
 
@@ -132,13 +132,13 @@ type projectStep struct {
 	// empty keeps everything.
 	PublicSources []string `toml:"public-sources"`
 	// PublicExtras is the extra *key* allowlist for the public catalog
-	// (tasks/277); empty keeps everything. "sources" is governed by
+	//; empty keeps everything. "sources" is governed by
 	// PublicSources instead, whatever this names.
 	PublicExtras []string `toml:"public-extras"`
-	// SubjectSchemes are authority prefix=code pairs (tasks/141).
+	// SubjectSchemes are authority prefix=code pairs.
 	SubjectSchemes []string `toml:"subject-schemes"`
 	// Similar is how many neighbours each Work carries in similar.json
-	// (tasks/284). A pointer because 0 means "no rail" and absent means the
+	//. A pointer because 0 means "no rail" and absent means the
 	// default -- an int could not tell those apart.
 	Similar *int `toml:"similar"`
 }
@@ -159,12 +159,12 @@ type exportStep struct {
 	// unset inherits it, so one policy covers both public surfaces.
 	PublicSources []string `toml:"public-sources"`
 	// PublicExtras overrides the [project] extra-key allowlist for the nq
-	// download the same way (tasks/277).
+	// download the same way.
 	PublicExtras []string `toml:"public-extras"`
 	// OrgCode is the deployment's MARC organization code: the MARC
-	// downloads derive each record's 040 from graph facts (tasks/192).
+	// downloads derive each record's 040 from graph facts.
 	OrgCode string `toml:"org-code"`
-	// CoversOut is where uploaded covers are copied (tasks/215).
+	// CoversOut is where uploaded covers are copied.
 	CoversOut string `toml:"covers-out"`
 }
 

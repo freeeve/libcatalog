@@ -232,7 +232,7 @@ func TestReloadAndMergedTerms(t *testing.T) {
 	}
 }
 
-// TestPath drives the tasks/079 breadcrumb walk: shortest broader chain,
+// TestPath drives the breadcrumb walk: shortest broader chain,
 // root → parent order, polyhierarchy tie-breaks, and cycle/dangling safety.
 func TestPath(t *testing.T) {
 	nq := func(s, p, o string) string {
@@ -304,7 +304,7 @@ func TestPath(t *testing.T) {
 	}
 }
 
-// TestAncestors covers the full-closure walk (tasks/178): unlike Path's one
+// TestAncestors covers the full-closure walk: unlike Path's one
 // shortest chain, every broader ancestor comes back (polyhierarchy), BFS
 // order, cycle-safe, with unresolvable parents skipped.
 func TestAncestors(t *testing.T) {
@@ -421,7 +421,7 @@ func FuzzNormalizeFolk(f *testing.F) {
 	})
 }
 
-// TestResolveHomosaurusRelease covers the tasks/188 IRI-version bridging:
+// TestResolveHomosaurusRelease covers the IRI-version bridging:
 // feed data minted against one Homosaurus release resolves against the
 // installed one through the version-stable homoit id, while Lookup (the
 // write-side validation gate) stays exact.
@@ -448,7 +448,7 @@ func TestResolveHomosaurusRelease(t *testing.T) {
 	}
 }
 
-// TestDebrisNeverMintsScheme covers tasks/204: label-less bookkeeping in an
+// TestDebrisNeverMintsScheme covers label-less bookkeeping in an
 // authority-class graph (the legacy authority:aliases tagAlias statements)
 // neither registers a scheme nor shadows the term's real vocabulary.
 func TestDebrisNeverMintsScheme(t *testing.T) {

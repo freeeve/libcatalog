@@ -72,7 +72,7 @@ func TestFocusIsExcluded(t *testing.T) {
 // the top recommendation for "Frog and Toad Together".
 // A repeated attribute value is evidence once, not twice. Neither caller
 // de-duplicates subjects or tags upstream, so a record that states the same
-// subject in two graphs (tasks/286) would otherwise post to it twice and outscore
+// subject in two graphs would otherwise post to it twice and outscore
 // a Work that genuinely shares two distinct subjects.
 func TestRepeatedAttributeValueCountsOnce(t *testing.T) {
 	works := append(padded(20),
@@ -216,7 +216,7 @@ func TestDuplicateSummariesDoNotSelfRecommend(t *testing.T) {
 	}
 }
 
-// Retiring a record must not leave it recommended from elsewhere (tasks/280),
+// Retiring a record must not leave it recommended from elsewhere,
 // and it has no neighbours of its own.
 func TestTombstonedWorksAreInvisible(t *testing.T) {
 	works := append(padded(20),

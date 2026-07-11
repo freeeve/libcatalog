@@ -53,7 +53,7 @@ func corpus(t *testing.T, recs ...*codex.Record) string {
 
 // plantSourcesQuad appends a provenance attribution to some Work's grain, the
 // way an enrichment pass leaves one. It goes in a grain, not in catalog.nq:
-// since tasks/298 catalog.nq is the merge of the grains, and since tasks/304 the
+// catalog.nq is the merge of the grains, and the
 // export derives the nq download from them rather than copying that file, so a
 // quad that exists only in catalog.nq exists nowhere the exporter looks.
 func plantSourcesQuad(t *testing.T, root, sources string) {
@@ -211,8 +211,8 @@ func FuzzFilterSourcesQuad(f *testing.F) {
 	})
 }
 
-// tasks/298 warned when export gzipped a catalog.nq written by a pre-v0.120 lcat,
-// because the download inherited that file's churning sha256. tasks/304 retired
+// warned when export gzipped a catalog.nq written by a pre-v0.120 lcat,
+// because the download inherited that file's churning sha256. retired
 // the warning by retiring its cause: the nq download is now built from the grains,
 // so a stale -- or absent, or hand-corrupted -- catalog.nq cannot reach a reader.
 //

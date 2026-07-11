@@ -1,12 +1,12 @@
-// tasks/305: Merge wrote the durable record of the retirement before doing the
+// Merge wrote the durable record of the retirement before doing the
 // work it describes. `lcat:mergedInto` landed on the loser's grain, then the
 // rewrite loop returned on the first failing Work -- leaving some works pointing
 // at the winner, the rest at a retired heading, no audit entry, a discarded count,
 // and `500 merge failed` on the wire.
 //
 // A merge is the widest authority write in the product and the one most likely to
-// meet a store failure partway. Same family as tasks/300 (promotion stamped
-// APPROVED before PromoteTag ran) and tasks/261.
+// meet a store failure partway. Same family as (promotion stamped
+// APPROVED before PromoteTag ran).
 //
 // Every check here carries a control: a healthy merge runs first, or the same
 // assertion is made on the success path, because "the loser is not retired" is

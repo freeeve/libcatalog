@@ -25,13 +25,13 @@ type authorityView struct {
 	Term bibframe.AuthorityTerm `json:"term"`
 }
 
-// registerAuthorities mounts the librarian authorities surface (tasks/046):
+// registerAuthorities mounts the librarian authorities surface:
 // local-term CRUD with ETag optimistic locking, the profile the editor form
 // renders from, merge, and the explicit index reload.
 func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, prof *profilesvc.Service, verifier auth.TokenVerifier, logger *slog.Logger) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 	// A merge that failed at the store is what an operator needs to see; the
-	// cataloger gets a message instead of the blob root (tasks/272).
+	// cataloger gets a message instead of the blob root.
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
@@ -60,7 +60,7 @@ func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, prof *p
 			terms = svc.Vocab.Search(authoritiesvc.LocalScheme, q, limit)
 		}
 		// A node with no labels is not a heading -- it is grain debris (a
-		// marker asserted on a subject nothing describes, tasks/202) and
+		// marker asserted on a subject nothing describes) and
 		// must not render as a blank row in the Authorities screen.
 		kept := make([]*vocab.Term, 0, len(terms))
 		for _, t := range terms {
@@ -72,7 +72,7 @@ func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, prof *p
 		// total is the true count of local headings (empty-query browse) or of
 		// the matches returned (label search), so the screen can report a real
 		// number and know when it is showing a truncated page rather than
-		// presenting the fetch limit as a total (tasks/329).
+		// presenting the fetch limit as a total.
 		total := len(terms)
 		if q == "" && len(terms) > limit {
 			terms = terms[:limit]
@@ -196,12 +196,12 @@ func registerAuthorities(mux *http.ServeMux, svc *authoritiesvc.Service, prof *p
 			// Merge writes through publish.MutateGrain once per carrying Work and
 			// once for the loser, so a store failure used to answer 409 with an
 			// *os.PathError as its body: the wrong status, claiming a concurrent
-			// edit, and the wrong message, naming the blob root (tasks/272). Every
+			// edit, and the wrong message, naming the blob root. Every
 			// unclassified error took that same 409 path -- a read failure on the
 			// loser grain, a SummariesOf failure -- so 272's fix stopped one case
 			// short. They are server faults; answer 500 and log the cause.
 			//
-			// "merge failed" was also not true (tasks/305). The rewrite runs before
+			// "merge failed" was also not true. The rewrite runs before
 			// the retirement, so a failure leaves the heading live and every work
 			// either repointed or not; the works already rewritten stay rewritten,
 			// and re-issuing the same merge resumes at the one that failed. Say the

@@ -11,7 +11,7 @@ import (
 )
 
 // FreeTextMode governs whether patrons may propose folksonomy (free-text) tags,
-// and which ones (tasks/263).
+// and which ones.
 type FreeTextMode string
 
 const (
@@ -24,7 +24,7 @@ const (
 )
 
 // Policy is the deployment's stored, admin-editable patron-suggestion policy
-// (tasks/263). It is opt-in: absent, or with Enabled false, the public
+// . It is opt-in: absent, or with Enabled false, the public
 // suggestion intake accepts nothing -- so a library that wants a review queue
 // without anonymous suggestion simply leaves it off, decoupling the two
 // surfaces that used to be one. When enabled, Schemes allowlists the controlled
@@ -40,7 +40,7 @@ type Policy struct {
 }
 
 // DefaultPolicy is the policy of a store that has never had one set: patron
-// suggestions off. Opt-in is the whole point (tasks/263).
+// suggestions off. Opt-in is the whole point.
 func DefaultPolicy() Policy {
 	return Policy{Enabled: false, FreeText: FreeTextOff}
 }

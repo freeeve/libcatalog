@@ -27,7 +27,7 @@ import (
 // The allowlisted execute paths reach the store rather than this guard, so they
 // answer through writeGrainWriteError / writeMutateError, which map
 // blob.ErrReadOnly onto the same 403 and the same wording. A client cannot tell
-// which layer refused it, which is the point: before tasks/260 those two routes
+// which layer refused it, which is the point: those two routes
 // answered 500 "grain write failed".
 func readOnlyGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +43,7 @@ func readOnlyGuard(next http.Handler) http.Handler {
 // deployment does not accept writes. The guard and the store's own refusal must
 // be indistinguishable: the allowlisted execute paths reach the store instead of
 // the guard, and used to answer 500 "grain write failed" -- a claim the server
-// is broken, on an ordinary user action, in the mode strangers touch (tasks/260).
+// is broken, on an ordinary user action, in the mode strangers touch.
 const readOnlyNotice = "read-only demo: changes are not saved"
 
 func writeReadOnly(w http.ResponseWriter) {
@@ -72,7 +72,7 @@ func isMutatingMethod(m string) bool {
 // workScopedAllowed are the per-work editor routes that never persist in
 // read-only mode: /v1/works/{id}/<suffix>. Matching the shape of the route
 // rather than the tail of the path keeps a future /v1/queue/ops or
-// /v1/exports/marc out of the allowlist (tasks/260). The old suffix match let
+// /v1/exports/marc out of the allowlist. The old suffix match let
 // any route ending in these words through, relying entirely on the blob store
 // to catch it -- and a route writing to the *document* store would not have been
 // caught at all, since only the blob is wrapped read-only.

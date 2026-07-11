@@ -70,7 +70,7 @@ func newPublisher(t *testing.T) (*Publisher, blob.Store, *suggest.Service, *capt
 	}
 	db := store.NewMem()
 	queue := suggest.New(db, ix, suggest.Caps{})
-	// Open the patron intake (tasks/263); default is off.
+	// Open the patron intake; default is off.
 	if _, err := queue.PutPolicy(t.Context(), suggest.Policy{Enabled: true, FreeText: suggest.FreeTextAny}); err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestPublishApproved(t *testing.T) {
 	for _, want := range []string{
 		"<editorial:>", transURI, // controlled subject link
 		"<authority:homosaurus>", "Transgender people", // labels ride along
-		"Gender identity",                // the broader ancestor's description too (tasks/178)
+		"Gender identity",                // the broader ancestor's description too
 		"cozy fantasy", bibframe.PredTag, // folk tag
 		"A Book", // feed untouched
 	} {

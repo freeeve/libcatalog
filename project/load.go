@@ -13,12 +13,12 @@ import (
 // authorityGraphPrefix names the graphs that carry installed vocabulary
 // snapshots. `bibframe.SerializeGrains` merges them into catalog.nq alongside
 // the work grains, so a deployment with LCSH installed hands `lcat project` a
-// corpus that is 96% authority quads (tasks/279).
+// corpus that is 96% authority quads.
 const authorityGraphPrefix = "authority:"
 
 // LoadDataset streams the N-Quads catalog at path and returns a dataset holding
 // every work, editorial and alias quad, plus only the authority quads the
-// projection actually reads (tasks/279).
+// projection actually reads.
 //
 // The projection consumes an authority graph through exactly three indexes:
 // buildLabelIndex (skos:prefLabel, rdfs:label), buildBroaderIndex (skos:broader)
@@ -35,7 +35,7 @@ const authorityGraphPrefix = "authority:"
 //
 // Read twice, not slurped once. `os.ReadFile` on a 264MB catalog puts 264MB in
 // the heap before a quad is parsed, and ParseNQuadsShared then keeps it resident
-// for the life of the dataset because its terms alias that buffer (tasks/057).
+// for the life of the dataset because its terms alias that buffer.
 // Two streaming passes cost one more read of a file the page cache already holds.
 func LoadDataset(path string) (*rdf.Dataset, error) {
 	wanted, broader, err := scanReferences(path)
@@ -78,7 +78,7 @@ func scanReferences(path string) (wanted map[string]bool, broader map[string][]s
 // closeOverBroader grows the wanted set to the transitive skos:broader ancestors
 // of everything in it, which is the closure termSideband walks. An ancestor an
 // enricher described but no Work names still has to carry its label, or the
-// browse artifact mints it label-less (tasks/178).
+// browse artifact mints it label-less.
 func closeOverBroader(wanted map[string]bool, broader map[string][]string) {
 	queue := make([]string, 0, len(wanted))
 	for iri := range wanted {
@@ -137,10 +137,10 @@ func isAuthorityGraph(g rdf.Term) bool {
 // returns silently on *any* error, including a mid-file read error. DecodeQuad
 // surfaces those.
 //
-// A malformed line is one of them, since libcodex v0.26.0 (its tasks/115, filed
+// A malformed line is one of them, since libcodex v0.26.0 (its filed
 // from here). Before that the decoder skipped what it could not read, so a
 // truncated catalog.nq projected a smaller catalog and exited 0 -- the failure
-// class tasks/246 exists to refuse, and a lie the build would have shipped. Do not
+// class exists to refuse, and a lie the build would have shipped. Do not
 // reach for Decoder.SkipMalformed here: this file is written by an earlier step of
 // our own build, and a short read of it is not noise to tolerate.
 func eachQuad(path string, fn func(rdf.Quad)) error {

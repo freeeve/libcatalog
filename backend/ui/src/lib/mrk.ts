@@ -1,4 +1,4 @@
-// mrk-style text serialization of a MarcRecordDoc (tasks/076): one line per
+// mrk-style text serialization of a MarcRecordDoc: one line per
 // field ("245 14 $a The Dutch house : $b a novel /"), the leader and control
 // fields as raw lines ("LDR ...", "008 ..."), subfield lines in exactly the
 // grid's "$a … $b …" syntax (shared helpers), so grid and text are two views

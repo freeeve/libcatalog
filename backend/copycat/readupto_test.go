@@ -87,7 +87,7 @@ func TestReadUpToImmediateErrorIsAFailure(t *testing.T) {
 	}
 }
 
-// tasks/258: the same error one record later used to be swallowed whole. The
+// the same error one record later used to be swallowed whole. The
 // records are still returned -- partial results beat none -- but the caller is
 // now told the set is incomplete, and why.
 func TestReadUpToMidStreamErrorReportsPartialResults(t *testing.T) {
@@ -108,8 +108,8 @@ func TestReadUpToMidStreamErrorReportsPartialResults(t *testing.T) {
 	}
 }
 
-// tasks/274: a broken stream from a counting target says how much was missed.
-// "1 of 9" is the sentence the tasks/258 report asked for; "1" is not.
+// a broken stream from a counting target says how much was missed.
+// "1 of 9" is the sentence the report asked for; "1" is not.
 func TestReadUpToMidStreamErrorNamesTheAdvertisedTotal(t *testing.T) {
 	boom := errors.New("sru: unexpected HTTP status 500")
 	_, err := readUpTo(counts(recs(1), boom, 9), 20)
@@ -144,7 +144,7 @@ func TestReadUpToMidStreamErrorWithoutATotalSaysOnlyWhatItKnows(t *testing.T) {
 	}
 }
 
-// tasks/274, the point of it: a result set of exactly limit records is a
+// the point of it: a result set of exactly limit records is a
 // complete answer. It used to warn, on the commonest path there is.
 func TestReadUpToFullPageThatIsTheWholeResultSetIsNotCapped(t *testing.T) {
 	got, err := readUpTo(counts(recs(2), io.EOF, 2), 2)

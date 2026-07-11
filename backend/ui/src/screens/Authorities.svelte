@@ -2,7 +2,7 @@
   // Local-authority management: debounced label search over /v1/authorities
   // with keyboard-navigable results, and the one-keystroke "create local
   // authority" flow -- an unmatched heading becomes a term with n or the
-  // Create button, landing directly in its editor (tasks/046).
+  // Create button, landing directly in its editor.
   import { onMount } from "svelte";
   import { fetchAuthorities, createAuthority, ApiError } from "../lib/api";
   import { bindKeys, pushScope, popScope } from "../lib/keyboard";
@@ -26,7 +26,7 @@
     loadedAt: 0,
     // limit is how many rows this browse has asked for; total is the real count
     // of local headings, so the screen never presents the page size as a total
-    // and can offer "Load more" while the page is capped (tasks/329).
+    // and can offer "Load more" while the page is capped.
     limit: PAGE,
     total: 0,
   }));

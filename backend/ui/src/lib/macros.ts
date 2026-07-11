@@ -1,6 +1,6 @@
 // Client-side macro replay: ${name} parameter substitution over an op list,
 // mirroring the server's batch.ApplyParams so a macro means the same thing
-// replayed in the editor or run over a selection (tasks/047).
+// replayed in the editor or run over a selection.
 import type { Macro, Op, OpValue } from "./types";
 
 const PARAM_REF = /\$\{([A-Za-z0-9_-]+)\}/g;

@@ -8,7 +8,7 @@ import (
 	"github.com/freeeve/libcodex/rdf"
 )
 
-// Work-to-work relationship predicates the editor writes (tasks/221, 058
+// Work-to-work relationship predicates the editor writes (058
 // item 3): the BF 2.0 whole/part inverses. A link is stored in both works'
 // editorial graphs -- hasPart on the whole, partOf on the part -- so each
 // grain self-describes and neither side needs a corpus scan to render its
@@ -60,7 +60,7 @@ func WorkRelationsOf(grainNQ []byte, workID string) (WorkRelations, error) {
 // a typo'd id must not assert links into a foreign grain). An add is also
 // refused when the grain already asserts the inverse predicate to the same
 // target, so no caller can write the contradiction "A contains B and A is a
-// part of B" (tasks/232); the handler catches the same pair (and longer
+// part of B"; the handler catches the same pair (and longer
 // cycles) first, this is the backstop that keeps it out of any grain.
 // Adds are idempotent through canonicalization.
 func SetWorkRelation(grainNQ []byte, workID, pred, targetID string, add bool) ([]byte, error) {

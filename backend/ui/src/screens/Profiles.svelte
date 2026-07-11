@@ -32,7 +32,7 @@
     void loadList();
   });
 
-  // Unsaved-JSON guard (tasks/206), mirroring the work editor's tasks/199
+  // Unsaved-JSON guard, mirroring the work editor's
   // wiring: while dirty, in-app navigation asks and beforeunload arms the
   // browser's native prompt. Unlike work edits, no draft autosave backs
   // this screen -- a silent discard of hand-edited profile JSON is
@@ -119,7 +119,7 @@
       } else {
         // No shipped default behind the override: the DELETE removed the
         // profile outright, so clear the editor instead of 404ing into a
-        // stale selection (tasks/206).
+        // stale selection.
         selected = "";
         text = "";
         etag = "";

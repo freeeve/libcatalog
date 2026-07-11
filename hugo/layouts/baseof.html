@@ -17,7 +17,7 @@
   <header class="lcat-header" data-pagefind-ignore>
     <a class="lcat-brand" href="{{ "/" | relURL }}">{{ partial "brand.html" . }}</a>
     {{- /* search + theme-toggle are page-invariant, so they render once per
-           language (tasks/133). nav is NOT cached: aria-current varies per page.
+           language. nav is NOT cached: aria-current varies per page.
            The adopter hooks (banner/brand/head-extra/footer) are not cached
            either -- an override may legitimately depend on page context. */}}
     {{ partial "nav.html" . }}{{ partialCached "search.html" . }}
@@ -29,7 +29,7 @@
       {{ block "main" . }}{{ .Content }}{{ end }}
     </main>
   </div>{{ partial "footer.html" . }}
-  {{- /* Search JS by engine (tasks/017, tasks/158): pagefind ships its own UI;
+  {{- /* Search JS by engine: pagefind ships its own UI;
          "roaringrange" loads the WASM reader module for ranked client-side
          search; otherwise the interim substring filter. */ -}}
   {{- $engine := site.Params.search.engine | default "" -}}
@@ -38,11 +38,11 @@
          them; both stay unfingerprinted and co-located under /lcat/ because the
          glue resolves its wasm relative to its own URL (import.meta.url). */ -}}
   {{ if eq $engine "roaringrange" }}{{ $glue := resources.Get "lcat/roaringrange.js" }}{{ $wasm := resources.Get "lcat/roaringrange_bg.wasm" }}{{ if and $glue $wasm }}{{ $noop := $glue.RelPermalink }}{{ $noop = $wasm.RelPermalink }}{{ with resources.Get "lcat-browse.js" }}{{ with . | fingerprint }}<script type="module" src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>{{ end }}{{ end }}{{ end }}{{ else if ne $engine "pagefind" }}{{ with resources.Get "lcat-search.js" }}{{ with . | fingerprint }}<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" defer></script>{{ end }}{{ end }}{{ end }}
-  {{- /* Client-side live availability (tasks/004), enabled only when the site
+  {{- /* Client-side live availability, enabled only when the site
          configures [params.availability]. The config (library slug etc.) is emitted
          as JSON for the adapter; no availability data is in the static build. */ -}}
   {{ with site.Params.availability }}{{ if .enabled }}
-  {{- /* Localized chip vocabulary (tasks/356): merged into the config so the browser
+  {{- /* Localized chip vocabulary: merged into the config so the browser
          renders availability text in the page's language. The {days}/{n}/{date}
          placeholders are filled client-side (the count/date are only known then). */ -}}
   {{- $strings := dict

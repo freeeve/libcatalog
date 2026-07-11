@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Vocabularies (tasks/067): the click-to-download authority-source list.
+  // Vocabularies: the click-to-download authority-source list.
   // Built-in and registered sources show their capabilities (live typeahead,
   // downloadable snapshot), license, and install state; Download fetches the
   // source's SKOS dump into the vocab index (a worker job -- the row polls
@@ -249,7 +249,7 @@
                 {s.installed.terms.toLocaleString()} terms
                 <span class="muted">({new Date(s.installed.installedAt).toLocaleDateString()})</span>
                 <!-- How the scheme is served, so a memory profile has a per-row
-                     answer (tasks/267): sidecar-backed schemes keep their terms
+                     answer: sidecar-backed schemes keep their terms
                      on disk, holding only a live-pick overlay resident. -->
                 {#if s.sidecar}
                   <span class="badge" title="Served from sidecar artifacts on disk; {(s.residentTerms ?? 0).toLocaleString()} terms resident (live-pick overlay)">sidecar</span>
@@ -280,7 +280,7 @@
                 </button>
               {/if}
               <!-- Upload and Delete both need a source record to act on; an orphan
-                   row has none, so the server can only answer 404 (tasks/255). -->
+                   row has none, so the server can only answer 404. -->
               {#if isAdmin && !readOnly && !s.orphan}
                 <label class="button button--quiet upload-btn"
                   title="Install a local SKOS dump: .nt/.nq, optionally gzipped. Uploads are size-capped (512MB unless LCATD_VOCAB_UPLOAD_CAP_MB raises it) -- gzip large dumps.">
@@ -407,7 +407,7 @@
   }
   /* Provisional, not failed: a dashed edge, the same "shadowed, not erased"
      register the provenance rail uses for an overridden value. Tokenised ink on
-     an untinted badge, so both themes hold AA (tasks/315). */
+     an untinted badge, so both themes hold AA. */
   .badge--orphan {
     color: var(--ink-muted);
     border-style: dashed;

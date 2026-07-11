@@ -40,7 +40,7 @@ const (
 	// The counter is keyed by account, not caller, which an attacker who
 	// knows a staff email can use to lock that account out for the rest of
 	// the hour window -- an accepted trade-off for this deployment's size
-	// (tasks/105): caller-keyed limits belong at the edge proxy, and a
+	//: caller-keyed limits belong at the edge proxy, and a
 	// locked window self-clears via the counter TTL.
 	loginFailureCap = 10
 	// rateWindowTTL clears stale failure-counter windows from the store.
@@ -50,7 +50,7 @@ const (
 // dummyPasswordHash is verified against on the unknown-user login path so
 // that path costs the same argon2id work as a wrong password for a real
 // account -- otherwise response latency is an account-existence oracle
-// (tasks/105). PHC string for an unguessable throwaway password, using the
+// . PHC string for an unguessable throwaway password, using the
 // same parameters as hashPassword.
 const dummyPasswordHash = "$argon2id$v=19$m=65536,t=1,p=4$bGNhdC1kdW1teS1zYWx0IQ$M+w1/CTq7g1obR5MFtN+b4yAuc4ZjzWg3//Y+l8ELpQ"
 
@@ -114,7 +114,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (Tokens, er
 	rateKey := store.Key{PK: "RATE#LOGIN#" + email, SK: "HOUR#" + window}
 	// The zero-delta read still creates the window item, so it carries the
 	// same TTL as a failure bump -- without one, every clean login would
-	// leave a counter row behind forever (tasks/105).
+	// leave a counter row behind forever.
 	failures, err := s.store.Increment(ctx, rateKey, 0, s.now().Add(rateWindowTTL))
 	if err == nil && failures >= loginFailureCap {
 		return Tokens{}, ErrRateLimited
@@ -122,7 +122,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (Tokens, er
 	u, err := s.getUser(ctx, email)
 	if err != nil {
 		// Unknown account: burn the same argon2id work a wrong password
-		// costs, so latency cannot probe which emails exist (tasks/105).
+		// costs, so latency cannot probe which emails exist.
 		_, _ = verifyPassword(password, dummyPasswordHash)
 		s.recordFailure(ctx, rateKey)
 		return Tokens{}, ErrBadCredentials

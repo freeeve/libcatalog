@@ -10,7 +10,7 @@ import (
 
 // Mapping declares how a CSV export's columns map onto ingest records -- the
 // whole provider config, written as a TOML file so sideloading a spreadsheet
-// means editing a mapping, not writing Go (tasks/172).
+// means editing a mapping, not writing Go.
 type Mapping struct {
 	// IDScheme namespaces the durable provider id ("<scheme>:<rowid>") minted
 	// when an id column is mapped. Defaults to the feed name; keep it stable

@@ -1,4 +1,4 @@
-// Package csvmap is the generic CSV ingest provider (tasks/172): it reads a
+// Package csvmap is the generic CSV ingest provider: it reads a
 // spreadsheet-shaped export -- the lowest-common-denominator dump every ILS
 // and collection tool can produce -- into ingest records driven by a
 // declarative TOML mapping of columns to fields, so a deployment sideloads a

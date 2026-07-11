@@ -16,9 +16,9 @@ import (
 	"github.com/freeeve/libcat/storage"
 )
 
-// The feed-driven incremental public rebuild (tasks/159): instead of the full
+// The feed-driven incremental public rebuild: instead of the full
 // serialize -> project -> index chain over the whole corpus, consume the
-// work-index change feed the backend maintains (backend tasks/156), re-project
+// work-index change feed the backend maintains (backend), re-project
 // only the grains that changed since the stored cursor, patch catalog.json /
 // facets.json / redirects.json in place, and re-emit the search artifacts from
 // the patched catalog. The search/browse emit is the interim monolith rebuild
@@ -309,7 +309,7 @@ func readRebuildFeed(path string) (rebuildFeed, error) {
 }
 
 // readSnapshotEpoch reads the fold epoch from the work-index snapshot
-// (backend tasks/155, gzipped JSON) -- the cursor baseline when the feed does
+// (backend gzipped JSON) -- the cursor baseline when the feed does
 // not exist yet.
 func readSnapshotEpoch(store string) (uint64, bool) {
 	f, err := os.Open(filepath.Join(store, "data", "workindex.snapshot"))

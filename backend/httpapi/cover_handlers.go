@@ -29,7 +29,7 @@ var coverTypes = map[string]string{
 
 // coverContentType reads the declared upload type. RFC 9110 §8.3.1 makes type
 // and subtype case-insensitive, so "Image/PNG" is a correct spelling of
-// "image/png" and was being refused with a 415 (tasks/243).
+// "image/png" and was being refused with a 415.
 func coverContentType(header string) (ext string, ok bool) {
 	declared := strings.ToLower(strings.TrimSpace(strings.Split(header, ";")[0]))
 	ext, ok = coverTypes[declared]
@@ -40,7 +40,7 @@ func coverContentType(header string) (ext string, ok bool) {
 // which is "" for anything that is not one of the three cover formats. The
 // bytes decide, not the request header: a header alone let an HTML document be
 // stored and served as image/png, and let a JPEG be stored at a .png path
-// (tasks/243).
+// .
 func sniffCover(data []byte) string {
 	sniffed := http.DetectContentType(data)
 	if _, ok := coverTypes[sniffed]; ok {
@@ -58,9 +58,9 @@ func sniffCover(data []byte) string {
 // it, so nothing would ever collect it. A cataloger replaces a cover precisely
 // when the old one is wrong: wrong edition, rights complaint, an image that
 // should not have been published. A takedown that looks done was not done
-// (tasks/243).
+// .
 //
-// The error was discarded until tasks/266, which made a failing store reproduce
+// The error was discarded until which made a failing store reproduce
 // that exact outcome: the caller answered 2xx while the image kept serving. A
 // missing blob stays success -- a cover exists in at most one format, so two of
 // these three deletes normally find nothing, and absent is the state a delete
@@ -93,9 +93,9 @@ func restoreCover(r *http.Request, bs blob.Store, ix *workindex.Index, workID, u
 // coverExts is every extension a cover may be stored under.
 var coverExts = []string{"jpg", "png", "webp"}
 
-// registerCovers mounts per-work cover art (tasks/215, 058 item 2): PUT
+// registerCovers mounts per-work cover art: PUT
 // stores the image bytes in the blob store and records the editorial
-// lcat:extra/cover URL the OPAC's cover slot already reads (tasks/022/025);
+// lcat:extra/cover URL the OPAC's cover slot already reads;
 // DELETE removes both. GET serves the bytes publicly -- covers are display
 // assets the static site republishes anyway.
 func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue *suggest.Service, verifier auth.TokenVerifier, logger *slog.Logger) {
@@ -143,7 +143,7 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 		// Grain first: SetCover verifies the work exists, so a typo'd id
 		// never stores orphan bytes. The cost is that a failed byte write
 		// leaves a statement the bytes do not back, so it is compensated
-		// below rather than abandoned (tasks/266). previous is the cover this
+		// below rather than abandoned. previous is the cover this
 		// request replaces -- what the compensation must restore.
 		var previous string
 		etag, err := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
@@ -175,7 +175,7 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 		}
 		// The new cover is stored and recorded, but a surviving blob in another
 		// format still serves from its own public URL. That is the takedown
-		// failure tasks/243 named, so it is not a 200. The upload is idempotent:
+		// failure named, so it is not a 200. The upload is idempotent:
 		// retrying re-runs the sweep once the store recovers.
 		if err := sweepStaleCovers(r, bs, workID, ext); err != nil {
 			logger.Error("the replaced cover's bytes could not be removed and are still public",
@@ -217,7 +217,7 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 		// complaint must never be told a takedown happened when it did not.
 		// Restore the statement rather than orphan bytes that keep serving:
 		// nothing else indexes them, and there is no reconciliation pass
-		// (tasks/266).
+		//.
 		if err := sweepStaleCovers(r, bs, workID, ""); err != nil {
 			if rerr := restoreCover(r, bs, ix, workID, previous); rerr != nil {
 				logger.Error("cover bytes survived a delete and the record could not be restored: the bytes are public and orphaned",
@@ -268,7 +268,7 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 		// A same-format replacement keeps the URL, so without a validator every
 		// cache between the store and the reader served the old image for up to
 		// an hour after a correction. The server was right; the readers were not
-		// (tasks/243).
+		//.
 		quoted := `"` + etag + `"`
 		w.Header().Set("ETag", quoted)
 		w.Header().Set("Cache-Control", "public, max-age=3600, must-revalidate")

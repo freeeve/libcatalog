@@ -1,4 +1,4 @@
-// tasks/251: the details pane and the neighborhood walk must describe the same
+// the details pane and the neighborhood walk must describe the same
 // term. The panel now owns the whole identity block, so after a walk the URI
 // shown above the buttons is the URI the "Use this term" button stages.
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -63,7 +63,7 @@ describe("NeighborhoodPanel identity", () => {
     expect(shownURI).toBe(KITTENS.id);
 
     // And "Use this term" stages exactly that term -- the URI above and the id
-    // staged must be the same term (the whole point of tasks/251).
+    // staged must be the same term (the whole point).
     const use = [...target.querySelectorAll<HTMLButtonElement>("button.use")].find((el) => el.textContent?.includes("Use this term"))!;
     use.click();
     expect(onselect).toHaveBeenCalledOnce();

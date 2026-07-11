@@ -1,6 +1,6 @@
 <script lang="ts">
   // Modal vocabulary picker: scheme tabs over config.schemes (folk excluded)
-  // plus one live tab per registered suggest source (tasks/067), search-as-
+  // plus one live tab per registered suggest source, search-as-
   // you-type against /v1/terms (local index) or /v1/vocabsuggest (live
   // proxy), arrow-key result navigation, and a details pane for the
   // highlighted term. Modal owns the trap/Escape/focus restore; Enter or
@@ -45,7 +45,7 @@
   let q = $state("");
   let results = $state<Term[]>([]);
   // The last live search's raw suggestions by URI, so a pick can cache its
-  // label into the local index (tasks/072).
+  // label into the local index.
   let liveSuggs: Record<string, VocabSuggestion> = {};
   let highlight = $state(0);
   let searching = $state(false);
@@ -241,7 +241,7 @@
             {/if}
           {:else}
             <!-- The panel owns the whole identity block so it and the walk
-                 buttons never describe different terms (tasks/251). -->
+                 buttons never describe different terms. -->
             {#key current.scheme + " " + current.id}
               <NeighborhoodPanel term={current} {onselect} />
             {/key}

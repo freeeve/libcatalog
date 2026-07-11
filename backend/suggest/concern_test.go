@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestConcernLifecycle covers tasks/210: an anonymous concern lands PENDING
+// TestConcernLifecycle covers an anonymous concern lands PENDING
 // in the queue, resolves or dismisses through Review with legible audit
 // actions, never reaches the publisher's worklist, and dedupes identical
 // resubmissions.

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Work-to-work relationships (tasks/221, 058 item 3): lists the work's
+  // Work-to-work relationships: lists the work's
   // editorial hasPart/partOf links with titles, adds a link by target work
   // id, removes one. Writes are immediate (like items and covers), not
   // staged ops; the inverse statement lands on the target work.

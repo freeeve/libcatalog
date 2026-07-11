@@ -41,7 +41,7 @@ func titles(results []copycat.SearchResult) []string {
 	return out
 }
 
-// tasks/258, the whole of it: a stream that breaks after delivering records is
+// the whole of it: a stream that breaks after delivering records is
 // neither a success nor a failure. Its hits must survive the fan-out, and its
 // reason must reach the client -- as a warning, because a failure would suppress
 // the hits and a silent success would claim the short set is the whole set.
@@ -65,7 +65,7 @@ func TestSearchAllReportsAPartialStreamAsAWarningAndKeepsItsHits(t *testing.T) {
 		t.Fatalf("failures = %v, want none: a partial answer is not a failed one", failures)
 	}
 	if warnings["beta"] == "" {
-		t.Fatal("the broken stream was reported as a clean success -- this is the tasks/258 bug")
+		t.Fatal("the broken stream was reported as a clean success -- this is the bug")
 	}
 	if !strings.Contains(warnings["beta"], "XML syntax error") {
 		t.Fatalf("warning = %q, want the underlying reason", warnings["beta"])

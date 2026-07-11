@@ -11,8 +11,8 @@ import (
 )
 
 // registerSuggestionPolicy mounts the patron-suggestion policy surface
-// (tasks/263): the admin reads and edits the stored, opt-in policy, and every
-// write is audited (tasks/259 -- no unaudited config surface). A public read
+// : the admin reads and edits the stored, opt-in policy, and every
+// write is audited (no unaudited config surface). A public read
 // exposes just the policy so the discovery site can hide the "suggest a
 // subject" affordance rather than offering a control that 403s. Enforcement is
 // in suggest.Service (resolveTerm), not here, so it governs any caller of

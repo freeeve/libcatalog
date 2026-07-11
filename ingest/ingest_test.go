@@ -82,7 +82,7 @@ type stubMergeProvider struct {
 
 func (p stubMergeProvider) MergeSeeds() []ingest.MergeSeed { return p.merges }
 
-// TestFeedMergeRetiresBareCluster is the tasks/370 regression: a coll feed folds a
+// TestFeedMergeRetiresBareCluster is the regression: a coll feed folds a
 // single-format cluster (coll:5, indexed only as its format bucket coll:5:ebook)
 // into another (coll:9). The bare cluster keys the merge names must resolve through
 // their format buckets (the WorkForProviderKey fix), and the folded cluster's stale
@@ -225,7 +225,7 @@ func TestRunGraphRouting(t *testing.T) {
 }
 
 // extraStub is a stubRecord that also carries adopter display extras, exercising the
-// optional ingest.ExtraProvider path (tasks/026).
+// optional ingest.ExtraProvider path.
 type extraStub struct {
 	stubRecord
 	extras map[string]string
@@ -244,8 +244,8 @@ func (r termStub) DescribedTerms() []ingest.AuthoritySubject     { return r.term
 
 // TestRunDescribedTerms proves a Record implementing TermDescriber has its
 // standalone term descriptions (ancestor-chain labels + hierarchy) emitted
-// into the feed graph WITHOUT a bf:subject link (tasks/180) -- the projection's
-// term sideband (tasks/178) then labels hierarchy nodes no Work carries.
+// into the feed graph WITHOUT a bf:subject link -- the projection's
+// term sideband then labels hierarchy nodes no Work carries.
 func TestRunDescribedTerms(t *testing.T) {
 	recs := []ingest.Record{
 		termStub{
@@ -293,7 +293,7 @@ func TestRunDescribedTerms(t *testing.T) {
 
 // TestRunWorkExtras proves a Record implementing ExtraProvider has its non-BIBFRAME
 // display fields emitted into the Work's feed provenance graph under bibframe.ExtraPred,
-// so the projector can surface them as catalog.json's `extra` (tasks/026). A record that
+// so the projector can surface them as catalog.json's `extra`. A record that
 // does not implement ExtraProvider (plain stubRecord) emits no such statements.
 func TestRunWorkExtras(t *testing.T) {
 	recs := []ingest.Record{
@@ -338,7 +338,7 @@ func TestRunWorkExtras(t *testing.T) {
 
 // TestRunReingestStable proves the pipeline is derive-from-grains: a second run over
 // the same records seeds ids from the committed grains, mints nothing, and rewrites
-// byte-identical grains (the tasks/002 no-churn gate, now exercised generically).
+// byte-identical grains (the no-churn gate, now exercised generically).
 func TestRunReingestStable(t *testing.T) {
 	recs := []ingest.Record{
 		stubRecord{id: "a1", author: "Doe, Jane", title: "Alpha", lang: "eng", isbn: "9780000000001"},
@@ -412,7 +412,7 @@ func TestOverdriveProviderThroughRegistry(t *testing.T) {
 	}
 }
 
-// TestRunAddedRecordsMintOnlyNew is the tasks/002 acceptance for a *changed* feed:
+// TestRunAddedRecordsMintOnlyNew is the acceptance for a *changed* feed:
 // re-ingesting a feed with a new record added preserves the ids (and byte-identical
 // grains) of the unchanged records and mints only the genuinely new one.
 func TestRunAddedRecordsMintOnlyNew(t *testing.T) {
@@ -455,7 +455,7 @@ func TestRunAddedRecordsMintOnlyNew(t *testing.T) {
 
 // TestRunChangedRecordKeepsId proves a record whose content changes (new title) but
 // whose keys are stable resolves to its committed ids -- 0 minted, no new grain file,
-// only the content updates. This is the "preserves ids" half of tasks/002: identity
+// only the content updates. This is the "preserves ids" half of identity
 // survives feed edits because the ISBN anchors it, not the (title-derived) cluster key.
 func TestRunChangedRecordKeepsId(t *testing.T) {
 	out := t.TempDir()

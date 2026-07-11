@@ -13,7 +13,7 @@ import (
 	"github.com/freeeve/libcat/storage/blob"
 )
 
-// TestAttachmentLifecycle covers tasks/229: upload records the editorial
+// TestAttachmentLifecycle covers upload records the editorial
 // statement and stores the bytes; list and download are librarian-gated;
 // delete removes both; phantom works, bad names, and anonymous callers
 // refuse.
@@ -37,7 +37,7 @@ func TestAttachmentLifecycle(t *testing.T) {
 	if rec := do(http.MethodPost, "/v1/works/wzzzz00phantom/attachments?name=a.pdf", "lib-token", pdf); rec.Code != http.StatusNotFound {
 		t.Fatalf("phantom = %d %s", rec.Code, rec.Body)
 	}
-	// ".env" is a legal *name* since tasks/236 -- it encodes to the segment
+	// ".env" is a legal *name* -- it encodes to the segment
 	// "a.env", so it can never be a dotfile on disk. Traversal still refuses.
 	for _, bad := range []string{"..", "a%2Fb.pdf", "%2E%2E%2F%2E%2E%2Fgrain", strings.Repeat("x", 101)} {
 		if rec := do(http.MethodPost, base+"?name="+bad, "lib-token", pdf); rec.Code != http.StatusBadRequest {
@@ -89,7 +89,7 @@ func TestAttachmentLifecycle(t *testing.T) {
 	}
 }
 
-// TestAttachmentNamesDoNotCollide covers tasks/236: two documents named in a
+// TestAttachmentNamesDoNotCollide covers two documents named in a
 // non-Latin script stay two documents, and an upload never lands on an
 // existing attachment's bytes by accident.
 func TestAttachmentNamesDoNotCollide(t *testing.T) {
@@ -155,7 +155,7 @@ func TestAttachmentNamesDoNotCollide(t *testing.T) {
 }
 
 // TestAttachmentLegacyPathFallback covers the read path for attachments
-// stored before tasks/236, when the display name was the blob segment: the
+// stored before when the display name was the blob segment: the
 // new encoding must not orphan their bytes.
 func TestAttachmentLegacyPathFallback(t *testing.T) {
 	h, bs := newRecordsAPI(t)

@@ -42,7 +42,7 @@ func looksLikeAListing(body string) bool {
 	return strings.Contains(body, "<pre>") || strings.Contains(body, `<a href="`)
 }
 
-// tasks/278. `lcat serve` is the OPAC's server (tasks/181), and no static host --
+// . `lcat serve` is the OPAC's server, and no static host --
 // S3, CloudFront, GitHub Pages, Netlify, nginx -- lists an index-less directory.
 func TestAnIndexLessDirectoryIsNotListed(t *testing.T) {
 	srv := httptest.NewServer(serveHandler(pagerSite(t), false))
@@ -97,7 +97,7 @@ func TestFilesUnderAnUnlistedDirectoryAreStillServed(t *testing.T) {
 	}
 }
 
-// tasks/278 again: no-store made a browse session re-download the record store on
+// again: no-store made a browse session re-download the record store on
 // every navigation. --dev restores it for anyone who wants nothing cached at all.
 func TestDevRestoresNoStore(t *testing.T) {
 	dir := pagerSite(t)

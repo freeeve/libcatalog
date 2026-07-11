@@ -8,7 +8,7 @@ import (
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 
-// TestMARCExpressReadSide is the MARC-import ramp's golden test (tasks/007): it runs
+// TestMARCExpressReadSide is the MARC-import ramp's golden test: it runs
 // OverDrive's real, vendored MARC Express sample records through the MARC provider and
 // asserts the crosswalk recovers the three fields OverDrive actually uses --
 // 037 $a (the Reserve ID), 084 $a (BISAC codes, $2 bisacsh), and 650 _7 $a (subjects,

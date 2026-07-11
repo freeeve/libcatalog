@@ -1,10 +1,10 @@
 {{- /*
-  Term-key -> display map for subject term pages (tasks/141): each entry is
+  Term-key -> display map for subject term pages: each entry is
   {label, scheme} where label is the localized human label and scheme the
   vocabulary's display name ([[params.subjectSchemes]] name, else the code;
   "" when the corpus carries no scheme). Term pages otherwise only have the
   slugged key ("fast-lesbians") for a title. Built from facets.json via
-  scratch (merge in a loop is quadratic at vocabulary scale -- tasks/133);
+  scratch (merge in a loop is quadratic at vocabulary scale);
   call through partialCached, once per language: nothing here reads page
   state.
 */ -}}

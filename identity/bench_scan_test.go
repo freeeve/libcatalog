@@ -35,7 +35,7 @@ func benchGrains(b *testing.B) [][]byte {
 }
 
 // BenchmarkScanGrain covers the identity sweep run per grain at workindex
-// boot/refresh and by editor doc assembly (tasks/121).
+// boot/refresh and by editor doc assembly.
 func BenchmarkScanGrain(b *testing.B) {
 	grains := benchGrains(b)
 	b.ReportAllocs()

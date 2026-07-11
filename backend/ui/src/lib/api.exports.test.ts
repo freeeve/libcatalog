@@ -1,4 +1,4 @@
-// tasks/293: deleteItemTemplate was exported, documented, and called by
+// deleteItemTemplate was exported, documented, and called by
 // nobody -- a half-wired feature no check noticed. This guards the class: an
 // exported api.ts function with zero references anywhere else in src fails the
 // suite the day it lands, instead of shipping dead.

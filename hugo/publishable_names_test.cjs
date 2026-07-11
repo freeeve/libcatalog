@@ -2,7 +2,7 @@
 // OPAC, comments and all -- Hugo publishes those files as-is. An internal project
 // or institution name written in a source comment therefore ends up in the public
 // bundle, where an adopter cannot remove it without forking the module
-// (libcat tasks/289).
+//.
 //
 // Templates under layouts/ are compiled, not served, so their `{{/* */}}`
 // comments never reach a visitor and may say whatever is true. An HTML comment

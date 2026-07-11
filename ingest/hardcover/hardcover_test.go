@@ -16,7 +16,7 @@ const fixture = "testdata/read-shelf.json"
 
 // TestRecordsExplodeByFormat proves a captured shelf explodes into one record per
 // collapsed edition format, with per-format instance keys and the shared reading-log
-// extras carried on each (tasks/026).
+// extras carried on each.
 func TestRecordsExplodeByFormat(t *testing.T) {
 	prov, err := hardcover.New(ingest.Config{Source: fixture})
 	if err != nil {
@@ -69,7 +69,7 @@ func TestRecordsExplodeByFormat(t *testing.T) {
 // TestEndToEndProjection runs the fixture through the real ingest.Run -> project path
 // and asserts the catalog matches the demo's pipeline: clustered formats, normalized
 // contributors, genre tags (from both object and string cached_tags), and the
-// cover/rating/dateRead extras (tasks/026). No network.
+// cover/rating/dateRead extras. No network.
 func TestEndToEndProjection(t *testing.T) {
 	prov, err := hardcover.New(ingest.Config{Source: fixture})
 	if err != nil {
@@ -112,7 +112,7 @@ func TestEndToEndProjection(t *testing.T) {
 		t.Errorf("Herculine contributors = %v, want %v", h.Contributors, wantContribs)
 	}
 	// Fiction/Horror/LGBTQ all map to controlled subjects, so they leave tags[] and
-	// become subjects with authority labels + skos:broader (tasks/026).
+	// become subjects with authority labels + skos:broader.
 	if len(h.Tags) != 0 {
 		t.Errorf("Herculine tags = %v, want none (all promoted to subjects)", h.Tags)
 	}
@@ -143,7 +143,7 @@ func TestEndToEndProjection(t *testing.T) {
 	if !reflect.DeepEqual(h.Extra, wantExtra) {
 		t.Errorf("Herculine extra = %v, want %v", h.Extra, wantExtra)
 	}
-	// The description projects as first-class bf:summary, not an extra (tasks/124).
+	// The description projects as first-class bf:summary, not an extra.
 	if h.Summary != "A haunting debut novel." {
 		t.Errorf("Herculine summary = %q, want %q", h.Summary, "A haunting debut novel.")
 	}

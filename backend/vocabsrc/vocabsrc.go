@@ -1,4 +1,4 @@
-// Package vocabsrc manages public authority sources (tasks/067): a registry
+// Package vocabsrc manages public authority sources: a registry
 // of live-suggest and downloadable vocabulary sources seeded with built-ins
 // (id.loc.gov datasets, Wikidata, VIAF), snapshot download jobs that convert
 // public SKOS RDF dumps into authority-tree N-Quads the vocab index loads
@@ -33,7 +33,7 @@ var ErrValidation = errors.New("vocabsrc: invalid source")
 var ErrNotFound = errors.New("vocabsrc: not found")
 
 // ErrConflict reports an operation refused by the state it would leave behind --
-// deleting a source whose snapshot is still installed (tasks/255). The caller can
+// deleting a source whose snapshot is still installed. The caller can
 // make it succeed by doing something first, which is what separates it from
 // ErrValidation.
 var ErrConflict = errors.New("vocabsrc: conflict")
@@ -69,7 +69,7 @@ func (s Source) CanSnapshot() bool { return s.SnapshotURL != "" }
 
 // Builtins returns the shipped sources: the id.loc.gov datasets (subjects,
 // genre/form, children's subjects downloadable; the name authority file is
-// live-only -- its dump is ~11M concepts), OCLC FAST (live-only, tasks/132),
+// live-only -- its dump is ~11M concepts), OCLC FAST (live-only),
 // Wikidata, and VIAF.
 func Builtins() []Source {
 	return []Source{
@@ -105,7 +105,7 @@ func Builtins() []Source {
 			SuggestDataset: "authorities/names",
 		},
 		{
-			// Suggest-only (tasks/132): the full FAST dump is ~2M concepts --
+			// Suggest-only: the full FAST dump is ~2M concepts --
 			// not resident-index-shaped for small deployments; a corpus subset
 			// snapshot (lcat vocab-subset) supplies display labels instead.
 			Name: "fast", Scheme: "fast", Builtin: true,
@@ -146,7 +146,7 @@ type Service struct {
 	// HTTPClient fetches snapshot dumps. nil = a 15-minute-timeout client.
 	HTTPClient *http.Client
 	// MaxSnapshotMB caps a snapshot dump's decompressed size (0 = the 4GB
-	// default) -- the tasks/110 defensive ceiling against a hostile or
+	// default) -- the defensive ceiling against a hostile or
 	// misconfigured endpoint.
 	MaxSnapshotMB int
 	Logger        *slog.Logger
@@ -231,7 +231,7 @@ func (s *Service) PutSource(ctx context.Context, src Source) error {
 // (deleting a stored override restores the shipped definition).
 //
 // It refuses with ErrConflict while a snapshot is installed, which is what the
-// screen's tooltip has always promised (tasks/255): deleting the row out from under
+// screen's tooltip has always promised: deleting the row out from under
 // an install leaves an orphan whose Upload and Delete actions can only 404, and the
 // admin was told the server would stop them. RemoveSnapshot first, then delete.
 //
@@ -239,7 +239,7 @@ func (s *Service) PutSource(ctx context.Context, src Source) error {
 // its place, so the install keeps a source and is never orphaned.
 //
 // The refusal is not a statement about the vocabulary. An install still outlives its
-// source row by other routes -- an offline lcat vocab-install (tasks/163), or a
+// source row by other routes -- an offline lcat vocab-install, or a
 // registry that reset because the deployment has no document store -- so Views still
 // synthesizes the orphan, and RemoveSnapshot is still the way out of it.
 func (s *Service) DeleteSource(ctx context.Context, name string) error {
@@ -373,11 +373,11 @@ func (s *Service) Reload(ctx context.Context) error {
 // The scheme comes from the install meta rather than the source registry, because
 // removing a snapshot whose source row is already gone -- the orphan install Views
 // synthesizes so it stays removable -- is exactly the case that leaves artifacts
-// behind (tasks/252). The sidecar goes first: its manifest is what arms the scheme,
+// behind. The sidecar goes first: its manifest is what arms the scheme,
 // so an interrupted removal degrades the scheme to the map loader instead of arming
 // it on an index whose snapshot has been deleted.
 // It returns the removed snapshot's InstallInfo so a caller can record what was
-// uninstalled (its scheme and term count) in an audit note (tasks/259).
+// uninstalled (its scheme and term count) in an audit note.
 func (s *Service) RemoveSnapshot(ctx context.Context, name string) (InstallInfo, error) {
 	meta, _, err := s.Blob.Get(ctx, s.metaPath(name))
 	if errors.Is(err, blob.ErrNotFound) {
@@ -403,8 +403,8 @@ func (s *Service) RemoveSnapshot(ctx context.Context, name string) (InstallInfo,
 
 // sweepScheme removes everything a scheme leaves behind in the tree: its sidecar
 // artifacts and its live-pick cache. RemoveSnapshot uses it so an uninstall
-// leaves neither eight orphan sidecar files (tasks/252) nor a cache directory
-// that holds the scheme dirty in the reload set (tasks/267) -- "uninstall" means
+// leaves neither eight orphan sidecar files nor a cache directory
+// that holds the scheme dirty in the reload set -- "uninstall" means
 // uninstall.
 func (s *Service) sweepScheme(ctx context.Context, scheme string) error {
 	if scheme == "" {
@@ -424,14 +424,14 @@ type SourceView struct {
 	Job       *Job         `json:"job,omitempty"`
 	// Orphan marks a row synthesized from an install with no source record behind
 	// it. Such a row can only be removed: everything else the screen offers needs a
-	// source to act on, and answers 404 without one (tasks/255). An empty
+	// source to act on, and answers 404 without one. An empty
 	// SnapshotURL is not a proxy for this -- an upload-only source has none either.
 	Orphan bool `json:"orphan,omitempty"`
 	// Sidecar reports whether the scheme is served from artifacts on disk rather
 	// than resident maps, and ResidentTerms is the count it still holds in memory
 	// (the whole scheme when map-backed, just the live-pick overlay when
 	// sidecar-backed). They explain a process's memory profile scheme by scheme
-	// (tasks/267); Installed.Terms is the snapshot size regardless of backend.
+	//; Installed.Terms is the snapshot size regardless of backend.
 	Sidecar       bool `json:"sidecar,omitempty"`
 	ResidentTerms int  `json:"residentTerms,omitempty"`
 }
@@ -474,7 +474,7 @@ func (s *Service) Views(ctx context.Context) ([]SourceView, error) {
 		views = append(views, v)
 	}
 	// Orphan installs -- a snapshot present without a registered source (an
-	// offline vocab-install, tasks/163, or a registry that reset because the
+	// offline vocab-install, or a registry that reset because the
 	// deployment has no document store). Synthesized from the sidecar so the
 	// vocabulary stays visible and removable.
 	for name, info := range byName {
@@ -483,7 +483,7 @@ func (s *Service) Views(ctx context.Context) ([]SourceView, error) {
 		}
 	}
 	// How each scheme is actually served, so an operator can see which schemes
-	// hold terms resident and which serve from a sidecar (tasks/267).
+	// hold terms resident and which serve from a sidecar.
 	for i := range views {
 		if views[i].Scheme != "" {
 			views[i].Sidecar, views[i].ResidentTerms = s.Index.SchemeStats(views[i].Scheme)

@@ -112,7 +112,7 @@ func TestFreeTextModes(t *testing.T) {
 }
 
 // TestManualTermNotGated: the librarian path adds any term even when the patron
-// policy is off -- the cataloger is the authority (tasks/263).
+// policy is off -- the cataloger is the authority.
 func TestManualTermNotGated(t *testing.T) {
 	svc := newRawService(t)
 	// Default (off) policy: patrons are refused, but ManualTerm must succeed.

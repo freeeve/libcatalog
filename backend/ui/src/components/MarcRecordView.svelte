@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Read-only rendering of one MARC record (tasks/074): the line-per-field
+  // Read-only rendering of one MARC record: the line-per-field
   // view shared by the live preview pane, the copycat result preview, and
   // the staged-batch review. Tags link to their LOC MARC 21 documentation
   // page when one exists; lossy tags render muted with the fidelity reason.

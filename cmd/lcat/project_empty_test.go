@@ -46,7 +46,7 @@ func sentinelOut(t *testing.T) (dir, catalog string) {
 	return dir, catalog
 }
 
-// tasks/246, the reported repro: a catalog carrying only feed:marc, projected
+// the reported repro: a catalog carrying only feed:marc, projected
 // with the default --provider overdrive, used to write an empty catalog.json
 // and exit 0. In LCATD_REBUILD_CMD that silently empties the discovery site.
 func TestProjectRefusesToEmptyTheSiteOnAProviderTypo(t *testing.T) {

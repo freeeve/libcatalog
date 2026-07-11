@@ -1,4 +1,4 @@
-// Real-browser E2E for the generic section index (tasks/290). Before the fix,
+// Real-browser E2E for the generic section index. Before the fix,
 // layouts/list.html was the only list layout, so it served /works/, the home page
 // AND every other section. /lists/ -- the section index of the curated views --
 // shipped as a canonical, sitemapped page reading "0 works" that linked to none of

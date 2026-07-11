@@ -8,7 +8,7 @@ import (
 	codexbf "github.com/freeeve/libcodex/bibframe"
 )
 
-// TestDecodeGrainMARCSource covers the tasks/192 derivation: an unedited
+// TestDecodeGrainMARCSource covers the derivation: an unedited
 // arrival keeps its 040 untouched, an edited grain appends the deployment
 // as one $d, a born-digital grain (no 040) synthesizes $a/$c, and an empty
 // org code changes nothing.

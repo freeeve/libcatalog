@@ -24,7 +24,7 @@ type BuildStats struct {
 // the control number (MARC 001) and falling back to a hash of the record when
 // absent. A record with no 001 whose encoding fails is an error: hashing the
 // nil fallback would give every such record the same id, silently overwriting
-// grains (tasks/115). Phase 0 only: ARCHITECTURE §4's identity model replaces
+// grains. Phase 0 only: ARCHITECTURE §4's identity model replaces
 // this with a minted, provider-independent id in identity/ (Phase 1), which
 // also changes the grain's subject IRIs and filename.
 func WorkID(rec *codex.Record) (string, error) {
@@ -83,7 +83,7 @@ func BuildMARC(sink storage.Sink, marc io.Reader, provider string) (BuildStats, 
 // would merge two grains' _:c14n0 into one node. It is the grains' own bytes with
 // each grain's labels namespaced by work id -- byte-identical to what
 // SerializeGrains produces from the same grains, which is the point: catalog.nq
-// means one thing whichever writer wrote it last (tasks/298). All grains are held
+// means one thing whichever writer wrote it last. All grains are held
 // in memory for the sorted bulk write; at large scale (ARCHITECTURE §3) that
 // becomes an out-of-core / fan-out concern.
 func BuildCorpus(sink storage.Sink, records []*codex.Record, provider string) (BuildStats, error) {
@@ -117,7 +117,7 @@ func BuildCorpus(sink storage.Sink, records []*codex.Record, provider string) (B
 // writeCatalog writes the bulk catalog.nq as the merge of the grains just
 // written: each grain's own canonical bytes, blank labels namespaced by work id.
 // Re-encoding the records a second time is what made ingest's catalog.nq differ
-// from serialize's (tasks/298); the grains are the source of truth and this file
+// from serialize's; the grains are the source of truth and this file
 // is derived from them, here as everywhere else.
 func writeCatalog(sink storage.Sink, entries []grainEntry) error {
 	w, err := sink.Create("catalog.nq")

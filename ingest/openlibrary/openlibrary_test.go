@@ -49,7 +49,7 @@ func TestEnrichMatchesByISBN(t *testing.T) {
 
 func TestEnrichSkipsAmbiguousCluster(t *testing.T) {
 	// A Work whose two ISBNs resolve to two different OpenLibrary works is an
-	// ambiguous cluster: link nothing rather than guess (tasks/066 conservatism).
+	// ambiguous cluster: link nothing rather than guess ( conservatism).
 	e := New(map[string]string{
 		"9780553383805": "https://openlibrary.org/works/OL1W",
 		"9780553383799": "https://openlibrary.org/works/OL2W",

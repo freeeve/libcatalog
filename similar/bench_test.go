@@ -57,7 +57,7 @@ func BenchmarkNeighbors(b *testing.B) {
 }
 
 // The OPAC build step needs neighbours for every Work, so this is the number
-// that decides whether the sidecar is precomputable (tasks/284, cf. tasks/279).
+// that decides whether the sidecar is precomputable (cf.).
 func BenchmarkNeighborsWholeCatalog(b *testing.B) {
 	const n = 10_000
 	works := synthCatalog(n)

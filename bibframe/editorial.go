@@ -17,7 +17,7 @@ const (
 )
 
 // SameAsQuad links a Work to an external hub resource that identifies the same
-// work (tasks/066): <workURI> owl:sameAs <externalURI>. Minted `w…` ids stay the
+// work: <workURI> owl:sameAs <externalURI>. Minted `w…` ids stay the
 // primary identity -- this is an attached outward link, written into an
 // enrichment:<name> graph, never a re-derivation of the local id.
 func SameAsQuad(workID, externalURI string) rdf.Quad {
@@ -32,7 +32,7 @@ func SameAsQuad(workID, externalURI string) rdf.Quad {
 // Work. Feed tags arrive as labeled blank bf:Topic nodes, but editorial-class
 // statements must be blank-free, so approved community tags use this
 // predicate instead; the projector folds both shapes into the same Tags
-// dimension (tasks/012).
+// dimension.
 const PredTag = LcatNS + "tag"
 
 // TagQuad builds the editorial statement for one approved folksonomy tag.
@@ -56,7 +56,7 @@ func SubjectQuad(workID, termURI string) rdf.Quad {
 
 // PredTagAlias records that a controlled term subsumes an uncontrolled tag:
 // <termURI> lcat:tagAlias "tag" in the alias graph. Written when a
-// folksonomy/feed tag is promoted to a controlled term (tasks/044); the
+// folksonomy/feed tag is promoted to a controlled term; the
 // projector then suppresses the tag on Works that carry the aliasing subject
 // (the tag "became" the subject), and pickers auto-suggest the controlled
 // term when the tag is typed. The projector indexes the predicate across
@@ -67,7 +67,7 @@ const PredTagAlias = LcatNS + "tagAlias"
 // OUTSIDE the authority:<vocab> namespace: the vocab loader routes every
 // authority:-prefixed graph to a scheme, and alias statements carry no
 // labels, so an authority-class home minted a bogus labelless "aliases"
-// vocabulary that shadowed the promoted terms (tasks/204).
+// vocabulary that shadowed the promoted terms.
 func AliasGraph() rdf.Term { return rdf.NewIRI("lcat:aliases") }
 
 // TagAliasQuad builds the alias statement.
@@ -88,7 +88,7 @@ func AuthorityGraph(vocab string) rdf.Term {
 }
 
 // EnrichmentGraph returns the named-graph term for a machine-enrichment
-// source's statements (tasks/039). Enrichment graphs are regenerable -- an
+// source's statements. Enrichment graphs are regenerable -- an
 // enricher drop-and-replaces its own graph on each run -- but, not being
 // feed:<provider>, they are preserved across feed re-ingest like editorial
 // statements.
@@ -174,7 +174,7 @@ func ReplaceGraph(grainNQ []byte, graph rdf.Term, quads []rdf.Quad) ([]byte, err
 // bf:subject link lands in the editorial: graph (a human/reviewed decision),
 // while the term's own description (prefLabel per language, broader links)
 // lands in the vocabulary's authority:<vocab> graph so the projector's label
-// index can resolve it (tasks/012). Idempotent.
+// index can resolve it. Idempotent.
 func AppendAuthoritySubject(grainNQ []byte, workID string, subj AuthoritySubject, vocab string) ([]byte, error) {
 	if subj.URI == "" {
 		return nil, fmt.Errorf("bibframe: authority subject needs a URI")
@@ -208,7 +208,7 @@ func AppendAuthoritySubject(grainNQ []byte, workID string, subj AuthoritySubject
 // language, broader links) into the authority:<vocab> graph without linking
 // them to any Work -- skos:broader ancestor-chain metadata, so hierarchy
 // nodes no Work carries directly still resolve labels in the projection
-// (tasks/178). Terms with no metadata contribute nothing. Idempotent.
+// . Terms with no metadata contribute nothing. Idempotent.
 func AppendAuthorityTerms(grainNQ []byte, vocab string, terms []AuthoritySubject) ([]byte, error) {
 	var authority Patch
 	for _, subj := range terms {

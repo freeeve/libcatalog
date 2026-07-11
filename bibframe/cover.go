@@ -6,9 +6,9 @@ import (
 	"github.com/freeeve/libcodex/rdf"
 )
 
-// CoverExtraKey is the extras key the OPAC's cover slot reads (the tasks/022
+// CoverExtraKey is the extras key the OPAC's cover slot reads (the
 // adapter passthrough); an uploaded cover writes the same key editorially,
-// overlaying any feed-carried value (tasks/215).
+// overlaying any feed-carried value.
 const CoverExtraKey = "cover"
 
 // CoverBlobPath is where a work's uploaded cover bytes live in the blob
@@ -22,7 +22,7 @@ func CoverBlobPath(workID, ext string) string {
 // The cover is not a profile field, so it never appears in the editor doc's
 // fields map -- the editor's Cover panel read it there and therefore reported
 // "none" for every work it had not itself just uploaded to, leaving no way to
-// take a published cover down (tasks/242). Readers ask for it by name instead.
+// take a published cover down. Readers ask for it by name instead.
 //
 // An editorial statement overlays a feed-carried one, matching SetCover, whose
 // empty url removes the editorial layer and lets the feed value show again.
@@ -52,7 +52,7 @@ func CoverOf(grainNQ []byte, workID string) (string, error) {
 // SetCover records url as the work's editorial cover (lcat:extra/cover in
 // the editorial graph), replacing any previous editorial cover statement,
 // and returns the re-canonicalized grain. The work must exist in the grain
-// (the tasks/202/211/214 invariant). An empty url removes the editorial
+// (the invariant). An empty url removes the editorial
 // cover, letting any feed-carried value show through again.
 func SetCover(grainNQ []byte, workID, url string) ([]byte, error) {
 	ds, err := rdf.ParseNQuads(grainNQ)

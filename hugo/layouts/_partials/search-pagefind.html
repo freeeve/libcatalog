@@ -5,11 +5,11 @@
   search:index` / README "Search"), emitting /pagefind/pagefind-ui.{js,css} and a
   per-language index. Those assets are referenced by absolute URL -- NOT via
   resources.Get -- so Hugo builds cleanly before the index exists; the widget simply
-  activates once the post-build step has run. Pagefind reads <html lang> (tasks/016)
-  to auto-load the matching language index and segments CJK natively (tasks/005).
+  activates once the post-build step has run. Pagefind reads <html lang>
+  to auto-load the matching language index and segments CJK natively.
 
   The Component UI (input + filter accordions + results) mounts inside a modal
-  <dialog>, NOT in the header (tasks/127): in the header flex row the drawer
+  <dialog>, NOT in the header: in the header flex row the drawer
   participated in layout -- the header grew to drawer height and the filter grid,
   which assumes page-scale width, painted filters and results on top of each other.
   The header carries only a trigger button; the native dialog gives the UI a
@@ -50,7 +50,7 @@
     document.getElementById("lcat-search-close").addEventListener("click", function () { dlg.close(); });
     dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
     open.hidden = false;
-    // Honor the ?q= deep link the SearchAction JSON-LD advertises (tasks/131):
+    // Honor the ?q= deep link the SearchAction JSON-LD advertises:
     // open the dialog and run the query. While the user types, mirror the query
     // back into the URL -- replaceState, not pushState, so Back is not buried
     // under one history entry per keystroke -- keeping results shareable.

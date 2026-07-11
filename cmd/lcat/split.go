@@ -11,7 +11,7 @@ import (
 	"github.com/freeeve/libcat/identity"
 )
 
-// runSplit records an editorial split decision (tasks/001): it mints a new Work id
+// runSplit records an editorial split decision: it mints a new Work id
 // and pins the given Instances to it via lcat:workAssignment statements (plus an
 // lcat:splitFrom provenance link) in the source Work's grain. The pins survive
 // re-ingest and override the computed clustering key, so an over-merge the key

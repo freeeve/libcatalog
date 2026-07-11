@@ -16,7 +16,7 @@ import (
 // registerLocalAuth mounts the built-in user routes: login/refresh/logout for
 // everyone, user administration for admins. queue, when set, receives one
 // audit entry per user mutation -- role grants are the privilege boundary
-// for every other audited action, so they must be legible too (tasks/208).
+// for every other audited action, so they must be legible too.
 func registerLocalAuth(mux *http.ServeMux, svc *local.Service, verifier auth.TokenVerifier, queue *suggest.Service, batchSvc *batch.Service) {
 	// audit names the acting admin and the affected account.
 	audit := func(r *http.Request, action, note string, terms []string) {
@@ -31,7 +31,7 @@ func registerLocalAuth(mux *http.ServeMux, svc *local.Service, verifier auth.Tok
 	}
 	// selfTarget reports whether the acting admin is the {email} target --
 	// self-service on the admin surface is refused so a slip stays
-	// recoverable by a second admin (tasks/207).
+	// recoverable by a second admin.
 	selfTarget := func(r *http.Request) bool {
 		id, ok := auth.FromContext(r.Context())
 		return ok && strings.EqualFold(strings.TrimSpace(id.Email), strings.TrimSpace(r.PathValue("email")))
@@ -124,7 +124,7 @@ func registerLocalAuth(mux *http.ServeMux, svc *local.Service, verifier auth.Tok
 			return
 		}
 		// Old roles ride the audit note so a demotion is legible without
-		// diffing against a prior entry (tasks/208).
+		// diffing against a prior entry.
 		var oldRoles []auth.Role
 		if before, err := svc.GetUser(r.Context(), r.PathValue("email")); err == nil {
 			oldRoles = before.Roles
@@ -151,7 +151,7 @@ func registerLocalAuth(mux *http.ServeMux, svc *local.Service, verifier auth.Tok
 		// Hand the departing user's library-shared macros/templates to the
 		// deleting admin before removing the account, so they keep a live
 		// custodian instead of being silently orphaned with a dead owner
-		// (tasks/332). Done first: if the reassign fails the account survives, so
+		//. Done first: if the reassign fails the account survives, so
 		// no records are stranded. Personal (non-shared) records stay private and
 		// are the account's to lose.
 		var reassigned []batch.OwnedMeta

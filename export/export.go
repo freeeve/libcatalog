@@ -1,7 +1,7 @@
 // Package export derives the downloadable catalog artifacts from an ingest
-// output root (tasks/172): catalog.nq.gz is the corpus itself -- the catalog.nq
+// output root: catalog.nq.gz is the corpus itself -- the catalog.nq
 // found there, which every writer now emits as the merge of the grains, with
-// blank labels namespaced by work id (tasks/291, tasks/298) -- and
+// blank labels namespaced by work id -- and
 // catalog.mrc.gz / catalog.xml.gz are per-grain MARC round-trips via
 // bibframe.DecodeGrainMARC, which honors editorial override shadows and
 // verbatim sidecars (fidelity bounded by docs/marc-fidelity.md). A Manifest
@@ -49,7 +49,7 @@ type Options struct {
 	PublicSources map[string]bool
 	// PublicExtras, when non-nil, is the allowlist of lcat:extra/ *keys*
 	// permitted in the nq download, matching project.SanitizeExtras on the
-	// catalog.json side (tasks/277). Other extra quads are dropped whole.
+	// catalog.json side. Other extra quads are dropped whole.
 	// "sources" is exempt: PublicSources governs it, by value rather than by
 	// key. Nil keeps every extra.
 	PublicExtras map[string]bool
@@ -57,11 +57,11 @@ type Options struct {
 	Log io.Writer
 	// OrgCode is the deployment's MARC organization code; when set, the
 	// MARC download derives each record's 040 from graph facts at decode
-	// time (tasks/192).
+	// time.
 	OrgCode string
 	// CoversOut, when set, copies uploaded cover images (data/covers/ under
 	// In) to this directory as flat files, the site-relative covers/ URLs
-	// the editorial lcat:extra/cover statements point at (tasks/215).
+	// the editorial lcat:extra/cover statements point at.
 	// Empty skips the copy.
 	CoversOut string
 }
@@ -73,7 +73,7 @@ type Manifest struct {
 	// Works counts the Works the download describes -- the visible ones, so this
 	// number is comparable with catalog.json's. It used to count grains, which
 	// cannot disagree with anything: a build that published 3274 records for a
-	// 31-work catalog reported 3274 and looked healthy (tasks/304).
+	// 31-work catalog reported 3274 and looked healthy.
 	Works int `json:"works"`
 	// Hidden counts the grains held back as suppressed or tombstoned. Recorded so
 	// a takedown is auditable from the build output rather than inferable from it.
@@ -110,7 +110,7 @@ func Run(opts Options) (*Manifest, error) {
 	// `lcat project` drops a suppressed or tombstoned Work before it reaches
 	// catalog.json, and every artifact derived from it. The download path used to
 	// publish straight from the store, so a takedown removed a record from the
-	// OPAC and left it in the RDF, the MARC and the covers (tasks/304). Apply the
+	// OPAC and left it in the RDF, the MARC and the covers. Apply the
 	// same stance here, once, and let every artifact below read the result.
 	visible, hiddenIRIs, err := partitionByVisibility(grains)
 	if err != nil {
@@ -247,7 +247,7 @@ func partitionByVisibility(paths []string) (visible []visibleGrain, hiddenIRIs m
 		}
 		// Both stances hide the Work from projection. A tombstone's id is public
 		// in redirects.json by design, but "this id is gone" is not "here is what
-		// it was", so the record leaves the downloads too (tasks/304).
+		// it was", so the record leaves the downloads too.
 		if vis.Tombstoned || vis.Suppressed {
 			hiddenIRIs[bibframe.WorkIRI(id)] = true
 			continue
@@ -289,7 +289,7 @@ func namesHiddenWork(line string, hidden map[string]bool) bool {
 // Dropping only the lines that name the id leaves 24 of a 33-quad record on the
 // public site. The merge of the visible grains is the whole record or none of it.
 //
-// Rebuilding is also what catalog.nq *is* -- since tasks/298 every writer emits
+// Rebuilding is also what catalog.nq *is* every writer emits
 // exactly this merge, so an all-visible corpus produces byte-identical output,
 // pinned by TestNothingIsHeldBackWhenNothingIsHidden. It costs a second read of
 // each grain and removes the export's dependence on a file it did not write:
@@ -349,7 +349,7 @@ func writeNQ(visible []visibleGrain, hidden map[string]bool, dst string, filter 
 
 // nqFilter is the pair of allowlists the nq download applies to lcat:extra/
 // quads: `sources` is filtered within its literal, every other extra by its key
-// (tasks/172, tasks/277). A struct rather than two adjacent map[string]bool
+// . A struct rather than two adjacent map[string]bool
 // parameters, which nothing would have caught being swapped.
 type nqFilter struct {
 	sources map[string]bool
@@ -518,19 +518,19 @@ func emitRecord(mw *iso2709.Writer, xw *marcxml.Writer, path string, rec *codex.
 }
 
 // copyCovers flattens data/covers/<shard>/<file> under in to out/<file>,
-// matching the covers/ URLs the OPAC's cover slot loads (tasks/215). A
+// matching the covers/ URLs the OPAC's cover slot loads. A
 // missing covers tree is a no-op -- most catalogs have no uploads.
 // copyCovers publishes exactly the covers the visible Works claim.
 //
 // It used to walk data/covers and copy every blob it found, which published the
 // cover of every suppressed and tombstoned Work at covers/<workID>.<ext> -- a
 // guessable URL, and for a tombstone a *derivable* one, since redirects.json
-// names the id (tasks/304). `lcat covers --reap` cannot collect these: a hidden
+// names the id. `lcat covers --reap` cannot collect these: a hidden
 // Work still has a grain and still claims its cover, so it is an orphan by none
 // of the reaper's three reasons -- and reaping a blob after it has reached a CDN
 // does not unpublish it.
 //
-// Driving from the claims also drops the tasks/243 stale-format residue for
+// Driving from the claims also drops the stale-format residue for
 // free: a Work names one cover, and any other blob bearing its id is not it.
 func copyCovers(in, out string, visible []visibleGrain, log io.Writer) error {
 	if out == "" {
@@ -553,7 +553,7 @@ func copyCovers(in, out string, visible []visibleGrain, log io.Writer) error {
 		// the site serves it flattened. Constructing the read path here without
 		// the shard missed every cover in the store, and `os.IsNotExist -> continue`
 		// turned that into silence: no error, no log line, zero covers published
-		// (tasks/308). Ask the same function the writer used.
+		//. Ask the same function the writer used.
 		name := path.Base(vg.cover)
 		ext := strings.TrimPrefix(filepath.Ext(name), ".")
 		data, err := os.ReadFile(filepath.Join(in, filepath.FromSlash(bibframe.CoverBlobPath(vg.id, ext))))

@@ -1,4 +1,4 @@
-// tasks/304: `lcat project` drops a suppressed or tombstoned Work before it
+// `lcat project` drops a suppressed or tombstoned Work before it
 // reaches catalog.json, so the OPAC, the facets, the search index and the
 // "more like this" rail all forget it. The exporter published from the store
 // instead of from the graph view, so the same Work kept its cover at a
@@ -108,7 +108,7 @@ func sentinels(t *testing.T) (root, visible, suppressed, tombstoned string) {
 // Through bibframe.CoverBlobPath, deliberately: the blob tree is **sharded**
 // (data/covers/<xx>/<id>.<ext>) and a fixture that writes the flat path agrees
 // with a reader that reads the flat path, so both can be wrong together. That is
-// exactly what happened -- tasks/308 -- and the positive control here passed
+// exactly what happened -- and the positive control here passed
 // while the real exporter published nothing.
 func plantCover(t *testing.T, root, workID string) {
 	t.Helper()
@@ -254,7 +254,7 @@ func TestCoversPublishOnlyVisibleWorks(t *testing.T) {
 	}
 }
 
-// A blob no visible Work claims is not published either -- the tasks/243
+// A blob no visible Work claims is not published either -- the
 // stale-format residue, which `lcat covers --reap` collects from the store only
 // after the fact. Driving the copy from the grains collects it for free.
 func TestCoversSkipBlobsNoWorkClaims(t *testing.T) {
@@ -285,7 +285,7 @@ func TestCoversSkipBlobsNoWorkClaims(t *testing.T) {
 	}
 }
 
-// tasks/308: the cover blob tree is sharded and the site serves it flat. The
+// the cover blob tree is sharded and the site serves it flat. The
 // exporter constructed its read path without the shard, missed every blob, and
 // `os.IsNotExist -> continue` published zero covers in silence.
 //
@@ -323,7 +323,7 @@ func TestCoversAreReadFromTheShardedBlobPath(t *testing.T) {
 
 // A claimed cover the store does not hold is benign, but it must be counted and
 // said out loud: "every cover is missing" and "one cover is missing" looked
-// identical from the build log, which is how tasks/308 stayed invisible.
+// identical from the build log, which is how stayed invisible.
 func TestMissingCoverIsReportedRatherThanSwallowed(t *testing.T) {
 	root, visible, _, _ := sentinels(t)
 	if err := os.Remove(filepath.Join(root, filepath.FromSlash(bibframe.CoverBlobPath(visible, "png")))); err != nil {

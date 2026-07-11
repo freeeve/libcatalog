@@ -150,7 +150,7 @@ func (s *Store) Put(ctx context.Context, path string, data []byte, opts blob.Put
 
 // PutStream implements blob.StreamPutter by spooling the payload to a local
 // temp file for a seekable, length-known upload body -- RAM stays at the
-// copy buffer while the object rides through disk (tasks/108). Preconditions
+// copy buffer while the object rides through disk. Preconditions
 // carry through to the PutObject exactly as in Put.
 func (s *Store) PutStream(ctx context.Context, path string, r io.Reader, opts blob.PutOptions) (string, error) {
 	if err := blob.ValidatePath(path); err != nil {

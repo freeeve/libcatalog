@@ -1,4 +1,4 @@
-{{- /* Work-card extension hook (tasks/151): empty by default, so the module adds
+{{- /* Work-card extension hook: empty by default, so the module adds
        nothing to result cards on its own. An importing site overrides this partial
        (layouts/_partials/work-card-extra.html) to inject per-work content into every
        card -- e.g. holding/availability chips under the title -- without shadowing
@@ -6,7 +6,7 @@
        the Work page context, same as the card.
 
        partialCached contract: work-card.html renders via partialCached keyed on the
-       work's .RelPermalink (tasks/133), and this hook renders inside it -- so the
+       work's .RelPermalink, and this hook renders inside it -- so the
        hook's output MUST be a function of the work page alone (its .Params, .Title,
        .RelPermalink, ...). Anything drawn from the surrounding list page (current
        term, pagination, query) would be frozen at first render and wrong elsewhere. */ -}}

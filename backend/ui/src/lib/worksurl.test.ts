@@ -45,7 +45,7 @@ describe("parseWorksQuery", () => {
   });
 });
 
-// tasks/254: "Export these results…" carried only the query. With facets applied
+// "Export these results…" carried only the query. With facets applied
 // it degraded to kind=all, so a cataloger who had narrowed 62,602 works to 465
 // was handed the whole catalog, preloaded and previewed as if they had asked.
 describe("exportsHash", () => {
@@ -58,7 +58,7 @@ describe("exportsHash", () => {
     expect(p.getAll("f.tag")).toEqual(["poetry"]);
   });
 
-  // A search selection with no query is refused by the server (tasks/205), so
+  // A search selection with no query is refused by the server, so
   // "everything, filtered" has to be kind=all plus facets.
   it("uses kind=all when there is no query, and still carries the facets", () => {
     const p = params(exportsHash("   ", { tag: ["poetry"] }, false));
@@ -75,7 +75,7 @@ describe("exportsHash", () => {
     ]);
   });
 
-  // The works screen hides retired records by default (tasks/280); the export
+  // The works screen hides retired records by default; the export
   // must agree or the preview count will not match the count beside the link.
   it("mirrors the works screen's tombstoned mode", () => {
     expect(params(exportsHash("", {}, false)).get("tombstoned")).toBe("exclude");

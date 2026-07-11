@@ -58,7 +58,7 @@ type WorkIdentity struct {
 
 // GrainIdentity is the identity recovered from one grain -- the Work(s) it
 // carries and their Instances. The derive-from-grains model (Decision A,
-// tasks/002): the committed grains are themselves the identity map.
+// ): the committed grains are themselves the identity map.
 type GrainIdentity struct {
 	Works     []WorkIdentity
 	Instances []InstanceIdentity
@@ -86,7 +86,7 @@ func ScanGrain(nq []byte) (GrainIdentity, error) {
 func ScanDataset(ds *rdf.Dataset) GrainIdentity {
 	var gi GrainIdentity
 	for _, gt := range ds.Graphs() {
-		// Zero-copy per-graph view (libcodex v0.19.0, tasks/209): the
+		// Zero-copy per-graph view (libcodex v0.19.0): the
 		// per-graph query semantics -- feed vs editorial separation -- are
 		// unchanged; only the materialized []Triple copy per graph is gone.
 		g := ds.GraphView(gt)

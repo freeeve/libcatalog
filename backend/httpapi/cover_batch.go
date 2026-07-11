@@ -24,7 +24,7 @@ const coverBatchMaxBytes = 64 << 20
 // coverBatchResult reports one zip entry's fate.
 //
 // Skipped and Failed are not the same thing, and folding them together made the
-// batch report lie (tasks/268). Skipped means the entry was rejected before
+// batch report lie. Skipped means the entry was rejected before
 // either store was touched: nothing happened, and the operator can ignore it or
 // fix the name. Failed means the stores were asked to do the work and did not:
 // the entry is worth retrying. Changed marks the one case an operator has to
@@ -39,11 +39,11 @@ type coverBatchResult struct {
 	Changed bool   `json:"changed,omitempty"`
 }
 
-// registerCoverBatch mounts the zip batch cover upload (tasks/220, 058 item
+// registerCoverBatch mounts the zip batch cover upload (058 item
 // 2 remainder): each entry is <workId>.<ext> or <isbn>.<ext>; ISBNs resolve
 // through the work index. Every applied cover goes through the same
 // grain-first SetCover path as the single PUT, so a bad name never strands
-// bytes -- and, since tasks/268, a failed byte write never strands a statement:
+// bytes -- and, since a failed byte write never strands a statement:
 // the danger of grain-first is the statement, not the bytes.
 //
 // The response counts applied, skipped and failed separately. A batch report is
@@ -96,7 +96,7 @@ func registerCoverBatch(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, 
 			// Audit every entry that left a cover statement on a record -- the
 			// applied ones, and the one whose statement could not be rolled
 			// back. Otherwise the single work that needs repair by hand is the
-			// single work nothing in the audit log names (tasks/268). A
+			// single work nothing in the audit log names. A
 			// compensated entry changed nothing and is not audited, as in 249.
 			if queue != nil && res.Cover != "" {
 				note := res.Cover + " (batch)"
@@ -210,7 +210,7 @@ func applyBatchCover(r *http.Request, bs blob.Store, ix *workindex.Index, byISBN
 	// Grain first, as the single PUT does. Every skip above returns before
 	// either store is touched; from here on a failure has already written
 	// something, so it is compensated and reported as failed, not skipped
-	// (tasks/268). previous is the cover this entry replaces.
+	//. previous is the cover this entry replaces.
 	var previous string
 	if _, err := mutateWorkGrain(r, bs, ix, workID, func(g []byte) ([]byte, error) {
 		cur, err := bibframe.CoverOf(g, workID)

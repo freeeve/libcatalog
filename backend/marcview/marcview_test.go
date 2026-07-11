@@ -84,7 +84,7 @@ func TestViewAnnotatesAndLists(t *testing.T) {
 	}
 }
 
-// TestMalformedLeaderRefused pins tasks/344: a save whose leader is present but
+// TestMalformedLeaderRefused pins a save whose leader is present but
 // not 24 bytes must be refused with ErrValidation and must not mutate the grain,
 // rather than silently reclassifying the record type via codex's read-defensive
 // leader accessors.

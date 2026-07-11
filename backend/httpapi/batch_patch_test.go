@@ -22,7 +22,7 @@ import (
 const otherWorkID = "wxyz789ghi012"
 
 // seedOtherWork adds a second grain, so a batch can span two works -- the case
-// the original batch test never covered, and the reason tasks/240 went unseen.
+// the original batch test never covered, and the reason went unseen.
 func seedOtherWork(t *testing.T, bs blob.Store) {
 	t.Helper()
 	ds := &rdf.Dataset{}
@@ -71,7 +71,7 @@ func postBatch(t *testing.T, h http.Handler, patch editor.Patch, ids []string, d
 	return rec.Code, out
 }
 
-// tasks/240: a batch patch carries one literal subject. Applied verbatim to
+// a batch patch carries one literal subject. Applied verbatim to
 // every selected work, it writes quads describing the first work into every
 // other work's grain -- and the dry run reports the change as applied to each,
 // so nothing about the preview reveals it. Each work's own Work node is the
@@ -264,7 +264,7 @@ func TestPutWorkStillAcceptsItsOwnNodes(t *testing.T) {
 	}
 }
 
-// tasks/239: POST /v1/batch wrote one audit entry carrying no work id, so every
+// POST /v1/batch wrote one audit entry carrying no work id, so every
 // record it rewrote read "0 entries" in its own History tab. Its note was a JSON
 // blob of the results cut at 512 bytes, which past ~7 works stops being
 // parseable and can split a UTF-8 rune at the boundary.

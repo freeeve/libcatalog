@@ -52,7 +52,7 @@
   let pending = $state<number | null>(null);
   // True when the queue returned a full page with a cursor, i.e. the count is a
   // floor, not a total -- the tile shows "50+" rather than claiming exactly 50
-  // (tasks/328).
+  //.
   let pendingMore = $state(false);
   let queueError = $state("");
 
@@ -186,7 +186,7 @@
             />
           </label>
           <!-- These counts roll up the audit trail; the audit log is where the
-               underlying who/when/what per entry can be read (tasks/299). -->
+               underlying who/when/what per entry can be read. -->
           <a class="audit-link" href={"#/audit?month=" + activityMonth}>View the audit log →</a>
         </div>
       </div>

@@ -11,7 +11,7 @@ import (
 // readWorkGrain is the shared read half of every per-work handler: validate
 // the {id} path value, read its grain, and write the error response itself
 // on failure -- bad id 400, missing work 404, store fault 500 (the same
-// mapping writeMutateError gives the write half, tasks/115/116). Callers use
+// mapping writeMutateError gives the write half). Callers use
 // the returns only when ok is true.
 func readWorkGrain(w http.ResponseWriter, r *http.Request, bs blob.Store) (grain []byte, etag, workID string, ok bool) {
 	workID = r.PathValue("id")
@@ -34,7 +34,7 @@ func readWorkGrain(w http.ResponseWriter, r *http.Request, bs blob.Store) (grain
 // writeGrainConflict is the answer every client-token PUT owes a stale token:
 // 412 carrying the grain as it now stands, so the client can show the edit that
 // beat it and rebase deliberately rather than clobber. Shared so the two callers
-// cannot drift into answering the same condition differently (tasks/273).
+// cannot drift into answering the same condition differently.
 func writeGrainConflict(w http.ResponseWriter, workID, etag string, grain []byte) {
 	w.Header().Set("ETag", etag)
 	writeJSON(w, http.StatusPreconditionFailed, grainView{WorkID: workID, ETag: etag, NQuads: string(grain)})

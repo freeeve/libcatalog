@@ -24,7 +24,7 @@ type Param struct {
 	Default string `json:"default,omitempty"`
 }
 
-// Macro is a replayable op list (tasks/047): recorded in the editor, replayed
+// Macro is a replayable op list: recorded in the editor, replayed
 // against another record, or -- when shared -- run over a batch selection,
 // which is the MARC-modification-template shape. Keys optionally names a
 // single-character editor shortcut.
@@ -76,7 +76,7 @@ var paramRef = regexp.MustCompile(`\$\{([A-Za-z0-9_-]+)\}`)
 
 // CreateMacro validates and stores a macro for owner (in the shared
 // partition when m.Shared). The id is minted server-side. A shortcut key
-// already held by another macro visible to this owner refuses (tasks/237).
+// already held by another macro visible to this owner refuses.
 func (s *Service) CreateMacro(ctx context.Context, m Macro, owner string) (Macro, error) {
 	if err := s.shortcutFree(ctx, m.Keys, "", owner); err != nil {
 		return Macro{}, err
@@ -114,7 +114,7 @@ func (s *Service) shortcutFree(ctx context.Context, keys, selfID, owner string) 
 }
 
 // DeleteMacro removes a macro. The owner may delete; an admin may delete a
-// shared one (tasks/292).
+// shared one.
 func (s *Service) DeleteMacro(ctx context.Context, owner, id string, isAdmin bool) error {
 	return deleteOwned(ctx, s.DB, macroKind, owner, id, isAdmin)
 }
@@ -133,7 +133,7 @@ func (s *Service) ListMacros(ctx context.Context, owner string) ([]Macro, error)
 // ReassignSharedRecords transfers every library-shared macro and item template
 // owned by `from` to `to`, returning the reassigned metas. It exists so deleting
 // a user can hand their shared records to the deleting admin -- a live custodian
-// -- rather than leave them orphaned with a dead owner (tasks/332).
+// -- rather than leave them orphaned with a dead owner.
 func (s *Service) ReassignSharedRecords(ctx context.Context, from, to string) ([]OwnedMeta, error) {
 	macros, err := reassignShared(ctx, s.DB, macroKind, from, to)
 	if err != nil {
@@ -152,7 +152,7 @@ func (s *Service) ReassignSharedRecords(ctx context.Context, from, to string) ([
 // silently writes its placeholder text into a record.
 //
 // A blank caller value means "use the default", exactly like an omitted one
-// (tasks/231): the parameter field advertises the default as its
+// : the parameter field advertises the default as its
 // placeholder and the client's own lookup skips blanks, so a cleared field
 // must not override the default here either -- a macro means the same thing
 // replayed in the editor or run over a selection.
@@ -211,7 +211,7 @@ func ApplyParams(m Macro, values map[string]string) ([]editor.Op, error) {
 }
 
 // ReservedShortcutKeys are the single-character chords the editor already
-// claims, mapped to the action that holds each (tasks/237). A macro keyed to
+// claims, mapped to the action that holds each. A macro keyed to
 // one of them used to win by registering later, silently disabling the chord
 // -- and the "?" overlay, which renders from the same registry, stopped
 // listing it. Rejecting the macro at the source is the only place the
@@ -287,7 +287,7 @@ func validateMacro(m Macro) error {
 
 // CreateQuery stores a named search for owner. Label and query validate
 // after normalization: a whitespace-only query would persist a selection
-// that forever resolves to the entire catalog (tasks/205).
+// that forever resolves to the entire catalog.
 func (s *Service) CreateQuery(ctx context.Context, label, query, owner string) (SavedQuery, error) {
 	label, query = strings.TrimSpace(label), normQuery(query)
 	if label == "" || query == "" {
@@ -322,7 +322,7 @@ func (s *Service) GetQuery(ctx context.Context, owner, id string) (SavedQuery, e
 // the macro and item-template lists (listOwned) the same dropdowns sit beside. The
 // store yields them in sort-key order, and the key embeds a crypto/rand id, so without
 // this they came back in an order the librarian never sees -- the one just saved landing
-// wherever its random id sorted, not last (tasks/294). Creation order was the older
+// wherever its random id sorted, not last. Creation order was the older
 // contract; CreatedAt still carries it for a caller that wants the newest last.
 func (s *Service) ListQueries(ctx context.Context, owner string) ([]SavedQuery, error) {
 	out := []SavedQuery{}

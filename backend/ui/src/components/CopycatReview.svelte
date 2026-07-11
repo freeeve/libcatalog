@@ -3,7 +3,7 @@
   // while open so the legend flips): j/k move, i/s decide import/skip,
   // A imports every "new" record, N skips everything already in the
   // catalog, o opens the matched work, v shows the selected record's MARC
-  // (tasks/074), c commits behind a confirm modal, Escape closes the batch.
+  //, c commits behind a confirm modal, Escape closes the batch.
   // Decisions render as tinted chips; bulk keys ship one review call.
   import { onMount } from "svelte";
   import { ApiError, commitCopycatBatch, revertCopycatBatch, reviewCopycatBatch } from "../lib/api";

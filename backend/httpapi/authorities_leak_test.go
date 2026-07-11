@@ -1,4 +1,4 @@
-// tasks/272: authoritiesvc.Merge writes through publish.MutateGrain twice, and
+// authoritiesvc.Merge writes through publish.MutateGrain twice, and
 // the handler mapped every non-validation, non-notfound error onto 409 with
 // err.Error() as the body. A store failure therefore answered "somebody else
 // edited this record" -- the wrong status -- with an *os.PathError naming the
@@ -92,7 +92,7 @@ func postMerge(t *testing.T, h http.Handler, loser string) (int, string) {
 
 // A broken store is a 500, and its message names nothing.
 //
-// The store here fails the very first write, which since tasks/305 is the first
+// The store here fails the very first write, which is the first
 // Work rewrite rather than the loser's retirement. Nothing landed, and the message
 // says exactly that -- the one case where "the merge did not happen" is true.
 func TestAuthorityMergeStoreFailureIsNotAConflict(t *testing.T) {
@@ -113,7 +113,7 @@ func TestAuthorityMergeStoreFailureIsNotAConflict(t *testing.T) {
 }
 
 // A read-only deployment answers the guard's own 403 and wording, so a client
-// cannot tell which layer refused it (tasks/260).
+// cannot tell which layer refused it.
 func TestAuthorityMergeReportsReadOnlyLikeTheGuard(t *testing.T) {
 	h, bs := mergeAPIOver(t, blob.ErrReadOnly)
 	loser := seedMergeable(t, h, bs)

@@ -1,7 +1,7 @@
 <script lang="ts">
-  // The MARC tab of the dual-view editor (tasks/049): loads the grain's
+  // The MARC tab of the dual-view editor: loads the grain's
   // records as field arrays, hosts the grid or the mrk-style text surface
-  // per record (tasks/076) -- two views of the same in-memory doc, so edits
+  // per record -- two views of the same in-memory doc, so edits
   // carry across the toggle -- previews the exact quad delta (dry run), and
   // saves under If-Match. A text buffer that does not parse blocks preview
   // and save with its line-anchored errors. Untouched saves are no-ops
@@ -17,7 +17,7 @@
 
   let { workId, scope }: { workId: string; scope?: string } = $props();
 
-  // The same gating SaveBar applies (tasks/260). A read-only demo hides Save;
+  // The same gating SaveBar applies. A read-only demo hides Save;
   // the execute path is refused by the server anyway, and offering a control
   // that cannot work is what made the refusal look like a crash. Sandbox saves
   // dry-run and render the delta, never persisting. Preview stays in both --

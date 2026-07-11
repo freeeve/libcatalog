@@ -20,7 +20,7 @@ type SuggType string
 const (
 	TypeAdd    SuggType = "ADD"
 	TypeRemove SuggType = "REMOVE"
-	// TypeConcern is an anonymous report-a-problem (tasks/210): freetext in
+	// TypeConcern is an anonymous report-a-problem: freetext in
 	// Note, moderated in the same queue (approve = resolve, reject =
 	// dismiss), never published to the graph.
 	TypeConcern SuggType = "CONCERN"
@@ -54,7 +54,7 @@ type Provenance string
 
 const (
 	ProvenancePatron    Provenance = "PATRON"
-	ProvenancePipeline  Provenance = "PIPELINE" // enrichment providers (tasks/039)
+	ProvenancePipeline  Provenance = "PIPELINE" // enrichment providers
 	ProvenanceLibrarian Provenance = "LIBRARIAN"
 )
 
@@ -64,7 +64,7 @@ var (
 	ErrRateLimited = errors.New("suggest: rate limit exceeded")
 	ErrBadTerm     = errors.New("suggest: term not in a loaded vocabulary")
 	ErrFolkBlocked = errors.New("suggest: folksonomy term is blocked")
-	// Patron-suggestion policy refusals (tasks/263); the API maps these to 403.
+	// Patron-suggestion policy refusals; the API maps these to 403.
 	// They bind patrons only -- ManualTerm (the librarian path) is not gated.
 	ErrSuggestionsOff   = errors.New("suggest: patron suggestions are not enabled here")
 	ErrSchemeNotAllowed = errors.New("suggest: that vocabulary is not open for patron suggestions")

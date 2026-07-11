@@ -14,11 +14,11 @@ import (
 	"github.com/freeeve/libcat/storage/blob"
 )
 
-// TestExportMARCEmitsRawFreeText is the tasks/091 regression: ISO 2709 is a
+// TestExportMARCEmitsRawFreeText is the regression: ISO 2709 is a
 // binary format, not XML, so exported free text must be raw bytes -- never
 // XML-escaped. A grain whose prose carries a literal "&" or an em-dash must
 // export as those bytes, not "&amp;" or "&#8212;". It also confirms the
-// tasks/081 ingest cleaning reached the grain (markup stripped, entity decoded).
+// ingest cleaning reached the grain (markup stripped, entity decoded).
 func TestExportMARCEmitsRawFreeText(t *testing.T) {
 	rec := codex.NewRecord()
 	rec.SetLeader(codex.Leader([]byte("00000nam a2200000 a 4500")))

@@ -1,4 +1,4 @@
-// Browse artifacts for the client-side reader (tasks/158). Alongside the
+// Browse artifacts for the client-side reader. Alongside the
 // per-language search indexes (search.go), the build emits a single global
 // doc-id space (one entry per Work, in catalog order) as two RoaringRange
 // sidecars the Hugo WASM reader opens directly:
@@ -14,7 +14,7 @@
 // space, and a card links to the static /works/<id> detail page.
 // browse-subjects.json maps each subject id to its labels + vocabulary scheme,
 // so the fallback facet panel renders localized, scheme-grouped subjects
-// (tasks/173).
+// .
 package search
 
 import (
@@ -54,8 +54,8 @@ const (
 // browseSubject is one subject category's display metadata in
 // browse-subjects.json: the RRSF sidecar keys subjects by authority id only,
 // so the facet UI needs this map to render localized labels, group by
-// vocabulary scheme like the static sidebar does (tasks/173), and nest
-// concepts under their skos:broader parents (tasks/174).
+// vocabulary scheme like the static sidebar does, and nest
+// concepts under their skos:broader parents.
 type browseSubject struct {
 	Labels  map[string]string `json:"labels,omitempty"`
 	Scheme  string            `json:"scheme,omitempty"`
@@ -63,9 +63,9 @@ type browseSubject struct {
 	// Minted marks an entry created only to close an ancestry hole
 	// (expandSubjectAncestry): no Work carries it directly. Its labels and
 	// broader edges fill from the catalog's vocabulary sideband when the
-	// graph described the term (tasks/178); while it stays label-less the
+	// graph described the term; while it stays label-less the
 	// facet UI keeps its rolled-up postings out of the rendered tree instead
-	// of showing a raw authority URI as a top-level concept (tasks/176).
+	// of showing a raw authority URI as a top-level concept.
 	Minted bool `json:"minted,omitempty"`
 }
 
@@ -173,7 +173,7 @@ func BuildBrowse(cat *project.Catalog, sink storage.Sink) error {
 const ancestryDepthCap = 12
 
 // expandSubjectAncestry unions each subject category's postings into every
-// skos:broader ancestor's postings (tasks/174, mirroring the QLL POC): a
+// skos:broader ancestor's postings (mirroring the QLL POC): a
 // parent concept's count then already rolls up its subtree, and a filter on
 // the parent -- include or exclude -- covers works tagged anywhere below it,
 // with no per-node queries client-side. Ancestors named by broader edges but
@@ -181,7 +181,7 @@ const ancestryDepthCap = 12
 // metadata map, flagged Minted so the UI can keep label-less plumbing nodes
 // out of the rendered tree. A minted entry fills its labels, broader edges,
 // and scheme from the catalog's vocabulary sideband when the graph described
-// the term (tasks/178) -- labels make it a real tree node client-side, and
+// the term -- labels make it a real tree node client-side, and
 // its broader edges extend the walk so rollups cross ancestors no work
 // carries; without a sideband entry the scheme falls back to the child's.
 func expandSubjectAncestry(cats map[string]*roaring.Bitmap, subjects map[string]browseSubject, terms map[string]project.Term) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Visibility stance (tasks/051): suppress hides a work from projection
+  // Visibility stance: suppress hides a work from projection
   // (restorable, no redirect); tombstone retires it with an optional
   // successor redirect. Never row-deletion.
   import { onMount } from "svelte";

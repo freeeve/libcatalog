@@ -25,7 +25,7 @@ const goneBody = `<!DOCTYPE html>
 </html>
 `
 
-// redirectTable is the served view of the projector's redirects.json (tasks/313):
+// redirectTable is the served view of the projector's redirects.json:
 // retired Work id -> surviving Work id, empty when the id was tombstoned with no
 // successor.
 //

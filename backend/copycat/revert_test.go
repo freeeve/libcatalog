@@ -209,7 +209,7 @@ func TestProfilesCRUD(t *testing.T) {
 	}
 }
 
-// TestCommitRefusesNonStaged covers tasks/213: a second commit of a
+// TestCommitRefusesNonStaged covers a second commit of a
 // COMMITTED batch used to poison the revert set (Created re-derived from
 // the now-existing grains), so revert reported success while leaving the
 // created work live. Commit-after-revert stays allowed -- the redo of an

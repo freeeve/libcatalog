@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Session-expiry re-auth (tasks/223): overlays the still-mounted screen
+  // Session-expiry re-auth: overlays the still-mounted screen
   // when the live session dies (token aged out, sibling-tab sign-out), so
   // staged edits survive. Signing in here is a resumption -- the shell
   // restores the identity and closes the overlay without navigating or

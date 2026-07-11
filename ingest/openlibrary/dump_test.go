@@ -45,7 +45,7 @@ func TestReadEditionsDump(t *testing.T) {
 
 func TestReadEditionsDumpDropsConflictingISBN(t *testing.T) {
 	// The same ISBN mapped to two different works across editions is a data
-	// conflict: drop it entirely so it can never mint a false match (tasks/066).
+	// conflict: drop it entirely so it can never mint a false match.
 	dump := strings.Join([]string{
 		editionLine(`{"isbn_13":["9780553383805"],"works":[{"key":"/works/OL1W"}]}`),
 		editionLine(`{"isbn_13":["9780553383805"],"works":[{"key":"/works/OL2W"}]}`),

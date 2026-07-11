@@ -7,7 +7,7 @@ import (
 	"github.com/freeeve/libcat/bibframe"
 )
 
-// TestMergeMarkerRefusesForeignSubject covers tasks/202 at the bibframe
+// TestMergeMarkerRefusesForeignSubject covers at the bibframe
 // layer: a marker for a subject the grain does not describe is refused
 // instead of minting a phantom node.
 func TestMergeMarkerRefusesForeignSubject(t *testing.T) {

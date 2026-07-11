@@ -33,7 +33,7 @@ func seededKey() store.Key            { return store.Key{PK: "COPYCAT", SK: "SEE
 
 // DefaultTargets are the search sources seeded on a store that has never had
 // targets: open, anonymous SRU endpoints serving MARC21, each verified live
-// against the exact queries the fielded search emits (tasks/074, tasks/087).
+// against the exact queries the fielded search emits.
 // LOC speaks the Bath-profile identifier indexes as-is; DNB only answers SRU
 // 1.1 and names its schema MARC21-xml, with dnb.num covering both standard
 // numbers; K10plus wants its PICA identifier indexes.
@@ -50,7 +50,7 @@ var DefaultTargets = []Target{
 // one-click presets. It is the single source for the preset row: the UI fetches
 // it (GET /v1/copycat/targets/suggested) rather than maintaining its own copy,
 // which is how the k10plus preset came to lack the PICA indexes its seeded twin
-// carries (tasks/256). A preset sharing a URL with a DefaultTargets entry must
+// carries. A preset sharing a URL with a DefaultTargets entry must
 // carry the same SRU knobs, or the one-click target speaks different CQL than the
 // seeded one -- TestSuggestedTargetsAgreeWithDefaults pins that. Blurbs are the
 // UI's to add; the wire config lives here.
@@ -78,7 +78,7 @@ func (s *Service) SeedDefaultTargets(ctx context.Context) error {
 	}
 	// Create-only marker: concurrent cold starts against a shared table
 	// race the Get above, and CondIfAbsent makes every loser a clean no-op
-	// instead of a duplicate seeding pass (tasks/099).
+	// instead of a duplicate seeding pass.
 	if _, err := s.DB.Put(ctx, store.Record{Key: seededKey(), Data: []byte(`{}`)}, store.CondIfAbsent); err != nil {
 		if errors.Is(err, store.ErrConditionFailed) {
 			return nil

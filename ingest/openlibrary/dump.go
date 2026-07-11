@@ -23,7 +23,7 @@ type editionRecord struct {
 const workURIPrefix = "https://openlibrary.org"
 
 // ReadEditionsDump builds an ISBN -> OpenLibrary work URI index from an OpenLibrary
-// editions dump (tasks/066). The dump is the public bulk TSV: each line is
+// editions dump. The dump is the public bulk TSV: each line is
 // type<TAB>key<TAB>revision<TAB>last_modified<TAB>JSON, and the JSON column carries
 // isbn_10 / isbn_13 arrays and a works reference. The reader streams it -- the real
 // dump is multi-GB -- keeping only the ISBN->work mapping.

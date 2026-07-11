@@ -76,7 +76,7 @@ func TestReadOnlyDryRunStillPreviews(t *testing.T) {
 	}
 }
 
-// tasks/260: the two allowlisted execute paths answered 500 "grain write
+// the two allowlisted execute paths answered 500 "grain write
 // failed" -- a claim the server is broken, on an ordinary user action, in the
 // deployment mode strangers touch. blob.ErrReadOnly was exported and consulted
 // nowhere.
@@ -173,7 +173,7 @@ func TestReadOnlyMutateWorkGrainReportsForbidden(t *testing.T) {
 	}
 }
 
-// tasks/260: readOnlyAllowed matched on suffix, so any future route ending in
+// readOnlyAllowed matched on suffix, so any future route ending in
 // "/ops" or "/marc" fell through the guard onto the blob store's mercy -- and a
 // route that wrote to the document store would not be caught at all.
 func TestReadOnlyAllowlistDoesNotMatchOnSuffix(t *testing.T) {

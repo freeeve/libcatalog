@@ -57,7 +57,7 @@ func TestTemplates(t *testing.T) {
 	}
 }
 
-// TestStageOriginal is the tasks/077 acceptance: a titled draft stages as an
+// TestStageOriginal is the acceptance: a titled draft stages as an
 // "original" batch with empty skeleton rows pruned; an untitled or malformed
 // draft is refused with field-anchored errors.
 func TestStageOriginal(t *testing.T) {

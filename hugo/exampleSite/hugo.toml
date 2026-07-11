@@ -2,12 +2,12 @@ baseURL = "https://example.org/"
 title = "libcat example catalog"
 languageCode = "en-us"
 
-# Serve /robots.txt from the module's layouts/robots.txt (tasks/316). A module
+# Serve /robots.txt from the module's layouts/robots.txt. A module
 # cannot set this -- it is site config -- so every adopter opts in here; without
 # it Hugo emits no robots.txt and the module's template never runs.
 enableRobotsTXT = true
 
-# Bilingual demo (tasks/016): the module's content adapter calls .EnableAllLanguages,
+# Bilingual demo: the module's content adapter calls .EnableAllLanguages,
 # so a full Work-page set is minted for BOTH languages with no per-language content
 # mount and no local copy of _content.gotmpl. UI chrome localizes from the module's
 # i18n/en.toml defaults plus this site's i18n/es.toml -- no template fork.
@@ -19,7 +19,7 @@ defaultContentLanguage = "en"
   [languages.es]
     weight = 2
     languageName = "Español"
-    # Per-language menu names (tasks/118): a language block that defines menus
+    # Per-language menu names: a language block that defines menus
     # overrides the site-level [[menu.main]] wholesale for that language.
     [[languages.es.menus.main]]
       name = "Obras"
@@ -30,7 +30,7 @@ defaultContentLanguage = "en"
       url = "/subjects/"
       weight = 2
 
-# Header navigation (tasks/118): the module renders [[menu.main]] as an accessible
+# Header navigation: the module renders [[menu.main]] as an accessible
 # primary nav (aria-current on the active entry; a section landing stays active on
 # its child pages). Sites without a main menu get no nav markup at all.
 [[menu.main]]
@@ -41,9 +41,9 @@ defaultContentLanguage = "en"
   name = "Subjects"
   url = "/subjects/"
   weight = 2
-# The curated views (tasks/160) are reachable only from their section index, and
+# The curated views are reachable only from their section index, and
 # that index only from the menu -- nothing links a curated list automatically
-# (tasks/290). An adopter who adds content/lists/ must add this entry too.
+#. An adopter who adds content/lists/ must add this entry too.
 [[menu.main]]
   name = "Lists"
   url = "/lists/"
@@ -57,14 +57,14 @@ defaultContentLanguage = "en"
 [pagination]
   pagerSize = 10
 
-# Cover art (tasks/025): opt in and the result cards + Work detail pages render a cover
-# slot from each Work's `extra.cover` (forwarded to page params, tasks/022), falling back
+# Cover art: opt in and the result cards + Work detail pages render a cover
+# slot from each Work's `extra.cover` (forwarded to page params), falling back
 # to a lettered placeholder when a Work has no cover. Off by default; this reference turns
 # it on to show the slot (most works here have no cover, so they show the placeholder).
 [params]
   covers = true
 
-# Vocabulary groups for the subject facets (tasks/141): order + display names.
+# Vocabulary groups for the subject facets: order + display names.
 # Schemes not listed here still render, after these, labeled by their code.
 [[params.subjectSchemes]]
   scheme = "homosaurus"
@@ -73,7 +73,7 @@ defaultContentLanguage = "en"
   scheme = "fast"
   name = "FAST"
 
-# Search engine (tasks/017). "pagefind" swaps the header search box to the Pagefind
+# Search engine. "pagefind" swaps the header search box to the Pagefind
 # Component UI -- real ranked, per-language, CJK-capable full-text over the built
 # HTML. It needs one post-build step (`npm run search:index`, run after `hugo`).
 # Remove this block (or set any other value) to fall back to the interim client-side
@@ -89,9 +89,9 @@ defaultContentLanguage = "en"
   format = "formats"
   contributor = "contributors"
   classification = "classifications"
-  source = "sources"               # deployment-defined dimension (tasks/143)
+  source = "sources"               # deployment-defined dimension
 
-# Deployment-defined facet (tasks/143): lifts each work's `extra.sources` CSV
+# Deployment-defined facet: lifts each work's `extra.sources` CSV
 # into a Sources facet -- sidebar group, /sources/ term pages, counts. Needs
 # the matching [taxonomies] entry above. The heading prefers i18n key
 # "sources" (es.toml says "Fuentes"), falling back to this title.
@@ -99,18 +99,18 @@ defaultContentLanguage = "en"
   extra = "sources"
   split = ","
   title = "Sources"
-  # Also surface this dimension as chips on each Work page (tasks/353), not just in
+  # Also surface this dimension as chips on each Work page, not just in
   # the browse sidebar. A curated "On these lists" dimension is declared the same way.
   onDetail = true
 
-# Negative facet filters (tasks/144): every facet row gets an exclude button;
+# Negative facet filters: every facet row gets an exclude button;
 # active exclusions render as dismissible "Not X" chips above the results and
 # ride the URL as x<taxonomy>=<term>. Off by default module-wide -- exclusion
 # UI is not every catalog's call.
 [params.facets]
   negatives = true
 
-# Opt-in "suggest a subject" intake (tasks/355): the Subjects section on each Work
+# Opt-in "suggest a subject" intake: the Subjects section on each Work
 # page gets a link to this URL. {workID} and {title} are substituted (URL-encoded) so
 # the form knows which Work. Point it at your own form, a mailto, or a suggestion
 # endpoint; rename the link via the i18n key "suggestSubject" (e.g. "Suggest a
@@ -118,7 +118,7 @@ defaultContentLanguage = "en"
 [params.suggest]
   subjectUrl = "https://example.org/suggest-subject?work={workID}&title={title}"
 
-# Live availability (tasks/004): when enabled, lcat-availability.js fetches each
+# Live availability: when enabled, lcat-availability.js fetches each
 # edition's status client-side from the provider, keyed on the scheme-tagged id the
 # projector emits (OverDrive: the Reserve ID). The example ships it DISABLED so the
 # built site makes no external calls; flip enabled = true and set a real slug to try

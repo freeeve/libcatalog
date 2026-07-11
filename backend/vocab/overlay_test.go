@@ -45,7 +45,7 @@ func cacheTerm(t *testing.T, ix *Index, st blob.Store, path, nq string) {
 	}
 }
 
-// tasks/265: one cached live pick used to replay a scheme's whole snapshot
+// one cached live pick used to replay a scheme's whole snapshot
 // into resident maps. The scheme must keep its sidecar, and the overlay must
 // stay exactly as big as the picks.
 func TestOverlayDoesNotMakeTheSnapshotResident(t *testing.T) {

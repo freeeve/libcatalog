@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-// tasks/336: the suggest-flavor dropdown here and the Go validator
+// the suggest-flavor dropdown here and the Go validator
 // (vocabsrc.SuggestFlavors) are two allow-lists. searchfast was added to the
 // dispatcher and the builtin `fast` source but neither the validator nor this
 // dropdown, so a librarian could not configure it. This pins the dropdown to the

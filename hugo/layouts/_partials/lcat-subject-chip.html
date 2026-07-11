@@ -1,11 +1,11 @@
-{{- /* lcat-subject-chip.html (tasks/354): one subject chip on the work-detail page,
+{{- /* lcat-subject-chip.html: one subject chip on the work-detail page,
        shared by the ungrouped row and the per-broader-term groups so the markup
        (term-page link, authority link, pagefind filter) lives in one place. Input is
        a dict {subject, lang}: the subject is a subjectList entry (id, labels,
        scheme); lang is the site language. The displayed label is the site-language
        label, then English, then the bare id; the facet link keys on the same
-       scheme-prefixed label (tasks/141) and comes from the minted term page, never
-       reconstructed (tasks/128). */ -}}
+       scheme-prefixed label and comes from the minted term page, never
+       reconstructed. */ -}}
 {{- $s := .subject -}}
 {{- $lang := .lang -}}
 {{- $label := $s.id -}}

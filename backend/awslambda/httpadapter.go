@@ -43,7 +43,7 @@ func httpRequest(ctx context.Context, ev events.APIGatewayV2HTTPRequest) (*http.
 	// Keep the raw request target as-is: routing RawPath through url.URL.Path
 	// re-escapes literal '%', so an escaped segment ("/users/eve%40x") would
 	// reach PathValue double-encoded under Lambda but decoded on the
-	// standalone server (tasks/104).
+	// standalone server.
 	target := ev.RawPath
 	if target == "" {
 		target = "/"

@@ -50,7 +50,7 @@ type Pin struct {
 // Resolver assigns stable Work/Instance ids across ingests. Seed it with the
 // identity already committed (from the grains), then Resolve each incoming record
 // to an existing id or a freshly minted one. It is the mint-or-resolve core of
-// ARCHITECTURE §4 / tasks/002: an unchanged record keeps its previously minted
+// ARCHITECTURE §4 / an unchanged record keeps its previously minted
 // ids, so its grain -- and its public URL -- do not churn.
 //
 // A Resolver is not safe for concurrent use; ingest is single-threaded per
@@ -64,7 +64,7 @@ type Resolver struct {
 	usedInst       map[string]bool
 	usedWork       map[string]bool
 	// conflicts records provider keys seen mapped to more than one instance
-	// (tasks/002 §4): surfaced rather than silently remapped.
+	//: surfaced rather than silently remapped.
 	conflicts []string
 }
 
@@ -104,20 +104,20 @@ func (r *Resolver) SeedWorkKey(clusterKey, workID string) {
 	}
 }
 
-// SeedMerge records an editorial merge (tasks/001): every reference to from
+// SeedMerge records an editorial merge: every reference to from
 // resolves to to. Merges override the computed key, so a re-ingest cannot undo a
 // human decision. Chains collapse to a single canonical id.
 func (r *Resolver) SeedMerge(from, to string) {
 	r.mergedInto[from] = to
 }
 
-// SeedPin records an editorial split pin (tasks/001): instanceID is assigned to
+// SeedPin records an editorial split pin: instanceID is assigned to
 // workID regardless of the computed clustering key, so an over-merge the key would
 // otherwise recreate stays split across re-ingest. The pinned Work id is reserved
 // so it is never minted for anything else.
 //
 // Two pins for one instance is a data-integrity event (a split written twice before
-// tasks/323 made the endpoint idempotent, or a hand-edited grain). The first pin seen
+// made the endpoint idempotent, or a hand-edited grain). The first pin seen
 // wins deterministically -- pins arrive in canonical quad order, so the choice no
 // longer depends on which random Work id sorts higher -- and the second is reported
 // rather than silently dropped. The discarded id is not reserved: it denotes nothing,
@@ -201,10 +201,10 @@ func (r *Resolver) resolveInstance(keys []string) (string, bool) {
 // resolver already knows it (seeded from a prior grain), following merges -- and
 // nothing (false) otherwise. It has no side effects, unlike Resolve. Used to
 // translate a feed's cluster-merge statement, which names records by provider id,
-// into the Work-id space SeedMerge operates on (tasks/363).
+// into the Work-id space SeedMerge operates on.
 //
 // When the exact key is not indexed, it falls back to the cluster's format
-// buckets (tasks/370): a single-format cluster's grain indexes only the
+// buckets: a single-format cluster's grain indexes only the
 // format-suffixed instance key (e.g. "id:coll:51812:ebook"), never the bare
 // cluster key ("id:coll:51812") a feed merge names, so the exact lookup misses
 // and the merge is skipped. Every instance of a cluster resolves to the same
@@ -244,11 +244,11 @@ func (r *Resolver) WorkForProviderKey(key string) (string, bool) {
 }
 
 // Merges returns every merge the resolver is applying -- editorial merges seeded
-// from prior grains and feed cluster-merges (tasks/363/370) alike -- as From->To
+// from prior grains and feed cluster-merges alike -- as From->To
 // pairs in deterministic order. The retirement pass diffs on this so a Work folded
 // away by a feed's isReplacedBy has its stale grain removed, not just its records
 // re-homed: without it the retired cluster's grain lingers and keeps duplicating
-// the survivor's identifiers (tasks/370).
+// the survivor's identifiers.
 func (r *Resolver) Merges() []Merge {
 	out := make([]Merge, 0, len(r.mergedInto))
 	for from, to := range r.mergedInto {
@@ -276,7 +276,7 @@ func (r *Resolver) canonical(workID string) string {
 	}
 }
 
-// Conflicts returns provider-key collisions seen during resolution (tasks/002
+// Conflicts returns provider-key collisions seen during resolution (
 // §4), for the caller to surface. Nil when there were none.
 func (r *Resolver) Conflicts() []string { return r.conflicts }
 

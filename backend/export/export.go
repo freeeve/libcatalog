@@ -47,7 +47,7 @@ var contentTypes = map[Format]string{
 	FormatJSONLD: "application/ld+json", FormatCSV: "text/csv",
 }
 
-// Every export is stored gzipped (tasks/282): a full-corpus N-Quads dump
+// Every export is stored gzipped: a full-corpus N-Quads dump
 // compresses ~20x, and the store, the wire and the librarian's disk each pay for
 // the difference. Formats differ only in whether the compression is visible.
 //
@@ -86,7 +86,7 @@ func DeliveryFor(id string, f Format) Delivery {
 
 // Selection scopes an export: everything, or an explicit id list. Richer
 // selections (saved queries, search results) compile down to id lists by the
-// batch machinery (tasks/047).
+// batch machinery.
 type Selection struct {
 	All     bool     `json:"all,omitempty"`
 	WorkIDs []string `json:"workIds,omitempty"`
@@ -108,7 +108,7 @@ type Job struct {
 	Requester string    `json:"requester"`
 	Format    Format    `json:"format"`
 	Selection Selection `json:"selection"`
-	// Authorities, when set, makes this an authority export (tasks/069):
+	// Authorities, when set, makes this an authority export:
 	// the format renders terms instead of work grains.
 	Authorities *AuthoritySelection `json:"authorities,omitempty"`
 	Status      Status              `json:"status"`
@@ -143,11 +143,11 @@ type Service struct {
 	// Provider names the feed graph the CSV projection reads.
 	Provider string
 	// Vocab, when set, enables authority exports over the loaded term index
-	// (tasks/069).
+	//.
 	Vocab *vocab.Index
 	// OrgCode is the deployment's MARC organization code; when set, MARC and
 	// JSON-LD exports derive each record's 040 from graph facts at decode
-	// time (tasks/192).
+	// time.
 	OrgCode string
 	// tokenSecret signs fallback download tokens.
 	tokenSecret []byte
@@ -294,7 +294,7 @@ func (s *Service) VerifyToken(job Job, token string) bool {
 }
 
 // Open returns a DONE job's output decompressed, whatever form it is stored in.
-// Jobs written before tasks/282 hold plain bytes and still read back correctly:
+// Jobs written hold plain bytes and still read back correctly:
 // the gzip magic number decides, not the path.
 func (s *Service) Open(ctx context.Context, job Job) ([]byte, error) {
 	data, gzipped, err := s.OpenStored(ctx, job)

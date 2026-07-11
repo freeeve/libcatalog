@@ -12,7 +12,7 @@ import (
 	"github.com/freeeve/libcodex/rdf"
 )
 
-// Reconciliation policies (tasks/078): what happens to a Work whose sole bib
+// Reconciliation policies: what happens to a Work whose sole bib
 // feed stopped listing it.
 const (
 	// ReconcileReview flags the Work (lcat:withdrawnFromFeed) for the admin

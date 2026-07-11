@@ -27,7 +27,7 @@ export interface EditorState {
   etag: string;
   /** The work's cover URL, or "". Not a profile field, so it does not live in
    *  doc.work.fields; the Cover panel needs it at load time to show what the
-   *  record has and to offer Remove at all (tasks/242). */
+   * record has and to offer Remove at all. */
   cover: string;
   ops: Op[];
   /** A save, preview, or conflict reload in flight. */
@@ -41,7 +41,7 @@ export interface EditorState {
   /** Last successful-save summary. */
   notice: string;
   /** Non-blocking post-save warning: the doc now clusters with another
-   *  work (tasks/068). Dismissed by further edits or dismissDuplicate. */
+   * work. Dismissed by further edits or dismissDuplicate. */
   duplicate: DuplicateMatch | null;
   /** A draft found on open, awaiting the resume-or-discard choice. */
   pendingDraft: Draft | null;
@@ -150,7 +150,7 @@ export function createEditorSession(workId: string): EditorSession {
       try {
         // A point read of this work's one draft slot -- no list to scan, no
         // rival drafts to pick between, no every-other-work's body pulled
-        // down to open this one (tasks/297).
+        // down to open this one.
         pendingDraft = await fetchDraft(workId);
       } catch {
         // No draft for this work (404), or drafts unavailable -- either way
@@ -158,7 +158,7 @@ export function createEditorSession(workId: string): EditorSession {
       }
       // The local mirror wins over the server draft in this browser: it is
       // written on every edit, while the autosave lags 3s and dies with the
-      // session (tasks/225). Resuming it re-adopts the server draft slot.
+      // session. Resuming it re-adopts the server draft slot.
       const local = isSandbox() ? null : loadLocalDraft(workId);
       if (local) {
         pendingDraft = { id: pendingDraft?.id ?? "", workId, body: local.body, updatedAt: local.savedAt };
@@ -175,7 +175,7 @@ export function createEditorSession(workId: string): EditorSession {
   function afterEdit(): void {
     patch({ diff: null, opError: "", notice: "", duplicate: null });
     // Mirror synchronously: the point is surviving an abrupt reload, which
-    // the 3s autosave debounce would lose (tasks/225).
+    // the 3s autosave debounce would lose.
     if (!isSandbox()) saveLocalDraft(workId, { baseEtag: state.etag, ops: ops.payload() });
     scheduleAutosave();
   }

@@ -113,7 +113,7 @@ var knownPredicatePrefixes = []string{
 	"http://www.w3.org/2004/02/skos/core#",
 	"http://www.w3.org/2000/01/rdf-schema#",
 	"http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-	"http://www.w3.org/2002/07/owl#", // owl:sameAs external-identity links (tasks/066)
+	"http://www.w3.org/2002/07/owl#", // owl:sameAs external-identity links
 }
 
 // Validate checks one profile's internal consistency.
@@ -152,7 +152,7 @@ func (p *Profile) Validate() error {
 		if len(f.Annotation) > 0 {
 			// Chained fields resolve the annotation from the structure
 			// node; a direct field resolves it from each IRI value's own
-			// node (tasks/140), so it needs an entity-valued kind.
+			// node, so it needs an entity-valued kind.
 			if len(f.Predicates) < 2 && f.ValueSource.Kind != KindVocab && f.ValueSource.Kind != KindEntity {
 				return fmt.Errorf("profiles: %s/%s: annotation on a direct field requires entity or vocab values (the annotation resolves from the value node)", p.ID, f.Path)
 			}

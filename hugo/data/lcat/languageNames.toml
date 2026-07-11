@@ -1,8 +1,8 @@
 # ISO 639-2/B (MARC/LOC, id.loc.gov/vocabulary/languages) code -> English
 # display name, generated from the same LOC bulk JSON as the backend editor
-# picker (backend/ui/src/lib/languages.ts, tasks/080). The lcat-lang-name
+# picker (backend/ui/src/lib/languages.ts). The lcat-lang-name
 # partial consults this after per-site i18n overrides (lang-<code> keys), so a
-# translated or corrected name never requires editing this file (tasks/142).
+# translated or corrected name never requires editing this file.
 
 abk = "Abkhaz"
 ace = "Achinese"

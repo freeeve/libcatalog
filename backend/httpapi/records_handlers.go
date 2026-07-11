@@ -22,7 +22,7 @@ import (
 )
 
 // grainView is the read shape of a record: raw canonical N-Quads plus the
-// concurrency token. The typed WorkDoc rides on top in tasks/041.
+// concurrency token. The typed WorkDoc rides on top.
 type grainView struct {
 	WorkID string `json:"workId"`
 	ETag   string `json:"etag"`
@@ -30,7 +30,7 @@ type grainView struct {
 }
 
 // WorkSaveHook runs after a successful record write -- the seam the authority
-// auto-linker plugs into (tasks/046). Hook failures never fail the save; the
+// auto-linker plugs into. Hook failures never fail the save; the
 // moderation queue is best-effort from the editor's perspective.
 type WorkSaveHook interface {
 	AutoLink(ctx context.Context, workID string, grain []byte) (int, error)
@@ -69,7 +69,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 		}
 		// The cover is not a profile field, so it is not in doc.work.fields.
 		// The editor's Cover panel needs it at load time to show what the record
-		// has and to offer Remove (tasks/242).
+		// has and to offer Remove.
 		cover, err := bibframe.CoverOf(grain, workID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "doc mapping failed")
@@ -117,7 +117,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 			return
 		}
 		// A patch that changes nothing writes nothing and audits nothing, for
-		// the same reason the ops path does not (tasks/249).
+		// the same reason the ops path does not.
 		if editor.DiffLines(grain, updated).Empty() {
 			w.Header().Set("ETag", etag)
 			writeJSON(w, http.StatusOK, map[string]string{"workId": workID, "etag": etag})
@@ -155,8 +155,8 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 		writeJSON(w, http.StatusOK, map[string]string{"workId": workID, "etag": newTag})
 	})))
 
-	// Field-level operations: the SPA's write path (tasks/045). Ops apply
-	// through the profile mapper with the tasks/042 override semantics;
+	// Field-level operations: the SPA's write path. Ops apply
+	// through the profile mapper with the override semantics;
 	// dryRun returns the exact quad delta without writing.
 	mux.Handle("POST /v1/works/{id}/ops", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
@@ -208,7 +208,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 		}
 		// Ops that change nothing are a save the record never saw. Returning
 		// before the write keeps the feed, the auto-linker and above all the
-		// audit trail free of an edit that did not happen (tasks/249). The
+		// audit trail free of an edit that did not happen. The
 		// response shape is the real one, carrying the unmoved etag.
 		if diff.Empty() {
 			w.Header().Set("ETag", etag)
@@ -298,7 +298,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 		// The retiring work must exist: the marker is a permanent
 		// instruction to the identity resolver (SeedMerge, with no removal
 		// route), so a mistyped from used to record false provenance
-		// against a work that was never there (tasks/214). The survivor's
+		// against a work that was never there. The survivor's
 		// existence is checked by mutateWorkGrain reading its grain.
 		if _, _, err := bs.Get(r.Context(), bibframe.GrainPath(req.From)); err != nil {
 			writeError(w, http.StatusNotFound, "no such work: "+req.From)
@@ -307,7 +307,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 		// A loser may not be merged twice into different survivors: the marker is
 		// a permanent resolver instruction with no removal route, so a second,
 		// contradictory merge would leave two mergedInto statements and let the
-		// resolver pick a survivor by grain scan order, silently (tasks/339). Re-
+		// resolver pick a survivor by grain scan order, silently. Re-
 		// merging into the same survivor stays idempotent (AddMergeMarker is a
 		// no-op there); only a conflicting target is refused, 409.
 		if existingTo, merged, err := ix.MergedInto(r.Context(), req.From); err != nil {
@@ -317,7 +317,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 			writeError(w, http.StatusConflict, "work "+req.From+" is already merged into "+existingTo+"; merge into its survivor instead")
 			return
 		}
-		// The marker lives in the survivor's grain (tasks/001 semantics).
+		// The marker lives in the survivor's grain ( semantics).
 		etag, err := mutateWorkGrain(r, bs, ix, req.To, func(grain []byte) ([]byte, error) {
 			return bibframe.AddMergeMarker(grain, req.From, req.To)
 		})
@@ -348,7 +348,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 		// Reuse the work a prior split already assigned to these instances rather
 		// than minting a fresh id every call: a retry, a double-click, or a lost
 		// response would otherwise leave two contradictory workAssignment pins for
-		// one instance, and the resolver would pick one by IRI sort order (tasks/323).
+		// one instance, and the resolver would pick one by IRI sort order.
 		// Decided inside the mutation so a split that lands between this read and the
 		// CAS write is seen on retry -- concurrent double-submits converge on one id.
 		var newWork string
@@ -400,7 +400,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 		// One patch, many works: its subject names a single Work node, so
 		// applied verbatim it would describe that one work inside every other
 		// work's grain -- with the dry run agreeing, because it diffed the same
-		// verbatim patch (tasks/240). Rebind the subject per work, and refuse
+		// verbatim patch. Rebind the subject per work, and refuse
 		// outright the patches that cannot be rebound.
 		if err := req.Patch.Rebindable(); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
@@ -445,7 +445,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 		if !req.DryRun && queue != nil {
 			// One entry per rewritten record, so a bulk edit is visible in the
 			// History tab of each record it changed, plus one aggregate entry
-			// for the run (tasks/239). The old aggregate carried a JSON blob of
+			// for the run. The old aggregate carried a JSON blob of
 			// the results cut at 512 bytes -- past ~7 works the cut landed
 			// mid-token, and a byte-boundary slice can split a UTF-8 rune.
 			runID := suggest.NewRunID()
@@ -481,7 +481,7 @@ func registerRecords(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, db 
 
 // errWorkNotFound and errGrainStore let handlers map a mutateWorkGrain
 // failure onto the right status instead of calling everything a conflict
-// (tasks/115): missing work 404 (matching the read paths), store fault 500,
+// : missing work 404 (matching the read paths), store fault 500,
 // domain error from the mutate func 409.
 var (
 	errWorkNotFound = errors.New("no such work")
@@ -492,7 +492,7 @@ var (
 func writeMutateError(w http.ResponseWriter, err error) {
 	switch {
 	// Before errGrainStore: a read-only store wraps as both, and a deployment
-	// that does not accept writes is not an unavailable one (tasks/260).
+	// that does not accept writes is not an unavailable one.
 	case errors.Is(err, blob.ErrReadOnly):
 		writeReadOnly(w)
 	case errors.Is(err, errWorkNotFound):
@@ -522,7 +522,7 @@ func mutateWorkGrain(r *http.Request, bs blob.Store, ix *workindex.Index, workID
 			}
 			// Wrap both: errGrainStore drives the generic 500, and the store's
 			// own sentinel must survive so writeMutateError can tell a read-only
-			// deployment (403) from a broken one (500) -- tasks/260.
+			// deployment (403) from a broken one (500).
 			return "", fmt.Errorf("%w: %w", errGrainStore, err)
 		}
 		updated, err := mutate(grain)
@@ -536,7 +536,7 @@ func mutateWorkGrain(r *http.Request, bs blob.Store, ix *workindex.Index, workID
 		if err != nil {
 			// Wrap both: errGrainStore drives the generic 500, and the store's
 			// own sentinel must survive so writeMutateError can tell a read-only
-			// deployment (403) from a broken one (500) -- tasks/260.
+			// deployment (403) from a broken one (500).
 			return "", fmt.Errorf("%w: %w", errGrainStore, err)
 		}
 		ix.Apply(path, newTag, updated)

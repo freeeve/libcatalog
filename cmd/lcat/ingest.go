@@ -17,7 +17,7 @@ import (
 // [--reconcile review|auto-suppress]`.
 // Which provider runs is a runtime selection against the built-in registry, so
 // enabling a source is a config/flag change, not a code change (ARCHITECTURE §9a,
-// tasks/006). The OverDrive `lcat overdrive` command is a convenience alias for
+// ). The OverDrive `lcat overdrive` command is a convenience alias for
 // `--provider overdrive` that also offers the MARC-fixture export.
 func runIngestCmd(args []string) error {
 	reg := providerRegistry()
@@ -65,7 +65,7 @@ func (p paramFlags) Set(v string) error {
 // runIngest constructs the named provider from reg and runs the shared ingest
 // pipeline into out, surfacing resolver conflicts on stderr and a run summary
 // on stdout. With a reconcile policy it then diffs the corpus against the
-// scan and flags feed-only works the scan no longer lists (tasks/078). It is
+// scan and flags feed-only works the scan no longer lists. It is
 // shared by `lcat ingest` and the `lcat overdrive` alias.
 func runIngest(reg *ingest.Registry, name string, cfg ingest.Config, out, reconcile string, reconcileAllowEmpty bool) error {
 	prov, err := reg.New(name, cfg)
@@ -86,7 +86,7 @@ func runIngest(reg *ingest.Registry, name string, cfg ingest.Config, out, reconc
 	}
 	// A zero-record scan reconciled against the corpus withdraws every
 	// feed-only work in one pass -- almost always a misconfigured source, not
-	// an emptied feed, so refuse without the explicit override (tasks/103).
+	// an emptied feed, so refuse without the explicit override.
 	if len(res.WorkIDs) == 0 && !reconcileAllowEmpty {
 		return fmt.Errorf("refusing to reconcile a zero-record scan (it would withdraw every feed:%s work); re-run with --reconcile-allow-empty if the feed really is empty", prov.Name())
 	}

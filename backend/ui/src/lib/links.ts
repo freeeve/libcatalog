@@ -2,7 +2,7 @@
  * Link presentation hints derived from a URL's shape. Since libcodex
  * v0.15.0 the crosswalk carries 856 $3 as the locator's rdfs:label, which
  * the doc surfaces as the value's annotation and the editor prefers
- * (tasks/147); this heuristic remains the fallback for label-less locators
+ *; this heuristic remains the fallback for label-less locators
  * and grains ingested before that, and still decides thumbnail rendering.
  */
 export interface LinkInfo {

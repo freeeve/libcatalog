@@ -154,7 +154,7 @@ func TestLoginFlowEndToEnd(t *testing.T) {
 	}
 }
 
-// TestDeleteUserReassignsSharedRecordsToAdmin is the tasks/332 fix: deleting a
+// TestDeleteUserReassignsSharedRecordsToAdmin is the fix: deleting a
 // user hands their library-shared macros/templates to the deleting admin (a live
 // custodian) and tells the admin which ones, instead of silently orphaning them.
 func TestDeleteUserReassignsSharedRecordsToAdmin(t *testing.T) {

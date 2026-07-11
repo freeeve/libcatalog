@@ -9,7 +9,7 @@ import (
 )
 
 // subjectMapJSON is the shipped genre->authority table (ported from the demo pipeline,
-// tasks/026), embedded so the provider is data-driven without a runtime file dependency.
+// ), embedded so the provider is data-driven without a runtime file dependency.
 //
 //go:embed subject-map.json
 var subjectMapJSON []byte
@@ -56,7 +56,7 @@ func (t subjectTable) lookup(genre string) (string, bool) {
 
 // tags returns the book's genres that are NOT promoted to controlled subjects, so an
 // uncontrolled tag and a controlled subject never duplicate the same genre (the demo's
-// map-subjects behavior, tasks/026).
+// map-subjects behavior).
 func (b book) tags() []string {
 	var out []string
 	for _, g := range b.genres() {

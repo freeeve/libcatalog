@@ -58,7 +58,7 @@ func readSidecar(t *testing.T, out string) map[string]any {
 }
 
 // The sidecar is emitted alongside catalog.json, carries its own schema version,
-// and omits Works with no neighbours rather than storing them empty (tasks/284).
+// and omits Works with no neighbours rather than storing them empty.
 func TestProjectWritesSimilarSidecar(t *testing.T) {
 	out := t.TempDir()
 	if err := projectCatalog(projectOptions{CatalogPath: twoRelatedWorks(t), Providers: []string{"marc"}, Out: out, SimilarLimit: DefaultSimilarLimit}); err != nil {

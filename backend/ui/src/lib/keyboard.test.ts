@@ -177,7 +177,7 @@ describe("keyboard scopes", () => {
   });
 });
 
-describe("remap layer (tasks/075)", () => {
+describe("remap layer", () => {
   it("re-keys a live binding, updates the legend, and leaves the old key inert", () => {
     const pick = vi.fn();
     bindKeys("copycat", { x: { description: "pick", legend: "pick", handler: pick } });
@@ -287,7 +287,7 @@ describe("remap layer (tasks/075)", () => {
   });
 });
 
-// tasks/237: a later registrant must not evict an existing binding. A macro
+// a later registrant must not evict an existing binding. A macro
 // keyed "2" used to replace the MARC-tab chord in the dispatcher AND in the
 // "?" overlay, then outlive the editor's own unbind.
 describe("binding collisions", () => {
@@ -353,11 +353,11 @@ describe("shortcutKeyError", () => {
   });
 });
 
-// tasks/319: a plain-key binding must not preventDefault the key the focused
+// a plain-key binding must not preventDefault the key the focused
 // element uses to activate itself -- Enter over a link/button, Space over a
 // button/checkbox -- or that control cannot be operated from the keyboard
 // (WCAG 2.1.1). The guard is target-specific: j/k/g still fire over a link.
-describe("native activation keys (tasks/319)", () => {
+describe("native activation keys", () => {
   afterEach(() => resetKeyboard());
 
   function pressCancelable(key: string, target?: HTMLElement, init: KeyboardEventInit = {}): KeyboardEvent {

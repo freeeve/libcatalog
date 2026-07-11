@@ -1,4 +1,4 @@
-// MARC grid helpers (tasks/049): the grid edits a data field's subfields as
+// MARC grid helpers: the grid edits a data field's subfields as
 // one "$a Value $b Value" line (the familiar MARC editor syntax), converted
 // losslessly to and from the structured shape the API speaks.
 import type { MarcField, MarcSubfield } from "./types";
@@ -14,7 +14,7 @@ export function subfieldsToLine(subfields: MarcSubfield[] | undefined): string {
  *  A delimiter is "$" + one alphanumeric code standing ALONE: preceded by
  *  line start or whitespace and followed by whitespace or line end. A
  *  literal dollar amount ("$24.95", "$5.00") therefore stays inside its
- *  value instead of silently reparsing as a bogus subfield (tasks/227) --
+ * value instead of silently reparsing as a bogus subfield --
  *  the serializer always emits the spaced form, so real delimiters always
  *  qualify. The cost is that "$aFoo" (no space) no longer starts a
  *  subfield; it reads as literal text. */

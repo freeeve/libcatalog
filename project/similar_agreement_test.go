@@ -13,7 +13,7 @@ import (
 // endpoint scores it live from ingest.WorkSummary. If the two converters disagree
 // about what a Work carries, the same book gets different neighbours on the two
 // surfaces -- a bug a reader can see, a cataloger cannot reproduce, and no unit
-// test over hand-written inputs can find. That is the tasks/253 failure class:
+// test over hand-written inputs can find. That is the failure class:
 // two readers of one truth, drifting.
 //
 // So: one graph, both converters, and the results must agree. Values are compared
@@ -60,7 +60,7 @@ func sameSet(t *testing.T, field string, admin, opac []string) {
 }
 
 // agreementRelationNQ is the same Work with its series in the shape libcodex
-// v0.25.0 emits (tasks/309): a bf:relation on the Work rather than a flat literal
+// v0.25.0 emits: a bf:relation on the Work rather than a flat literal
 // on the Instance. Both converters grew a new reader for it, and both kept the old
 // one for archived grains, so both shapes have to be driven through both readers
 // -- otherwise the pair agrees on legacy graphs and silently diverges on new ones.
@@ -149,7 +149,7 @@ func TestAgreementFixtureExercisesEverySignal(t *testing.T) {
 
 // Tombstoned rides through the admin converter and is dropped by the scorer, not
 // by the converter -- a retired record must not be recommended from elsewhere
-// (tasks/280), and the admin list still has to display it.
+// , and the admin list still has to display it.
 func TestSimilarWorkKeepsSuppressedAndFlagsTombstoned(t *testing.T) {
 	sup := ingest.WorkSummary{WorkID: "wsup", Suppressed: true, Subjects: []string{"s:1"}}
 	dead := ingest.WorkSummary{WorkID: "wdead", Tombstoned: true, Subjects: []string{"s:1"}}

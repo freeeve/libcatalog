@@ -10,7 +10,7 @@ import (
 )
 
 // auditGraph runs the content-diversity audit over a catalog.nq dataset loaded
-// into an in-memory gochickpeas graph (tasks/372) -- the FULL corpus, including
+// into an in-memory gochickpeas graph -- the FULL corpus, including
 // works the public projection suppresses, which is what a collection-development
 // audit should see. The chickpeas N-Quads mapping puts each bf:Work behind a
 // "Work" label, each bf:subject link behind a "subject" rel, and every literal

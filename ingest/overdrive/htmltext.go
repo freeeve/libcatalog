@@ -9,7 +9,7 @@ import (
 // bf:summary: block boundaries become blank lines, <br> a line break,
 // inline tags drop, entities decode, and whitespace normalizes to at most
 // one blank line between paragraphs. The qllpoc Thunder page cache shows
-// three encoding shapes in the wild (tasks/126) -- a plain HTML fragment,
+// three encoding shapes in the wild -- a plain HTML fragment,
 // HTML with double-escaped entities ("&amp;#160;"), and a fully
 // entity-escaped fragment whose tags only appear after decoding -- so
 // stripping and unescaping run to a fixpoint (bounded; observed depth ≤ 2).

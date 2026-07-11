@@ -40,7 +40,7 @@ type AuditEntry struct {
 	Note   string    `json:"note,omitempty"`
 	ETag   string    `json:"etag,omitempty"` // grain etag for publish events
 	// RunID ties a bulk run's per-record entries to its aggregate entry
-	// (tasks/239). Empty for single-record actions, which are their own run.
+	//. Empty for single-record actions, which are their own run.
 	RunID string `json:"runId,omitempty"`
 }
 
@@ -49,7 +49,7 @@ type AuditEntry struct {
 // zeros: an entry at .167790000 keyed as ".16779Z" and one at .167792000 as
 // ".167792Z", and a descending lexicographic scan ranks 'Z' (0x5A) above '2',
 // so the older entry came back first. A bulk run writes several entries inside
-// one microsecond, which is what surfaced it (tasks/239).
+// one microsecond, which is what surfaced it.
 const auditSKLayout = "2006-01-02T15:04:05.000000000Z07:00"
 
 // NewRunID mints the identifier shared by one bulk run's audit entries.
@@ -64,7 +64,7 @@ func NewRunID() string {
 const maxNotedWorks = 100
 
 // RunNote is the note a bulk run's aggregate audit entry carries: the run's
-// counts and the records it rewrote, as JSON (tasks/239).
+// counts and the records it rewrote, as JSON.
 //
 // The split is deliberate. A per-record entry's note is prose, because it is
 // read by a cataloger in that record's History tab. The aggregate entry appears
@@ -180,7 +180,7 @@ func (s *Service) Queue(ctx context.Context, q QueueQuery) (QueuePage, error) {
 // decisions that lost the race -- another moderator had already resolved the
 // suggestion, or it no longer exists -- so a caller can tell the human whose
 // decision was discarded rather than counting the request back to them
-// (tasks/257).
+// .
 type ReviewResult struct {
 	Applied int        `json:"applied"`
 	Skipped []Decision `json:"skipped,omitempty"`
@@ -201,7 +201,7 @@ func (s *Service) Review(ctx context.Context, decisions []Decision, actor string
 		}
 		// Concern decisions are resolve/dismiss: same transitions, legible
 		// audit actions, and nothing ever publishes (the publisher's
-		// worklist filters TypeConcern; tasks/210).
+		// worklist filters TypeConcern).
 		if d.Type == TypeConcern {
 			if d.Approve {
 				action = "CONCERN_RESOLVE"
@@ -255,7 +255,7 @@ func (s *Service) Review(ctx context.Context, decisions []Decision, actor string
 // graph on the next publish.
 func (s *Service) ManualTerm(ctx context.Context, workID string, ref vocab.TermRef, workTitle, actor string) error {
 	// patron=false: the librarian is the authority, so the patron-suggestion
-	// policy (tasks/263) does not gate what they may add.
+	// policy does not gate what they may add.
 	term, _, err := s.resolveTerm(ctx, ref, false)
 	if err != nil {
 		return err
@@ -363,7 +363,7 @@ func (s *Service) WriteTombstone(ctx context.Context, workID string, term vocab.
 }
 
 // ApprovedUnpublished lists APPROVED aggregates not yet carried into the
-// graph -- the publisher's worklist (tasks/036).
+// graph -- the publisher's worklist.
 func (s *Service) ApprovedUnpublished(ctx context.Context) ([]Suggestion, error) {
 	var out []Suggestion
 	for rec, err := range s.db.Query(ctx, "STATUS#"+string(StatusApproved), "", store.QueryOpt{}) {

@@ -16,7 +16,7 @@ import (
 // the derived data the Hugo module's content adapter and the search index consume
 // (ARCHITECTURE §7). The graph stays the source of truth; this is a build artifact.
 //
-// --provider takes a comma-separated feed list (tasks/172): the projector views
+// --provider takes a comma-separated feed list: the projector views
 // one feed graph at a time, so each feed projects separately and the catalogs
 // merge by work id, first-listed feed winning a shared work. After a multi-feed
 // ingest run `lcat serialize` first, since each ingest run rewrites catalog.nq
@@ -62,7 +62,7 @@ func runProject(args []string) error {
 const DefaultSimilarLimit = 8
 
 // applySubjectSchemes prepends deployment prefix=code entries to the
-// namespace -> scheme table, so they override the built-ins (tasks/141).
+// namespace -> scheme table, so they override the built-ins.
 func applySubjectSchemes(pairs []string) error {
 	if len(pairs) == 0 {
 		return nil
@@ -87,13 +87,13 @@ func applySubjectSchemes(pairs []string) error {
 // projectOptions is what one projection run needs. A struct rather than seven
 // positional parameters: two of them are adjacent []string allowlists whose
 // meanings differ (source names vs extra keys), and nothing would have caught
-// them being swapped (tasks/277).
+// them being swapped.
 type projectOptions struct {
 	CatalogPath string
 	Providers   []string
-	// PublicSources allowlists extra.sources attributions (tasks/172).
+	// PublicSources allowlists extra.sources attributions.
 	PublicSources []string
-	// PublicExtras allowlists extra keys (tasks/277). "sources" is exempt.
+	// PublicExtras allowlists extra keys. "sources" is exempt.
 	PublicExtras []string
 	Out          string
 	AllowEmpty   bool
@@ -106,7 +106,7 @@ func projectCatalog(opts projectOptions) error {
 	// One streaming load for every feed, the feed list and the redirects. Each of
 	// those used to reparse the whole catalog -- five full parses of a 1.76M-quad
 	// corpus on a three-feed deployment -- and each parse retained the authority
-	// snapshots the projection reads three predicates of (tasks/279).
+	// snapshots the projection reads three predicates of.
 	ds, err := project.LoadDataset(catalogPath)
 	if err != nil {
 		return err
@@ -124,7 +124,7 @@ func projectCatalog(opts projectOptions) error {
 	// Refuse to publish an empty catalog over a populated one. This function is
 	// what LCATD_REBUILD_CMD runs on every publish, so a provider that names no
 	// feed -- a typo, a renamed feed -- would otherwise overwrite catalog.json
-	// with zero works, exit 0, and quietly empty the discovery site (tasks/246).
+	// with zero works, exit 0, and quietly empty the discovery site.
 	if len(cat.Works) == 0 && !allowEmpty {
 		return emptyProjectionError(providers, present)
 	}
@@ -164,7 +164,7 @@ func projectCatalog(opts projectOptions) error {
 	return writeSimilar(cat, out, similarLimit)
 }
 
-// writeSimilar computes and writes the "more like this" sidecar (tasks/284).
+// writeSimilar computes and writes the "more like this" sidecar.
 //
 // It reports how many Works ended up with no neighbours at all rather than only
 // how many did: on a catalog whose subjects are thin, a rail that is empty

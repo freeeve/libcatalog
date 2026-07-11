@@ -22,7 +22,7 @@ import (
 	"github.com/freeeve/libcat/backend/vocab"
 )
 
-// AuthoritySelection scopes an authority export (tasks/069): everything, a
+// AuthoritySelection scopes an authority export: everything, a
 // vocabulary subset, and/or a label-prefix filter.
 type AuthoritySelection struct {
 	All    bool     `json:"all,omitempty"`

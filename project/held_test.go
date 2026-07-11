@@ -29,7 +29,7 @@ _:t3 <http://id.loc.gov/ontologies/bibframe/mainTitle> "Physical" <feed:copycat>
 <#i3Instance-item-1> <https://github.com/freeeve/libcat/ns#barcode> "30001" <editorial:> .
 `
 
-// TestHeld pins the tasks/078 holdings signal: an availability identifier
+// TestHeld pins the holdings signal: an availability identifier
 // counts as a digital holding unless the work is withdrawn; a physical item
 // always counts.
 func TestHeld(t *testing.T) {

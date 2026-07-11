@@ -17,7 +17,7 @@ import (
 	"github.com/freeeve/libcat/backend/workindex"
 )
 
-// registerMaintenance mounts the tasks/051 maintenance surfaces: the
+// registerMaintenance mounts the maintenance surfaces: the
 // visibility stance (tombstone with optional redirect, suppress) and the
 // duplicate-detection worklist over the shared work index.
 func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queue *suggest.Service, verifier auth.TokenVerifier) {
@@ -60,7 +60,7 @@ func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 		// that loops (the successor IS the retired page), so the republished
 		// redirect dead-ends in ERR_TOO_MANY_REDIRECTS. Reject it, symmetric to
 		// the relations (target != work) and merge (from != to) self-guards
-		// (tasks/342).
+		//.
 		if req.RedirectTo == workID {
 			writeError(w, http.StatusBadRequest, "a tombstone cannot redirect to itself")
 			return
@@ -92,7 +92,7 @@ func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 		writeJSON(w, http.StatusOK, v)
 	})))
 
-	// Holdings: the minimal bf:Item model (tasks/051), read per work and
+	// Holdings: the minimal bf:Item model, read per work and
 	// replaced per instance.
 	mux.Handle("GET /v1/works/{id}/items", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		grain, etag, workID, ok := readWorkGrain(w, r, bs)
@@ -126,7 +126,7 @@ func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 	// exists to carry server-initiated edits past a concurrent write, and it did
 	// exactly that -- re-reading the grain and re-applying a list computed
 	// against a grain that no longer existed. The second of two catalogers
-	// deleted the first one's copy and was told 200 (tasks/273). A barcode names
+	// deleted the first one's copy and was told 200. A barcode names
 	// one physical copy, so the lost item is a shelf unlinked from the catalog.
 	mux.Handle("PUT /v1/works/{id}/items", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.FromContext(r.Context())
@@ -165,10 +165,10 @@ func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		// Corpus-wide barcode uniqueness (tasks/347): reject a barcode already
+		// Corpus-wide barcode uniqueness: reject a barcode already
 		// held by a live item on a different instance -- a barcode names one
 		// physical copy. The within-request duplicate check is SetItems' job
-		// (tasks/343); this catches a collision with another record. The instance
+		//; this catches a collision with another record. The instance
 		// being edited is excluded, so re-saving its own items is not a
 		// self-collision. Best-effort against the index (not a transactional lock),
 		// which is the corpus-wide primitive available here.
@@ -216,7 +216,7 @@ func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 		writeJSON(w, http.StatusOK, map[string]string{"workId": workID, "etag": newTag})
 	})))
 
-	// The withdrawal review queue (tasks/078): feed-only works the last
+	// The withdrawal review queue: feed-only works the last
 	// reconciliation flagged as gone from their feed, awaiting a curator's
 	// suppress-or-keep call. Auto-suppressed rows are decided, so they stay
 	// out of the queue.
@@ -284,8 +284,8 @@ func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 
 	// The duplicate-detection worklist: Works sharing a clustering key
 	// (author+title+language) that nonetheless hold separate ids -- the
-	// candidates the merge tool resolves (tasks/051).
-	// The barcode-duplicate report (tasks/270): a barcode names one physical
+	// candidates the merge tool resolves.
+	// The barcode-duplicate report: a barcode names one physical
 	// copy, so any held by more than one item is a data-quality defect. This is
 	// the report an operator needs before uniqueness can be enforced on writes --
 	// a constraint added over existing duplicates would fail writes to records

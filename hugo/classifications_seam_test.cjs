@@ -1,4 +1,4 @@
-// A taxonomy key is one path segment (libcat tasks/276).
+// A taxonomy key is one path segment.
 //
 // A Dewey number carries a prime mark -- MARC 082 `$a 813/.6` -- and the
 // classification taxonomy indexed that code verbatim. A slash is structural in a
@@ -8,7 +8,7 @@
 // because Hugo really did generate the nested page.
 //
 // The fix slugs the KEY and keeps the code for display, which is the split
-// tasks/142 already built. That is only correct if three things agree on the key --
+// already built. That is only correct if three things agree on the key --
 // the content adapter, the facet rail (which recomputes it from facets.json), and
 // the term page's label lookup -- so this drives the built site rather than any one
 // of them.

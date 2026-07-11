@@ -11,10 +11,10 @@ import (
 )
 
 // PredMARCVerbatim carries a crosswalk-lossy MARC field verbatim on its
-// Instance node (tasks/049): on MARC ingest the known-loss tags (fidelity.go)
+// Instance node: on MARC ingest the known-loss tags (fidelity.go)
 // are serialized field-exact into the feed graph instead of silently
 // dropping; the MARC view shows them, edits to them land editorially under
-// the same predicate (with the tasks/042 override marker shadowing the feed
+// the same predicate (with the override marker shadowing the feed
 // copies), and MARC export re-attaches them so the original forms round-trip.
 const PredMARCVerbatim = LcatNS + "marcVerbatim"
 
@@ -94,7 +94,7 @@ func addInstanceVerbatim(g *rdf.Graph, instanceID string, fields []string) {
 }
 
 // DecodeGrainMARC materializes a grain's MARC records the framework-aware
-// way (tasks/049): editorial lcat:overrides shadow the feed statements they
+// way: editorial lcat:overrides shadow the feed statements they
 // claim (so an edited field decodes to its editorial value, not both), and
 // each record's verbatim sidecar fields are re-attached in tag order. The
 // mapping of records to instance nodes mirrors libcodex Decode's one-record-
@@ -106,7 +106,7 @@ func DecodeGrainMARC(grain []byte) ([]*codex.Record, error) {
 }
 
 // decodeGrainMARC is DecodeGrainMARC plus whether the grain carries any
-// editorial-graph statement -- the fact the tasks/192 cataloging-source
+// editorial-graph statement -- the fact the cataloging-source
 // derivation reads.
 func decodeGrainMARC(grain []byte) ([]*codex.Record, bool, error) {
 	ds, err := rdf.ParseNQuads(grain)
@@ -139,10 +139,10 @@ func decodeGrainMARC(grain []byte) ([]*codex.Record, bool, error) {
 	}
 	ds.Quads = keep
 	// SKOS-shaped controlled subjects and their $0 authority links are read
-	// natively by the crosswalk since libcodex v0.15.0 (tasks/136 filed it;
-	// tasks/147 retired the decode-local shim that used to live here). The
+	// natively by the crosswalk since libcodex v0.15.0 ( filed it;
+	// retired the decode-local shim that used to live here). The
 	// crosswalk still mints one heading PER prefLabel with no language
-	// preference (libcodex tasks/091), so multilingual terms are filtered to
+	// preference (libcodex), so multilingual terms are filtered to
 	// their preferred label for this decode only.
 	filterPreferredSubjectLabels(ds)
 	var enc rdf.Encoder
@@ -174,9 +174,9 @@ func decodeGrainMARC(grain []byte) ([]*codex.Record, bool, error) {
 // filterPreferredSubjectLabels keeps one prefLabel language per bf:subject
 // IRI node for this decode: libcodex v0.15.0 reads SKOS subjects natively
 // but mints one heading PER prefLabel with no language preference (their
-// tasks/091 tracks the fix -- delete this filter when it lands). The pick
+// tracks the fix -- delete this filter when it lands). The pick
 // is English, then untagged, then the first tag sorted (the label-pick
-// order every label-bearing shape shares, tasks/116). Distinct labels in
+// order every label-bearing shape shares). Distinct labels in
 // the chosen language are left alone.
 func filterPreferredSubjectLabels(ds *rdf.Dataset) {
 	subjects := map[string]bool{}

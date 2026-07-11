@@ -4,7 +4,7 @@
 
 {{ define "main" }}
 {{- /* Language and classification terms list under their display label, not
-       the raw code (tasks/142); the term key still names the page/URL. */ -}}
+       the raw code; the term key still names the page/URL. */ -}}
 {{- $plural := .Data.Plural -}}
 <h1>{{ .Title }}</h1>
 <p class="lcat-resultcount" role="status">{{ len .Pages }} {{ .Data.Plural }}</p>

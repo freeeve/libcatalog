@@ -5,7 +5,7 @@
 // checked in contrast.test.ts, which needs no engine -- two hex colours are all a
 // ratio takes. This comment used to say the palette "is chosen for WCAG AA
 // contrast" and stand as the only evidence of it; dark mode shipped Execute at
-// 2.42:1 behind that sentence (tasks/315).
+// 2.42:1 behind that sentence.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import axe from "axe-core";
@@ -31,7 +31,7 @@ import { sessionStore } from "./lib/stores";
 
 /** identity.keySep -- the unit separator joining a cluster key's parts. Built
  *  from its code point rather than typed as a raw byte: a control character in
- *  the source makes the whole file binary to grep and git diff (tasks/241). */
+ * the source makes the whole file binary to grep and git diff. */
 const KEY_SEP = String.fromCharCode(0x1f);
 import type { QueuePage, Suggestion, WorkDoc } from "./lib/types";
 
@@ -242,7 +242,7 @@ describe("a11y", () => {
     flushSync();
     expect(host.textContent).toContain("The Sea Around Us");
     // The Type filter offers CONCERN, so patron problem-reports can be isolated
-    // (tasks/333) -- not just ADD/REMOVE.
+    // -- not just ADD/REMOVE.
     const typeOpts = [...host.querySelectorAll('select option')].map((o) => (o as HTMLOptionElement).value);
     expect(typeOpts).toContain("CONCERN");
     // Stage one decision so the publish bar is part of the audited tree.

@@ -1,7 +1,7 @@
 {{- /*
-  Facet sidebar dispatcher (tasks/150). Default: inline the sidebar body into
+  Facet sidebar dispatcher. Default: inline the sidebar body into
   the page, exactly as before (the layouts' partialCached keeps it rendered
-  once per language, tasks/133).
+  once per language).
 
   Opt-in ([params.facets] shared = true): the body is page-invariant per
   language, yet inlining it multiplies its bytes by every list/term page -- at
@@ -19,7 +19,7 @@
 {{- $frag := resources.FromString (printf "lcat/facets.%s.html" site.Language.Lang) $body | fingerprint -}}
 <div class="lcat-facets-shared" data-lcat-facets-src="{{ $frag.RelPermalink }}">
   {{- /* Fallback dimension list: the module taxonomies plus the site's extra
-         facets (tasks/143), linked when their landing page exists. Headings
+         facets, linked when their landing page exists. Headings
          resolve like the sidebar groups do. */ -}}
   {{- $dims := slice
     (dict "key" "subjects" "label" (i18n "subjects"))

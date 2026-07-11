@@ -73,7 +73,7 @@ func TestCrosswalkEnricher(t *testing.T) {
 		t.Fatalf("w1 subject = %+v", got.Subjects[0])
 	}
 	// The candidate's transitive broader chain rides along as standalone
-	// term metadata (tasks/178), nearer ancestor first.
+	// term metadata, nearer ancestor first.
 	if len(got.Terms) != 2 ||
 		got.Terms[0].URI != "http://id.loc.gov/authorities/subjects/shParent" || got.Terms[0].Labels["en"] != "Gay people" ||
 		got.Terms[1].URI != "http://id.loc.gov/authorities/subjects/shGrand" || got.Terms[1].Labels["en"] != "Sexual minorities" {

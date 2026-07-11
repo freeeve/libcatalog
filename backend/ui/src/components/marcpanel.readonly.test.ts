@@ -1,4 +1,4 @@
-// tasks/260: MarcPanel rendered an ungated "Save MARC" on read-only instances.
+// MarcPanel rendered an ungated "Save MARC" on read-only instances.
 // Clicking it posted the execute path, which the server refused -- and, before
 // the backend fix, refused with a 500. SaveBar had already decided what this
 // should look like; the MARC panel bypassed it.

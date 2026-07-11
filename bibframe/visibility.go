@@ -4,7 +4,7 @@ import (
 	"github.com/freeeve/libcodex/rdf"
 )
 
-// Work visibility (tasks/051): the delete stance is never row-deletion --
+// Work visibility: the delete stance is never row-deletion --
 // a tombstoned Work disappears from projection and leaves a redirect entry
 // (to a successor Work when named, else an empty target the host serves as
 // gone), while a suppressed Work merely hides from projection with no
@@ -17,7 +17,7 @@ const (
 	// PredSuppressed hides a Work from projection: object literal "true".
 	PredSuppressed = LcatNS + "suppressed"
 	// PredWithdrawn flags a Work whose sole bib feed no longer lists it
-	// (tasks/078 reconciliation): object literal is the ISO date of the pass
+	// ( reconciliation): object literal is the ISO date of the pass
 	// that noticed. A flag, not a deletion -- identity and editorial
 	// statements survive a title returning to the collection.
 	PredWithdrawn = LcatNS + "withdrawnFromFeed"

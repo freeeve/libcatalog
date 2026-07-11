@@ -10,7 +10,7 @@ import (
 	"github.com/freeeve/libcat/bibframe"
 )
 
-// TestCoverLifecycle covers tasks/215: upload records the editorial
+// TestCoverLifecycle covers upload records the editorial
 // lcat:extra/cover statement and stores the bytes; the public GET serves
 // them; DELETE removes both; phantom works and bad types are refused.
 func TestCoverLifecycle(t *testing.T) {

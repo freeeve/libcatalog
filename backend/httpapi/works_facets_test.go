@@ -110,7 +110,7 @@ func TestFacetSelfExclusion(t *testing.T) {
 	}
 }
 
-// TestFacetSubjectSchemes checks tasks/174: subject values carry their
+// TestFacetSubjectSchemes checks subject values carry their
 // vocabulary scheme and the top-N cap applies per scheme, so a large
 // vocabulary cannot crowd a smaller one out of the rail.
 func TestFacetSubjectSchemes(t *testing.T) {
@@ -208,7 +208,7 @@ func seedFacetWork(t *testing.T, bs blob.Store, workID, title, subjectIRI, tag, 
 
 // TestWorksListFacets drives the HTTP surface: filter params narrow the
 // list and the response carries self-excluding counts, including the
-// configured sources extras dimension (tasks/171).
+// configured sources extras dimension.
 func TestWorksListFacets(t *testing.T) {
 	bs := blob.NewMem()
 	verifier := staffVerifier{"lib-token": {Email: "lib@example.org", Roles: []auth.Role{auth.RoleLibrarian}}}
@@ -249,7 +249,7 @@ func TestWorksListFacets(t *testing.T) {
 	if !equalFacet(page.Facets["tag"], []facetCount{fc("space opera", 1)}) {
 		t.Fatalf("tag = %v", page.Facets["tag"])
 	}
-	// The sources extra splits on commas and trims (tasks/171).
+	// The sources extra splits on commas and trims.
 	if !equalFacet(page.Facets["sources"], []facetCount{fc("overdrive queer scan", 2), fc("loc", 1), fc("mombian", 1)}) {
 		t.Fatalf("sources = %v", page.Facets["sources"])
 	}

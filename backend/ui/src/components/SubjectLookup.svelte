@@ -1,5 +1,5 @@
 <script lang="ts">
-  // External subject lookup (tasks/073): a button fans the work's ISBNs out
+  // External subject lookup: a button fans the work's ISBNs out
   // to the copycat targets and lists the 6XX headings they carry -- the
   // "suck these in" flow. Reconciled headings add as controlled subjects,
   // the rest as tags; every Add is an ordinary staged editorial op, so the
@@ -68,7 +68,7 @@
   </p>
   {#if ran && candidates.length === 0 && !error}
     <!-- With a short answer from a target, "no headings" is a claim we cannot
-         make: the missing records are the ones not searched (tasks/258). -->
+         make: the missing records are the ones not searched. -->
     <p class="muted small">
       {#if incomplete}
         No headings this work lacks were found, but a target's answer was cut short -- try again.

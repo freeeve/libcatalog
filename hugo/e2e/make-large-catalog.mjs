@@ -1,5 +1,5 @@
 // Writes a catalog larger than one browse page, so the e2e can see the bug
-// tasks/281 was about. fixture-catalog.json has three works; with a page size of
+// was about. fixture-catalog.json has three works; with a page size of
 // 60, nothing there can distinguish "the base set is the match set" from "the
 // base set is the first page of it".
 //

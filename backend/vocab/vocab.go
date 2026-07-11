@@ -54,7 +54,7 @@ type Term struct {
 	ExactMatch []string            `json:"exactMatch,omitempty"`
 	CloseMatch []string            `json:"closeMatch,omitempty"`
 	// MergedInto marks a retired term: it was merged into the referenced
-	// URI (lcat:mergedInto, tasks/046). Retired terms resolve via Lookup
+	// URI (lcat:mergedInto). Retired terms resolve via Lookup
 	// (so old references still label) but leave the search index.
 	MergedInto string `json:"mergedInto,omitempty"`
 }
@@ -69,7 +69,7 @@ func (t *Term) Label(lang string) string {
 }
 
 // PickLabel returns the best display label from a language-tagged label map
-// (the convention every label-bearing shape shares, tasks/116): each
+// (the convention every label-bearing shape shares): each
 // preferred tag in order, then English, then untagged, then the
 // lexicographically first remaining tag -- deterministic where map order is
 // not. Empty-string labels never win; "" means no usable label, and the
@@ -91,13 +91,13 @@ func PickLabel(labels map[string]string, prefer ...string) string {
 // Index is the loaded term index. Reads are lock-free over an immutable
 // snapshot; Reload builds a fresh snapshot and swaps it atomically, so every
 // holder of the *Index (terms handler, suggestion gate, publisher) sees
-// authority edits without rewiring (tasks/046).
+// authority edits without rewiring.
 type Index struct {
 	snap atomic.Pointer[snapshot]
 }
 
 // snapshot is one immutable build of the index. A scheme is served either
-// from maps (schemes/search) or from sidecar artifacts (tasks/167) -- never
+// from maps (schemes/search) or from sidecar artifacts -- never
 // both: any loose quads or a stale manifest bypass the sidecar for that
 // build, so the map path stays the correctness backstop.
 type snapshot struct {
@@ -267,12 +267,12 @@ func buildSnapshot(ctx context.Context, st blob.Store, prefix string, schemes []
 	// into resident maps -- 513k LCSH headings, +698MB, permanently, because
 	// three accessors read the sidecar alone and the loader's only way to keep
 	// them correct was to abandon the sidecar. Those accessors now merge the
-	// sidecar with the map overlay, so a scheme carries both (tasks/265).
+	// sidecar with the map overlay, so a scheme carries both.
 	//
 	// A scheme that still falls back is a capacity event -- its whole snapshot
 	// becomes resident -- so each fallback logs at WARN with the term count it
 	// is about to cost. That turns an unexplained OOM at the next deploy into
-	// a grep (tasks/265).
+	// a grep.
 	for scheme, m := range manifests {
 		if _, ok := deferred[scheme]; !ok || m.SourceETag != sourceETags[m.Source] {
 			slog.Warn("vocab: sidecar stale; serving scheme from resident maps",
@@ -309,7 +309,7 @@ func buildSnapshot(ctx context.Context, st blob.Store, prefix string, schemes []
 			delete(snap.sidecar, scheme)
 		}
 	}
-	// Non-heading debris guard (tasks/202/204): a subject in an authority
+	// Non-heading debris guard: a subject in an authority
 	// graph carrying no labels at all is bookkeeping (a merge marker on an
 	// absent node, a legacy authority:aliases tagAlias statement), not a
 	// heading -- indexed, it shadows the term's real scheme on Resolve and
@@ -490,7 +490,7 @@ func canonIdentifier(uri string) string {
 // MatchIdentifier returns the live term a canonicalized identifier URI
 // resolves to: the term's own URI first, then its skos:exactMatch and
 // closeMatch siblings -- the identifier-based reconciliation gate for
-// external headings that carry $0 (tasks/088). Within a tier, map and
+// external headings that carry $0. Within a tier, map and
 // sidecar candidates resolve to the smallest scheme then URI.
 func (ix *Index) MatchIdentifier(uri string) (*Term, bool) {
 	key := canonIdentifier(uri)
@@ -543,7 +543,7 @@ func (ix *Index) Schemes() []string {
 // artifact-backed (its terms stay on disk), and residentTerms is the count held
 // in resident maps -- the whole scheme for a map-backed one, or just the
 // live-pick overlay for a sidecar-backed one. Together they turn an unexplained
-// process RSS into a one-line answer per scheme (tasks/267). Nil-safe: a nil
+// process RSS into a one-line answer per scheme. Nil-safe: a nil
 // index reports (false, 0).
 func (ix *Index) SchemeStats(scheme string) (sidecar bool, residentTerms int) {
 	if ix == nil {
@@ -556,7 +556,7 @@ func (ix *Index) SchemeStats(scheme string) (sidecar bool, residentTerms int) {
 // schemeNames is the sorted union of the two backends' scheme names.
 //
 // A scheme appears in both maps once it carries a sidecar and an overlay of
-// live picks, so the union must dedupe. It did not have to before tasks/265,
+// live picks, so the union must dedupe. It did not have to before
 // when a scheme served from exactly one backend; the admin SPA keys its vocab
 // tabs by scheme name and a repeat crashed the picker.
 func (s *snapshot) schemeNames() []string {
@@ -587,7 +587,7 @@ func (ix *Index) Lookup(scheme, id string) (*Term, bool) {
 }
 
 // LabelResolver adapts the index to the editor's label-companion contract
-// (editor.LabelResolver, tasks/145): term IRI -> (scheme, lang->prefLabel).
+// (editor.LabelResolver): term IRI -> (scheme, lang->prefLabel).
 // Safe on a nil index -- it returns nil, which disables companions.
 func (ix *Index) LabelResolver() func(iri string) (string, map[string]string, bool) {
 	if ix == nil {
@@ -604,9 +604,9 @@ func (ix *Index) LabelResolver() func(iri string) (string, map[string]string, bo
 
 // Resolve returns the term for a URI regardless of scheme (schemes checked
 // in sorted order for determinism) -- the editor's chip renderer resolves
-// stored subject references without knowing where they came from (tasks/071).
+// stored subject references without knowing where they came from.
 // A Homosaurus IRI whose release segment differs from the installed
-// release's resolves through its version-stable homoit id (tasks/188);
+// release's resolves through its version-stable homoit id;
 // Lookup, the write-side validation gate, stays exact so edits store the
 // installed release's canonical IRI.
 func (ix *Index) Resolve(id string) (*Term, bool) {
@@ -703,7 +703,7 @@ func (ix *Index) Search(scheme, q string, limit int) []*Term {
 		return hitTerms(overlay)
 	}
 	// A sidecar-backed scheme may also carry a map overlay: the terms a
-	// cataloger picked from this scheme's live tab (tasks/265). Both streams
+	// cataloger picked from this scheme's live tab. Both streams
 	// are ordered by matched-label norm, then URI, so merging them reproduces
 	// exactly the order a wholly map-backed load of the same terms gives --
 	// the parity the sidecar promises. Taking the overlay first on a tie makes
@@ -879,7 +879,7 @@ const ancestorsDepthCap = 12
 // deterministic (broader lists are sorted at load), cycle-safe, and
 // depth-capped. Unlike Path -- one shortest chain for breadcrumbs -- this is
 // every ancestor: what a consumer materializing hierarchy metadata (ancestor
-// term descriptions on enrichment/publish, tasks/178) needs for
+// term descriptions on enrichment/publish) needs for
 // polyhierarchical terms. Broader URIs that do not resolve in the scheme are
 // skipped. A root or unknown term yields nil.
 func (ix *Index) Ancestors(scheme, id string) []*Term {
@@ -940,7 +940,7 @@ type LabelMatch struct {
 }
 
 // MatchLabel returns the scheme's terms whose pref or alt label normalizes
-// exactly to label -- the auto-linking gate (tasks/046): only whole-heading
+// exactly to label -- the auto-linking gate: only whole-heading
 // matches produce suggestions, never prefix guesses.
 func (ix *Index) MatchLabel(scheme, label string) []LabelMatch {
 	snap := ix.load()
@@ -952,7 +952,7 @@ func (ix *Index) MatchLabel(scheme, label string) []LabelMatch {
 	if sc := snap.sidecar[scheme]; sc != nil {
 		// The overlay and the sidecar can both hold the term. Auto-linking
 		// gates on whole-heading matches, so a duplicate would suggest the
-		// same link twice (tasks/265).
+		// same link twice.
 		seen := make(map[string]bool, len(out))
 		for _, m := range out {
 			seen[m.Term.ID] = true

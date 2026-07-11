@@ -1,6 +1,6 @@
 {{- /*
-  Optional cover-art slot (tasks/025). Renders a Work's cover image when the catalog
-  carries one (via the adapter `extra.cover` passthrough, tasks/022), else a graceful
+  Optional cover-art slot. Renders a Work's cover image when the catalog
+  carries one (via the adapter `extra.cover` passthrough), else a graceful
   lettered placeholder from the title's first character. Gated by the caller on
   `[params] covers = true`, so a catalog without cover art is unchanged by default.
 
@@ -13,7 +13,7 @@
   <site>/covers/<id>.jpg and the projector emits the site-relative "covers/<id>.jpg",
   but a src with no leading slash is document-relative in HTML: it resolved against
   /works/<id>/ on a detail page and /works/ on the browse list, so the same string
-  404'd differently on every page (tasks/285). relURL is a no-op on the absolute CDN
+  404'd differently on every page. relURL is a no-op on the absolute CDN
   URLs some deployments carry.
 */ -}}
 {{- $url := .url -}}

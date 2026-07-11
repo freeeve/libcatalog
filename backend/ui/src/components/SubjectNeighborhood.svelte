@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The crosswalking panel under an expanded subject chip (tasks/071): the
+  // The crosswalking panel under an expanded subject chip: the
   // term's also-known-as labels and definition, then its SKOS neighborhood
   // -- broader, narrower, related, and siblings (the broader terms' other
   // children) -- each neighbor with Replace and Add actions that stage
@@ -19,7 +19,7 @@
     /** IRIs the record's field already carries. A neighbor in this set cannot
      *  be added again -- the panel exists to crosswalk terms onto a record, and
      *  on a record where that was already done, Add would stage an edit that
-     *  changes nothing (tasks/248). */
+     * changes nothing. */
     present: Set<string>;
     onreplace: (t: Term) => void;
     onadd: (t: Term) => void;
@@ -31,7 +31,7 @@
   }
 
   let groups = $state<Group[]>([]);
-  // Equivalents (tasks/072): skos:exactMatch/closeMatch links resolved
+  // Equivalents: skos:exactMatch/closeMatch links resolved
   // scheme-agnostically -- the one-click homosaurus->LCSH crosswalk.
   let equivalents = $state<Term[]>([]);
   let unresolvedEq = $state<string[]>([]);

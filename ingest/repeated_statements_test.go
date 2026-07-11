@@ -1,4 +1,4 @@
-// tasks/286: libcodex v0.24.0 made rdf.Graph.Objects return each distinct object
+// libcodex v0.24.0 made rdf.Graph.Objects return each distinct object
 // once. Graph is the document's triple list, not a set -- real serializations
 // restate triples constantly, and SummarizeDataset additionally merges every
 // named graph into one list, so a statement carried by both the feed graph and

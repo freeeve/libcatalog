@@ -9,7 +9,7 @@ import (
 	"github.com/freeeve/libcat/bibframe"
 )
 
-// TestCloneWork covers tasks/217 (058 item 4): POST clones a work into a
+// TestCloneWork covers (058 item 4): POST clones a work into a
 // fresh suppressed editorial-only grain the index knows about; phantom ids
 // and anonymous callers refuse.
 func TestCloneWork(t *testing.T) {

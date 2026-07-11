@@ -2,7 +2,7 @@ package bibframe
 
 import "testing"
 
-// WorkIDFromIRI decides which subjects a batch patch may rebind (tasks/240), so
+// WorkIDFromIRI decides which subjects a batch patch may rebind, so
 // it has to match exactly the node WorkIRI mints -- never a skolem child that
 // merely starts the same way, and never an Instance node.
 func TestWorkIDFromIRI(t *testing.T) {

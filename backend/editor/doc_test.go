@@ -130,7 +130,7 @@ func TestFieldExtraction(t *testing.T) {
 }
 
 // TestExternalIdentitySurfaces proves an owl:sameAs written by the identity
-// enrichment pass (tasks/066) materializes as the read-only externalIdentities
+// enrichment pass materializes as the read-only externalIdentities
 // field, badged with its enrichment provenance, rather than hiding in passthrough.
 func TestExternalIdentitySurfaces(t *testing.T) {
 	m := newMapper(t)
@@ -152,7 +152,7 @@ func TestExternalIdentitySurfaces(t *testing.T) {
 	}
 }
 
-// TestStructuredFieldsClaimed proves the tasks/083 additions surface values
+// TestStructuredFieldsClaimed proves the additions surface values
 // living inside blank structures: the 3-hop contributor chain and the
 // 2-hop label chains (subject headings, notes, extent, publication) that
 // used to hide in passthrough.
@@ -250,7 +250,7 @@ func TestEditedValueLandsOnNode(t *testing.T) {
 		// legitimately survives elsewhere in the grain -- the Instance's
 		// own title node and the crosswalk's rdfs:label mirror are
 		// unclaimed structure; syncing such paired display quads on edit
-		// is the write path's job, tasks/045.)
+		// is the write path's job.)
 		doc2, err := m.ToDoc(back, workID)
 		if err != nil {
 			t.Fatal(err)
@@ -316,7 +316,7 @@ func TestOverriddenFlag(t *testing.T) {
 }
 
 // TestDirectFieldAnnotation proves a vocab field's IRI values carry the
-// grain-written skos:prefLabel as their display annotation (tasks/137/140):
+// grain-written skos:prefLabel as their display annotation:
 // the name shows without an installed vocab snapshot, the label quad stays
 // passthrough, and the round trip stays stable.
 func TestDirectFieldAnnotation(t *testing.T) {
@@ -358,7 +358,7 @@ func TestDirectFieldAnnotation(t *testing.T) {
 
 // TestContributorRolesAndPrimaryOrder proves the contributors field carries
 // each contribution's bf:role label as its display annotation and sorts the
-// bflc:PrimaryContribution agent first (tasks/138), while the structure
+// bflc:PrimaryContribution agent first, while the structure
 // quads stay passthrough (round trip stable).
 func TestContributorRolesAndPrimaryOrder(t *testing.T) {
 	m := newMapper(t)
@@ -408,7 +408,7 @@ func TestContributorRolesAndPrimaryOrder(t *testing.T) {
 }
 
 // TestLinksAnnotatedFromLocatorLabels: since libcodex v0.15.0 each 856 is a
-// locator node carrying $3 as rdfs:label (tasks/147), and the instance
+// locator node carrying $3 as rdfs:label, and the instance
 // links field annotates from it -- the editor shows "Image" / "Thumbnail" /
 // "Excerpt" from the grain instead of guessing from URL shapes. The real
 // OverDrive MARC Express samples carry exactly those $3 values.
@@ -435,7 +435,7 @@ func TestLinksAnnotatedFromLocatorLabels(t *testing.T) {
 	}
 }
 
-// TestMultiFeedClusterInstances covers tasks/196: a cluster whose feeds each
+// TestMultiFeedClusterInstances covers a cluster whose feeds each
 // assert the same instance yields ONE instance entry per id (duplicate ids
 // crashed the editor's keyed tab list; the extras were empty husks anyway),
 // and the two-graph grain still round-trips byte-identical.

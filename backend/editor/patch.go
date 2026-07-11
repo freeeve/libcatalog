@@ -81,7 +81,7 @@ func (p Patch) Validate(allowlist []string) error {
 
 // Rebindable reports whether p can be applied to a work other than the one its
 // subjects name -- the question a batch edit has to answer before it writes
-// anything (tasks/240).
+// anything.
 //
 // A batch patch carries one literal subject. Applied verbatim to every selected
 // work, it writes quads describing the first work into every other work's
@@ -103,7 +103,7 @@ func (p Patch) Rebindable() error {
 }
 
 // BoundTo checks that every Work-node subject in p names workID -- the
-// single-record form of the tasks/240 rule. A patch aimed at one work has no
+// single-record form of the rule. A patch aimed at one work has no
 // business asserting statements about another work's node, and a grain that
 // describes a Work it does not contain is invisible to every reader that
 // resolves from the Work id inward.
@@ -183,7 +183,7 @@ type Diff struct {
 // not write, republish, or audit: the grain store is content-addressed so the
 // write is a no-op anyway, but the audit trail would gain a RECORD_EDIT row
 // naming an etag identical to its predecessor's, indistinguishable from a real
-// edit (tasks/249).
+// edit.
 func (d Diff) Empty() bool {
 	return len(d.Added) == 0 && len(d.Removed) == 0
 }

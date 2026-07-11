@@ -36,7 +36,7 @@ describe("adoptionValues", () => {
   });
 });
 
-// tasks/058 item 6: adoption stages ordinary editor ops against the survivor,
+// adoption stages ordinary editor ops against the survivor,
 // so the merge chooser writes through the same audited path as the editor.
 describe("adoptionOps", () => {
   type Docs = Record<string, Record<string, FieldValue[]>>;

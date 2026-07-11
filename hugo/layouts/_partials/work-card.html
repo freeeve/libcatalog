@@ -1,13 +1,13 @@
 {{- /* One Work in a result list. Expects a Work page (from the content adapter).
-       When the site opts into cover art ([params] covers = true, tasks/025) an optional
+       When the site opts into cover art ([params] covers = true) an optional
        cover slot precedes the text; the .lcat-card-body wrapper keeps the text column
        intact whether or not a cover renders.
 
-       Rendered via partialCached keyed on the work's .RelPermalink (tasks/133): a
+       Rendered via partialCached keyed on the work's .RelPermalink: a
        work's card is identical everywhere it appears (works list pagers, every term
        page it belongs to), so it renders once per work per language instead of once
        per appearance. Keep the output a function of the work page alone. */ -}}
-{{- /* Negative facet filters (tasks/144): the card carries its term keys as
+{{- /* Negative facet filters: the card carries its term keys as
        data attributes (pipe-separated, per taxonomy) so lcat-negatives.js can
        hide cards matching an exclusion. Emitted only when the site opts in --
        zero HTML weight otherwise. The keys match what the sidebar links/
@@ -30,12 +30,12 @@
     <h2 class="lcat-card-title">
       <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ with .Params.subtitle }}<span class="lcat-subtitle">: {{ . }}</span>{{ end }}
     </h2>
-    {{- /* Extension hook (tasks/151): empty by default; sites inject per-work card
+    {{- /* Extension hook: empty by default; sites inject per-work card
            content (e.g. holding chips) here instead of shadowing this partial. Bound
            by the same partialCached contract as the card (see work-card-extra.html). */}}
     {{- partial "work-card-extra.html" . }}
-    {{- /* Contributor names link to their term pages (tasks/129); the taxonomy
-           indexes raw names, so the name IS the lookup key (tasks/128). The role
+    {{- /* Contributor names link to their term pages; the taxonomy
+           indexes raw names, so the name IS the lookup key. The role
            suffix stays outside the link text. */}}
     {{- with .Params.contributorList }}
     <p class="lcat-contribs">
@@ -43,8 +43,8 @@
     </p>
     {{- end }}
     {{- /* Subject chips, linked to their term pages like the detail page's
-           (tasks/129) -- from subjectList so the display is the localized label,
-           not the adapter's taxonomy slug; URLs via lcat-term-url (tasks/128). */}}
+ -- from subjectList so the display is the localized label,
+           not the adapter's taxonomy slug; URLs via lcat-term-url. */}}
     {{- with .Params.subjectList }}
     {{- $lang := site.Language.Lang }}
     <ul class="lcat-tags">

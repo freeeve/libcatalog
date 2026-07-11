@@ -1,4 +1,4 @@
-// tasks/282: exports are stored gzipped. A full-corpus N-Quads dump compresses
+// exports are stored gzipped. A full-corpus N-Quads dump compresses
 // ~20x, and the blob store, the wire and the librarian's disk each pay for the
 // difference. CSV hides the compression behind Content-Encoding because it is
 // opened in Excel; the machine formats are real .gz artifacts.
@@ -124,7 +124,7 @@ func TestOpenStoredReportsCompression(t *testing.T) {
 	}
 }
 
-// Exports written before tasks/282 hold plain bytes. The magic number decides,
+// Exports written hold plain bytes. The magic number decides,
 // not the path, so they still download.
 func TestOpenReadsLegacyUncompressedOutput(t *testing.T) {
 	bs := blob.NewMem()
@@ -140,7 +140,7 @@ func TestOpenReadsLegacyUncompressedOutput(t *testing.T) {
 
 	got, err := svc.Open(t.Context(), legacy)
 	if err != nil {
-		t.Fatalf("a pre-tasks/282 export became unreadable: %v", err)
+		t.Fatalf("a pre- export became unreadable: %v", err)
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("legacy Open = %q, want %q", got, want)

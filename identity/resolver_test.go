@@ -2,7 +2,7 @@ package identity
 
 import "testing"
 
-// TestWorkForProviderKeyFollowsMerge is the tasks/363 seam: a feed cluster-merge is
+// TestWorkForProviderKeyFollowsMerge is the seam: a feed cluster-merge is
 // translated to Work ids through the resolver's prior-grain state and folded via
 // SeedMerge, so a record naming the retired cluster resolves to the survivor.
 func TestWorkForProviderKeyFollowsMerge(t *testing.T) {
@@ -31,7 +31,7 @@ func TestWorkForProviderKeyFollowsMerge(t *testing.T) {
 	}
 }
 
-// TestWorkForProviderKeyFormatBucketFallback is the tasks/370 fix: a feed merge
+// TestWorkForProviderKeyFormatBucketFallback is the fix: a feed merge
 // names the bare cluster key "coll:N", but a single-format cluster's grain indexes
 // only the format-suffixed instance key "coll:N:ebook". The bare key must resolve
 // through its format bucket so the merge fires instead of being skipped.
@@ -82,7 +82,7 @@ func TestWorkForProviderKeyAmbiguousBucketsSkip(t *testing.T) {
 
 // TestMergesReturnsAllApplied checks that Merges() surfaces every applied merge
 // (editorial and feed-seeded alike) in deterministic order -- the set the
-// retirement pass diffs on (tasks/370).
+// retirement pass diffs on.
 func TestMergesReturnsAllApplied(t *testing.T) {
 	r := NewResolver()
 	r.SeedMerge("wc", "wd")
@@ -181,7 +181,7 @@ func TestConflictSurfaced(t *testing.T) {
 	}
 }
 
-// TestSplitPinOverridesCluster checks that an editorial split pin (tasks/001)
+// TestSplitPinOverridesCluster checks that an editorial split pin
 // assigns an Instance to its pinned Work even though the existing instance->work
 // link and the computed key would cluster it elsewhere.
 func TestSplitPinOverridesCluster(t *testing.T) {
@@ -203,7 +203,7 @@ func TestSplitPinOverridesCluster(t *testing.T) {
 }
 
 // TestConflictingPinIsReportedNotSilentlyDropped covers the resolver half of
-// tasks/323: two pins for one instance (a split written twice before the endpoint was
+// two pins for one instance (a split written twice before the endpoint was
 // idempotent, or a hand-edited grain) must not let quad sort order silently decide the
 // winner. The first pin seen wins deterministically, the second is surfaced as a
 // conflict, and the discarded Work id is not reserved.
@@ -230,7 +230,7 @@ func TestConflictingPinIsReportedNotSilentlyDropped(t *testing.T) {
 }
 
 // TestEmptyKeyNeverClusters checks that records with no main title (an empty
-// access-point key, tasks/101) each mint their own Work instead of all
+// access-point key) each mint their own Work instead of all
 // clustering onto the first one, in both fresh-resolve and seeded form.
 func TestEmptyKeyNeverClusters(t *testing.T) {
 	r := NewResolver()

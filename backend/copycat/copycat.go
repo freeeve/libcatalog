@@ -1,5 +1,5 @@
 // Package copycat is Koha's Z39.50/SRU copy cataloging and staged-import
-// workflow over the shared ingest pipeline (tasks/050): external targets are
+// workflow over the shared ingest pipeline: external targets are
 // searched through the libcodex protocol clients, results and .mrc uploads
 // stage into datastore batches (nothing touches the grain tree), every
 // staged record carries its identity-resolver match ("would merge with Work
@@ -114,7 +114,7 @@ type Batch struct {
 	Committed int       `json:"committed,omitempty"`
 	Skipped   int       `json:"skipped,omitempty"`
 	CommitAt  time.Time `json:"commitAt,omitzero"`
-	// Revert outcome (tasks/068).
+	// Revert outcome.
 	Reverted int       `json:"reverted,omitempty"`
 	RevertAt time.Time `json:"revertAt,omitzero"`
 }
@@ -136,7 +136,7 @@ type Service struct {
 	Search SearchFunc
 	// Index, when set (and Prefix is ""), is the shared work index match
 	// passes seed from instead of loading the whole prior grain store per
-	// Stage/Commit (tasks/107); nil falls back to LoadPriorStore.
+	// Stage/Commit; nil falls back to LoadPriorStore.
 	Index *workindex.Index
 }
 
@@ -357,7 +357,7 @@ func (s *Service) Review(ctx context.Context, id, policy string, decisions map[i
 // byte-stable across a re-commit, but the undo bookkeeping is not -- a
 // double commit re-derived Created from the now-existing grains, poisoning
 // the revert set so revert reported success while leaving the created works
-// live (tasks/213). Committing a REVERTED batch stays allowed: it is the
+// live. Committing a REVERTED batch stays allowed: it is the
 // redo of an undone import, and at that point the store again holds the
 // true prior state, so the undo set re-derives correctly.
 func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
@@ -406,7 +406,7 @@ func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
 		}
 		commit = append(commit, rec)
 	}
-	// Snapshot the pre-commit state the revert path needs (tasks/068).
+	// Snapshot the pre-commit state the revert path needs.
 	existed, priors, err := s.preCommitSnapshot(ctx, fresh)
 	if err != nil {
 		return Batch{}, err
@@ -449,7 +449,7 @@ func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
 			b.ID, b.Committed, b.Skipped, b.Policy, len(changed)),
 	})
 	// A per-work entry so an imported record's History tab shows where it came
-	// from (tasks/334) -- WORK_CLONE is the precedent for a per-work provenance
+	// from -- WORK_CLONE is the precedent for a per-work provenance
 	// row. The summary above is the run's aggregate; these carry the WorkID a
 	// work's history filters on.
 	for _, wid := range committedWorks {
@@ -466,8 +466,8 @@ func (s *Service) Commit(ctx context.Context, id, actor string) (Batch, error) {
 
 // DeleteBatch removes a batch, its records, and its revert set. A COMMITTED
 // batch is refused: its revert-set is the only pre-commit snapshot Revert can
-// roll the commit back from (tasks/068), and the works it created persist, so
-// deleting it would strand them non-revertable (tasks/340). This is symmetric to
+// roll the commit back from, and the works it created persist, so
+// deleting it would strand them non-revertable. This is symmetric to
 // the commit-side guard, which refuses re-committing a COMMITTED batch. Revert
 // the batch first (which sets it REVERTED), then it deletes freely.
 func (s *Service) DeleteBatch(ctx context.Context, id string) error {

@@ -39,7 +39,7 @@ async function seedSession(): Promise<void> {
 }
 
 /** Loads a session for w1: doc fetch (etag e1) then the work's one draft slot.
-    load() point-reads GET /v1/drafts/w1 (tasks/297), so the mock returns w1's
+    load() point-reads GET /v1/drafts/w1, so the mock returns w1's
     draft from the given set, or a 404 when there is none. */
 async function loadSession(drafts: unknown[] = []): Promise<EditorSession> {
   fetchMock.mockResolvedValueOnce(json({ etag: "e1", doc }));

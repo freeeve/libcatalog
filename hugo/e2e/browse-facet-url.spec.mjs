@@ -1,5 +1,5 @@
-// Real-browser E2E for facet selections in the URL (tasks/349) -- the deferred
-// half of tasks/301. A faceted browse page must be a shareable, back/forward-able
+// Real-browser E2E for facet selections in the URL -- the deferred
+// half. A faceted browse page must be a shareable, back/forward-able
 // deep link: the selection encodes into ?f=/?x= and reconstructs into the facet UI
 // on a cold load, together with ?q= and ?page=, so the reader who shares or
 // bookmarks a subject page lands on exactly that filtered set.

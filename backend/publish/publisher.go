@@ -35,13 +35,13 @@ var ErrIngestActive = errors.New("publish: ingest lease held; publish deferred")
 // closure, and the store's write -- and used to return all three the same way.
 // A caller could not tell "no such work", which is the user's answer and safe to
 // show them, from an *os.PathError naming the blob root, which is neither
-// (tasks/272). Store errors now wrap ErrGrainStore, CAS exhaustion is
+// . Store errors now wrap ErrGrainStore, CAS exhaustion is
 // ErrGrainConflict, and the closure's error passes through untouched, so
 // errors.Is sorts the three without matching on strings.
 //
 // The store's own sentinel survives the wrap (blob.ErrReadOnly, and so on):
 // callers that must tell a read-only deployment from a broken one still can,
-// which is the discipline tasks/260 settled for the single-record route.
+// which is the discipline settled for the single-record route.
 var (
 	ErrGrainStore    = errors.New("grain store unavailable")
 	ErrGrainConflict = errors.New("the record kept changing while it was being edited")
@@ -64,12 +64,12 @@ type Publisher struct {
 	// paths straight from bibframe.GrainPath).
 	Prefix string
 	// Summaries, when set, is the shared maintained summary source
-	// (workindex, tasks/109) tag promotion scans instead of a per-run
+	// (workindex) tag promotion scans instead of a per-run
 	// corpus walk; nil falls back to ScanSummaries.
 	Summaries ingest.SummarySource
 	// Index, when set, is kept exact for this publisher's own grain writes
 	// -- the read-your-writes contract the single-record and batch paths
-	// hold (tasks/195, tasks/203). Without it, tag promotions and approved
+	// hold. Without it, tag promotions and approved
 	// publishes wait out the workindex refresh TTL: invisible to work
 	// search for up to 30s, and batch selections resolve against the
 	// stale index meanwhile.
@@ -94,7 +94,7 @@ type Result struct {
 
 // MutateGrain applies mutate to the grain at path under ETag optimistic
 // concurrency: read, transform, conditional put, retry from fresh on
-// conflict. The exported CAS primitive record editing (tasks/037) and
+// conflict. The exported CAS primitive record editing and
 // store-backed ingest share.
 //
 // Errors sort three ways, and callers that answer a request must tell them
@@ -252,7 +252,7 @@ func (p *Publisher) authoritySubject(term vocab.TermRef) bibframe.AuthoritySubje
 }
 
 // ancestorTerms resolves the term's transitive skos:broader chain from the
-// vocabulary index (tasks/178): the descriptions land in the authority graph
+// vocabulary index: the descriptions land in the authority graph
 // alongside the subject's own, so the projection can label hierarchy nodes
 // no Work carries directly. Nil without an index or for a root term.
 func (p *Publisher) ancestorTerms(term vocab.TermRef) []bibframe.AuthoritySubject {
@@ -269,7 +269,7 @@ func (p *Publisher) ancestorTerms(term vocab.TermRef) []bibframe.AuthoritySubjec
 
 // applyRemoval retracts an editorial-added subject or tag. Removing a
 // feed-sourced value needs the lcat:overrides shadowing semantics
-// (tasks/042); until then a feed-only value is left in place (the approval
+// ; until then a feed-only value is left in place (the approval
 // stays recorded in the queue and audit).
 func (p *Publisher) applyRemoval(grain []byte, workID string, term vocab.TermRef) ([]byte, error) {
 	if term.Scheme == vocab.FolkScheme {

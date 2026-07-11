@@ -5,7 +5,7 @@ import "testing"
 // The off-AWS deployment is two unrelated servers: MinIO for blobs, DynamoDB
 // Local (or ScyllaDB Alternator) for documents. A single endpoint override
 // cannot address it, which is the whole reason the per-service overrides exist
-// (tasks/054).
+// .
 func TestPerServiceEndpointsAddressDifferentHosts(t *testing.T) {
 	cfg := Config{
 		S3Endpoint:     "http://minio:9000",

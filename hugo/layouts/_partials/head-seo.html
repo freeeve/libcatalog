@@ -1,5 +1,5 @@
 {{- /*
-  Default SEO head (tasks/119): <title>, meta description, canonical + hreflang,
+  Default SEO head: <title>, meta description, canonical + hreflang,
   Open Graph / Twitter, and schema.org JSON-LD -- WebSite (with a SearchAction into
   /works/) on the homepage, Book on Work detail pages, built from the params the
   content adapter owns (contributors, instances/ISBNs, subjects, tags). Lifted from
@@ -12,7 +12,7 @@
   `extra` passthrough) becomes the og:image; [params] ogImage is the site fallback.
 */ -}}
 {{- /*
-  A retired Work id (tasks/313) forwards and nothing else. Everything below would
+  A retired Work id forwards and nothing else. Everything below would
   lie about it: the canonical would name the retired URL rather than the survivor,
   and the Book JSON-LD would describe a Work whose data this page does not carry.
 
@@ -34,7 +34,7 @@
 {{- $isWork := and (eq .Kind "page") (eq .Section "works") -}}
 {{- /* Term pages: .Title is Hugo's humanized term key (a slug for subjects),
        so resolve the display label the same way term.html renders its h1,
-       with the subject scheme in parens (tasks/149). */ -}}
+       with the subject scheme in parens. */ -}}
 {{- $title := .Title -}}
 {{- if eq .Kind "term" -}}
   {{- $t := partial "lcat-term-title.html" . -}}
@@ -64,7 +64,7 @@
        The cover is absolutized: a scraper has no context to resolve a relative
        URL against beyond the page URL, and the projector emits site-relative
        "covers/<id>.jpg", which against /works/<id>/ is a 404. absURL is a no-op
-       on the absolute CDN URLs some deployments carry (tasks/285).
+       on the absolute CDN URLs some deployments carry.
 
        It is also gated on site.Params.covers, the same switch page.html uses for
        the <img>: a catalog that does not publish covers must not publish them to

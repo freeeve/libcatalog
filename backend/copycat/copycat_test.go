@@ -43,7 +43,7 @@ func sampleMRC(t *testing.T) []byte {
 
 // newService builds a copycat service wired the way appdeps does: with the
 // shared work index over the same store, so the suite exercises the indexed
-// match path (tasks/107). Fallback-specific tests zero the Index field.
+// match path. Fallback-specific tests zero the Index field.
 func newService(t *testing.T) (*copycat.Service, blob.Store, *fakeNotifier) {
 	t.Helper()
 	notifier := &fakeNotifier{}
@@ -98,7 +98,7 @@ func TestSeedDefaultTargets(t *testing.T) {
 	}
 }
 
-// TestSuggestedTargetsAgreeWithDefaults is the tasks/256 drift guard: a one-click
+// TestSuggestedTargetsAgreeWithDefaults is the drift guard: a one-click
 // preset that points at the same URL as a seeded default must carry the same SRU
 // knobs, or the preset speaks different CQL than the seeded target for the same
 // server. It is exactly this that let the k10plus preset ship without the PICA
@@ -182,7 +182,7 @@ func TestSearchFanOut(t *testing.T) {
 	}
 }
 
-// TestSearchFielded is the tasks/074 access-point path: fields AND onto the
+// TestSearchFielded is the access-point path: fields AND onto the
 // free-text query and reach the protocol seam in order; bad indexes and
 // empty terms are refused.
 func TestSearchFielded(t *testing.T) {
@@ -216,7 +216,7 @@ func TestSearchFielded(t *testing.T) {
 	}
 }
 
-// TestStageCommitLifecycle is the tasks/050 acceptance: stage a .mrc batch,
+// TestStageCommitLifecycle is the acceptance: stage a .mrc batch,
 // review matches, commit through the shared pipeline, and re-commit
 // byte-stable.
 func TestStageCommitLifecycle(t *testing.T) {
@@ -258,7 +258,7 @@ func TestStageCommitLifecycle(t *testing.T) {
 	if !strings.Contains(string(grain1), "feed:copycat") {
 		t.Fatalf("grain not under the copycat feed:\n%.300s", grain1)
 	}
-	// The verbatim sidecar rode through the shared pipeline (tasks/049).
+	// The verbatim sidecar rode through the shared pipeline.
 	if !strings.Contains(string(grain1), bibframe.PredMARCVerbatim) {
 		t.Fatal("verbatim sidecar missing from committed grain")
 	}
@@ -317,7 +317,7 @@ func TestStageCommitLifecycle(t *testing.T) {
 // TestCommitAuditsPerWorkProvenance proves a committed batch writes not just
 // the run-summary audit entry but one COPYCAT_COMMIT entry per committed work,
 // carrying that work's ID -- so an imported record's History tab shows where it
-// came from. Before tasks/334 the commit audit named the batch totals only, so
+// came from. Before the commit audit named the batch totals only, so
 // a work's history (which filters on WorkID) showed nothing about its import.
 func TestCommitAuditsPerWorkProvenance(t *testing.T) {
 	notifier := &fakeNotifier{}
@@ -375,7 +375,7 @@ func TestCommitAuditsPerWorkProvenance(t *testing.T) {
 	}
 }
 
-// TestDeleteBatchRefusesCommittedUntilReverted pins the tasks/340 guard: a
+// TestDeleteBatchRefusesCommittedUntilReverted pins the guard: a
 // COMMITTED batch cannot be deleted, because its revert-set is the only undo for
 // the works it created -- deleting it would strand them non-revertable. Reverting
 // first (which sets REVERTED) frees it. STAGED batches delete freely.
@@ -488,7 +488,7 @@ func TestPoliciesAndDecisions(t *testing.T) {
 }
 
 // countingStore wraps a Store and counts Get calls, so tests can assert the
-// indexed match path stops re-reading the corpus per Stage (tasks/107).
+// indexed match path stops re-reading the corpus per Stage.
 type countingStore struct {
 	blob.Store
 	gets atomic.Int64
@@ -554,7 +554,7 @@ func TestIndexedMatchEqualsFallbackAndSkipsCorpusReads(t *testing.T) {
 	}
 }
 
-// TestSeedDefaultTargetsConcurrent covers tasks/099: cold starts sharing one
+// TestSeedDefaultTargetsConcurrent covers cold starts sharing one
 // table race the seed; exactly one wins the create-only marker and the rest
 // no-op, so the target set comes out exactly once regardless.
 func TestSeedDefaultTargetsConcurrent(t *testing.T) {

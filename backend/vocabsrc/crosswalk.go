@@ -18,7 +18,7 @@ const (
 )
 
 // CrosswalkEnricher walks every work subject's skos:exactMatch/closeMatch
-// links into one target scheme (tasks/072): a work carrying a homosaurus
+// links into one target scheme: a work carrying a homosaurus
 // heading whose term matches an LCSH heading gains the LCSH equivalent as a
 // moderated suggestion. Purely local -- both vocabularies must be loaded in
 // the index; no network.
@@ -40,7 +40,7 @@ func (e *CrosswalkEnricher) Name() string { return "crosswalk-" + e.Target }
 // Enrich implements ingest.Enricher: for each work, every controlled
 // subject's match links resolving in the target scheme (and not already on
 // the work) become subject candidates, and each candidate's skos:broader
-// ancestor chain rides along as standalone term metadata (tasks/178) so
+// ancestor chain rides along as standalone term metadata so
 // hierarchy nodes stay labeled without a work carrying them.
 func (e *CrosswalkEnricher) Enrich(_ context.Context, works []ingest.WorkSummary) ([]ingest.Enrichment, error) {
 	var out []ingest.Enrichment

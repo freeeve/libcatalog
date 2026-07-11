@@ -18,7 +18,7 @@ import (
 
 // Id prefixes distinguish the two tiers in a bare id string and in the public
 // URL space (/works/w..., an Instance's i...). AuthorityPrefix marks locally
-// minted authority terms (tasks/046) -- not a bibliographic tier, but minted
+// minted authority terms -- not a bibliographic tier, but minted
 // through the same opaque-id discipline so local headings get stable IRIs.
 const (
 	WorkPrefix      = "w"
@@ -61,7 +61,7 @@ const keySep = "\x1f"
 //
 // A record with no main title has no usable access point: clustering title-less
 // records by author (or by nothing) would merge unrelated books, so WorkKey
-// returns "" and the caller must mint instead of clustering (tasks/101).
+// returns "" and the caller must mint instead of clustering.
 func WorkKey(author, title, lang string) string {
 	t := NormalizeKey(title)
 	if t == "" {
@@ -76,7 +76,7 @@ func WorkKey(author, title, lang string) string {
 // the result trimmed. It deliberately does not fold diacritics -- that needs a
 // Unicode-normalization dependency this framework avoids -- so accent and
 // transliteration variants under-merge and are corrected in the editorial
-// overlay (tasks/001) rather than guessed at here.
+// overlay rather than guessed at here.
 func NormalizeKey(s string) string {
 	var b strings.Builder
 	b.Grow(len(s))

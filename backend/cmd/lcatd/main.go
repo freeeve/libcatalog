@@ -46,8 +46,8 @@ func main() {
 	}
 	// "lcatd workindex-snapshot (--blob-dir <dir> | --s3-bucket <bucket>)" --
 	// build the work-index snapshot offline so a fresh deployment's first cold
-	// start skips the corpus scan (tasks/155). Must run against the store the
-	// snapshot will serve; ETag schemes differ per backend (tasks/162).
+	// start skips the corpus scan. Must run against the store the
+	// snapshot will serve; ETag schemes differ per backend.
 	if len(os.Args) > 1 && os.Args[1] == "workindex-snapshot" {
 		if err := runWorkindexSnapshot(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -57,7 +57,7 @@ func main() {
 	}
 	// "lcatd vocab-install --name <source> --url <dump>" -- install a vocabulary
 	// snapshot into a blob store offline, for deployments whose async download
-	// worker never runs (Lambda, tasks/163).
+	// worker never runs (Lambda).
 	if len(os.Args) > 1 && os.Args[1] == "vocab-install" {
 		if err := runVocabInstall(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -66,7 +66,7 @@ func main() {
 		return
 	}
 	// "lcatd vocab-index --all" -- (re)build the range-served sidecar index
-	// artifacts for installed vocabulary snapshots (tasks/167).
+	// artifacts for installed vocabulary snapshots.
 	if len(os.Args) > 1 && os.Args[1] == "vocab-index" {
 		if err := runVocabIndex(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -97,7 +97,7 @@ func main() {
 	// an orchestrator removes a terminating pod from its load balancer
 	// concurrently with signalling it, so a server that stops listening
 	// immediately refuses the requests still being routed to it. Only once the
-	// deregistration window has passed do we drain (tasks/054).
+	// deregistration window has passed do we drain.
 	go func() {
 		<-ctx.Done()
 		health.Drain()

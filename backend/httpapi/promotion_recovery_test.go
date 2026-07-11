@@ -1,4 +1,4 @@
-// tasks/300: the APPROVED stamp was durable before the rewrite it described had
+// the APPROVED stamp was durable before the rewrite it described had
 // run. When PromoteTag failed, nothing rolled it back and the record was
 // unreachable in every direction -- DecidePromotion refuses anything not PENDING,
 // ProposePromotion supersedes only REJECTED, and there was no DELETE. The tag

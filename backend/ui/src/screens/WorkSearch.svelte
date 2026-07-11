@@ -30,7 +30,7 @@
     loadedAt: 0,
     filters: {} as WorkFilters,
     facets: {} as Record<string, FacetCount[]>,
-    // Retired records are hidden until asked for (tasks/280). This lives in
+    // Retired records are hidden until asked for. This lives in
     // screenState rather than the hash or storage: it survives a trip into a
     // work and back, so the checkbox never contradicts the rows beneath it,
     // and it resets on reload and on sign-out. A "show tombstoned" that
@@ -40,9 +40,9 @@
 
   const tombstoned = $derived<TombstoneMode>(st.showTombstoned ? "include" : "exclude");
 
-  // Facet rail copy (tasks/168): fixed groups get cataloger-shaped labels;
+  // Facet rail copy: fixed groups get cataloger-shaped labels;
   // subject values are IRIs resolved to term labels below. The deployment's
-  // extras dimensions (tasks/171, e.g. sources/provenance) follow, humanized
+  // extras dimensions (e.g. sources/provenance) follow, humanized
   // from their config key -- their values are the raw extras strings.
   const FACET_GROUPS: { key: string; title: string; label: (v: string) => string }[] = [
     { key: "visibility", title: "Visibility", label: (v) => v },
@@ -59,20 +59,20 @@
 
   let subjectLabels = $state<Record<string, string>>({});
   // Scheme code -> whether any resolved term of it carries skos:broader/
-  // narrower edges. Drives the rail-group parenthetical (tasks/176): calling
+  // narrower edges. Drives the rail-group parenthetical: calling
   // a hierarchy-less vocabulary "SKOS" implied structure it does not show.
   let schemeHierarchy = $state<Record<string, boolean>>({});
 
-  // Per-group type-to-filter over the rail's rendered values (tasks/174):
+  // Per-group type-to-filter over the rail's rendered values:
   // keyed by rail-group key, matched against display labels.
   let railFilter = $state<Record<string, string>>({});
 
   type RailGroup = { key: string; filterKey: string; title: string; label: (v: string) => string; counts: FacetCount[] };
 
   /** Names one subject vocabulary group so catalogers see what authority
-      they're filtering by (tasks/174). The parenthetical says "SKOS" only
+      they're filtering by. The parenthetical says "SKOS" only
       when the scheme's terms actually carry hierarchy links; a flat
-      authority reads "controlled vocabulary" instead (tasks/176). */
+      authority reads "controlled vocabulary" instead. */
   function schemeTitle(scheme: string): string {
     if (!scheme) return "Subject";
     const kind = schemeHierarchy[scheme] ? "SKOS Vocabulary" : "Controlled Vocabulary";
@@ -80,7 +80,7 @@
   }
 
   // The rendered rail: FACET_GROUPS with the subject group split into one
-  // group per vocabulary scheme (tasks/174). All subject groups filter
+  // group per vocabulary scheme. All subject groups filter
   // through the same `subject` query parameter -- only display grouping
   // changes; scheme order follows the server's count-ranked value order.
   const railGroups = $derived.by<RailGroup[]>(() => {
@@ -153,7 +153,7 @@
     void search(st.q, false);
   }
 
-  /** Shows or hides retired records (tasks/280).
+  /** Shows or hides retired records.
    *
    *  Hiding them also drops a selected visibility=tombstoned facet: that pair
    *  of settings can only ever match nothing, and an empty list is read as "the
@@ -176,7 +176,7 @@
   let loading = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  /** Mirrors the current search state into the hash (tasks/219) so a
+  /** Mirrors the current search state into the hash so a
    *  reload or a copied link restores it. replaceState keeps the Back
    *  stack from gaining one entry per keystroke, and it fires no
    *  hashchange, so the shell never re-routes. */
@@ -192,7 +192,7 @@
       m: { description: "load more results", legend: "more", handler: () => void loadMore() },
     });
     // URL state wins over remembered state when the two disagree: a deep
-    // link or a reload restores the linked view (tasks/219). A plain
+    // link or a reload restores the linked view. A plain
     // #/works (the editor's back link, the nav shortcut) keeps whatever
     // the screen remembers -- and re-publishes it to the hash.
     const url = parseWorksQuery(parseHash(location.hash).query);
@@ -206,7 +206,7 @@
       // A fresh-enough list is reused without refetching, but the subject
       // label and scheme-hierarchy maps are component state and reset on
       // every mount -- re-resolve them from the persisted facets or the
-      // rail shows raw term ids after returning from a work (tasks/191).
+      // rail shows raw term ids after returning from a work.
       void labelSubjects(st.facets);
       syncURL();
     }
@@ -296,7 +296,7 @@
   </div>
   <p class="muted status" aria-live="polite">
     <!-- "N in catalog" is a stable phrase: the qualifier goes after it, never
-         between the number and the words (tasks/280). -->
+         between the number and the words. -->
     {#if loading && st.works.length === 0}Searching…{:else if error}<span class="error">{error}</span>{:else}{st.works.length} of {st.matched} matched · {st.total} in catalog{st.showTombstoned ? " (incl. tombstoned)" : ""}{/if}
     {#if !error && st.works.length > 0}
       · <a href={exportsHash(st.q, st.filters, st.showTombstoned)}>Export these results…</a>
@@ -334,7 +334,7 @@
             <span class="flags">
               {#if w.Tombstoned}<span class="flag" data-kind="tombstoned" title="retired; public search redirects or serves gone">tombstoned</span>{/if}
               {#if w.Suppressed}<span class="flag" data-kind="suppressed" title="hidden from public projection and search">suppressed</span>{/if}
-              {#if w.Withdrawn}<span class="flag" data-kind="withdrawn" title={"gone from its feed since " + w.Withdrawn + " (tasks/078)"}>withdrawn</span>{/if}
+              {#if w.Withdrawn}<span class="flag" data-kind="withdrawn" title={"gone from its feed since " + w.Withdrawn + ""}>withdrawn</span>{/if}
               {#if !w.Items && !w.HasAvailability && !w.Tombstoned}<span class="flag" data-kind="unheld" title="no items and no live-availability identifier">no holdings</span>{/if}
             </span>
             <span class="id">{w.WorkID}</span>

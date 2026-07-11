@@ -1,6 +1,6 @@
 <script lang="ts">
   // The "?" overlay: lists the bindings active right now (top scope plus
-  // global) and lets the user redefine them (tasks/075) -- pick a binding,
+  // global) and lets the user redefine them -- pick a binding,
   // press the new chord, conflicts against the binding's scope plus global
   // are refused with the holder named, reserved chords with the reason.
   // Remaps persist via the keyboard registry's keymap; presets apply as a

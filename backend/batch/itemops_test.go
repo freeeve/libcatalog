@@ -41,7 +41,7 @@ func seedShelvedWork(t *testing.T, st blob.Store, workID, instID, title string, 
 	}
 }
 
-// The whole point of tasks/058 item 5: closing a shelving location across a
+// The whole point of closing a shelving location across a
 // selection, without opening each record's item panel. The guard is what makes
 // it safe -- the Reference copy stays where it is.
 func TestRunRelocatesItemsAcrossASelection(t *testing.T) {

@@ -30,7 +30,7 @@ func sampleItem() Item {
 	}
 }
 
-// TestReadCacheRejectsMissingOrEmptyDir covers tasks/103: a mistyped --cache
+// TestReadCacheRejectsMissingOrEmptyDir covers a mistyped --cache
 // path must error, not read as an empty feed.
 func TestReadCacheRejectsMissingOrEmptyDir(t *testing.T) {
 	if _, err := ReadCache(filepath.Join(t.TempDir(), "nope")); err == nil {

@@ -1,4 +1,4 @@
-// The "more like this" rail's Shares line (libcat tasks/284, tasks/296, tasks/302).
+// The "more like this" rail's Shares line.
 //
 // The sidecar names shared concepts by authority IRI, because a label is
 // language-specific and the sidecar is not. page.html used to resolve those IRIs
@@ -11,7 +11,7 @@
 // real, against a catalog whose every branch is deliberate, and reads the
 // rendered Shares line the way a visitor does.
 //
-// tasks/302 then found two things that survived. Both are language- or
+// then found two things that survived. Both are language- or
 // punctuation-shaped, so both need a catalog where the schemes *disagree* about
 // which languages they cover, and a label that carries a comma of its own.
 // Assert in `es` as hard as in `en`: English was the one place the old code was
@@ -65,7 +65,7 @@ const catalog = {
       id: "wone",
       title: "One",
       subjects: [{ id: TRANS, labels: { en: "Transgender people", es: "Personas trans" }, broader: [GENDER] }],
-      // tasks/310. A print book: the unmarked carrier, so its tile wears no badge.
+      //. A print book: the unmarked carrier, so its tile wears no badge.
       // One contributor, with no role: the parenthetical must not render empty.
       formats: ["book"],
       contributors: [{ name: "Young, Eris" }],
@@ -87,7 +87,7 @@ const catalog = {
     },
     { id: "wthree", title: "Three" }, // no subjects at all
     { id: "wfour", title: "Four", subjects: [{ id: COMMA, labels: { en: "Lesbians' writings, Canadian" } }] },
-    // Two carriers: which one would the badge name? Neither. tasks/310.
+    // Two carriers: which one would the badge name? Neither..
     { id: "wfive", title: "Five", formats: ["ebook", "audiobook"] },
     // A rail deeper than the page opens with, so the reveal button renders.
     { id: "wsix", title: "Six" },
@@ -121,11 +121,11 @@ const similar = {
       { id: "wone", title: "One", shared: [GENDER, DUTCH_ONLY] },
       { id: "wtwo", title: "Two", shared: [UNDESCRIBED] },
     ],
-    // tasks/302. TRANS_FAST comes FIRST, and it is the member with no es label:
+    //. TRANS_FAST comes FIRST, and it is the member with no es label:
     // keeping the first occurrence would print English at a Spanish reader.
     // COMMA and PERSON each contain a comma of their own.
     wfour: [{ id: "wtwo", title: "Two", shared: [TRANS_FAST, TRANS, COMMA, PERSON] }],
-    // Four neighbours against a cap of two: tiles 3 and 4 are the reveal (tasks/310).
+    // Four neighbours against a cap of two: tiles 3 and 4 are the reveal.
     wsix: [
       { id: "wone", title: "One", shared: [TRANS] },
       { id: "wtwo", title: "Two", shared: [TRANS] },
@@ -191,9 +191,9 @@ const tile = (work, lang, neighbor) => {
 // by the neighbour <li> rather than lazily matching to a closing tag: the terms
 // are themselves <span>s now, so a lazy `</span>` match eats the last one.
 //
-// The line is visually hidden since tasks/310 -- the covers took its room -- but
+// The line is visually hidden -- the covers took its room -- but
 // it is still in the document, and it is still the rail's only explanation of
-// itself. Everything tasks/296 and tasks/302 proved about it still has to hold.
+// itself. Everything proved about it still has to hold.
 const WHY_OPEN = '<span class="lcat-visually-hidden">';
 const whys = (work, lang) =>
   tiles(work, lang)
@@ -202,7 +202,7 @@ const whys = (work, lang) =>
 
 // shares reads each Shares line as a list of terms. It reads the term *elements*,
 // not a split on commas: a term may contain a comma, which is the whole of
-// tasks/302 #2. A reader that split on commas could not tell the fix from the bug.
+// #2. A reader that split on commas could not tell the fix from the bug.
 const shares = (work, lang) =>
   whys(work, lang).map((line) =>
     [...line.matchAll(/<span class="lcat-similar-term">([\s\S]*?)<\/span>/g)].map((m) => decode(m[1])),
@@ -211,7 +211,7 @@ const shares = (work, lang) =>
 const cards = (work, lang) => tiles(work, lang).length;
 
 // ---------------------------------------------------------------------------
-// tasks/296 -- the rail must never print an authority URL at a reader.
+// -- the rail must never print an authority URL at a reader.
 // ---------------------------------------------------------------------------
 
 check("no rendered Shares line contains a raw authority URL", () => {
@@ -268,7 +268,7 @@ check("labels resolve per language", () => {
 });
 
 // ---------------------------------------------------------------------------
-// tasks/302 -- collapse the concept, not the string it happens to render as;
+// -- collapse the concept, not the string it happens to render as;
 // and render one term as one thing.
 // ---------------------------------------------------------------------------
 
@@ -330,7 +330,7 @@ check("terms are separated by markup, never by a comma in the text", () => {
 });
 
 // ---------------------------------------------------------------------------
-// tasks/310 -- the rail is a shelf. Each tile carries the neighbour's cover, its
+// -- the rail is a shelf. Each tile carries the neighbour's cover, its
 // carrier badge and its contributors, none of which the sidecar knows: they are
 // read out of the catalog by work id. Every "it is absent" check below sits next
 // to one asserting the same thing is present on another tile, because an adapter
@@ -438,8 +438,8 @@ check("the button is localized", () => {
 });
 
 check("the rail still explains itself, in the document, on every tile that can", () => {
-  // The regression tasks/310 could have introduced: drop the Shares line with the
-  // markup it lived in. It is hidden, not gone -- and tasks/296's whole finding
+  // The regression could have introduced: drop the Shares line with the
+  // markup it lived in. It is hidden, not gone -- and the whole finding
   // was that this line is the rail's only claim to being cataloging.
   const t = tile("wone", "en", "wtwo");
   assert(t.includes(WHY_OPEN), `the neighbour tile carries no explanation at all: ${t}`);

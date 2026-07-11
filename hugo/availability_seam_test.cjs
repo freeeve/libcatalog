@@ -1,4 +1,4 @@
-// The seams nothing crossed (libcat tasks/287, tasks/288).
+// The seams nothing crossed.
 //
 // availability_test.cjs is deep and every test hands the adapter a hand-written
 // JavaScript object -- so it can never discover that the real producers spell
@@ -7,7 +7,7 @@
 //   config:    TOML -> Hugo (lowercases param keys) -> jsonify -> readConfig -> adapter
 //   edition:   catalog.json -> page.html -> DOM attribute -> collect() -> adapter
 //
-// tasks/287 broke the first. tasks/288 broke the second: no template emitted
+// broke the first. broke the second: no template emitted
 // data-daia-id, so the DAIA adapter could never run on any page libcat builds.
 //
 // This test builds hugo/exampleSite for real and asserts on what the browser
@@ -55,7 +55,7 @@ const editions = (html) => html.match(/<li class="lcat-edition"[^>]*>/g) ?? [];
 const edition = (html, id) => editions(html).find((e) => e.includes(`data-instance="${id}"`));
 
 // ---------------------------------------------------------------------------
-// tasks/287 -- Hugo lowercases param keys, so the config the browser receives
+// -- Hugo lowercases param keys, so the config the browser receives
 // spells proxyUrl as proxyurl.
 // ---------------------------------------------------------------------------
 
@@ -128,7 +128,7 @@ check("287: a disabled config is still null", () => {
 });
 
 // ---------------------------------------------------------------------------
-// tasks/288 -- page.html emits one DOM attribute per adapter, from the
+// -- page.html emits one DOM attribute per adapter, from the
 // scheme -> attribute table in data/lcat/availabilityAttrs.toml.
 // ---------------------------------------------------------------------------
 

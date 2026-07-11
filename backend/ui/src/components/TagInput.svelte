@@ -66,12 +66,12 @@
     options = [...merged.values()];
     highlight = 0;
     // Open even with zero matches: the "Create tag" row makes minting a
-    // new tag a visible affordance, not an implicit keystroke (tasks/198).
+    // new tag a visible affordance, not an implicit keystroke.
     open = options.length > 0 || trimmed !== "";
   }
 
   // A typed value matching no suggestion is creatable -- free tagging is
-  // the point of the field (tasks/198).
+  // the point of the field.
   const creatable = $derived(q.trim() !== "" && !options.some((o) => o.tag.toLowerCase() === q.trim().toLowerCase()));
   const rowCount = $derived(options.length + (creatable ? 1 : 0));
 
@@ -84,7 +84,7 @@
 
   function onKeydown(ev: KeyboardEvent): void {
     if (ev.key === "Enter") {
-      // Enter always commits (tasks/198): the highlighted suggestion when
+      // Enter always commits: the highlighted suggestion when
       // one is picked, else the raw trimmed value as a new tag.
       ev.preventDefault();
       if (open && highlight < options.length && options[highlight]) {

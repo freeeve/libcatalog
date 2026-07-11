@@ -33,7 +33,7 @@ type subjectCandidate struct {
 	Term    *vocab.TermRef `json:"term,omitempty"`
 }
 
-// registerSubjectLookup mounts the tasks/073 external-subject fetch: the
+// registerSubjectLookup mounts the external-subject fetch: the
 // work's ISBNs fan out to the copycat targets, 6XX headings come back
 // deduped and reconciled against the local index. Explicitly button-driven
 // -- target fan-out takes seconds.
@@ -131,7 +131,7 @@ func registerSubjectLookup(mux *http.ServeMux, cc *copycat.Service, bs blob.Stor
 		writeJSON(w, http.StatusOK, map[string]any{"candidates": candidates, "failures": failures, "warnings": warnings})
 	})))
 
-	// Identifier kinds (tasks/073): each bf:identifiedBy value mapped to its
+	// Identifier kinds: each bf:identifiedBy value mapped to its
 	// BIBFRAME type so the editor can badge ISBN vs ISSN vs provider id.
 	mux.Handle("GET /v1/works/{id}/identifiers", librarian(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		grain, _, workID, ok := readWorkGrain(w, r, bs)

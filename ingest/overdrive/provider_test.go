@@ -12,7 +12,7 @@ import (
 
 // TestProviderCleansTitles pins that the provider normalizes HTML character
 // references and markup in transcribed titles at the source, so both the
-// BIBFRAME titles and the identity clustering key see clean text (tasks/081).
+// BIBFRAME titles and the identity clustering key see clean text.
 func TestProviderCleansTitles(t *testing.T) {
 	it := sampleItem()
 	it.Title = "Incredible LEGO&#174; Creations"

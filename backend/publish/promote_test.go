@@ -68,7 +68,7 @@ func TestPromoteTagEndToEnd(t *testing.T) {
 	if _, err := queue.ProposePromotion(t.Context(), "queer joy", term, "x"); err != suggest.ErrPromotionExists {
 		t.Fatalf("duplicate: %v", err)
 	}
-	// Execute, then stamp (tasks/300). PromoteTag reads only the tag and the term,
+	// Execute, then stamp. PromoteTag reads only the tag and the term,
 	// so the pending promotion is all it needs, and the APPROVED record is never
 	// durable ahead of the rewrite it describes.
 	works, err := pub.PromoteTag(t.Context(), promo, "lib@example.org")

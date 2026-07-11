@@ -23,7 +23,7 @@ function test(name, fn) {
   }
 }
 
-// The slim tasks/148 markup: buttons ship hidden with only their term key;
+// The slim markup: buttons ship hidden with only their term key;
 // taxonomy and label hydrate from the row anchor (the language-prefixed
 // href proves segment derivation ignores leading path parts). The
 // contributors row's term key differs from its URL slug on purpose.

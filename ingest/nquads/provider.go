@@ -1,4 +1,4 @@
-// Package nquads is the generic mapped N-Quads ingest provider (tasks/172):
+// Package nquads is the generic mapped N-Quads ingest provider:
 // it streams a dcterms-shaped .nq export into ingest records driven entirely
 // by a declarative TOML mapping -- work-IRI prefix, predicate->field map,
 // identifier URN schemes, and source-attestation tiers -- so a deployment
@@ -6,7 +6,7 @@
 // profile, not code. Works sharing identifier keys (e.g. ISBNs) with a
 // primary feed merge in the shared clustering pipeline; unshared works mint
 // as their own. Generalized from the queerbooks-demo collnq provider;
-// tasks/182 extended it to the full coll-feed contract (per-format bucket
+// extended it to the full coll-feed contract (per-format bucket
 // grouping, contributions with roles, provisions, formats, topic tags,
 // classifications, extras passthrough, non-key identifiers, and standalone
 // term descriptions for the vocabulary sideband).
@@ -30,7 +30,7 @@ import (
 const ProviderName = "nquads"
 
 // dctermsIsReplacedBy is the cluster-merge predicate a coll feed emits when dedupe
-// folds one work cluster into another (tasks/363): <retired> isReplacedBy <survivor>.
+// folds one work cluster into another: <retired> isReplacedBy <survivor>.
 const dctermsIsReplacedBy = "http://purl.org/dc/terms/isReplacedBy"
 
 // Provider streams a catalog .nq file into ingest records, one per work IRI.
@@ -99,7 +99,7 @@ func (p *Provider) Role() ingest.Role { return ingest.RoleIngest }
 // terms is the harvested term-description side of the export: prefLabels per
 // language and broader edges on non-work subjects (concept IRIs), shared by
 // every record for subject labeling, classification labels, and the
-// ancestor-chain standalone terms (tasks/182).
+// ancestor-chain standalone terms.
 type terms struct {
 	labels  map[string]map[string]string // concept IRI -> lang -> label
 	broader map[string][]string          // concept IRI -> parent IRIs, statement order, deduped
@@ -130,7 +130,7 @@ func (t *terms) label(iri string) string {
 // per the mapping's id-order so ingest runs are deterministic. Records
 // sharing a mapped "group" object (dcterms:isPartOf-style; self when absent)
 // carry a shared grouping id, so the pipeline clusters them into one Work
-// with one Instance each (tasks/182).
+// with one Instance each.
 func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 	f, err := os.Open(p.path)
 	if err != nil {
@@ -179,7 +179,7 @@ func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 		if !strings.HasPrefix(q.S.Value, p.m.WorkPrefix) {
 			// Term descriptions ride on the concept IRI itself, outside the
 			// work prefix: prefLabels per language (untagged = English by
-			// the coll-feed convention) and broader edges (tasks/182).
+			// the coll-feed convention) and broader edges.
 			switch field {
 			case "prefLabel":
 				lang := q.O.Lang
@@ -266,7 +266,7 @@ func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 			}
 		default:
 			// Extras ride predicate PREFIXES, not exact predicates: the key
-			// is the remainder, the value verbatim (tasks/182).
+			// is the remainder, the value verbatim.
 			if p.m.ExtrasPrefix != "" {
 				if key, ok := strings.CutPrefix(q.P.Value, p.m.ExtrasPrefix); ok && key != "" {
 					if w.extras == nil {
@@ -314,7 +314,7 @@ func (p *Provider) Records(ctx context.Context) ([]ingest.Record, error) {
 
 // mapIdentifier routes one identifier object through the mapping's prefix
 // rules: legacy scheme strings keep their keyed behavior, table rules emit
-// class/source identifiers and opt into key-ness (tasks/182).
+// class/source identifiers and opt into key-ness.
 func (p *Provider) mapIdentifier(w *work, obj string) {
 	for prefix, rule := range p.m.Identifiers {
 		v, ok := strings.CutPrefix(obj, prefix)
