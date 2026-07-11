@@ -62,6 +62,7 @@ subjects, genre, and access link -- the fields discovery is built on.
 |-----|-------|------------------------------------------|
 | 037 | Source of acquisition / **Reserve ID** | **the OverDrive availability key** -- decodes as an 024-shaped identifier, not 037; the *direct* JSON→BIBFRAME path keeps it as a `bf:source`-tagged identifier (`tasks/008`) |
 | 084 | Other classification (**BISAC** in MARC Express) | decodes to 072, not 084; the direct path keeps BISAC as a `bf:Classification` with `bf:source "bisacsh"` |
+| 758 | Resource identifier (**external work identity**) | the enrichment pass's `owl:sameAs` hub links (e.g. OpenLibrary, `tasks/066`) have no MARC emission yet -- they live in N-Quads/JSON-LD, the OPAC, and the editor. libcodex crosswalks MARC identifiers only from `bf:identifiedBy` (020/022/024), not `owl:sameAs`, and has no 758; forcing the link into a 024 would mislabel a hub reference as a standard identifier of the item, so it is omitted until libcodex crosswalks `owl:sameAs` → 758 |
 
 ### Cataloging source (040): modeled, and derived at export (tasks/192)
 
