@@ -31,6 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"sort"
@@ -79,14 +80,18 @@ type Enricher struct {
 	delay     time.Duration
 	retryBase time.Duration
 	now       func() time.Time
-	// skipped counts the batches the last Enrich call abandoned after
-	// exhausting retries -- observability for the caller's logs.
-	skipped int
+	log       *slog.Logger
+	// stats accumulates the last Enrich call's run counters.
+	stats ingest.EnrichStats
 }
 
 // Skipped reports how many batches the last Enrich call abandoned after
 // retries; their works were left untouched for a re-run to backfill.
-func (e *Enricher) Skipped() int { return e.skipped }
+func (e *Enricher) Skipped() int { return e.stats.SkippedBatches }
+
+// RunStats implements ingest.StatsReporter: the last run's counters, surfaced
+// in the run endpoint's result.
+func (e *Enricher) RunStats() ingest.EnrichStats { return e.stats }
 
 // Option configures the enricher.
 type Option func(*Enricher)
@@ -102,6 +107,11 @@ func WithDelay(d time.Duration) Option { return func(e *Enricher) { e.delay = d 
 
 // WithRetryBase overrides the first retry pause (tests use 0).
 func WithRetryBase(d time.Duration) Option { return func(e *Enricher) { e.retryBase = d } }
+
+// WithLogger wires progress logging: per-batch INFO lines, retry and
+// skipped-batch WARNs -- a multi-minute synchronous run must be observable
+// from the server log. Nil (the default) logs nothing.
+func WithLogger(l *slog.Logger) Option { return func(e *Enricher) { e.log = l } }
 
 // New returns the Wikidata creator-demographics enricher.
 func New(opts ...Option) *Enricher {
@@ -146,10 +156,14 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 	}
 
 	retrieved := e.now().UTC().Format("2006-01-02")
-	e.skipped = 0
+	e.stats = ingest.EnrichStats{}
+	started := e.now()
+	total := (len(order) + e.batch - 1) / e.batch
 	succeeded := 0
 	var lastErr error
 	byWork := map[string]map[string]*ingest.CreatorClaim{} // workID -> QID -> claim
+	creators := map[string]bool{}
+	claimCount := 0
 	for start := 0; start < len(order); start += e.batch {
 		if start > 0 && e.delay > 0 {
 			select {
@@ -159,16 +173,29 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 			}
 		}
 		end := min(start+e.batch, len(order))
+		batchStart := e.now()
 		rows, err := e.queryRetry(ctx, order[start:end])
+		e.stats.Batches++
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			e.skipped++
+			e.stats.SkippedBatches++
 			lastErr = err
+			if e.log != nil {
+				e.log.Warn("wikidata batch skipped after retries",
+					"batch", e.stats.Batches, "of", total, "isbns", end-start, "err", err)
+			}
 			continue
 		}
 		succeeded++
+		if e.log != nil {
+			e.log.Info("wikidata batch resolved",
+				"batch", e.stats.Batches, "of", total, "isbns", end-start,
+				"rows", len(rows), "creators", len(creators), "claims", claimCount,
+				"batchElapsed", e.now().Sub(batchStart).Round(time.Millisecond),
+				"elapsed", e.now().Sub(started).Round(time.Second))
+		}
 		for _, row := range rows {
 			qid := strings.TrimPrefix(row.author, entityPrefix)
 			if qid == row.author || qid == "" {
@@ -194,17 +221,31 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 				if c.Label == "" && row.authorLabel != "" {
 					c.Label = row.authorLabel
 				}
+				creators[qid] = true
 				if row.prop != "" && row.value != "" {
+					before := len(c.Claims)
 					c.AddClaim(ingest.DemographicClaim{
 						Property:   row.prop,
 						ValueQID:   strings.TrimPrefix(row.value, entityPrefix),
 						ValueLabel: row.valueLabel,
 					})
+					if len(c.Claims) > before {
+						claimCount++
+					}
 				}
 			}
 		}
 	}
 
+	e.stats.ResolvedCreators = len(creators)
+	e.stats.Claims = claimCount
+	e.stats.ElapsedMS = e.now().Sub(started).Milliseconds()
+	if e.log != nil {
+		e.log.Info("wikidata enrichment finished",
+			"batches", e.stats.Batches, "skipped", e.stats.SkippedBatches,
+			"creators", e.stats.ResolvedCreators, "claims", e.stats.Claims,
+			"elapsed", e.now().Sub(started).Round(time.Second))
+	}
 	// Every batch failing is configuration-shaped (bad endpoint, outage),
 	// not weather; partial failure is survivable and a re-run backfills.
 	if succeeded == 0 && lastErr != nil {
@@ -252,6 +293,10 @@ func (e *Enricher) queryRetry(ctx context.Context, isbns []string) ([]row, error
 		}
 		if !transient(err) || attempt >= maxRetries {
 			return nil, err
+		}
+		if e.log != nil {
+			e.log.Warn("wikidata batch retrying",
+				"attempt", attempt+1, "of", maxRetries, "backoff", backoff, "err", err)
 		}
 		select {
 		case <-ctx.Done():

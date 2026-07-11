@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -349,5 +350,48 @@ func TestQueryIsPortableSPARQL(t *testing.T) {
 		if strings.Count(q, used) < 2 { // at least the declaration + one use
 			t.Errorf("prefix %s declared but unused, or used undeclared:\n%s", used, q)
 		}
+	}
+}
+
+// TestEnrichProgressLoggingAndStats: a run with a logger emits per-batch
+// progress and retry/skip events, and RunStats reports the counters the run
+// endpoint surfaces -- a 30-minute synchronous run must be observable.
+func TestEnrichProgressLoggingAndStats(t *testing.T) {
+	var buf strings.Builder
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+	flaky := &flakySPARQL{
+		stubSPARQL: stubSPARQL{bindings: []map[string]any{
+			binding("9780062278241", "Q231663", "N.D. Stevenson", "P21", "Q48270", "non-binary"),
+		}},
+		failFirst: 1, status: http.StatusGatewayTimeout,
+	}
+	e := New(WithClient(flaky), WithDelay(0), WithRetryBase(0), WithLogger(logger))
+	e.batch = 1
+	_, err := e.Enrich(context.Background(), []ingest.WorkSummary{
+		summary("w1", "9780062278241"),
+		summary("w2", "9780000000002"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	logText := buf.String()
+	for _, want := range []string{
+		"wikidata batch retrying",
+		"wikidata batch resolved",
+		"wikidata enrichment finished",
+		"batch=1",
+		"of=2",
+	} {
+		if !strings.Contains(logText, want) {
+			t.Errorf("log missing %q:\n%s", want, logText)
+		}
+	}
+
+	st := e.RunStats()
+	if st.Batches != 2 || st.SkippedBatches != 0 {
+		t.Errorf("stats batches = %+v, want 2 batches / 0 skipped", st)
+	}
+	if st.ResolvedCreators != 1 || st.Claims != 1 {
+		t.Errorf("stats resolved/claims = %+v, want 1/1", st)
 	}
 }

@@ -56,6 +56,9 @@ type Result struct {
 	Works int `json:"works"`
 	// Scope names the run's filter ("" when the whole corpus).
 	Scope string `json:"scope,omitempty"`
+	// Stats carries the enricher's own run counters (batches, skips,
+	// resolved, elapsed) when the source reports them.
+	Stats *ingest.EnrichStats `json:"stats,omitempty"`
 }
 
 // Run executes one configured source by name. A non-nil keep scopes the run
@@ -67,13 +70,20 @@ func (s *Service) Run(ctx context.Context, name string, keep func(*ingest.WorkSu
 	if !ok {
 		return Result{}, fmt.Errorf("enrich: unknown source %q", name)
 	}
+	stats := func() *ingest.EnrichStats {
+		if sr, ok := src.Enricher.(ingest.StatsReporter); ok {
+			st := sr.RunStats()
+			return &st
+		}
+		return nil
+	}
 	switch src.Mode {
 	case ModeDirect:
 		n, err := ingest.RunEnrichScoped(ctx, s.Blob, s.GrainPrefix, src.Enricher, keep)
-		return Result{Source: name, Mode: src.Mode, Works: n}, err
+		return Result{Source: name, Mode: src.Mode, Works: n, Stats: stats()}, err
 	case ModeQueue:
 		n, err := s.runQueued(ctx, src, keep)
-		return Result{Source: name, Mode: src.Mode, Works: n}, err
+		return Result{Source: name, Mode: src.Mode, Works: n, Stats: stats()}, err
 	}
 	return Result{}, fmt.Errorf("enrich: source %q has invalid mode %q", name, src.Mode)
 }

@@ -166,6 +166,27 @@ type CreatorSummary struct {
 	Claims []DemographicClaim `json:",omitempty"`
 }
 
+// EnrichStats describes one enrichment run's external-service work, for
+// callers that surface progress (the run endpoint's result, logs). Zero for
+// enrichers that do no batched external calls.
+type EnrichStats struct {
+	// Batches is how many external queries ran; SkippedBatches how many were
+	// abandoned after retries (their works untouched; a re-run backfills).
+	Batches        int `json:"batches"`
+	SkippedBatches int `json:"skippedBatches,omitempty"`
+	// ResolvedCreators / Claims count what the run brought back.
+	ResolvedCreators int `json:"resolvedCreators,omitempty"`
+	Claims           int `json:"claims,omitempty"`
+	// ElapsedMS is the wall time inside the enricher's Enrich calls.
+	ElapsedMS int64 `json:"elapsedMs"`
+}
+
+// StatsReporter is an optional Enricher capability: RunStats reports the
+// last run's EnrichStats so the run surface can include them in its result.
+type StatsReporter interface {
+	RunStats() EnrichStats
+}
+
 // Enricher produces enrichments for batches of Works. This executes the
 // RoleEnrich half of the provider model that Run reserves: enrichers never
 // touch feed graphs -- their statements land in their own enrichment:<name>
