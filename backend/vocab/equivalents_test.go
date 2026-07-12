@@ -208,6 +208,12 @@ func pivotGuardFixture(t *testing.T) *Index {
 <urn:homo:lescouples> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:ssm> <authority:homosaurus> .
 <urn:gnd:minderheiten> <http://www.w3.org/2004/02/skos/core#prefLabel> "Minderheiten"@de <authority:gnd> .
 <urn:gnd:minderheiten> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:minorities> <authority:gnd> .
+<urn:fast:girls> <http://www.w3.org/2004/02/skos/core#prefLabel> "Girls"@en <authority:fast> .
+<urn:fast:girls> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:girls> <authority:fast> .
+<urn:homo:grrls> <http://www.w3.org/2004/02/skos/core#prefLabel> "Grrls"@en <authority:homosaurus> .
+<urn:homo:grrls> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:girls> <authority:homosaurus> .
+<urn:homo:girls> <http://www.w3.org/2004/02/skos/core#prefLabel> "Girls"@en <authority:homosaurus> .
+<urn:homo:girls> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:girls-elsewhere> <authority:homosaurus> .
 <urn:fast:masculinity> <http://www.w3.org/2004/02/skos/core#prefLabel> "Masculinity"@en <authority:fast> .
 <urn:fast:masculinity> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:masc> <authority:fast> .
 <urn:homo:masculinities> <http://www.w3.org/2004/02/skos/core#prefLabel> "Masculinities"@en <authority:homosaurus> .
@@ -311,5 +317,48 @@ func TestPivotGuardsReverseDirection(t *testing.T) {
 	masc, _ := ix.Equivalents("urn:fast:masculinity")
 	if got := strengthOf(masc, "urn:homo:masculinities"); got != "pivot-exact" {
 		t.Errorf("Masculinity -> Masculinities = %q, want pivot-exact still", got)
+	}
+}
+
+// TestPivotGuardLabelCounterpart pins task 425: a two-scheme load starves
+// fan-in and sibling evidence, but when the candidate's own scheme holds a
+// label counterpart for the source that does NOT claim the pivot node, the
+// lone divergent claimant drops -- the target vocabulary itself declines
+// the equivalence the pivot asserts. (The queerbooks shape: FAST "Women"
+// -> bare LCSH node <- sole claimant Homosaurus "Womyn", while Homosaurus
+// "Women" links elsewhere; here as Girls/Grrls so labels stay distinct
+// from the 420 fixtures.)
+func TestPivotGuardLabelCounterpart(t *testing.T) {
+	ix := pivotGuardFixture(t)
+
+	girls, ok := ix.Equivalents("urn:fast:girls")
+	if !ok {
+		t.Fatal("fast Girls unresolved")
+	}
+	// Grrls is the node's SOLE claimant (no fan-in, no sibling, no
+	// ancestry), yet homosaurus holds "Girls" linking elsewhere: dropped.
+	if got := strengthOf(girls, "urn:homo:grrls"); got != "" {
+		t.Errorf("Girls -> Grrls = %q, want dropped (the scheme's counterpart declines this node)", got)
+	}
+
+	// The counterpart CO-CLAIMING the node keeps adjacent concepts
+	// reviewable one tier down (Lesbian couples, unchanged from 420).
+	ssm, _ := ix.Equivalents("urn:fast:ssm")
+	if got := strengthOf(ssm, "urn:homo:lescouples"); got != "pivot-close" {
+		t.Errorf("Lesbian couples = %q, want demoted pivot-close still", got)
+	}
+
+	// No counterpart in the scheme -> the rule stays silent: inflection
+	// counterparts must not fire it (exact-normalized lookup only)...
+	masc, _ := ix.Equivalents("urn:fast:masculinity")
+	if got := strengthOf(masc, "urn:homo:masculinities"); got != "pivot-exact" {
+		t.Errorf("Masculinity -> Masculinities = %q, want pivot-exact untouched", got)
+	}
+	// ...and a genuinely counterpart-less bridge keeps its 420-demoted
+	// tier rather than dropping (Minorities' claimants: reviewable noise,
+	// not silently killed -- the documented residual).
+	minorities, _ := ix.Equivalents("urn:fast:minorities")
+	if got := strengthOf(minorities, "urn:homo:sexmin"); got != "pivot-close" {
+		t.Errorf("Minorities -> Sexual minorities = %q, want pivot-close still", got)
 	}
 }

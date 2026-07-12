@@ -117,7 +117,15 @@ dropped as coincidence-grade). The guards run in both directions: when the
 SOURCE is the narrow end (its own broader claims the same node -- "Womyn"
 asserting exactMatch on LCSH "Women"), nothing non-matching pivots through
 at all, and a node with three or more distinct claimants across every
-loaded scheme counts as a hub even where each scheme holds just one. For a FAST-cataloged collection the pivot's first hop is
+loaded scheme counts as a hub even where each scheme holds just one.
+
+Sparse loads get their own rule, because two loaded schemes starve fan-in
+and sibling evidence entirely: when the candidate's own scheme holds a
+label counterpart for the source that does NOT claim the pivot node, the
+lone divergent claimant drops -- the target vocabulary itself declines the
+equivalence the pivot asserts (Homosaurus holds "Women"; a sole-claimant
+"Womyn" on the bare LCSH node never suggests). A counterpart co-claiming
+the node keeps its adjacent siblings reviewable one tier down. For a FAST-cataloged collection the pivot's first hop is
 the FAST term's own LCSH source edge: `lcat vocab-subset` harvests it
 automatically for FAST-namespace subjects (the per-term linked data's
 `schema:sameAs` to `id.loc.gov`, emitted as `skos:exactMatch`) -- regenerate

@@ -136,6 +136,67 @@ func guardPivots(ix *Index, src *Term, cands []pivotCand) []pivotCand {
 		}
 	}
 
+	// Label-counterpart rule (task 425): in a sparse vocab load -- two
+	// schemes, the pivot node's own vocabulary absent -- fan-in and sibling
+	// evidence starve, and a lone bad claimant sails through (FAST "Women"
+	// -> bare LCSH node <- Homosaurus "Womyn", sole claimant). The signal
+	// that survives sparseness: the candidate's OWN scheme already holds a
+	// term whose label matches the source. When that counterpart exists and
+	// does not claim the pivot node itself, the pivot asserts an equivalence
+	// the target vocabulary deliberately does not draw -- drop it. When the
+	// counterpart co-claims the node (Homosaurus "Same-sex marriage" on the
+	// LCSH node that also yields "Lesbian couples"), the extra claimant is
+	// an adjacent concept: demote, keep it reviewable.
+	srcLabels := termLabels(src)
+	counterparts := map[string]*Term{}
+	counterpart := func(scheme string) *Term {
+		if cp, ok := counterparts[scheme]; ok {
+			return cp
+		}
+		var found *Term
+		for _, l := range srcLabels {
+			for _, m := range ix.MatchLabel(scheme, l) {
+				if m.Term.MergedInto == "" && canonIdentifier(m.Term.ID) != srcKey {
+					found = m.Term
+					break
+				}
+			}
+			if found != nil {
+				break
+			}
+		}
+		counterparts[scheme] = found
+		return found
+	}
+	claimsNode := func(t *Term, via string) bool {
+		key := canonIdentifier(via)
+		for _, u := range t.ExactMatch {
+			if canonIdentifier(u) == key {
+				return true
+			}
+		}
+		for _, u := range t.CloseMatch {
+			if canonIdentifier(u) == key {
+				return true
+			}
+		}
+		return false
+	}
+	for i, c := range cands {
+		if terms[i] == nil || matched[i] || drop[i] {
+			continue
+		}
+		cp := counterpart(terms[i].Scheme)
+		if cp == nil || cp.ID == terms[i].ID {
+			continue
+		}
+		if claimsNode(cp, c.via) {
+			demote[i] = true
+		} else {
+			drop[i] = true
+		}
+	}
+
 	out := make([]pivotCand, 0, len(cands))
 	for i, c := range cands {
 		if drop[i] {
@@ -148,6 +209,19 @@ func guardPivots(ix *Index, src *Term, cands []pivotCand) []pivotCand {
 			c.strength = "pivot-close"
 		}
 		out = append(out, c)
+	}
+	return out
+}
+
+// termLabels flattens a term's preferred and alternate labels (raw, every
+// language) for whole-label counterpart lookups.
+func termLabels(t *Term) []string {
+	var out []string
+	for _, l := range t.Labels {
+		out = append(out, l)
+	}
+	for _, alts := range t.AltLabels {
+		out = append(out, alts...)
 	}
 	return out
 }
