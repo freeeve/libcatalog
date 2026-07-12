@@ -64,12 +64,18 @@ describe("EquivalentsPanel", () => {
     expect(panel?.textContent).toContain("Sapphic poets");
     expect(panel?.querySelector(".s-pivot-close")).not.toBeNull();
 
-    // Unknown terms are display-only.
+    // Unknown terms note their state but stage the same URI-only op --
+    // the record carries the URI; the label resolves if that vocabulary
+    // is loaded later (task 429).
     expect(panel?.textContent).toContain("not in a loaded vocabulary");
-    expect(panel?.querySelectorAll("button.add")).toHaveLength(1);
+    expect(panel?.querySelectorAll("button.add")).toHaveLength(2);
+    const uriAdd = panel?.querySelector<HTMLButtonElement>("button.add--uri");
+    expect(uriAdd?.textContent).toContain("Add URI");
 
-    panel?.querySelector<HTMLButtonElement>("button.add")?.click();
+    panel?.querySelector<HTMLButtonElement>("button.add:not(.add--uri)")?.click();
     expect(added).toEqual([HOMO]);
+    uriAdd?.click();
+    expect(added).toEqual([HOMO, GND]);
   });
 
   it("excludes terms the record already has -- stored or staged", async () => {

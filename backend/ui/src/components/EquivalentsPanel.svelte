@@ -136,7 +136,9 @@
       <p class="note muted">
         Terms other vocabularies state as matching this record's subjects.
         Strength names the weakest link; a pivot goes through a shared third
-        term. Nothing is added without you.
+        term. Nothing is added without you; a term outside every loaded
+        vocabulary adds as its bare URI and gains a label if that vocabulary
+        is loaded later.
       </p>
       {#each groups as g (g.source)}
         <div class="group">
@@ -150,7 +152,17 @@
                 {#if s.known && !readOnly}
                   <button type="button" class="add" onclick={() => onadd(s.id)}>Add</button>
                 {:else if !s.known}
+                  <!-- A link target outside every loaded vocabulary still
+                       stages the identical URI-only op: the record carries
+                       the URI, and the label resolves if that vocabulary is
+                       ever loaded. The subdued control keeps the two cases
+                       visually distinct. -->
                   <span class="muted unknown" title={s.id}>not in a loaded vocabulary</span>
+                  {#if !readOnly}
+                    <button type="button" class="add add--uri" title="Adds the bare URI; it will display as a URI until that vocabulary is loaded" onclick={() => onadd(s.id)}>
+                      Add URI
+                    </button>
+                  {/if}
                 {/if}
               </li>
             {/each}
@@ -238,6 +250,10 @@
   .unknown {
     margin-left: auto;
     font-size: 0.75rem;
+  }
+  .add--uri {
+    margin-left: 0;
+    opacity: 0.75;
   }
   .muted {
     color: var(--ink-muted, #667);
