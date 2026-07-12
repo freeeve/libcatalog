@@ -253,6 +253,12 @@ benchmarkSource = "CCBC 2025 BIPOC-creator share"
 		"out of range": "[[category]]\nid = \"x\"\nbenchmark = 1.2\nbenchmarkSource = \"s\"\n",
 		"no source":    "[[category]]\nid = \"x\"\nbenchmark = 0.4\n",
 		"source only":  "[[category]]\nid = \"x\"\nbenchmarkSource = \"s\"\n",
+		// TOML floats admit non-finite literals; NaN compares false to
+		// everything, so the range check must be written to catch it
+		// (task 416: one persisted NaN blanked every audit response).
+		"nan":          "[[category]]\nid = \"x\"\nbenchmark = nan\nbenchmarkSource = \"s\"\n",
+		"positive inf": "[[category]]\nid = \"x\"\nbenchmark = inf\nbenchmarkSource = \"s\"\n",
+		"negative inf": "[[category]]\nid = \"x\"\nbenchmark = -inf\nbenchmarkSource = \"s\"\n",
 	} {
 		if _, err := FromBytes([]byte(doc)); err == nil {
 			t.Errorf("FromBytes(%s): want an error", name)

@@ -110,12 +110,15 @@ func TestAuditCrosswalkCRUD(t *testing.T) {
 		t.Errorf("sourceless benchmark = %d, want 400", rec.Code)
 	}
 
-	// Invalid documents are refused: no id, both fields, neither field.
+	// Invalid documents are refused: no id, both fields, neither field --
+	// and a NaN benchmark, which JSON cannot encode and which once
+	// persisted blanked every audit response (task 416).
 	for name, body := range map[string]map[string]any{
-		"missing id":  {"categories": []map[string]any{{"label": "No id"}}},
-		"both fields": {"categories": []map[string]any{{"id": "x"}}, "toml": "[[category]]\nid=\"x\"\n"},
-		"neither":     {},
-		"bad toml":    {"toml": "[[category]\nid ="},
+		"missing id":    {"categories": []map[string]any{{"label": "No id"}}},
+		"both fields":   {"categories": []map[string]any{{"id": "x"}}, "toml": "[[category]]\nid=\"x\"\n"},
+		"neither":       {},
+		"bad toml":      {"toml": "[[category]\nid ="},
+		"nan benchmark": {"toml": "[[category]]\nid=\"veterans\"\nbenchmark = nan\nbenchmarkSource=\"poison\"\n"},
 	} {
 		if rec := request(t, h, http.MethodPut, "/v1/audit/diversity/crosswalk", "lib-token", "", body); rec.Code != http.StatusBadRequest {
 			t.Errorf("PUT %s = %d, want 400", name, rec.Code)

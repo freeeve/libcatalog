@@ -139,7 +139,10 @@ func validBenchmark(c Category) error {
 		}
 		return nil
 	}
-	if *c.Benchmark < 0 || *c.Benchmark > 1 {
+	// The comparison form matters: every ordered comparison with NaN is
+	// false, so "< 0 || > 1" would wave NaN through -- and one NaN poisons
+	// every JSON encode that later touches the tally.
+	if !(*c.Benchmark >= 0 && *c.Benchmark <= 1) {
 		return fmt.Errorf("category %q benchmark %v is not a share in [0,1]", c.ID, *c.Benchmark)
 	}
 	if strings.TrimSpace(c.BenchmarkSource) == "" {
