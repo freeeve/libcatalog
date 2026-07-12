@@ -77,7 +77,7 @@ describe("palette", () => {
     for (const [bg, ink] of inkOn) {
       it(`${theme}: ${ink} on ${bg} holds AA`, () => {
         expect(t[bg], `${bg} undefined in ${theme}`).toBeTruthy();
-        expect(t[ink], `${ink} undefined in ${theme} -- a background token with no ink token is how happened`).toBeTruthy();
+        expect(t[ink], `${ink} undefined in ${theme} -- a background token with no ink token is how an unreadable badge shipped once`).toBeTruthy();
         expect(contrast(t[ink], t[bg])).toBeGreaterThanOrEqual(AA_NORMAL);
       });
     }

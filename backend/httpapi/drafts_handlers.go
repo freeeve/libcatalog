@@ -71,8 +71,7 @@ func registerDrafts(mux *http.ServeMux, db store.Store, librarian func(http.Hand
 			if json.Unmarshal(rec.Data, &d) == nil {
 				// The list is a hot-path call on every editor open; drop the
 				// body so it never fans out a megabyte per draft. The point
-				// read carries the body for the one draft the editor wants
-				//.
+				// read carries the body for the one draft the editor wants.
 				d.Body = nil
 				drafts = append(drafts, d)
 			}

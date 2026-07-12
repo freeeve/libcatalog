@@ -1,8 +1,8 @@
 /*
- * Client-side ranked search + facet filtering over the RoaringRange WASM reader
- *. Opt-in via [params.search] engine = "roaringrange".
+ * Client-side ranked search + facet filtering over the RoaringRange WASM
+ * reader. Opt-in via [params.search] engine = "roaringrange".
  *
- * Progressive enhancement: the server-rendered work list (task 157) is the
+ * Progressive enhancement: the server-rendered work list is the
  * default view. When the visitor types a query or selects a facet, this module
  * replaces the results with a client-side result set served from the artifacts
  * the build emits (search.BuildBrowse): a global trigram index

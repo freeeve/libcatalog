@@ -100,10 +100,10 @@ func AttachmentBlobPath(workID, name string) (string, error) {
 	return attachmentDir(workID) + seg, nil
 }
 
-// LegacyAttachmentBlobPath is where an attachment uploaded
-// lives: the display name was the segment. Readers fall back to it so the
-// rename of the encoding scheme does not orphan bytes already stored. Empty
-// when name could never have been a pre-236 segment.
+// LegacyAttachmentBlobPath is where an attachment uploaded under the old
+// layout lives: the display name was the segment. Readers fall back to it so
+// the rename of the encoding scheme does not orphan bytes already stored.
+// Empty when name could never have been a legacy segment.
 func LegacyAttachmentBlobPath(workID, name string) string {
 	if !legacyAttachmentName.MatchString(name) {
 		return ""

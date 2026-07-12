@@ -39,11 +39,11 @@ type coverBatchResult struct {
 	Changed bool   `json:"changed,omitempty"`
 }
 
-// registerCoverBatch mounts the zip batch cover upload (058 item
-// 2 remainder): each entry is <workId>.<ext> or <isbn>.<ext>; ISBNs resolve
+// registerCoverBatch mounts the zip batch cover upload: each entry is
+// <workId>.<ext> or <isbn>.<ext>; ISBNs resolve
 // through the work index. Every applied cover goes through the same
 // grain-first SetCover path as the single PUT, so a bad name never strands
-// bytes -- and, since a failed byte write never strands a statement:
+// bytes -- and a failed byte write no longer strands a statement:
 // the danger of grain-first is the statement, not the bytes.
 //
 // The response counts applied, skipped and failed separately. A batch report is

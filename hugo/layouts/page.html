@@ -274,9 +274,9 @@
   <section class="lcat-section lcat-similar" aria-labelledby="lcat-sim" data-pagefind-ignore
     {{- if gt (len .) $shown }} data-similar-shown="{{ $shown }}"{{ end }}>
     <h2 id="lcat-sim" class="lcat-section-head">{{ i18n "moreLikeThis" }}</h2>
-    {{- /* The rail is computed, not catalogued, and put that in writing
-           where a reader could see it. The covers took the room, but the claim is
-           not one to drop silently: it stays in the document. */}}
+    {{- /* The rail is computed, not catalogued, and the design put that in
+           writing where a reader could see it. The covers took the room, but the
+           claim is not one to drop silently: it stays in the document. */}}
     <p class="lcat-visually-hidden">{{ i18n "moreLikeThisNote" }}</p>
     <ul class="lcat-similar-grid">
       {{ range $i, $n := . }}

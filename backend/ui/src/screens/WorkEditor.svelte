@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Editable work editor (task 045): the WorkDoc renders as a profile form
+  // Editable work editor: the WorkDoc renders as a profile form
   // whose edits stage locally as field ops; the sticky save bar previews the
   // exact quad delta (dry run) and ships the batch under If-Match. A 412
   // opens the rebase banner (reload keeps the staged ops and replays them);

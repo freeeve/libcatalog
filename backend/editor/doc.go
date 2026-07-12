@@ -26,8 +26,7 @@ type FieldValue struct {
 	// Prov is the named graph the value came from ("feed:overdrive",
 	// "editorial:", "enrichment:locsh").
 	Prov string `json:"prov"`
-	// Overridden marks feed values shadowed by an lcat:overrides marker
-	//.
+	// Overridden marks feed values shadowed by an lcat:overrides marker.
 	Overridden bool `json:"overridden,omitempty"`
 	// Annotation is the field's display-only qualifier resolved from the
 	// value's structure node (e.g. a heading's bf:source label, a
@@ -275,8 +274,8 @@ func claimDirect(ds *rdf.Dataset, claimed []bool, subject rdf.Term, predicate st
 		if claimed[i] || q.S != subject || q.P.Value != predicate {
 			continue
 		}
-		// A structured object stays passthrough. That means blank nodes and,
-		// since the grain-local IRIs a clone or the editor mints
+		// A structured object stays passthrough. That means blank nodes
+		// and, equally, the grain-local IRIs a clone or the editor mints
 		// for them: an uncontrolled bf:subject heading skolemized to
 		// #<id>n<k> is the same node it was as _:b0, and rendering it as a
 		// controlled-term chip would put a raw fragment IRI in front of the

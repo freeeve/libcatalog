@@ -59,8 +59,7 @@ func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 		// A tombstone that redirects to the work being tombstoned is a permalink
 		// that loops (the successor IS the retired page), so the republished
 		// redirect dead-ends in ERR_TOO_MANY_REDIRECTS. Reject it, symmetric to
-		// the relations (target != work) and merge (from != to) self-guards
-		//.
+		// the relations (target != work) and merge (from != to) self-guards.
 		if req.RedirectTo == workID {
 			writeError(w, http.StatusBadRequest, "a tombstone cannot redirect to itself")
 			return

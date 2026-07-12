@@ -7,8 +7,7 @@ import (
 )
 
 // Blank-node labels in a merged N-Quads document -- SerializeGrains' catalog.nq
-// and the export service's catalog.nq dump, which are required to agree
-//.
+// and the export service's catalog.nq dump, which are required to agree.
 //
 // A grain is stored as canonical N-Quads: its blank nodes already carry `_:c14nN`
 // labels that are a pure function of the grain's own graph. Merging used to throw

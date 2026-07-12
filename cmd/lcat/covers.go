@@ -22,7 +22,7 @@ const coverPrefix = "data/covers/"
 var coverWorkID = regexp.MustCompile(`^w[a-z0-9]{6,20}$`)
 
 // Orphan reasons, distinguished because they mean different things to an
-// operator: a stale format is the residue, a missing work is a
+// operator: a stale format is a replaced cover's leftover bytes, a missing work is a
 // hand-deleted grain, and an unparseable path is something that never came from
 // CoverBlobPath at all.
 //

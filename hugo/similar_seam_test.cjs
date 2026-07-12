@@ -193,7 +193,8 @@ const tile = (work, lang, neighbor) => {
 //
 // The line is visually hidden -- the covers took its room -- but
 // it is still in the document, and it is still the rail's only explanation of
-// itself. Everything proved about it still has to hold.
+// itself. Everything the earlier seam regressions proved about it still has
+// to hold.
 const WHY_OPEN = '<span class="lcat-visually-hidden">';
 const whys = (work, lang) =>
   tiles(work, lang)

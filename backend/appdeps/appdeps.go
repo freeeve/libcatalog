@@ -169,8 +169,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			logger.Info("vocabularies loaded", "schemes", schemes)
 		}
 		// Container worker: drain queued vocabulary downloads on a ticker.
-		// Serverless entrypoints disable tickers and drain on schedule
-		//.
+		// Serverless entrypoints disable tickers and drain on schedule.
 		if !cfg.ReadOnly && !cfg.DisableTickers {
 			go func() {
 				ticker := time.NewTicker(15 * time.Second)
@@ -514,8 +513,7 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		exports.OrgCode = cfg.OrgCode
 		deps.Exports = exports
 		// Container worker: drain queued export jobs on a ticker.
-		// Serverless entrypoints disable tickers and drain on schedule
-		//.
+		// Serverless entrypoints disable tickers and drain on schedule.
 		if !cfg.ReadOnly && !cfg.DisableTickers {
 			go func() {
 				ticker := time.NewTicker(15 * time.Second)

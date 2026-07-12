@@ -62,15 +62,13 @@ type Deps struct {
 	// Authorities, when set, mounts the local-authority editing surface
 	// and hooks the on-save auto-linker into record writes.
 	Authorities *authoritiesvc.Service
-	// Batch, when set, mounts batch operations, macros, and saved queries
-	//.
+	// Batch, when set, mounts batch operations, macros, and saved queries.
 	Batch *batch.Service
 	// Profiles is the live editing-profile set the record/batch/authority
 	// surfaces map through. New synthesizes a defaults-only, read-only
 	// service when this is nil, so the field is optional for tests.
 	Profiles *profilesvc.Service
-	// Copycat, when set, mounts external search and staged imports
-	//.
+	// Copycat, when set, mounts external search and staged imports.
 	Copycat *copycat.Service
 	// Publisher, when set, carries approved decisions into the grain store
 	// (POST /v1/publish and the review publish flag).
@@ -88,8 +86,7 @@ type Deps struct {
 	// proxied transport for live shelf status over SIP2).
 	SIP2 *sip2.Client
 	// OrgCode is the deployment's MARC organization code; MARC surfaces
-	// derive each record's 040 from graph facts at decode time when set
-	//.
+	// derive each record's 040 from graph facts at decode time when set.
 	OrgCode string
 	// Enrich, when set, mounts the admin enrichment surface.
 	Enrich *enrich.Service

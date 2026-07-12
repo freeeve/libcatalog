@@ -698,7 +698,7 @@ summary:focus-visible {
   font-size: 0.9em;
   margin-left: 0.5rem;
 }
-/* Live availability (chipped): a pill outlined and inked in
+/* Live availability: a pill outlined and inked in
    the resolved status colour. Empty (unknown or not-yet-fetched) stays invisible so
    it never shows a misleading state or an empty outline. */
 .lcat-availability {
@@ -737,7 +737,7 @@ summary:focus-visible {
 .lcat-meta dt {
   font-weight: 600;
 }
-/* "More like this" (redesigned). A shelf, not a list: the
+/* "More like this". A shelf, not a list: the
    reader scans by cover and reads the caption only once something catches them.
 
    The columns are auto-fit rather than a fixed 8: the tile has a minimum legible

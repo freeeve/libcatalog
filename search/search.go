@@ -304,7 +304,7 @@ func searchText(w project.Work) string {
 }
 
 // termLanguage maps an ISO 639-2 language code to a roaringrange stemmer language
-// and whether stemming is applied. roaringrange (v0.27.0, its task 073) wires a
+// and whether stemming is applied. roaringrange (since its v0.27.0) wires a
 // Snowball stemmer on the Go build side for all 18 supported languages, so every
 // mapped language is stemmed; an unmapped language indexes word-level with no stop
 // words (see iso639).

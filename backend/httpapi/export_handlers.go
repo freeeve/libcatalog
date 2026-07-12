@@ -171,8 +171,8 @@ func registerExportDownload(mux *http.ServeMux, svc *export.Service) {
 // why the response varies on Accept-Encoding, and it is not hypothetical: curl
 // sends no Accept-Encoding by default.
 //
-// Jobs written hold plain bytes; they are served as they always
-// were rather than being compressed on the way out.
+// Jobs written before outputs were gzipped hold plain bytes; they are served
+// as they always were rather than being compressed on the way out.
 func writeExport(w http.ResponseWriter, r *http.Request, job export.Job, data []byte, gzipped bool) {
 	w.Header().Set("Content-Disposition", `attachment; filename="`+path.Base(job.OutputPath)+`"`)
 	if !gzipped {

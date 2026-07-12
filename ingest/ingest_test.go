@@ -457,7 +457,7 @@ func TestRunAddedRecordsMintOnlyNew(t *testing.T) {
 
 // TestRunChangedRecordKeepsId proves a record whose content changes (new title) but
 // whose keys are stable resolves to its committed ids -- 0 minted, no new grain file,
-// only the content updates. This is the "preserves ids" half of identity
+// only the content updates. This is the "preserves ids" half of the contract: identity
 // survives feed edits because the ISBN anchors it, not the (title-derived) cluster key.
 func TestRunChangedRecordKeepsId(t *testing.T) {
 	out := t.TempDir()

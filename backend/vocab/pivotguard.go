@@ -55,7 +55,7 @@ func guardPivots(ix *Index, src *Term, cands []pivotCand) []pivotCand {
 		}
 	}
 
-	// Two grades of label match (task 430): preferred labels agreeing on
+	// Two grades of label match: preferred labels agreeing on
 	// both sides is conceptual identity and keeps full pivot strength;
 	// a match that exists only through an ALT label (FAST folds "Womyn"
 	// into "Women" as a variant access string) is see-also evidence, not
@@ -110,7 +110,7 @@ func guardPivots(ix *Index, src *Term, cands []pivotCand) []pivotCand {
 		}
 	}
 
-	// Cross-scheme rules per pivot node (task 423: the reverse direction --
+	// Cross-scheme rules per pivot node (the reverse direction --
 	// the SOURCE can be the narrow end, and a node's breadth shows in its
 	// total fan-in, not just one scheme's claimants).
 	srcAncestors := map[string]bool{}
@@ -153,7 +153,7 @@ func guardPivots(ix *Index, src *Term, cands []pivotCand) []pivotCand {
 		}
 	}
 
-	// Label-counterpart rule (task 425): in a sparse vocab load -- two
+	// Label-counterpart rule: in a sparse vocab load -- two
 	// schemes, the pivot node's own vocabulary absent -- fan-in and sibling
 	// evidence starve, and a lone bad claimant sails through (FAST "Women"
 	// -> bare LCSH node <- Homosaurus "Womyn", sole claimant). The signal

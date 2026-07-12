@@ -135,7 +135,7 @@ func scanPinsDataset(ds *rdf.Dataset) []identity.Pin {
 // Every pinned Instance must be one the grain describes: a pin is a
 // permanent instruction to the identity resolver (SeedPin), so a typo or an
 // id from another record would silently strand that Instance on a work id
-// with no grain at the next ingest (the invariant).
+// with no grain at the next ingest (the no-phantom-ids invariant).
 func AddSplitMarkers(grainNQ []byte, newWork, fromWork string, instanceIDs []string) ([]byte, error) {
 	ds, err := rdf.ParseNQuads(grainNQ)
 	if err != nil {

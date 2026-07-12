@@ -124,8 +124,8 @@ func TestOpenStoredReportsCompression(t *testing.T) {
 	}
 }
 
-// Exports written hold plain bytes. The magic number decides,
-// not the path, so they still download.
+// Exports written before outputs were gzipped hold plain bytes. The magic
+// number decides, not the path, so they still download.
 func TestOpenReadsLegacyUncompressedOutput(t *testing.T) {
 	bs := blob.NewMem()
 	svc, err := New(store.NewMem(), bs, "marc", []byte("0123456789abcdef0123456789abcdef"))
@@ -140,7 +140,7 @@ func TestOpenReadsLegacyUncompressedOutput(t *testing.T) {
 
 	got, err := svc.Open(t.Context(), legacy)
 	if err != nil {
-		t.Fatalf("a pre- export became unreadable: %v", err)
+		t.Fatalf("a pre-gzip export became unreadable: %v", err)
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("legacy Open = %q, want %q", got, want)

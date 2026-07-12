@@ -52,7 +52,7 @@ func CoverOf(grainNQ []byte, workID string) (string, error) {
 // SetCover records url as the work's editorial cover (lcat:extra/cover in
 // the editorial graph), replacing any previous editorial cover statement,
 // and returns the re-canonicalized grain. The work must exist in the grain
-// (the invariant). An empty url removes the editorial
+// (the no-phantom-ids invariant). An empty url removes the editorial
 // cover, letting any feed-carried value show through again.
 func SetCover(grainNQ []byte, workID, url string) ([]byte, error) {
 	ds, err := rdf.ParseNQuads(grainNQ)

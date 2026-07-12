@@ -323,7 +323,8 @@ func TestCoversAreReadFromTheShardedBlobPath(t *testing.T) {
 
 // A claimed cover the store does not hold is benign, but it must be counted and
 // said out loud: "every cover is missing" and "one cover is missing" looked
-// identical from the build log, which is how stayed invisible.
+// identical from the build log, which is how a lost-every-cover regression
+// stayed invisible.
 func TestMissingCoverIsReportedRatherThanSwallowed(t *testing.T) {
 	root, visible, _, _ := sentinels(t)
 	if err := os.Remove(filepath.Join(root, filepath.FromSlash(bibframe.CoverBlobPath(visible, "png")))); err != nil {

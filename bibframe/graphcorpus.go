@@ -248,7 +248,7 @@ func BuildWorkGrain(wg WorkGroup, provider string) ([]byte, error) {
 // jointly so everything re-serializes deterministically (ARCHITECTURE §5).
 // The preserved side is NOT blank-free: since multi-feed grains, it carries
 // other feeds' graphs, whose blank labels would fuse with the fresh graph's
-// freshly-numbered ones on parse (tasks/397) -- so its labels are pushed into
+// freshly-numbered ones on parse -- so its labels are pushed into
 // a namespace the fresh serialization never emits before the buffers meet.
 func grainWithEditorial(g *rdf.Graph, graph rdf.Term, editorial []byte) ([]byte, error) {
 	nq := g.NQuads(graph)

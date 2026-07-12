@@ -382,7 +382,7 @@ func pickAuthority(ids []string) (string, []string) {
 // registered under EVERY label form the node carries (plus inverted
 // variants), because a work's contributor literal may spell the same person
 // either way ("Alison Bechdel" vs "Bechdel, Alison") and a single-key
-// lookup silently dropped the authority (task 432). Creator agents are
+// lookup silently dropped the authority. Creator agents are
 // additionally tracked so their identity lands even when the contributor
 // list never restates them. An IRI entry without a harvested label stays
 // verbatim -- a name is the floor.

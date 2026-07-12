@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Moderation queue (task 044): filterable suggestion list with keyboard
+  // Moderation queue: filterable suggestion list with keyboard
   // triage. j/k move the selection; a/r/t stage approve, reject, and
   // reject+tombstone locally; s opens the vocabulary picker to approve with a
   // substitute term. The publish bar ships staged decisions as one

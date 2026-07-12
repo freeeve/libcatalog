@@ -167,8 +167,7 @@ func TestMergeSplitBatch(t *testing.T) {
 	h, bs := newRecordsAPI(t)
 	_ = seedWorkGrain(t, bs)
 	// The survivor grain carries an instance (the split below pins it) and
-	// the retiring work really exists -- merge/split refuse phantom ids
-	//.
+	// the retiring work really exists -- merge/split refuse phantom ids.
 	ds := &rdf.Dataset{}
 	feed := bibframe.FeedGraph("overdrive")
 	ds.Add(rdf.NewIRI(bibframe.WorkIRI(editWorkID)), rdf.NewIRI("http://id.loc.gov/ontologies/bibframe/title"), rdf.NewLiteral("A Book", "", ""), feed)

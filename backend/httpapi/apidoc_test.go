@@ -32,7 +32,7 @@ func (r apiRoute) row() string {
 	return fmt.Sprintf("| `%s` | `%s` | %s | `%s` |", r.Method, r.Path, r.Role, r.File)
 }
 
-// TestAPIReferenceMatchesRouter is the drift gate asked for by the
+// TestAPIReferenceMatchesRouter is the drift gate: the
 // route table in docs/api.md is generated from the registrations themselves,
 // so a new endpoint that skips the reference fails the build. Roles come from
 // each middleware's `auth.Require(verifier, auth.RoleX)` initializer, never

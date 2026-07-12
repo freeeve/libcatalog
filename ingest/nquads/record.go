@@ -205,7 +205,7 @@ func (r record) contributions() []codexbf.Contribution {
 			})
 		}
 	}
-	// Post-pass (task 432): every agent-resolved creator's authority must
+	// Post-pass: every agent-resolved creator's authority must
 	// land, however the contributor list spells the person -- or omits
 	// them. Attach to a label-matching contribution first; append an
 	// authored contribution only when nobody names the creator at all.

@@ -155,8 +155,8 @@ func TestAttachmentNamesDoNotCollide(t *testing.T) {
 }
 
 // TestAttachmentLegacyPathFallback covers the read path for attachments
-// stored before when the display name was the blob segment: the
-// new encoding must not orphan their bytes.
+// stored under the legacy layout, when the display name was the blob
+// segment: the new encoding must not orphan their bytes.
 func TestAttachmentLegacyPathFallback(t *testing.T) {
 	h, bs := newRecordsAPI(t)
 	grain := seedWorkGrain(t, bs)

@@ -6,7 +6,7 @@ import (
 	"github.com/freeeve/libcodex/rdf"
 )
 
-// SplitCrossGraphBlanks repairs the tasks/397 corruption in one grain: a blank
+// SplitCrossGraphBlanks repairs fused-blank corruption in one grain: a blank
 // node whose label appears in more than one named graph was almost certainly
 // two unrelated nodes fused by the pre-fix write path (per-graph blank
 // numbering colliding in one file), so each such node is split back into

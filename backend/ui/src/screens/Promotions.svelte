@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Tag promotions (task 044): moderators propose folding a community tag
+  // Tag promotions: moderators propose folding a community tag
   // into a controlled term; librarians decide, and approval executes the
   // batch rewrite (the response reports how many works it touched).
   //

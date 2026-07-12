@@ -142,8 +142,7 @@ type Service struct {
 	GrainPrefix string
 	// Provider names the feed graph the CSV projection reads.
 	Provider string
-	// Vocab, when set, enables authority exports over the loaded term index
-	//.
+	// Vocab, when set, enables authority exports over the loaded term index.
 	Vocab *vocab.Index
 	// OrgCode is the deployment's MARC organization code; when set, MARC and
 	// JSON-LD exports derive each record's 040 from graph facts at decode
@@ -294,8 +293,8 @@ func (s *Service) VerifyToken(job Job, token string) bool {
 }
 
 // Open returns a DONE job's output decompressed, whatever form it is stored in.
-// Jobs written hold plain bytes and still read back correctly:
-// the gzip magic number decides, not the path.
+// Jobs written before outputs were gzipped hold plain bytes and still read
+// back correctly: the gzip magic number decides, not the path.
 func (s *Service) Open(ctx context.Context, job Job) ([]byte, error) {
 	data, gzipped, err := s.OpenStored(ctx, job)
 	if err != nil || !gzipped {

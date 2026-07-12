@@ -57,10 +57,9 @@ func sniffCover(data []byte) string {
 // from its public, unauthenticated, guessable URL forever -- nothing referenced
 // it, so nothing would ever collect it. A cataloger replaces a cover precisely
 // when the old one is wrong: wrong edition, rights complaint, an image that
-// should not have been published. A takedown that looks done was not done
-// .
+// should not have been published. A takedown that looks done was not done.
 //
-// The error was discarded until which made a failing store reproduce
+// The error used to be discarded, which made a failing store reproduce
 // that exact outcome: the caller answered 2xx while the image kept serving. A
 // missing blob stays success -- a cover exists in at most one format, so two of
 // these three deletes normally find nothing, and absent is the state a delete
@@ -216,8 +215,7 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 		// public, unauthenticated route, so a librarian acting on a rights
 		// complaint must never be told a takedown happened when it did not.
 		// Restore the statement rather than orphan bytes that keep serving:
-		// nothing else indexes them, and there is no reconciliation pass
-		//.
+		// nothing else indexes them, and there is no reconciliation pass.
 		if err := sweepStaleCovers(r, bs, workID, ""); err != nil {
 			if rerr := restoreCover(r, bs, ix, workID, previous); rerr != nil {
 				logger.Error("cover bytes survived a delete and the record could not be restored: the bytes are public and orphaned",
@@ -267,8 +265,7 @@ func registerCovers(mux *http.ServeMux, bs blob.Store, ix *workindex.Index, queu
 		}
 		// A same-format replacement keeps the URL, so without a validator every
 		// cache between the store and the reader served the old image for up to
-		// an hour after a correction. The server was right; the readers were not
-		//.
+		// an hour after a correction. The server was right; the readers were not.
 		quoted := `"` + etag + `"`
 		w.Header().Set("ETag", quoted)
 		w.Header().Set("Cache-Control", "public, max-age=3600, must-revalidate")

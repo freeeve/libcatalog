@@ -5,8 +5,8 @@
 // refresh by ETag diff on a short TTL (one List per window; only changed
 // grains are re-fetched and re-scanned), and the API's own write paths push
 // their writes in synchronously via Apply, so a session always reads its own
-// writes. Writers outside the process (or outside httpapi,
-// and 109 route them here) become visible within one TTL.
+// writes. Writers outside the process (or outside httpapi) become visible
+// within one TTL.
 package workindex
 
 import (

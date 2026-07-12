@@ -121,7 +121,7 @@ type OrphanSidecar struct {
 }
 
 // OrphanSidecars lists the sidecar artifact sets under prefix that no live snapshot
-// backs. RemoveSnapshot deletes a scheme's artifacts as of but a removal
+// backs. RemoveSnapshot deletes a scheme's artifacts nowadays, but a removal
 // before that shipped left them resident, and nothing collects them at boot: the
 // loader detects the same staleness and serves the scheme from maps, but leaves the
 // files where they are. This is the read half of the sweep; the caller deletes.

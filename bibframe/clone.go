@@ -19,7 +19,7 @@ import (
 //
 // Subject and genre headings are NOT dropped, controlled or not.
 // They were, on the reasoning that a skolemized blank heading "reads as a
-// controlled term everywhere" -- which made false the same week, by
+// controlled term everywhere" -- a claim made false the same week, by
 // teaching both readers (project.subjectsAndTags, ingest.SummarizeDataset)
 // that a grain-local IRI object of bf:subject is an uncontrolled heading, the
 // same as the blank node it stands in for. See GrainLocalIRI. Uncontrolled

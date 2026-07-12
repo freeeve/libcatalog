@@ -153,7 +153,7 @@ func (ix *Index) Equivalents(uri string) ([]Equivalent, bool) {
 	}
 	// Pivots collect as candidates first: match links are NOT transitive,
 	// so a shared node proves nothing by itself, and guardPivots decides
-	// what emits and at what strength (task 420's over-reach class:
+	// what emits and at what strength (the over-reach class:
 	// broad + narrow terms sharing one broad LCSH heading).
 	var pivots []pivotCand
 	pivot := func(id, strength, via string) {

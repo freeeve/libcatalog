@@ -71,7 +71,7 @@ func TestFindOrphanCoversDistinguishesItsReasons(t *testing.T) {
 	bs := blob.NewMem()
 	ctx := t.Context()
 
-	// The residue: the grain says .png, the .jpg is still stored.
+	// The stale-format residue: the grain says .png, the .jpg is still stored.
 	seedCoverWork(t, bs, "wstale0000001", "covers/wstale0000001.png", "png", "jpg")
 	// A work with a stored cover and no cover statement at all.
 	seedCoverWork(t, bs, "wnocover00001", "", "png")

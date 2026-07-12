@@ -566,8 +566,7 @@ func RedirectsDataset(ds *rdf.Dataset) RedirectMap {
 			}
 		case bibframe.PredTombstoned:
 			// A tombstone with a successor redirects like a merge; one
-			// without leaves an empty-target entry the host serves as gone
-			//.
+			// without leaves an empty-target entry the host serves as gone.
 			if q.O.IsIRI() {
 				raw[fragID(q.S.Value, "Work")] = fragID(q.O.Value, "Work")
 			} else {

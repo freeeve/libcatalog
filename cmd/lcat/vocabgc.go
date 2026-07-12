@@ -19,8 +19,8 @@ const defaultAuthoritiesPrefix = "data/authorities/"
 // runVocabGC reports, and with --reap deletes, the sidecar artifact sets no live
 // snapshot backs.
 //
-// RemoveSnapshot deletes a scheme's sidecar as of but a removal before
-// that release left the artifacts resident, and nothing collects them: the loader
+// RemoveSnapshot deletes a scheme's sidecar nowadays, but a removal before
+// that shipped left the artifacts resident, and nothing collects them: the loader
 // detects the same staleness at boot and serves the scheme from maps, but leaves the
 // files where they are. They cost object storage and, worse, make the sidecar
 // directory lie about what is installed -- the first place anyone debugging vocabulary

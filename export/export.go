@@ -289,7 +289,7 @@ func namesHiddenWork(line string, hidden map[string]bool) bool {
 // Dropping only the lines that name the id leaves 24 of a 33-quad record on the
 // public site. The merge of the visible grains is the whole record or none of it.
 //
-// Rebuilding is also what catalog.nq *is* every writer emits
+// Rebuilding is also what catalog.nq *is*: every writer emits
 // exactly this merge, so an all-visible corpus produces byte-identical output,
 // pinned by TestNothingIsHeldBackWhenNothingIsHidden. It costs a second read of
 // each grain and removes the export's dependence on a file it did not write:

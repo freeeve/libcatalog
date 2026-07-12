@@ -403,8 +403,8 @@
               <span class="v" title={fv.v}>{rt.label}</span>
               <span class="rdacode" title={fv.v}>{rt.code}</span>
             {:else if fv.iri && spec.path === "links" && /^https?:\/\//.test(fv.v)}
-              <!-- The locator's grain-carried 856 $3 label (rdfs:label
-                   annotation, libcodex v0.15.0 /) wins; the
+              <!-- The locator's grain-carried 856 $3 label (an rdfs:label
+                   annotation since libcodex v0.15.0) wins; the
                    URL-shape heuristic covers label-less locators and
                    pre-0.15 grains. -->
               {@const li = linkInfo(fv.v)}

@@ -561,7 +561,7 @@ func (ix *Index) SchemeStats(scheme string) (sidecar bool, residentTerms int) {
 // schemeNames is the sorted union of the two backends' scheme names.
 //
 // A scheme appears in both maps once it carries a sidecar and an overlay of
-// live picks, so the union must dedupe. It did not have to before
+// live picks, so the union must dedupe. It did not have to before,
 // when a scheme served from exactly one backend; the admin SPA keys its vocab
 // tabs by scheme name and a repeat crashed the picker.
 func (s *snapshot) schemeNames() []string {

@@ -28,7 +28,7 @@ import (
 // answer through writeGrainWriteError / writeMutateError, which map
 // blob.ErrReadOnly onto the same 403 and the same wording. A client cannot tell
 // which layer refused it, which is the point: those two routes
-// answered 500 "grain write failed".
+// used to answer 500 "grain write failed".
 func readOnlyGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isMutatingMethod(r.Method) && !readOnlyAllowed(r.URL.Path) {

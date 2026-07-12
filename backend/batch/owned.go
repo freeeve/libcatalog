@@ -107,8 +107,7 @@ func updateOwned[T any](ctx context.Context, db store.Store, k ownedKind[T], id 
 		m.Shared = cm.Shared
 	}
 	// Write the new partition before deleting the old one: a fault between
-	// the two leaves a harmless duplicate instead of losing the record
-	//.
+	// the two leaves a harmless duplicate instead of losing the record.
 	if err := putOwned(ctx, db, k, item, store.CondNone); err != nil {
 		return zero, err
 	}

@@ -156,7 +156,7 @@ func decodeAttachmentSegment(t *testing.T, seg string) string {
 }
 
 // TestLegacyAttachmentBlobPath covers the read fallback: attachments stored
-// used the display name as the segment, and must not be
+// under the old layout used the display name as the segment, and must not be
 // orphaned by the new encoding.
 func TestLegacyAttachmentBlobPath(t *testing.T) {
 	if got := LegacyAttachmentBlobPath("wabc123", "scan.pdf"); got != "data/attachments/wa/wabc123/scan.pdf" {
