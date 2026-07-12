@@ -235,12 +235,20 @@ summary:focus-visible {
 .lcat-search {
   display: flex;
   gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
 }
+/* The input prefers 16rem but shrinks with the viewport; a fixed floor
+   pushed the button off a 320px screen (WCAG 1.4.10 reflow). width, not
+   flex-basis: only width feeds the form's intrinsic size, keeping the
+   full 16rem on wide screens. The button never shrinks -- a clipped
+   label reads worse than a narrow input. */
 .lcat-search input {
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--lcat-border);
   border-radius: 4px;
-  min-width: 16rem;
+  width: 16rem;
+  min-width: 0;
 }
 .lcat-search button {
   padding: 0.4rem 0.9rem;
@@ -249,6 +257,7 @@ summary:focus-visible {
   color: var(--lcat-on-accent);
   border-radius: 4px;
   cursor: pointer;
+  flex: none;
 }
 /* Optional Pagefind search UI: the Component UI lives in a modal
    <dialog>, not the header -- in the header flex row its results drawer joined
