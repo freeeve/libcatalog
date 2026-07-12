@@ -165,6 +165,33 @@ local crosswalk sources: they walk links the loaded vocabularies already
 hold, while the harvest discovers headings other libraries assigned (e.g.
 Homosaurus 650s at targets that carry them).
 
+### BiblioCommons peer-library subject harvest (bibliocommons)
+
+`LCATD_ENRICH_BIBLIOCOMMONS=<subdomain>` (e.g. `ccslib` for the CCS
+consortium, an early Homosaurus adopter) registers a harvest of a peer
+library's public BiblioCommons OPAC. The direction is deliberately reversed:
+a BiblioCommons record page exposes no subjects to an unauthenticated
+reader, but the public RSS search
+(`/search/rss?q=<term>&t=subject`) feeds every title a subject is assigned
+to, 100 items per page. So the source drives one subject search per term of
+a loaded vocabulary (`LCATD_ENRICH_BIBLIOCOMMONS_SCHEME`, default
+`homosaurus`; retired terms skipped), matches the feed items back to the
+scoped works -- by ISBN from the item's Syndetics cover URL first
+(confidence 0.9), by normalized title **plus author agreement** second
+(0.75; a bare title match on generic titles is measured noise) -- and
+queues the DRIVER term on every matched work that does not already carry
+it. Queue-only: another library's cataloging is a candidate, not an
+assertion.
+
+The inherent bound: the harvest can only confirm terms it queries, never
+reveal one it did not -- coverage equals the driver vocabulary. Politeness
+and cost: requests pause 1.5s apart and each term stops at
+`LCATD_ENRICH_BIBLIOCOMMONS_MAX_PAGES` (default 6, i.e. 600 items; large
+terms are truncated and logged). A completed crawl is reused for 24 hours,
+so re-running against a different `?filter` scope re-matches without
+touching the peer OPAC again. The feed's OCLC numbers are parsed but not
+yet matched (work summaries do not carry OCLC identifiers).
+
 ## Scheme filtering
 
 `LCATD_VOCAB_SCHEMES` (when set) filters which authority graphs load.

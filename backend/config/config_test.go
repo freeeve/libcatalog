@@ -46,6 +46,35 @@ func TestEnrichOpenLibraryConfig(t *testing.T) {
 	})
 }
 
+// TestEnrichBiblioCommonsConfig locks the peer-harvest knobs: a bare
+// subdomain with a defaulted scheme, a URL-shaped host rejected, and the
+// page cap validated positive (task 434).
+func TestEnrichBiblioCommonsConfig(t *testing.T) {
+	t.Run("valid with defaults", func(t *testing.T) {
+		t.Setenv("LCATD_ENRICH_BIBLIOCOMMONS", "ccslib")
+		cfg, err := FromEnv()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.EnrichBiblioCommons != "ccslib" || cfg.EnrichBiblioCommonsScheme != "homosaurus" {
+			t.Errorf("cfg = %+v", cfg)
+		}
+	})
+	t.Run("URL-shaped host rejected", func(t *testing.T) {
+		t.Setenv("LCATD_ENRICH_BIBLIOCOMMONS", "https://ccslib.bibliocommons.com")
+		if _, err := FromEnv(); err == nil {
+			t.Error("expected an error for a URL instead of a bare subdomain")
+		}
+	})
+	t.Run("bad page cap rejected", func(t *testing.T) {
+		t.Setenv("LCATD_ENRICH_BIBLIOCOMMONS", "ccslib")
+		t.Setenv("LCATD_ENRICH_BIBLIOCOMMONS_MAX_PAGES", "0")
+		if _, err := FromEnv(); err == nil {
+			t.Error("expected an error for a non-positive page cap")
+		}
+	})
+}
+
 // TestStoreSelectionFromEnv locks the env-var names that opt into the
 // persistent stores.
 func TestStoreSelectionFromEnv(t *testing.T) {

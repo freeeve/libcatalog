@@ -24,6 +24,7 @@ import (
 
 	"github.com/freeeve/libcodex/sip2"
 
+	"github.com/freeeve/libcat/ingest/bibliocommons"
 	"github.com/freeeve/libcat/ingest/locsh"
 	"github.com/freeeve/libcat/ingest/openlibrary"
 	"github.com/freeeve/libcat/ingest/wikidata"
@@ -439,6 +440,36 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		enrichSources[sruenrich.Name] = enrich.Source{
 			Enricher: &sruenrich.Enricher{Search: deps.Copycat, Vocab: deps.Vocab, Delay: time.Second, Log: logger},
 			Mode:     enrich.ModeQueue,
+		}
+	}
+	// The BiblioCommons peer-library subject harvest: drives subject searches
+	// on a peer OPAC's public RSS from the configured vocabulary's terms and
+	// queues the driver term on ISBN/title+author-matched works. Queue-only
+	// -- a peer's cataloging is a candidate, not an assertion.
+	if cfg.EnrichBiblioCommons != "" && deps.Vocab != nil && deps.Suggest != nil {
+		scheme := cfg.EnrichBiblioCommonsScheme
+		var terms []bibliocommons.Term
+		for _, t := range deps.Vocab.Terms(scheme) {
+			if t.MergedInto != "" {
+				continue
+			}
+			if q := t.Label("en"); q != "" {
+				terms = append(terms, bibliocommons.Term{URI: t.ID, Labels: t.Labels, Query: q})
+			}
+		}
+		if len(terms) == 0 {
+			logger.Warn("bibliocommons enrichment disabled: driver vocabulary has no terms loaded", "scheme", scheme)
+		} else {
+			opts := []bibliocommons.Option{bibliocommons.WithLogger(logger)}
+			if cfg.EnrichBiblioCommonsMaxPages > 0 {
+				opts = append(opts, bibliocommons.WithMaxPages(cfg.EnrichBiblioCommonsMaxPages))
+			}
+			enrichSources[bibliocommons.Name] = enrich.Source{
+				Enricher: bibliocommons.New(cfg.EnrichBiblioCommons, terms, opts...),
+				Mode:     enrich.ModeQueue, Scheme: scheme,
+			}
+			logger.Info("bibliocommons subject harvest configured",
+				"host", cfg.EnrichBiblioCommons, "scheme", scheme, "terms", len(terms))
 		}
 	}
 	if len(enrichSources) > 0 && deps.Blob != nil {
