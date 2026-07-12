@@ -753,6 +753,10 @@ export interface DiversityCategory {
   works: number;
   shareCovered: number;
   shareTotal: number;
+  /** Operator-supplied comparison share in [0,1], with its named source --
+   *  never a shipped target, never graded by the tool. */
+  benchmark?: number;
+  benchmarkSource?: string;
 }
 
 /** GET /v1/audit/diversity -- the coverage-first content-diversity report. */
@@ -780,6 +784,9 @@ export interface CrosswalkCategory {
   keywords?: string[];
   uris?: string[];
   schemes?: string[];
+  /** Comparison share in [0,1]; requires benchmarkSource naming its origin. */
+  benchmark?: number;
+  benchmarkSource?: string;
 }
 
 /** GET /v1/audit/diversity/crosswalk -- the built-in seed, the operator's

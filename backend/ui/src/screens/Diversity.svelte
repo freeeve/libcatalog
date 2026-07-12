@@ -66,6 +66,12 @@
     return (x * 100).toFixed(1) + "%";
   }
 
+  /** Whether any category carries an operator benchmark; the column and the
+   *  interpretation note only appear when one does. */
+  function hasBenchmarks(r: DiversityReport): boolean {
+    return r.categories.some((c) => c.benchmark != null);
+  }
+
   // Gauge: a donut whose stroke covers the coverage fraction.
   const GAUGE_R = 26;
   const GAUGE_C = 2 * Math.PI * GAUGE_R;
@@ -211,6 +217,9 @@
           <th scope="col" class="n">Works</th>
           <th scope="col" class="n">% subj.</th>
           <th scope="col" class="n">% coll.</th>
+          {#if hasBenchmarks(report)}
+            <th scope="col" class="n">Benchmark</th>
+          {/if}
         </tr>
       </thead>
       <tbody>
@@ -221,15 +230,33 @@
               <div class="bar-track">
                 <div class="bar" style={`width:${(c.shareCovered * 100).toFixed(2)}%`}></div>
                 <div class="tick" style={`left:${(c.shareTotal * 100).toFixed(2)}%`} title="% of whole collection"></div>
+                {#if c.benchmark != null}
+                  <div class="bench" style={`left:${(c.benchmark * 100).toFixed(2)}%`}
+                    title={`benchmark ${pct(c.benchmark)} -- ${c.benchmarkSource}`}></div>
+                {/if}
               </div>
             </td>
             <td class="n">{c.works.toLocaleString()}</td>
             <td class="n">{pct(c.shareCovered)}</td>
             <td class="n">{pct(c.shareTotal)}</td>
+            {#if hasBenchmarks(report)}
+              <td class="n bench-cell">
+                {#if c.benchmark != null}
+                  {pct(c.benchmark)} <span class="muted src">{c.benchmarkSource}</span>
+                {/if}
+              </td>
+            {/if}
           </tr>
         {/each}
       </tbody>
     </table>
+    {#if hasBenchmarks(report)}
+      <p class="muted hint bench-note">
+        Benchmarks are operator-supplied comparison points with their sources named
+        (<a href="#/diversity/config">configure</a>); the gap between a share and its
+        benchmark is yours to interpret -- against the coverage above, never as a score.
+      </p>
+    {/if}
 
     <section class="trends" aria-label="Trends">
       <div class="trends-head">
@@ -512,6 +539,22 @@
     width: 2px;
     background: var(--ink, #223);
     opacity: 0.55;
+  }
+  /* The operator benchmark: a dashed marker, deliberately neutral -- the
+     delta is for the librarian to read, not the chart to grade. */
+  .bench {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 0;
+    border-left: 2px dashed var(--ink-muted, #667);
+  }
+  .bench-cell .src {
+    display: block;
+    font-size: 0.7rem;
+  }
+  .bench-note {
+    margin: 0.35rem 0 0;
   }
 
   .trends {

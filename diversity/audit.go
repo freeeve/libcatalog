@@ -55,6 +55,12 @@ type CategoryTally struct {
 	Works        int     `json:"works"`
 	ShareCovered float64 `json:"shareCovered"`
 	ShareTotal   float64 `json:"shareTotal"`
+	// Benchmark/BenchmarkSource pass the operator's comparison share through
+	// from the crosswalk, when one was configured. The tool never grades the
+	// delta: a share against a benchmark is only as good as the coverage
+	// above it, and interpreting the gap is the librarian's call.
+	Benchmark       *float64 `json:"benchmark,omitempty"`
+	BenchmarkSource string   `json:"benchmarkSource,omitempty"`
 }
 
 // Auditor streams works into a coverage-first content-diversity tally. Build it
@@ -123,7 +129,7 @@ func (a *Auditor) Report() Report {
 		r.Coverage = float64(a.covered) / float64(a.total)
 	}
 	for _, c := range a.cw.Categories() {
-		t := CategoryTally{ID: c.ID, Label: c.Label, Works: a.perCat[c.ID]}
+		t := CategoryTally{ID: c.ID, Label: c.Label, Works: a.perCat[c.ID], Benchmark: c.Benchmark, BenchmarkSource: c.BenchmarkSource}
 		if a.covered > 0 {
 			t.ShareCovered = float64(t.Works) / float64(a.covered)
 		}

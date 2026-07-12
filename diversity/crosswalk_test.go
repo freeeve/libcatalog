@@ -217,6 +217,66 @@ keywords = ["achillean"]
 	}
 }
 
+// TestBenchmarkFlowsToReport proves the operator benchmark's path: override
+// TOML -> merge -> CategoryTally, and the validation gates (share in [0,1],
+// source required with a benchmark, benchmark required with a source).
+func TestBenchmarkFlowsToReport(t *testing.T) {
+	cw, err := FromBytes([]byte(`
+[[category]]
+id = "lgbtqia"
+benchmark = 0.41
+benchmarkSource = "CCBC 2025 BIPOC-creator share"
+`))
+	if err != nil {
+		t.Fatalf("FromBytes: %v", err)
+	}
+	a := NewAuditor(cw)
+	a.Add([]SubjectRef{{Labels: []string{"Lesbians"}}})
+	var tally *CategoryTally
+	rep := a.Report()
+	for i := range rep.Categories {
+		if rep.Categories[i].ID == "lgbtqia" {
+			tally = &rep.Categories[i]
+		}
+	}
+	if tally == nil || tally.Benchmark == nil || *tally.Benchmark != 0.41 || tally.BenchmarkSource == "" {
+		t.Fatalf("tally = %+v, want the configured benchmark passed through", tally)
+	}
+	// The seed itself ships no benchmarks: no standard target exists.
+	for _, c := range Seed() {
+		if c.Benchmark != nil {
+			t.Errorf("seed category %q ships a benchmark; targets are operator data", c.ID)
+		}
+	}
+
+	for name, doc := range map[string]string{
+		"out of range": "[[category]]\nid = \"x\"\nbenchmark = 1.2\nbenchmarkSource = \"s\"\n",
+		"no source":    "[[category]]\nid = \"x\"\nbenchmark = 0.4\n",
+		"source only":  "[[category]]\nid = \"x\"\nbenchmarkSource = \"s\"\n",
+	} {
+		if _, err := FromBytes([]byte(doc)); err == nil {
+			t.Errorf("FromBytes(%s): want an error", name)
+		}
+		if _, err := ParseCategories([]byte(doc)); err == nil {
+			t.Errorf("ParseCategories(%s): want an error", name)
+		}
+	}
+
+	// Round trip: benchmark survives encode -> parse.
+	b := 0.35
+	data, err := EncodeCategories([]Category{{ID: "x", Benchmark: &b, BenchmarkSource: "ACS 2024"}})
+	if err != nil {
+		t.Fatalf("EncodeCategories: %v", err)
+	}
+	back, err := ParseCategories(data)
+	if err != nil {
+		t.Fatalf("ParseCategories: %v", err)
+	}
+	if back[0].Benchmark == nil || *back[0].Benchmark != 0.35 || back[0].BenchmarkSource != "ACS 2024" {
+		t.Errorf("round trip = %+v", back[0])
+	}
+}
+
 // TestCategorizeSubjectsRollup checks the work-level roll-up: multiple subjects
 // dedupe to a stable, seed-ordered set of category ids.
 func TestCategorizeSubjectsRollup(t *testing.T) {

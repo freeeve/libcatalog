@@ -185,6 +185,30 @@ describe("DiversityConfig", () => {
     expect(document.querySelector(".notice")?.textContent).toContain("built-in seed");
   });
 
+  it("converts the percent benchmark to a [0,1] share on save and back on load", async () => {
+    saveDiversityCrosswalk.mockResolvedValue(VIEW);
+    await render({
+      ...VIEW,
+      override: [{ id: "lgbtqia", benchmark: 0.41, benchmarkSource: "CCBC 2025" }],
+      toml: "x",
+    });
+    // Loads as percent for editing.
+    expect(document.querySelector<HTMLInputElement>(".cat .benchpct")?.value).toBe("41");
+
+    const src = document.querySelector<HTMLInputElement>(".benchrow label:last-child input")!;
+    src.value = "ACS 2024";
+    src.dispatchEvent(new Event("input", { bubbles: true }));
+    const pctInput = document.querySelector<HTMLInputElement>(".cat .benchpct")!;
+    pctInput.value = "12.5";
+    pctInput.dispatchEvent(new Event("input", { bubbles: true }));
+    await tick();
+    click("Save override");
+    await tick();
+    const sent = saveDiversityCrosswalk.mock.calls[0][0].categories[0];
+    expect(sent.benchmark).toBeCloseTo(0.125);
+    expect(sent.benchmarkSource).toBe("ACS 2024");
+  });
+
   it("saves a pasted TOML document through the advanced editor", async () => {
     saveDiversityCrosswalk.mockResolvedValue(VIEW);
     await render();

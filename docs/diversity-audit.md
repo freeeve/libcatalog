@@ -171,6 +171,46 @@ thin and skewed: most editions have no ISBN item at all, ~82% of humans with
 a gender claim are "male", and non-Western and Indigenous creators are
 underrepresented. An unknown is an unknown; the audit must never backfill it.
 
+## Benchmarks: comparison points, not targets
+
+There is no standard target percentage for any category; the audit
+literature deliberately avoids quotas. Three benchmark families are used in
+practice:
+
+1. **Service-area demographics** (census/ACS) -- what collectionHQ's EDI
+   analysis and most public-library audits compare against.
+2. **Publishing output** (the CCBC's annual diversity statistics) --
+   separates a collection gap from an industry gap: you cannot buy what is
+   not published. (Lee & Low's Diversity Baseline Survey measures the
+   publishing *workforce*, context for the skew rather than a collection
+   benchmark.)
+3. **The collection's own baseline over time** -- audit, set local goals in
+   the collection-development policy, re-audit; the goal is the trend. For a
+   special collection with no meaningful community comparator, this is
+   usually the only honest benchmark.
+
+Cross-cutting: "mirrors and windows" (Rudine Sims Bishop) -- parity is not
+the goal, and windows argue for representation *above* local share for
+smaller groups.
+
+Accordingly, libcat ships **no built-in targets**. A category may carry an
+operator-supplied `benchmark` (a share in `[0,1]`) with a required
+`benchmarkSource` naming where the number came from:
+
+```toml
+[[category]]
+id = "bipoc"
+benchmark = 0.34
+benchmarkSource = "ACS 2024 service area"
+```
+
+The report passes both through (`benchmark`/`benchmarkSource` on the
+category tally), and the Diversity screen draws a neutral dashed marker on
+the share bar plus a labeled column -- never a red/green grade. A share is
+only as meaningful as the coverage above it, and the delta is the
+librarian's to interpret. The Diversity setup screen edits benchmarks
+alongside the rest of the crosswalk.
+
 ## Limitations, measured
 
 - A subject audit measures **aboutness**, not the identity of characters or
@@ -189,3 +229,15 @@ The design follows the library diversity-audit literature (subject-heading
 audits and their limits; the case against opaque automated audits) and the
 documented skews of Wikidata/VIAF demographic data. See the research notes in
 the feature ledger for citations.
+
+Benchmark-practice sources (verified 2026-07-11):
+
+- Service-area demographics: [collectionHQ DEI analysis](https://www.collectionhq.com/creating-community/)
+  ([Library Journal review](https://www.libraryjournal.com/story/Diversity-Equity-and-Inclusion-Analysis-Powered-CollectionHQ-Reference-eReview));
+  [CT State Library collection-audit guide](https://libguides.ctstatelibrary.org/collection-management/collection-audit).
+- Publishing output: [CCBC diversity statistics](https://ccbc.education.wisc.edu/literature-resources/ccbc-diversity-statistics/)
+  (annual since 1994); [Lee & Low Diversity Baseline Survey](https://www.leeandlow.com/about/diversity-baseline-survey/)
+  (publishing workforce, not output).
+- Baseline-over-time practice: [SLJ "Diversity Auditing 101"](https://www.slj.com/story/diversity-auditing-101-how-to-evaluate-collection);
+  [In the Library with the Lead Pipe on conducting audits](https://www.inthelibrarywiththeleadpipe.org/2024/conducting-a-diversity-audit/);
+  [Computers in Libraries on using audit data](https://www.infotoday.com/cilmag/nov22/Gates-McGaughey-Mulder-Voels--Using-Data-From-Collection-Diversity-Audits.shtml).

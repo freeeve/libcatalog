@@ -27,6 +27,10 @@
     keywords: string;
     uris: string;
     schemes: string;
+    /** Benchmark as a percent string (librarians think in percent; the TOML
+     *  stores the [0,1] share). Empty = none. */
+    benchmark: string;
+    benchmarkSource: string;
   }
 
   let view = $state<CrosswalkView | null>(null);
@@ -51,6 +55,8 @@
       keywords: (c.keywords ?? []).join(", "),
       uris: (c.uris ?? []).join("\n"),
       schemes: (c.schemes ?? []).join(", "),
+      benchmark: c.benchmark != null ? String(+(c.benchmark * 100).toFixed(2)) : "",
+      benchmarkSource: c.benchmarkSource ?? "",
     };
   }
 
@@ -61,7 +67,8 @@
       .filter(Boolean);
   }
 
-  /** The drafts as the API's category model; empty list fields drop out. */
+  /** The drafts as the API's category model; empty list fields drop out and
+   *  the percent benchmark converts back to a [0,1] share. */
   function categories(): CrosswalkCategory[] {
     return drafts.map((d) => ({
       id: d.id.trim(),
@@ -69,6 +76,9 @@
       keywords: split(d.keywords, /,/).length ? split(d.keywords, /,/) : undefined,
       uris: split(d.uris, /\n/).length ? split(d.uris, /\n/) : undefined,
       schemes: split(d.schemes, /,/).length ? split(d.schemes, /,/) : undefined,
+      // The number input binds a number, a loaded draft holds a string.
+      benchmark: String(d.benchmark ?? "").trim() !== "" ? parseFloat(String(d.benchmark)) / 100 : undefined,
+      benchmarkSource: d.benchmarkSource.trim() || undefined,
     }));
   }
 
@@ -95,8 +105,12 @@
 
   void loadAll();
 
+  function blankDraft(id = "", label = ""): Draft {
+    return { id, label, keywords: "", uris: "", schemes: "", benchmark: "", benchmarkSource: "" };
+  }
+
   function addCategory(): void {
-    drafts = [...drafts, { id: "", label: "", keywords: "", uris: "", schemes: "" }];
+    drafts = [...drafts, blankDraft()];
     target = drafts.length - 1;
   }
 
@@ -107,7 +121,7 @@
       target = at;
       return;
     }
-    drafts = [...drafts, { id, label, keywords: "", uris: "", schemes: "" }];
+    drafts = [...drafts, blankDraft(id, label)];
     target = drafts.length - 1;
   }
 
@@ -262,6 +276,16 @@
             Schemes <span class="hint">comma-separated vocabulary codes; every term of the scheme matches</span>
             <input bind:value={d.schemes} placeholder="homosaurus" />
           </label>
+          <div class="benchrow">
+            <label>
+              Benchmark % <span class="hint">optional comparison share -- census, publishing output, own baseline</span>
+              <input class="benchpct" type="number" min="0" max="100" step="0.1" bind:value={d.benchmark} />
+            </label>
+            <label>
+              Benchmark source <span class="hint">required with a benchmark; names where the number came from</span>
+              <input bind:value={d.benchmarkSource} placeholder="ACS 2024 service area" />
+            </label>
+          </div>
         </fieldset>
       {/each}
       <div class="actions">
@@ -432,6 +456,18 @@
   }
   .label {
     width: 16rem;
+  }
+  .benchrow {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .benchrow label:last-child {
+    flex: 1;
+    min-width: 14rem;
+  }
+  .benchpct {
+    width: 6rem;
   }
   .actions,
   .send {

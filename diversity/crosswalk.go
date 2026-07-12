@@ -30,11 +30,18 @@ var seedTOML []byte
 // whole-vocabulary match by scheme code (e.g. every homosaurus-scheme subject is
 // LGBTQIA+-relevant). The taxonomy is an editorial choice; this is its data shape.
 type Category struct {
-	ID       string   `toml:"id"`
-	Label    string   `toml:"label"`
-	Keywords []string `toml:"keywords"`
-	URIs     []string `toml:"uris"`
-	Schemes  []string `toml:"schemes"`
+	ID       string   `toml:"id" json:"id"`
+	Label    string   `toml:"label" json:"label,omitempty"`
+	Keywords []string `toml:"keywords" json:"keywords,omitempty"`
+	URIs     []string `toml:"uris" json:"uris,omitempty"`
+	Schemes  []string `toml:"schemes" json:"schemes,omitempty"`
+	// Benchmark is an operator-supplied comparison share in [0,1] (service-area
+	// demographics, publishing output, or the collection's own baseline), with
+	// BenchmarkSource naming where it came from ("ACS 2024 service area",
+	// "CCBC 2025"). The seed ships none: there is no standard target percentage,
+	// and a benchmark without a named source is a number pretending to be a goal.
+	Benchmark       *float64 `toml:"benchmark,omitempty" json:"benchmark,omitempty"`
+	BenchmarkSource string   `toml:"benchmarkSource,omitempty" json:"benchmarkSource,omitempty"`
 }
 
 // crosswalkFile is the on-disk/embedded TOML shape: an array of categories.
@@ -115,8 +122,30 @@ func ParseCategories(data []byte) ([]Category, error) {
 		if strings.TrimSpace(c.ID) == "" {
 			return nil, fmt.Errorf("diversity: category %d is missing its id", i)
 		}
+		if err := validBenchmark(c); err != nil {
+			return nil, fmt.Errorf("diversity: category %d: %w", i, err)
+		}
 	}
 	return f.Category, nil
+}
+
+// validBenchmark checks a category's operator benchmark: a share in [0,1],
+// and never a bare number -- a benchmark without a named source reads as a
+// target the tool endorsed rather than data the operator chose.
+func validBenchmark(c Category) error {
+	if c.Benchmark == nil {
+		if c.BenchmarkSource != "" {
+			return fmt.Errorf("category %q names a benchmarkSource without a benchmark", c.ID)
+		}
+		return nil
+	}
+	if *c.Benchmark < 0 || *c.Benchmark > 1 {
+		return fmt.Errorf("category %q benchmark %v is not a share in [0,1]", c.ID, *c.Benchmark)
+	}
+	if strings.TrimSpace(c.BenchmarkSource) == "" {
+		return fmt.Errorf("category %q has a benchmark but no benchmarkSource naming where it came from", c.ID)
+	}
+	return nil
 }
 
 // EncodeCategories renders categories as a crosswalk TOML document -- the same
@@ -149,12 +178,19 @@ func build(seed []byte, overrides [][]byte) (*Crosswalk, error) {
 			if oc.ID == "" {
 				return nil, fmt.Errorf("override %d: a category is missing its id", oi)
 			}
+			if err := validBenchmark(oc); err != nil {
+				return nil, fmt.Errorf("override %d: %w", oi, err)
+			}
 			if i, ok := pos[oc.ID]; ok {
 				merged.Category[i].Keywords = unionFold(merged.Category[i].Keywords, oc.Keywords)
 				merged.Category[i].URIs = unionExact(merged.Category[i].URIs, oc.URIs)
 				merged.Category[i].Schemes = unionFold(merged.Category[i].Schemes, oc.Schemes)
 				if oc.Label != "" {
 					merged.Category[i].Label = oc.Label
+				}
+				if oc.Benchmark != nil {
+					merged.Category[i].Benchmark = oc.Benchmark
+					merged.Category[i].BenchmarkSource = oc.BenchmarkSource
 				}
 				continue
 			}
@@ -171,7 +207,7 @@ func build(seed []byte, overrides [][]byte) (*Crosswalk, error) {
 		keywords: map[string][][]string{},
 	}
 	for i, c := range merged.Category {
-		cw.categories = append(cw.categories, Category{ID: c.ID, Label: c.Label})
+		cw.categories = append(cw.categories, Category{ID: c.ID, Label: c.Label, Benchmark: c.Benchmark, BenchmarkSource: c.BenchmarkSource})
 		cw.index[c.ID] = i
 		seqs := make([][]string, 0, len(c.Keywords))
 		for _, k := range c.Keywords {
@@ -215,11 +251,16 @@ func copyCategories(cats []Category) []Category {
 	out := make([]Category, len(cats))
 	for i, c := range cats {
 		out[i] = Category{
-			ID:       c.ID,
-			Label:    c.Label,
-			Keywords: append([]string(nil), c.Keywords...),
-			URIs:     append([]string(nil), c.URIs...),
-			Schemes:  append([]string(nil), c.Schemes...),
+			ID:              c.ID,
+			Label:           c.Label,
+			Keywords:        append([]string(nil), c.Keywords...),
+			URIs:            append([]string(nil), c.URIs...),
+			Schemes:         append([]string(nil), c.Schemes...),
+			BenchmarkSource: c.BenchmarkSource,
+		}
+		if c.Benchmark != nil {
+			b := *c.Benchmark
+			out[i].Benchmark = &b
 		}
 	}
 	return out

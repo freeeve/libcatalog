@@ -74,15 +74,40 @@ func TestAuditCrosswalkCRUD(t *testing.T) {
 		t.Errorf("audit veterans = %d after override, want 1", got)
 	}
 
-	// PUT raw TOML (the paste-your---crosswalk-file path).
+	// PUT raw TOML (the paste-your---crosswalk-file path), with an operator
+	// benchmark; the audit response passes it through with its source.
 	rec = request(t, h, http.MethodPut, "/v1/audit/diversity/crosswalk", "lib-token", "", map[string]any{
-		"toml": "[[category]]\nid = \"veterans\"\nlabel = \"Veterans & military families\"\nkeywords = [\"veterans\", \"military families\"]\n",
+		"toml": "[[category]]\nid = \"veterans\"\nlabel = \"Veterans & military families\"\nkeywords = [\"veterans\", \"military families\"]\nbenchmark = 0.06\nbenchmarkSource = \"ACS 2024 service area\"\n",
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("PUT toml = %d (%s)", rec.Code, rec.Body)
 	}
 	if page = getCrosswalk(t, h); len(page.Override) != 1 || len(page.Override[0].Keywords) != 2 {
 		t.Fatalf("override after TOML PUT = %+v", page.Override)
+	}
+	audit := request(t, h, http.MethodGet, "/v1/audit/diversity", "lib-token", "", nil)
+	var withBench struct {
+		Categories []struct {
+			ID              string   `json:"id"`
+			Benchmark       *float64 `json:"benchmark"`
+			BenchmarkSource string   `json:"benchmarkSource"`
+		} `json:"categories"`
+	}
+	_ = json.Unmarshal(audit.Body.Bytes(), &withBench)
+	benchOK := false
+	for _, c := range withBench.Categories {
+		if c.ID == "veterans" {
+			benchOK = c.Benchmark != nil && *c.Benchmark == 0.06 && c.BenchmarkSource == "ACS 2024 service area"
+		}
+	}
+	if !benchOK {
+		t.Errorf("audit response missing the operator benchmark: %s", audit.Body)
+	}
+	// A benchmark without a named source is refused.
+	if rec := request(t, h, http.MethodPut, "/v1/audit/diversity/crosswalk", "lib-token", "", map[string]any{
+		"toml": "[[category]]\nid = \"veterans\"\nbenchmark = 0.06\n",
+	}); rec.Code != http.StatusBadRequest {
+		t.Errorf("sourceless benchmark = %d, want 400", rec.Code)
 	}
 
 	// Invalid documents are refused: no id, both fields, neither field.

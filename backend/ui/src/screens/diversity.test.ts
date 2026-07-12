@@ -123,6 +123,37 @@ describe("Diversity audit screen", () => {
     expect(document.querySelector(".axis")?.textContent).toContain("2026-06-01");
   });
 
+  it("renders operator benchmarks as neutral markers with named sources", async () => {
+    fetchDiversityAudit.mockResolvedValue({
+      ...REPORT,
+      categories: [
+        { id: "lgbtqia", label: "LGBTQIA+", works: 400, shareCovered: 0.5, shareTotal: 0.4, benchmark: 0.41, benchmarkSource: "CCBC 2025" },
+        { id: "indigenous", label: "Indigenous peoples", works: 0, shareCovered: 0, shareTotal: 0 },
+      ],
+    });
+    fetchDiversitySnapshots.mockResolvedValue({ snapshots: [] });
+    await render();
+    const rows = [...document.querySelectorAll("table.cats tbody tr")];
+    const bench = rows[0]?.querySelector<HTMLElement>(".bench");
+    expect(parseFloat(bench!.style.left)).toBeCloseTo(41);
+    expect(bench?.getAttribute("title")).toContain("CCBC 2025");
+    expect(rows[0]?.textContent).toContain("41.0%");
+    expect(rows[0]?.textContent).toContain("CCBC 2025");
+    // A category without a benchmark renders no marker, and the note says
+    // deltas are interpretation, not scores.
+    expect(rows[1]?.querySelector(".bench")).toBeNull();
+    expect(document.querySelector(".bench-note")?.textContent).toContain("never as a score");
+  });
+
+  it("omits the benchmark column when no category carries one", async () => {
+    arm();
+    await render();
+    expect(document.querySelector(".bench")).toBeNull();
+    expect(document.querySelector(".bench-note")).toBeNull();
+    const headers = [...document.querySelectorAll("table.cats thead th")].map((h) => h.textContent);
+    expect(headers.join("|")).not.toContain("Benchmark");
+  });
+
   it("passes the applied key=value terms to both endpoints", async () => {
     arm();
     await render();
