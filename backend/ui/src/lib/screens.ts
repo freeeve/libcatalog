@@ -66,6 +66,10 @@ export const SCREENS: Screen[] = [
   // The crosswalk editor behind the audit. Off the sidebar (the Diversity
   // screen links it); the palette still reaches it by name.
   { route: "diversityconfig", path: "/diversity/config", label: "Diversity setup", paletteLabel: "Diversity crosswalk setup", chord: null, sidebar: false },
+  // Enrichment runs and the async job board. Admin-only like its routes;
+  // off the sidebar (the nav is at capacity -- cf. the settings-menu task),
+  // reachable by palette and by chord.
+  { route: "enrichment", path: "/enrichment", label: "Enrichment", paletteLabel: "Enrichment jobs", chord: "n", sidebar: false, adminOnly: true },
   // Last in the palette, and absent from the nav: the brand link is its door.
   { route: "dashboard", path: "/", label: "Dashboard", chord: "d", sidebar: false },
 ];

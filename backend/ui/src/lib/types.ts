@@ -835,6 +835,40 @@ export interface AuditTermsPage {
   scope?: string;
 }
 
+/** An enrichment run's live counters (ingest.EnrichStats). */
+export interface EnrichStats {
+  batches: number;
+  skippedBatches?: number;
+  resolvedCreators?: number;
+  claims?: number;
+  elapsedMs: number;
+}
+
+/** A synchronous run's summary (enrich.Result). */
+export interface EnrichRunResult {
+  source: string;
+  mode: string;
+  works: number;
+  scope?: string;
+  stats?: EnrichStats;
+}
+
+/** One asynchronous enrichment job (enrich.Job): QUEUED -> RUNNING (stats
+ *  refresh every few seconds) -> DONE (result) | FAILED (error). */
+export interface EnrichJob {
+  id: string;
+  source: string;
+  filters?: [string, string][];
+  requester: string;
+  status: "QUEUED" | "RUNNING" | "DONE" | "FAILED";
+  stats?: EnrichStats;
+  result?: EnrichRunResult;
+  error?: string;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
 /** One demographic property's distribution in the creator audit. */
 export interface CreatorProperty {
   property: string;

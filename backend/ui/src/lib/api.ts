@@ -29,6 +29,8 @@ import type {
   DiversityReport,
   DiversitySnapshot,
   DuplicateGroup,
+  EnrichJob,
+  EnrichRunResult,
   WorkItem,
   WorkVisibility,
   Decision,
@@ -349,6 +351,34 @@ export function previewDiversityCrosswalk(
   for (const f of filters) q.append("filter", f);
   const qs = q.toString();
   return call("POST", `/v1/audit/diversity/preview${qs ? `?${qs}` : ""}`, body);
+}
+
+/** The configured enrichment sources (admin). */
+export function fetchEnrichSources(): Promise<{ sources: string[] }> {
+  return call("GET", "/v1/enrich");
+}
+
+/** Runs one enrichment source synchronously -- small scoped runs only; a
+ *  corpus-scale pass belongs in a job (admin). */
+export function runEnrichSource(source: string, filters: string[] = []): Promise<EnrichRunResult> {
+  const q = new URLSearchParams();
+  for (const f of filters) q.append("filter", f);
+  const qs = q.toString();
+  return call("POST", `/v1/enrich/${encodeURIComponent(source)}/run${qs ? `?${qs}` : ""}`);
+}
+
+/** Queues an asynchronous enrichment run; a worker executes it and the job
+ *  record carries live counters while it runs (admin). */
+export function createEnrichJob(source: string, filters: string[] = []): Promise<EnrichJob> {
+  const q = new URLSearchParams();
+  for (const f of filters) q.append("filter", f);
+  const qs = q.toString();
+  return call("POST", `/v1/enrich/${encodeURIComponent(source)}/jobs${qs ? `?${qs}` : ""}`);
+}
+
+/** Recent enrichment jobs, newest first (admin). */
+export function fetchEnrichJobs(): Promise<{ jobs: EnrichJob[] }> {
+  return call("GET", "/v1/enrich/jobs");
 }
 
 /** The subject-term histogram the facet builder picks from (librarian). */

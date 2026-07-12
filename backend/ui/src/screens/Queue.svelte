@@ -35,6 +35,11 @@
   const schemes = getConfig().schemes ?? [];
   const FRESH_MS = 60_000;
 
+  // A deep link may pin the provenance filter (an enrichment job's "review
+  // suggestions" lands on its PIPELINE output); the persisted screen state
+  // otherwise stands.
+  let { initialProvenance = "" }: { initialProvenance?: string } = $props();
+
   const st = screenState("queue", () => ({
     status: "PENDING",
     scheme: "",
@@ -45,6 +50,12 @@
     selected: 0,
     loadedAt: 0,
   }));
+  // svelte-ignore state_referenced_locally -- the deep link pins the filter once, at mount
+  if (initialProvenance && PROVENANCES.includes(initialProvenance)) {
+    // svelte-ignore state_referenced_locally
+    st.provenance = initialProvenance;
+    st.loadedAt = 0; // force a fresh fetch under the pinned filter
+  }
 
   let loading = $state(false);
   let applying = $state(false);

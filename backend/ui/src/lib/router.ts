@@ -39,6 +39,7 @@ export const ROUTES: RouteDef[] = [
   { name: "audit", pattern: "/audit" },
   { name: "diversity", pattern: "/diversity" },
   { name: "diversityconfig", pattern: "/diversity/config" },
+  { name: "enrichment", pattern: "/enrichment" },
 ];
 
 /** Routes nothing navigates to by name: auth callbacks and detail pages a user

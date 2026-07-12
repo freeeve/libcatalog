@@ -35,6 +35,7 @@
   import Audit from "./screens/Audit.svelte";
   import Diversity from "./screens/Diversity.svelte";
   import DiversityConfig from "./screens/DiversityConfig.svelte";
+  import Enrichment from "./screens/Enrichment.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
   import ReauthDialog from "./components/ReauthDialog.svelte";
   import { parseExportFacets } from "./lib/worksurl";
@@ -257,7 +258,7 @@
       initialTombstoned={route.query.get("tombstoned") ?? ""}
     />
   {:else if route.name === "queue"}
-    <Queue />
+    <Queue initialProvenance={route.query.get("provenance") ?? ""} />
   {:else if route.name === "promotions"}
     <Promotions />
   {:else if route.name === "profiles"}
@@ -274,6 +275,8 @@
     <Diversity initialFilter={route.query.get("filter") ?? ""} />
   {:else if route.name === "diversityconfig"}
     <DiversityConfig initialFilter={route.query.get("filter") ?? ""} />
+  {:else if route.name === "enrichment"}
+    <Enrichment />
   {:else if $sessionStore}
     <Dashboard session={$sessionStore} />
   {/if}
