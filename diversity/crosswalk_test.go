@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -133,6 +134,86 @@ keywords = ["veterans", "military families"]
 	}
 	if got := cw.Categorize("", "Military families", ""); !reflect.DeepEqual(got, []string{"veterans"}) {
 		t.Errorf("new category not matched: got %v", got)
+	}
+}
+
+// TestEncodeParseRoundTrip proves the editor loop: categories encode to the
+// same TOML dialect Load reads, parse back structurally identical, and merge
+// over the seed via FromBytes exactly like a --crosswalk file.
+func TestEncodeParseRoundTrip(t *testing.T) {
+	cats := []Category{
+		{ID: "lgbtqia-trans", Label: "Transgender people", Keywords: []string{"transgender", "trans men"}, URIs: []string{"https://homosaurus.org/v4/homoit0001378"}},
+		{ID: "veterans", Label: "Veterans", Schemes: []string{"milvoc"}},
+	}
+	data, err := EncodeCategories(cats)
+	if err != nil {
+		t.Fatalf("EncodeCategories: %v", err)
+	}
+	back, err := ParseCategories(data)
+	if err != nil {
+		t.Fatalf("ParseCategories: %v", err)
+	}
+	if len(back) != 2 || back[0].ID != "lgbtqia-trans" || !reflect.DeepEqual(back[0].Keywords, cats[0].Keywords) || back[1].Label != "Veterans" {
+		t.Fatalf("round trip = %+v, want %+v", back, cats)
+	}
+	cw, err := FromBytes(data)
+	if err != nil {
+		t.Fatalf("FromBytes: %v", err)
+	}
+	// The seed's parent category may match too (facets are lenses, not a
+	// partition); the encoded facet must be among the hits.
+	got := cw.Categorize("", "Trans men in fiction", "")
+	if !slices.Contains(got, "lgbtqia-trans") {
+		t.Errorf("encoded override keyword not live: got %v", got)
+	}
+}
+
+// TestParseCategoriesRejectsMissingID mirrors build's id requirement at the
+// standalone-parse layer the editor validates through.
+func TestParseCategoriesRejectsMissingID(t *testing.T) {
+	if _, err := ParseCategories([]byte("[[category]]\nlabel = \"No id\"\n")); err == nil {
+		t.Fatal("want an error for a category without an id")
+	}
+	if _, err := ParseCategories([]byte("label = [malformed")); err == nil {
+		t.Fatal("want an error for malformed TOML")
+	}
+}
+
+// TestDefinitionsCarryMergedDetail checks the editor's read shape: full
+// keyword/uri/scheme detail after an override merge, deep-copied.
+func TestDefinitionsCarryMergedDetail(t *testing.T) {
+	cw, err := FromBytes([]byte(`
+[[category]]
+id = "lgbtqia"
+keywords = ["achillean"]
+`))
+	if err != nil {
+		t.Fatalf("FromBytes: %v", err)
+	}
+	defs := cw.Definitions()
+	var lg *Category
+	for i := range defs {
+		if defs[i].ID == "lgbtqia" {
+			lg = &defs[i]
+		}
+	}
+	if lg == nil {
+		t.Fatal("lgbtqia missing from Definitions")
+	}
+	hasSeed, hasOver := false, false
+	for _, k := range lg.Keywords {
+		hasSeed = hasSeed || k == "lesbian"
+		hasOver = hasOver || k == "achillean"
+	}
+	if !hasSeed || !hasOver {
+		t.Errorf("merged keywords = %v, want seed + override", lg.Keywords)
+	}
+	lg.Keywords[0] = "mutated"
+	if cw.Definitions()[0].Keywords[0] == "mutated" {
+		t.Error("Definitions must deep-copy; the crosswalk was mutated")
+	}
+	if seed := Seed(); len(seed) == 0 || seed[0].ID == "" {
+		t.Errorf("Seed() = %v, want the embedded categories with detail", seed)
 	}
 }
 

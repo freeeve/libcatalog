@@ -165,8 +165,11 @@ func New(deps Deps) http.Handler {
 		wl := registerWorksList(mux, ix, deps.Verifier, deps.ExtraFacets, deps.Vocab)
 		registerTags(mux, wl, deps.Verifier)
 		registerWorksSimilar(mux, ix, deps.Verifier, deps.Vocab)
-		computeAudit := registerAudit(mux, ix, deps.Verifier)
+		cws := &crosswalkSource{bs: deps.Blob}
+		computeAudit := registerAudit(mux, ix, deps.Verifier, cws)
 		registerAuditSnapshots(mux, deps.Blob, deps.Verifier, computeAudit)
+		registerAuditCrosswalk(mux, deps.Blob, ix, deps.Verifier, cws)
+		registerAuditTerms(mux, ix, deps.Vocab, deps.Verifier)
 	}
 	if deps.Authorities != nil && deps.Verifier != nil {
 		registerAuthorities(mux, deps.Authorities, deps.Profiles, deps.Verifier, deps.Logger)

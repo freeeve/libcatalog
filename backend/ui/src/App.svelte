@@ -34,6 +34,7 @@
   import Suggestions from "./screens/Suggestions.svelte";
   import Audit from "./screens/Audit.svelte";
   import Diversity from "./screens/Diversity.svelte";
+  import DiversityConfig from "./screens/DiversityConfig.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
   import ReauthDialog from "./components/ReauthDialog.svelte";
   import { parseExportFacets } from "./lib/worksurl";
@@ -271,6 +272,8 @@
     />
   {:else if route.name === "diversity"}
     <Diversity initialFilter={route.query.get("filter") ?? ""} />
+  {:else if route.name === "diversityconfig"}
+    <DiversityConfig initialFilter={route.query.get("filter") ?? ""} />
   {:else if $sessionStore}
     <Dashboard session={$sessionStore} />
   {/if}

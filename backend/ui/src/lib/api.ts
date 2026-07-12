@@ -22,6 +22,9 @@ import type {
   CopycatTemplate,
   MarcFieldError,
   DecidePromotionResponse,
+  AuditTermsPage,
+  CrosswalkCategory,
+  CrosswalkView,
   DiversityReport,
   DiversitySnapshot,
   DuplicateGroup,
@@ -316,6 +319,44 @@ export function recordDiversitySnapshot(filters: string[] = []): Promise<Diversi
   for (const f of filters) q.append("filter", f);
   const qs = q.toString();
   return call("POST", `/v1/audit/diversity/snapshots${qs ? `?${qs}` : ""}`);
+}
+
+/** The crosswalk-configuration view: seed, persisted override, effective
+ *  merge (librarian). */
+export function fetchDiversityCrosswalk(): Promise<CrosswalkView> {
+  return call("GET", "/v1/audit/diversity/crosswalk");
+}
+
+/** Persists the operator's crosswalk override -- structured categories or a
+ *  pasted TOML document, exactly one (librarian). */
+export function saveDiversityCrosswalk(body: { categories?: CrosswalkCategory[]; toml?: string }): Promise<CrosswalkView> {
+  return call("PUT", "/v1/audit/diversity/crosswalk", body);
+}
+
+/** Removes the override; the audit returns to the built-in seed (librarian). */
+export function deleteDiversityCrosswalk(): Promise<void> {
+  return call("DELETE", "/v1/audit/diversity/crosswalk");
+}
+
+/** Runs the content audit with a candidate crosswalk WITHOUT persisting it --
+ *  the facet builder's live preview (librarian). */
+export function previewDiversityCrosswalk(
+  body: { categories?: CrosswalkCategory[]; toml?: string },
+  filters: string[] = [],
+): Promise<DiversityReport> {
+  const q = new URLSearchParams();
+  for (const f of filters) q.append("filter", f);
+  const qs = q.toString();
+  return call("POST", `/v1/audit/diversity/preview${qs ? `?${qs}` : ""}`, body);
+}
+
+/** The subject-term histogram the facet builder picks from (librarian). */
+export function fetchAuditTerms(filters: string[] = [], limit?: number): Promise<AuditTermsPage> {
+  const q = new URLSearchParams();
+  for (const f of filters) q.append("filter", f);
+  if (limit) q.set("limit", String(limit));
+  const qs = q.toString();
+  return call("GET", `/v1/audit/terms${qs ? `?${qs}` : ""}`);
 }
 
 /** The suggestion review queue, optionally filtered (moderator). */

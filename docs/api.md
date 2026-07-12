@@ -551,8 +551,13 @@ of them: `/` serves the admin SPA, `/v1/` is the JSON-404 catch-all.
 | `ANY` | `/v1/` | public | `httpapi.go` |
 | `GET` | `/v1/audit` | librarian | `review_handlers.go` |
 | `GET` | `/v1/audit/diversity` | librarian | `audit_handler.go` |
+| `DELETE` | `/v1/audit/diversity/crosswalk` | librarian | `audit_crosswalk.go` |
+| `GET` | `/v1/audit/diversity/crosswalk` | librarian | `audit_crosswalk.go` |
+| `PUT` | `/v1/audit/diversity/crosswalk` | librarian | `audit_crosswalk.go` |
+| `POST` | `/v1/audit/diversity/preview` | librarian | `audit_crosswalk.go` |
 | `GET` | `/v1/audit/diversity/snapshots` | librarian | `audit_snapshots.go` |
 | `POST` | `/v1/audit/diversity/snapshots` | librarian | `audit_snapshots.go` |
+| `GET` | `/v1/audit/terms` | librarian | `audit_terms.go` |
 | `POST` | `/v1/auth/exchange` | public | `httpapi.go` |
 | `POST` | `/v1/auth/login` | public | `auth_handlers.go` |
 | `POST` | `/v1/auth/logout` | public | `auth_handlers.go` |

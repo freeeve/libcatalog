@@ -772,6 +772,48 @@ export interface DiversityReport {
 /** One recorded audit in a scope's dated series. */
 export type DiversitySnapshot = DiversityReport & { date: string };
 
+/** One crosswalk category definition with its matching detail
+ *  (diversity.Category). */
+export interface CrosswalkCategory {
+  id: string;
+  label?: string;
+  keywords?: string[];
+  uris?: string[];
+  schemes?: string[];
+}
+
+/** GET /v1/audit/diversity/crosswalk -- the built-in seed, the operator's
+ *  persisted override (absent when none), and the effective merge. */
+export interface CrosswalkView {
+  seed: CrosswalkCategory[];
+  override?: CrosswalkCategory[];
+  /** The stored override as CLI-portable TOML. */
+  toml?: string;
+  effective: CrosswalkCategory[];
+  /** A persisted override that no longer parses; the audit runs the seed. */
+  broken?: string;
+}
+
+/** One subject term in the facet builder's histogram (GET /v1/audit/terms). */
+export interface AuditTerm {
+  uri?: string;
+  label?: string;
+  scheme?: string;
+  works: number;
+}
+
+/** The term-frequency histogram behind the facet builder. */
+export interface AuditTermsPage {
+  totalWorks: number;
+  uris: AuditTerm[];
+  uriTotal: number;
+  headings: AuditTerm[];
+  headingTotal: number;
+  tags: AuditTerm[];
+  tagTotal: number;
+  scope?: string;
+}
+
 /** One demographic property's distribution in the creator audit. */
 export interface CreatorProperty {
   property: string;

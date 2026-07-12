@@ -140,7 +140,7 @@
     <h1>Diversity audit</h1>
     <p class="muted">
       What the collection is <em>about</em>, from its subject headings and tags --
-      not who created it.
+      not who created it. <a href="#/diversity/config">Configure the categories</a>.
     </p>
   </header>
 

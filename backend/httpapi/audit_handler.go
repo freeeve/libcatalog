@@ -141,11 +141,11 @@ func aggregateCreators(sums []ingest.WorkSummary, include func(*ingest.WorkSumma
 
 // auditCache memoizes computed reports against the work index generation: the
 // audit is a pure function of (corpus, crosswalk, filters), the generation is
-// the corpus's change counter, and the crosswalk is compile-time constant
-// (diversity.Default; a server-side override, when one lands, must join the
-// key). Entries key on the NORMALIZED filter set so term order does not fork
-// the cache; a generation change drops everything, and the map is capped
-// because filters are caller-chosen text.
+// the corpus's change counter, and the crosswalk joins the key through its
+// override-content hash (crosswalkSource), so saving a new override never
+// serves a stale report. Entries key on the NORMALIZED filter set so term
+// order does not fork the cache; a generation change drops everything, and
+// the map is capped because filters are caller-chosen text.
 type auditCache struct {
 	mu      sync.Mutex
 	gen     uint64
@@ -203,7 +203,7 @@ func (f auditFilterSet) cacheKey() string {
 // semantics as `lcat audit --filter/--source`.
 // registerAudit returns its compute path so the snapshot recorder reuses the
 // same filters/cache/aggregation (registerAuditSnapshots).
-func registerAudit(mux *http.ServeMux, ix *workindex.Index, verifier auth.TokenVerifier) func(*http.Request) (auditResponse, auditFilterSet, int, error) {
+func registerAudit(mux *http.ServeMux, ix *workindex.Index, verifier auth.TokenVerifier, cws *crosswalkSource) func(*http.Request) (auditResponse, auditFilterSet, int, error) {
 	librarian := auth.Require(verifier, auth.RoleLibrarian)
 	cache := &auditCache{}
 
@@ -216,14 +216,17 @@ func registerAudit(mux *http.ServeMux, ix *workindex.Index, verifier auth.TokenV
 		if err != nil {
 			return auditResponse{}, nil, http.StatusInternalServerError, errScanFailed
 		}
-		key := filters.cacheKey()
+		cw, cwHash, _, err := cws.effective(r)
+		if err != nil {
+			return auditResponse{}, nil, http.StatusInternalServerError, errScanFailed
+		}
+		key := cwHash + "\x00" + filters.cacheKey()
 		if resp, ok := cache.get(gen, key); ok {
 			return resp, filters, http.StatusOK, nil
 		}
-		cw := diversity.Default()
 		a := diversity.NewAuditor(cw)
 		include := func(s *ingest.WorkSummary) bool {
-			return !s.Tombstoned && filters.match(s.Extras)
+			return includeInAudit(s, filters)
 		}
 		for i := range sums {
 			s := &sums[i]

@@ -94,6 +94,31 @@ collection, prefer scheme- or URI-level entries over keywords; the
 queerbooks deployment's override is a worked example of splitting the flat
 LGBTQIA+ umbrella into finer identity facets.
 
+### Configuring the crosswalk from the admin UI
+
+The same override persists server-side: the **Diversity setup** screen
+(linked from the Diversity screen, `#/diversity/config`) edits it, and
+`GET /v1/audit/diversity` merges it over the seed on every report, so the
+on-screen audit renders the operator's categories without a redeploy. The
+stored document is the identical TOML dialect `--crosswalk` reads
+(`PUT/GET/DELETE /v1/audit/diversity/crosswalk`, librarian role), so a file
+maintained for the CLI pastes straight in and the server's copy pastes
+straight out.
+
+Rather than hand-typing authority URIs, the screen's facet builder surfaces
+the corpus's actual subject terms as a work-count histogram
+(`GET /v1/audit/terms`: controlled URIs, heading labels, and tags, each with
+its count in the current scope). Check the terms that belong together, send
+them to a category -- URIs become exact matches, labels become keywords --
+and preview the resulting counts (`POST /v1/audit/diversity/preview`)
+before saving. The counts make the editorial call concrete: a term carried
+by 80 works may deserve its own facet; one carried by 7 probably doesn't.
+
+Override semantics are the same as the file's: extend or relabel a seed
+category, or append new ones. Seed matching is never removable, and facet
+categories overlap by design -- they are lenses over the collection, not a
+partition of it.
+
 ## The creator axis
 
 Off by default. Enable on the cataloging backend with:

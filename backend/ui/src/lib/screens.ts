@@ -63,6 +63,9 @@ export const SCREENS: Screen[] = [
   // the live work index, methodology inline. "Diversity audit" everywhere
   // user-facing -- "Audit" alone is the log reader above.
   { route: "diversity", path: "/diversity", label: "Diversity", paletteLabel: "Diversity audit", chord: "y", sidebar: true },
+  // The crosswalk editor behind the audit. Off the sidebar (the Diversity
+  // screen links it); the palette still reaches it by name.
+  { route: "diversityconfig", path: "/diversity/config", label: "Diversity setup", paletteLabel: "Diversity crosswalk setup", chord: null, sidebar: false },
   // Last in the palette, and absent from the nav: the brand link is its door.
   { route: "dashboard", path: "/", label: "Dashboard", chord: "d", sidebar: false },
 ];

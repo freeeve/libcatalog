@@ -46,6 +46,7 @@ type crosswalkFile struct {
 // overrides) and is read-only thereafter, so it is safe for concurrent use.
 type Crosswalk struct {
 	categories []Category            // seed order, then appended new override ids -- stable for reporting
+	full       []Category            // same order, with merged keyword/uri/scheme detail
 	index      map[string]int        // category id -> position in categories
 	byURI      map[string][]string   // exact subject URI -> category ids (seed order)
 	byScheme   map[string][]string   // vocabulary scheme code -> category ids (seed order)
@@ -84,6 +85,51 @@ func Load(overridePaths ...string) (*Crosswalk, error) {
 	return build(seedTOML, overrides)
 }
 
+// FromBytes returns the crosswalk built from the embedded seed with each override
+// document (raw TOML bytes) merged over it in order -- Load for callers whose
+// override lives somewhere other than a file, e.g. a persisted server-side
+// override.
+func FromBytes(overrides ...[]byte) (*Crosswalk, error) {
+	return build(seedTOML, overrides)
+}
+
+// Seed returns the embedded seed's categories with full matching detail, for
+// surfaces that present the built-in taxonomy alongside an operator's override.
+func Seed() []Category {
+	var f crosswalkFile
+	if err := toml.Unmarshal(seedTOML, &f); err != nil {
+		panic("diversity: embedded seed crosswalk is invalid: " + err.Error())
+	}
+	return copyCategories(f.Category)
+}
+
+// ParseCategories parses one crosswalk TOML document into its categories,
+// validating that every category names an id. It does not merge with the seed;
+// use FromBytes to validate the full merged build.
+func ParseCategories(data []byte) ([]Category, error) {
+	var f crosswalkFile
+	if err := toml.Unmarshal(data, &f); err != nil {
+		return nil, fmt.Errorf("diversity: parse crosswalk: %w", err)
+	}
+	for i, c := range f.Category {
+		if strings.TrimSpace(c.ID) == "" {
+			return nil, fmt.Errorf("diversity: category %d is missing its id", i)
+		}
+	}
+	return f.Category, nil
+}
+
+// EncodeCategories renders categories as a crosswalk TOML document -- the same
+// format Load reads and `lcat diversity-audit --crosswalk` takes, so a
+// server-persisted override stays portable to the CLI.
+func EncodeCategories(cats []Category) ([]byte, error) {
+	data, err := toml.Marshal(crosswalkFile{Category: cats})
+	if err != nil {
+		return nil, fmt.Errorf("diversity: encode crosswalk: %w", err)
+	}
+	return data, nil
+}
+
 // build parses the seed and overrides and compiles the lookup indexes.
 func build(seed []byte, overrides [][]byte) (*Crosswalk, error) {
 	var merged crosswalkFile
@@ -118,6 +164,7 @@ func build(seed []byte, overrides [][]byte) (*Crosswalk, error) {
 	}
 
 	cw := &Crosswalk{
+		full:     copyCategories(merged.Category),
 		index:    map[string]int{},
 		byURI:    map[string][]string{},
 		byScheme: map[string][]string{},
@@ -153,6 +200,28 @@ func build(seed []byte, overrides [][]byte) (*Crosswalk, error) {
 func (c *Crosswalk) Categories() []Category {
 	out := make([]Category, len(c.categories))
 	copy(out, c.categories)
+	return out
+}
+
+// Definitions returns the categories in stable reporting order WITH their merged
+// matching detail (keywords, uris, schemes) -- the shape a crosswalk editor
+// presents. The copy is deep, so callers cannot mutate the crosswalk.
+func (c *Crosswalk) Definitions() []Category {
+	return copyCategories(c.full)
+}
+
+// copyCategories deep-copies categories including their slices.
+func copyCategories(cats []Category) []Category {
+	out := make([]Category, len(cats))
+	for i, c := range cats {
+		out[i] = Category{
+			ID:       c.ID,
+			Label:    c.Label,
+			Keywords: append([]string(nil), c.Keywords...),
+			URIs:     append([]string(nil), c.URIs...),
+			Schemes:  append([]string(nil), c.Schemes...),
+		}
+	}
 	return out
 }
 
