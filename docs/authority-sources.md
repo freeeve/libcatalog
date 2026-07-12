@@ -104,7 +104,16 @@ either direction AND one-hop pivots through a shared intermediate URI --
 the FAST -> LCSH <- Homosaurus shape, where neither LCSH nor any direct
 FAST-Homosaurus edge is loaded. Pivot suggestions carry lower confidence
 (exact 1.0, close 0.85, pivot-exact 0.8, pivot-close 0.7); the weakest hop
-grades the chain. For a FAST-cataloged collection the pivot's first hop is
+grades the chain.
+
+Match links are not transitive, so pivots are guarded against the broad-
+heading trap (a node like LCSH "Women" collects both its true counterpart
+and narrower identity terms): per pivot node and scheme, a label-matching
+counterpart keeps full pivot strength, a claimant whose sibling on the same
+node is its skos:broader ancestor is dropped outright ("Women" never
+suggests "Womyn"), and when several claimants remain the node is treated as
+a hub -- non-matching survivors demote one tier (a demoted pivot-close is
+dropped as coincidence-grade). For a FAST-cataloged collection the pivot's first hop is
 the FAST term's own LCSH source edge: `lcat vocab-subset` harvests it
 automatically for FAST-namespace subjects (the per-term linked data's
 `schema:sameAs` to `id.loc.gov`, emitted as `skos:exactMatch`) -- regenerate

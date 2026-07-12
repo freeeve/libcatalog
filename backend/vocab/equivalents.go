@@ -151,19 +151,27 @@ func (ix *Index) Equivalents(uri string) ([]Equivalent, bool) {
 	for _, in := range inbound {
 		add(in.t.ID, in.strength, "")
 	}
+	// Pivots collect as candidates first: match links are NOT transitive,
+	// so a shared node proves nothing by itself, and guardPivots decides
+	// what emits and at what strength (task 420's over-reach class:
+	// broad + narrow terms sharing one broad LCSH heading).
+	var pivots []pivotCand
+	pivot := func(id, strength, via string) {
+		pivots = append(pivots, pivotCand{id: id, strength: strength, via: via})
+	}
 	// Pivot shape 1 -- shared target: src -> I <- sibling.
 	for _, h := range srcLinks {
 		key := canonIdentifier(h.uri)
 		for _, sib := range snap.revExact[key] {
-			add(sib.ID, pivotStrength(h.strength, "exact"), h.uri)
+			pivot(sib.ID, pivotStrength(h.strength, "exact"), h.uri)
 		}
 		for _, sib := range snap.revClose[key] {
-			add(sib.ID, pivotStrength(h.strength, "close"), h.uri)
+			pivot(sib.ID, pivotStrength(h.strength, "close"), h.uri)
 		}
 		for _, strength := range []string{"exact", "close"} {
 			for _, sc := range snap.sidecarSorted() {
 				for _, uri := range sc.revMatch(strength, key) {
-					add(uri, pivotStrength(h.strength, strength), h.uri)
+					pivot(uri, pivotStrength(h.strength, strength), h.uri)
 				}
 			}
 		}
@@ -172,10 +180,10 @@ func (ix *Index) Equivalents(uri string) ([]Equivalent, bool) {
 	// where I is a loaded term pointing at both.
 	for _, in := range inbound {
 		for _, u := range in.t.ExactMatch {
-			add(u, pivotStrength(in.strength, "exact"), in.t.ID)
+			pivot(u, pivotStrength(in.strength, "exact"), in.t.ID)
 		}
 		for _, u := range in.t.CloseMatch {
-			add(u, pivotStrength(in.strength, "close"), in.t.ID)
+			pivot(u, pivotStrength(in.strength, "close"), in.t.ID)
 		}
 	}
 	// Pivot shape 3 -- a linked term's onward links: src -> I -> sibling,
@@ -187,11 +195,14 @@ func (ix *Index) Equivalents(uri string) ([]Equivalent, bool) {
 			continue
 		}
 		for _, u := range mid.ExactMatch {
-			add(u, pivotStrength(h.strength, "exact"), mid.ID)
+			pivot(u, pivotStrength(h.strength, "exact"), mid.ID)
 		}
 		for _, u := range mid.CloseMatch {
-			add(u, pivotStrength(h.strength, "close"), mid.ID)
+			pivot(u, pivotStrength(h.strength, "close"), mid.ID)
 		}
+	}
+	for _, p := range guardPivots(ix, src, pivots) {
+		add(p.id, p.strength, p.via)
 	}
 
 	out := make([]Equivalent, 0, len(found))

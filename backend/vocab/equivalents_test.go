@@ -180,3 +180,95 @@ func TestEquivalentsSidecarInbound(t *testing.T) {
 		t.Errorf("sidecar outbound degraded: %+v", out2)
 	}
 }
+
+// pivotGuardFixture builds the task-420 over-reach corpus: FAST terms
+// linking broad LCSH nodes that homosaurus terms of varying specificity
+// also link. LCSH itself is NOT loaded -- the nodes are bare pivot URIs.
+func pivotGuardFixture(t *testing.T) *Index {
+	t.Helper()
+	const nq = `
+<urn:fast:women> <http://www.w3.org/2004/02/skos/core#prefLabel> "Women"@en <authority:fast> .
+<urn:fast:women> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:women> <authority:fast> .
+<urn:homo:women> <http://www.w3.org/2004/02/skos/core#prefLabel> "Women"@en <authority:homosaurus> .
+<urn:homo:women> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:women> <authority:homosaurus> .
+<urn:homo:womyn> <http://www.w3.org/2004/02/skos/core#prefLabel> "Womyn"@en <authority:homosaurus> .
+<urn:homo:womyn> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:women> <authority:homosaurus> .
+<urn:homo:womyn> <http://www.w3.org/2004/02/skos/core#broader> <urn:homo:women> <authority:homosaurus> .
+<urn:fast:minorities> <http://www.w3.org/2004/02/skos/core#prefLabel> "Minorities"@en <authority:fast> .
+<urn:fast:minorities> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:minorities> <authority:fast> .
+<urn:homo:sexmin> <http://www.w3.org/2004/02/skos/core#prefLabel> "Sexual minorities"@en <authority:homosaurus> .
+<urn:homo:sexmin> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:minorities> <authority:homosaurus> .
+<urn:homo:lgbtq> <http://www.w3.org/2004/02/skos/core#prefLabel> "LGBTQ+ people"@en <authority:homosaurus> .
+<urn:homo:lgbtq> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:minorities> <authority:homosaurus> .
+<urn:fast:ssm> <http://www.w3.org/2004/02/skos/core#prefLabel> "Same-sex marriage"@en <authority:fast> .
+<urn:fast:ssm> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:ssm> <authority:fast> .
+<urn:homo:ssm> <http://www.w3.org/2004/02/skos/core#prefLabel> "Same-sex marriage"@en <authority:homosaurus> .
+<urn:homo:ssm> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:ssm> <authority:homosaurus> .
+<urn:homo:lescouples> <http://www.w3.org/2004/02/skos/core#prefLabel> "Lesbian couples"@en <authority:homosaurus> .
+<urn:homo:lescouples> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:ssm> <authority:homosaurus> .
+<urn:fast:masculinity> <http://www.w3.org/2004/02/skos/core#prefLabel> "Masculinity"@en <authority:fast> .
+<urn:fast:masculinity> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:masc> <authority:fast> .
+<urn:homo:masculinities> <http://www.w3.org/2004/02/skos/core#prefLabel> "Masculinities"@en <authority:homosaurus> .
+<urn:homo:masculinities> <http://www.w3.org/2004/02/skos/core#exactMatch> <urn:lcsh:masc> <authority:homosaurus> .
+`
+	st := blob.NewMem()
+	if _, err := st.Put(t.Context(), "data/authorities/pg/vocab.nq", []byte(nq), blob.PutOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	ix, err := Load(t.Context(), st, "data/authorities/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ix
+}
+
+// strengthOf finds an equivalent's strength, "" when absent.
+func strengthOf(eqs []Equivalent, id string) string {
+	for _, e := range eqs {
+		if e.ID == id {
+			return e.Strength
+		}
+	}
+	return ""
+}
+
+// TestPivotGuards pins task 420's precision rules on its reported cases:
+// the subtree drop (Women never suggests Womyn), the hub demotion
+// (Minorities' claimants fall to pivot-close), the label-match exemption
+// (Same-sex marriage keeps its counterpart at full strength while the
+// sibling demotes), and the plural-tolerant keeper (Masculinity ->
+// Masculinities stays pivot-exact).
+func TestPivotGuards(t *testing.T) {
+	ix := pivotGuardFixture(t)
+
+	women, ok := ix.Equivalents("urn:fast:women")
+	if !ok {
+		t.Fatal("fast Women unresolved")
+	}
+	if got := strengthOf(women, "urn:homo:women"); got != "pivot-exact" {
+		t.Errorf("Women -> Women = %q, want pivot-exact (label-matched counterpart)", got)
+	}
+	if got := strengthOf(women, "urn:homo:womyn"); got != "" {
+		t.Errorf("Women -> Womyn = %q, want dropped (its group sibling is its ancestor)", got)
+	}
+
+	minorities, _ := ix.Equivalents("urn:fast:minorities")
+	for _, id := range []string{"urn:homo:sexmin", "urn:homo:lgbtq"} {
+		if got := strengthOf(minorities, id); got != "pivot-close" {
+			t.Errorf("Minorities -> %s = %q, want demoted pivot-close (hub node)", id, got)
+		}
+	}
+
+	ssm, _ := ix.Equivalents("urn:fast:ssm")
+	if got := strengthOf(ssm, "urn:homo:ssm"); got != "pivot-exact" {
+		t.Errorf("Same-sex marriage counterpart = %q, want pivot-exact", got)
+	}
+	if got := strengthOf(ssm, "urn:homo:lescouples"); got != "pivot-close" {
+		t.Errorf("Lesbian couples = %q, want demoted pivot-close (kept, lower)", got)
+	}
+
+	masc, _ := ix.Equivalents("urn:fast:masculinity")
+	if got := strengthOf(masc, "urn:homo:masculinities"); got != "pivot-exact" {
+		t.Errorf("Masculinity -> Masculinities = %q, want pivot-exact (plural-tolerant match, sole claimant)", got)
+	}
+}
