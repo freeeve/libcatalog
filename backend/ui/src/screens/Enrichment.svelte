@@ -108,6 +108,24 @@
     const d = new Date(iso);
     return isNaN(d.getTime()) ? "" : d.toLocaleString();
   }
+
+  /** batches/total in [0,1] when the source sized its run up front; null
+   *  keeps the indeterminate pulse for lazily-sized sources. */
+  function fraction(j: EnrichJob): number | null {
+    const total = j.stats?.total ?? 0;
+    if (total <= 0) return null;
+    return Math.min(1, (j.stats?.batches ?? 0) / total);
+  }
+
+  /** Coarse remaining-time estimate from the pace so far. */
+  function eta(j: EnrichJob): string {
+    const total = j.stats?.total ?? 0;
+    const done = j.stats?.batches ?? 0;
+    const ms = j.stats?.elapsedMs ?? 0;
+    if (j.status !== "RUNNING" || total <= 0 || done <= 0 || done >= total || ms <= 0) return "";
+    const left = Math.round(((ms / done) * (total - done)) / 60000);
+    return left < 1 ? "under a minute left" : `~${left}m left`;
+  }
 </script>
 
 <main class="enrichment" id="main" tabindex="-1">
@@ -179,18 +197,33 @@
                 <span class="src">{j.source}</span>
                 {#if scopeOf(j)}<span class="scope">{scopeOf(j)}</span>{/if}
                 <span class={`status s-${j.status.toLowerCase()}`}>{j.status}</span>
-                <span class="muted meta">{j.requester} · {when(j.createdAt)}</span>
+                <span class="muted meta">
+                  {j.requester} · queued {when(j.createdAt)}{#if j.startedAt}
+                    · started {when(j.startedAt)}{/if}
+                </span>
               </div>
               {#if j.status === "RUNNING" || j.status === "QUEUED"}
-                <div class="bar" class:waiting={j.status === "QUEUED"} aria-hidden="true"><div class="pulse"></div></div>
+                {@const f = fraction(j)}
+                {#if f !== null && j.status === "RUNNING"}
+                  <!-- A source that sized its run up front gets a real
+                       fraction; the pulse stays for lazily-sized sources. -->
+                  <div class="bar" aria-hidden="true"><div class="fill" style="width: {Math.round(f * 1000) / 10}%"></div></div>
+                {:else}
+                  <div class="bar" class:waiting={j.status === "QUEUED"} aria-hidden="true"><div class="pulse"></div></div>
+                {/if}
               {/if}
               <div class="stats">
                 {#if j.stats}
-                  <span>{j.stats.batches} batch{j.stats.batches === 1 ? "" : "es"}</span>
+                  {#if (j.stats.total ?? 0) > 0}
+                    <span>{Math.round((fraction(j) ?? 0) * 100)}% · {j.stats.batches}/{j.stats.total}</span>
+                  {:else}
+                    <span>{j.stats.batches} batch{j.stats.batches === 1 ? "" : "es"}</span>
+                  {/if}
                   {#if j.stats.skippedBatches}<span>{j.stats.skippedBatches} skipped</span>{/if}
                   {#if j.stats.resolvedCreators}<span>{j.stats.resolvedCreators} creators</span>{/if}
                   {#if j.stats.claims}<span>{j.stats.claims} claims</span>{/if}
                   {#if elapsed(j)}<span>{elapsed(j)}</span>{/if}
+                  {#if eta(j)}<span>{eta(j)}</span>{/if}
                 {:else if j.status === "QUEUED"}
                   <span class="muted">waiting for the worker…</span>
                 {/if}
@@ -302,8 +335,9 @@
     margin-left: auto;
     font-size: 0.78rem;
   }
-  /* No total is known up front (the corpus scan sizes lazily), so the bar
-     is honest-indeterminate: motion means alive, counters carry the truth. */
+  /* Lazily-sized sources get the honest-indeterminate pulse: motion means
+     alive, counters carry the truth. A source that knows its total up front
+     (one search per driver term) renders the determinate .fill instead. */
   .bar {
     height: 4px;
     border-radius: 2px;
@@ -322,6 +356,12 @@
   .bar.waiting .pulse {
     animation-duration: 3.2s;
     opacity: 0.45;
+  }
+  .bar .fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent, #4a7dff);
+    transition: width 0.6s ease;
   }
   @keyframes slide {
     0% {

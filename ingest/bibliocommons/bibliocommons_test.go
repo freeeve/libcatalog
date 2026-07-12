@@ -159,8 +159,11 @@ func TestEnrichPaginationAndCap(t *testing.T) {
 	if lb != 3 {
 		t.Fatalf("page cap not honored: %d requests", lb)
 	}
-	if st := e.RunStats(); st.Batches != 5 {
-		t.Fatalf("stats batches = %d, want 5", st.Batches)
+	// Stats speak in terms, not pages: Total is the driver term count and
+	// Batches the terms processed, so Batches/Total is a progress fraction
+	// (task 439).
+	if st := e.RunStats(); st.Batches != 2 || st.Total != 2 {
+		t.Fatalf("stats = %d/%d, want 2/2 terms", st.Batches, st.Total)
 	}
 }
 
@@ -209,6 +212,11 @@ func TestEnrichTermFailureIsSkippedNotFatal(t *testing.T) {
 	}
 	if st := e.RunStats(); st.SkippedBatches != 1 {
 		t.Fatalf("skipped batches = %d, want 1", st.SkippedBatches)
+	}
+	// A failed term still counts as processed, so the fraction reaches
+	// Total even on a partial harvest (task 439).
+	if st := e.RunStats(); st.Batches != 2 || st.Total != 2 {
+		t.Fatalf("stats = %d/%d, want 2/2 terms", st.Batches, st.Total)
 	}
 }
 

@@ -180,6 +180,11 @@ type EnrichStats struct {
 	// abandoned after retries (their works untouched; a re-run backfills).
 	Batches        int `json:"batches"`
 	SkippedBatches int `json:"skippedBatches,omitempty"`
+	// Total, when a source can size its run up front (the bibliocommons
+	// harvest drives one search per driver term), is the count Batches
+	// progresses toward, in the source's own unit. 0 means the run sizes
+	// lazily and progress is indeterminate.
+	Total int `json:"total,omitempty"`
 	// ResolvedCreators / Claims count what the run brought back.
 	ResolvedCreators int `json:"resolvedCreators,omitempty"`
 	Claims           int `json:"claims,omitempty"`

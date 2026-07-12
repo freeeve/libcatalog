@@ -125,8 +125,10 @@ func New(host string, terms []Term, opts ...Option) *Enricher {
 // Name implements ingest.Enricher.
 func (e *Enricher) Name() string { return Name }
 
-// RunStats implements ingest.StatsReporter: Batches counts RSS pages
-// fetched, SkippedBatches terms abandoned on a fetch error. Safe mid-run.
+// RunStats implements ingest.StatsReporter: Total is the driver term count
+// (known at construction), Batches the terms processed so far -- so
+// Batches/Total is a true progress fraction -- and SkippedBatches the terms
+// abandoned on a fetch error. Safe mid-run.
 func (e *Enricher) RunStats() ingest.EnrichStats {
 	e.statsMu.Lock()
 	defer e.statsMu.Unlock()
@@ -357,6 +359,13 @@ func (e *Enricher) ensureHarvest(ctx context.Context, started time.Time) ([]harv
 		st.ElapsedMS = time.Since(started).Milliseconds()
 		e.setStats(st)
 	}
+	// The run is sized up front -- one search per driver term -- so
+	// progress is a true fraction: Batches terms done out of Total.
+	for _, term := range e.terms {
+		if term.Query != "" && term.URI != "" {
+			st.Total++
+		}
+	}
 	publish()
 	var harvest []harvested
 	first := true
@@ -378,7 +387,6 @@ func (e *Enricher) ensureHarvest(ctx context.Context, started time.Time) ([]harv
 			}
 			first = false
 			items, err := e.fetchPage(ctx, term.Query, page)
-			st.Batches++
 			if err != nil {
 				st.SkippedBatches++
 				publish()
@@ -396,6 +404,8 @@ func (e *Enricher) ensureHarvest(ctx context.Context, started time.Time) ([]harv
 				e.log.Info("bibliocommons term truncated at page cap", "term", term.Query, "pages", e.maxPages)
 			}
 		}
+		st.Batches++
+		publish()
 		harvest = append(harvest, h)
 	}
 	publish()

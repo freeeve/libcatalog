@@ -80,6 +80,43 @@ describe("Enrichment screen", () => {
     expect(card?.querySelector(".bar")).not.toBeNull();
   });
 
+  it("renders a determinate bar, percent, started time and ETA when the source sized its run (task 439)", async () => {
+    fetchEnrichSources.mockResolvedValue({ sources: ["bibliocommons"] });
+    fetchEnrichJobs.mockResolvedValue({
+      jobs: [
+        job({
+          source: "bibliocommons",
+          startedAt: "2026-07-11T12:00:08Z",
+          // Halfway through 4286 driver terms after 45 minutes.
+          stats: { batches: 2143, total: 4286, elapsedMs: 2700000 },
+        }),
+      ],
+    });
+    await render();
+    const card = document.querySelector(".job")!;
+    expect(card.textContent).toContain("50% · 2143/4286");
+    expect(card.textContent).toContain("queued");
+    expect(card.textContent).toContain("started");
+    expect(card.textContent).toContain("~45m left");
+    const fill = card.querySelector<HTMLElement>(".bar .fill");
+    expect(fill).not.toBeNull();
+    expect(fill!.style.width).toBe("50%");
+    expect(card.querySelector(".bar .pulse")).toBeNull();
+  });
+
+  it("keeps the indeterminate pulse for a lazily-sized source (no total)", async () => {
+    fetchEnrichSources.mockResolvedValue({ sources: ["wikidata"] });
+    fetchEnrichJobs.mockResolvedValue({
+      jobs: [job({ stats: { batches: 12, elapsedMs: 30000 } })],
+    });
+    await render();
+    const card = document.querySelector(".job")!;
+    expect(card.querySelector(".bar .pulse")).not.toBeNull();
+    expect(card.querySelector(".bar .fill")).toBeNull();
+    expect(card.textContent).toContain("12 batches");
+    expect(card.textContent).not.toContain("%");
+  });
+
   it("polls while a job runs and stops once the board is terminal", async () => {
     fetchEnrichSources.mockResolvedValue({ sources: ["wikidata"] });
     fetchEnrichJobs.mockResolvedValueOnce({ jobs: [job({})] });

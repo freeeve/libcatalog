@@ -841,6 +841,9 @@ export interface EnrichStats {
   skippedBatches?: number;
   resolvedCreators?: number;
   claims?: number;
+  /** The up-front run size (in the source's unit) that batches counts
+   *  toward, when the source knows it; absent/0 = sizes lazily. */
+  total?: number;
   elapsedMs: number;
 }
 
