@@ -20,6 +20,11 @@ type Service struct {
 	vocab *vocab.Index
 	caps  Caps
 	now   func() time.Time
+	// WorkState, when set, gates intake on the work's existence: it reports
+	// whether workID is in the catalog and whether it is tombstoned. Without
+	// it (tests, minimal wiring) intake accepts any well-formed id -- the
+	// pre-gate behavior that let ghost rows into the queue.
+	WorkState func(ctx context.Context, workID string) (exists, tombstoned bool, err error)
 }
 
 // New wires the service (zero-value caps fall back to DefaultCaps; a nil
@@ -91,6 +96,20 @@ func (s *Service) Submit(ctx context.Context, in SubmitInput) (SubmitResult, err
 		return SubmitResult{}, ErrTombstoned
 	} else if !errors.Is(err, store.ErrNotFound) {
 		return SubmitResult{}, err
+	}
+
+	// Work gate: a suggestion needs a live work. An unknown id and a
+	// tombstoned work answer exactly like a tombstoned pair, so the
+	// anonymous endpoint never becomes an existence oracle -- and the queue
+	// never collects rows pointing at works the catalog does not have.
+	if s.WorkState != nil {
+		exists, dead, err := s.WorkState(ctx, in.WorkID)
+		if err != nil {
+			return SubmitResult{}, err
+		}
+		if !exists || dead {
+			return SubmitResult{}, ErrTombstoned
+		}
 	}
 
 	// Rate caps: bump-then-check; a rejected attempt stays counted, which
@@ -379,6 +398,69 @@ func (s *Service) transition(ctx context.Context, key store.Key, to Status, stam
 }
 
 var errAlreadyResolved = errors.New("suggest: already resolved")
+
+// rejectApprovedUnpublished moves an APPROVED aggregate that never published
+// to REJECTED -- the only exit for a row whose work is gone (the publisher
+// skips it every run and transition refuses resolved rows). A row that DID
+// publish stays resolved: undoing it means editing the graph, not the queue.
+func (s *Service) rejectApprovedUnpublished(ctx context.Context, key store.Key, stamp func(*Suggestion)) error {
+	err := s.casUpdate(ctx, key, "suggest: transition conflict", false, func(data []byte, _ bool) ([]byte, error) {
+		sg, err := unmarshalSuggestion(data)
+		if err != nil {
+			return nil, err
+		}
+		if sg.Status != StatusApproved || sg.PublishedETag != "" {
+			return nil, errAlreadyResolved
+		}
+		sg.Status = StatusRejected
+		stamp(&sg)
+		return marshalSuggestion(sg)
+	})
+	if err != nil {
+		return err
+	}
+	s.moveStatusIndex(ctx, StatusApproved, StatusRejected, key)
+	return nil
+}
+
+// RejectOpenForWork closes every open (PENDING/DISPUTED) aggregate for a
+// work with a moderator-grade reject -- the tombstone path calls it so
+// retiring a work clears its queue noise in one motion, audit-stamped.
+// Resolved rows are left alone; the count says how many closed.
+func (s *Service) RejectOpenForWork(ctx context.Context, workID, actor, note string) (int, error) {
+	now := s.now().UTC()
+	closed := 0
+	var terms []string
+	for rec, err := range s.db.Query(ctx, workPK(workID), "SUGG#", store.QueryOpt{}) {
+		if err != nil {
+			return closed, err
+		}
+		sg, err := unmarshalSuggestion(rec.Data)
+		if err != nil || (sg.Status != StatusPending && sg.Status != StatusDisputed) {
+			continue
+		}
+		err = s.transition(ctx, rec.Key, StatusRejected, func(cur *Suggestion) {
+			cur.ReviewedAt = now
+			cur.ReviewedBy = actor
+			cur.ReviewNote = note
+		})
+		if errors.Is(err, errAlreadyResolved) {
+			continue
+		}
+		if err != nil {
+			return closed, err
+		}
+		closed++
+		terms = append(terms, sg.Term.Scheme+":"+sg.Term.ID)
+	}
+	if closed > 0 {
+		s.writeAudit(ctx, AuditEntry{
+			WorkID: workID, Action: "WORK_TOMBSTONE_REJECT", Actor: actor,
+			Terms: terms, Note: note,
+		})
+	}
+	return closed, nil
+}
 
 // ForWork returns the public per-work view: aggregates only, no supporter
 // hashes, for the "N patrons suggested this" display.

@@ -194,6 +194,25 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		}
 		deps.Abuse = abuse
 		deps.Suggest = suggest.New(db, deps.Vocab, suggest.Caps{})
+		// Intake work gate: suggestions need a live work, so ghost rows
+		// (ids the catalog never had, or retired) never enter the queue.
+		if widx := deps.WorkIndex; widx != nil {
+			deps.Suggest.WorkState = func(ctx context.Context, workID string) (bool, bool, error) {
+				sums, paths, err := widx.SummariesWithPaths(ctx)
+				if err != nil {
+					return false, false, err
+				}
+				if _, ok := paths[workID]; !ok {
+					return false, false, nil
+				}
+				for i := range sums {
+					if sums[i].WorkID == workID {
+						return true, sums[i].Tombstoned, nil
+					}
+				}
+				return true, false, nil
+			}
+		}
 	}
 	var fan trigger.Fanout
 	if cfg.WebhookURL != "" {

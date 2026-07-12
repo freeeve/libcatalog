@@ -84,6 +84,19 @@ func registerMaintenance(mux *http.ServeMux, bs blob.Store, ix *workindex.Index,
 				WorkID: workID, Action: "VISIBILITY_" + req.Action, Actor: id.Email, ETag: etag,
 				Note: req.RedirectTo,
 			})
+			// Retiring a work also retires its queue noise: open suggestion
+			// rows close with a moderator-grade reject, audit-stamped,
+			// instead of pointing at a dead id forever. Best effort -- the
+			// tombstone itself already landed; a cleanup failure is
+			// recorded in the trail rather than failing the response.
+			if req.Action == "tombstone" {
+				if _, err := queue.RejectOpenForWork(r.Context(), workID, id.Email, "work tombstoned"); err != nil {
+					queue.WriteAudit(r.Context(), suggest.AuditEntry{
+						WorkID: workID, Action: "WORK_TOMBSTONE_REJECT_FAILED", Actor: id.Email,
+						Note: "open suggestions could not be closed; they remain reviewable",
+					})
+				}
+			}
 		}
 		grain, _, _ := bs.Get(r.Context(), bibframe.GrainPath(workID))
 		v, _ := bibframe.Visibility(grain, workID)

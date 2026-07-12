@@ -235,6 +235,21 @@ func (s *Service) Review(ctx context.Context, decisions []Decision, actor string
 				sg.SubstituteTerm = &sub
 			}
 		})
+		// An APPROVED row whose work never published (its grain is gone --
+		// the ghost the publisher skips forever) has exactly one exit: a
+		// reject. Nothing races an already-resolved row except the
+		// publisher, which CAS-es the grain, not the queue row, so the
+		// concurrent-reviewer concern does not apply.
+		if errors.Is(err, errAlreadyResolved) && !d.Approve {
+			err = s.rejectApprovedUnpublished(ctx, key, func(sg *Suggestion) {
+				sg.ReviewedAt = now
+				sg.ReviewedBy = actor
+				sg.ReviewNote = d.Note
+			})
+			if err == nil {
+				action = "REVIEW_UNAPPROVE"
+			}
+		}
 		// Someone else resolved it first, or it is gone. The decision is
 		// discarded; say so rather than counting it as reviewed.
 		if errors.Is(err, errAlreadyResolved) || errors.Is(err, store.ErrNotFound) {
