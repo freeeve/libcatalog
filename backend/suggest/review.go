@@ -120,15 +120,23 @@ type QueueQuery struct {
 }
 
 // QueuePage is one page of the review queue, supporter-count-descending.
+// Total is the FULL filtered set's size (independent of paging), so the
+// screen can say "50 of 312" -- it respects the same filters and
+// confidence floor as the rows, and it counts from the partition start
+// whatever cursor the page used.
 type QueuePage struct {
 	Items  []Suggestion `json:"items"`
 	Cursor string       `json:"cursor,omitempty"`
+	Total  int          `json:"total"`
 }
 
 // Queue lists aggregates in the requested status. It reads the status index
 // partition and hydrates each aggregate; index items whose aggregate has
 // moved on are deleted in passing (the index is repairable, the aggregate is
-// truth).
+// truth). One pass fills the page from the cursor; a second, count-only
+// pass sizes the whole filtered set -- at triage scale (an open-status
+// partition) the double read is cheaper than a maintained counter is
+// correct.
 func (s *Service) Queue(ctx context.Context, q QueueQuery) (QueuePage, error) {
 	if q.Status == "" {
 		q.Status = StatusPending
@@ -137,10 +145,39 @@ func (s *Service) Queue(ctx context.Context, q QueueQuery) (QueuePage, error) {
 		q.Limit = 50
 	}
 	page := QueuePage{Items: []Suggestion{}}
+	err := s.scanQueue(ctx, q, q.Cursor, func(sg Suggestion, indexSK string) bool {
+		page.Items = append(page.Items, sg)
+		if len(page.Items) >= q.Limit {
+			page.Cursor = indexSK
+			return false
+		}
+		return true
+	})
+	if err != nil {
+		return QueuePage{}, err
+	}
+	err = s.scanQueue(ctx, q, "", func(Suggestion, string) bool {
+		page.Total++
+		return true
+	})
+	if err != nil {
+		return QueuePage{}, err
+	}
+	// Highest support first within the page (qllpoc's presentation order).
+	sort.SliceStable(page.Items, func(i, j int) bool {
+		return page.Items[i].SupporterCount > page.Items[j].SupporterCount
+	})
+	return page, nil
+}
+
+// scanQueue walks the status index from after cursor, hydrating and
+// filtering per the query, calling visit for each match until it returns
+// false. Index items whose aggregate moved on self-heal in passing.
+func (s *Service) scanQueue(ctx context.Context, q QueueQuery, cursor string, visit func(sg Suggestion, indexSK string) bool) error {
 	statusPK := "STATUS#" + string(q.Status)
-	for rec, err := range s.db.Query(ctx, statusPK, "", store.QueryOpt{StartAfter: q.Cursor}) {
+	for rec, err := range s.db.Query(ctx, statusPK, "", store.QueryOpt{StartAfter: cursor}) {
 		if err != nil {
-			return QueuePage{}, err
+			return err
 		}
 		aggKey, err := aggKeyFromIndexSK(rec.Key.SK)
 		if err != nil {
@@ -152,7 +189,7 @@ func (s *Service) Queue(ctx context.Context, q QueueQuery) (QueuePage, error) {
 			continue
 		}
 		if err != nil {
-			return QueuePage{}, err
+			return err
 		}
 		sg, err := unmarshalSuggestion(agg.Data)
 		if err != nil {
@@ -171,17 +208,11 @@ func (s *Service) Queue(ctx context.Context, q QueueQuery) (QueuePage, error) {
 		if q.MinConfidence > 0 && sg.Provenance == ProvenancePipeline && sg.Confidence < q.MinConfidence {
 			continue
 		}
-		page.Items = append(page.Items, sg)
-		if len(page.Items) >= q.Limit {
-			page.Cursor = rec.Key.SK
-			break
+		if !visit(sg, rec.Key.SK) {
+			return nil
 		}
 	}
-	// Highest support first within the page (qllpoc's presentation order).
-	sort.SliceStable(page.Items, func(i, j int) bool {
-		return page.Items[i].SupporterCount > page.Items[j].SupporterCount
-	})
-	return page, nil
+	return nil
 }
 
 // ReviewResult reports what a Review batch actually did. Skipped carries the

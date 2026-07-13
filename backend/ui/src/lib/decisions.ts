@@ -14,6 +14,12 @@ export interface DecisionStore extends Readable<Decision[]> {
   clear(): void;
   /** The exact wire-shape decision list for POST /v1/review. */
   payload(): Decision[];
+  /** Drops staged decisions whose suggestion key is absent from the open
+   *  set (rows resolved elsewhere -- another tab, an earlier apply) and
+   *  returns the dropped ones so the screen can say so. Without this a
+   *  persisted decision for a resolved row was an invisible zombie:
+   *  staged forever, re-reported "already decided" on every apply. */
+  reconcile(openKeys: Set<string>): Decision[];
 }
 
 /** Identity of one suggestion within the staging map. */
@@ -87,6 +93,17 @@ export function createDecisionStore(persistKey?: string): DecisionStore {
     },
     payload(): Decision[] {
       return [...staged.values()];
+    },
+    reconcile(openKeys: Set<string>): Decision[] {
+      const dropped: Decision[] = [];
+      for (const [key, d] of staged) {
+        if (!openKeys.has(key)) {
+          dropped.push(d);
+          staged.delete(key);
+        }
+      }
+      if (dropped.length > 0) sync();
+      return dropped;
     },
   };
 }

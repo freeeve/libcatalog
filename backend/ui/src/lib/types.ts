@@ -349,6 +349,8 @@ export interface Suggestion {
 export interface QueuePage {
   items: Suggestion[];
   cursor?: string;
+  /** The whole filtered set's size (task 445) -- the triage denominator. */
+  total?: number;
 }
 
 /** suggest.Decision -- one staff review action in a POST /v1/review batch. */

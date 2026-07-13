@@ -392,7 +392,16 @@ export function fetchAuditTerms(filters: string[] = [], limit?: number): Promise
 
 /** The suggestion review queue, optionally filtered (moderator). */
 export function fetchQueue(
-  params: { status?: string; scheme?: string; provenance?: string; type?: string; cursor?: string; limit?: number } = {},
+  params: {
+    status?: string;
+    scheme?: string;
+    provenance?: string;
+    type?: string;
+    cursor?: string;
+    limit?: number;
+    /** Explicit floor override; 0 shows everything below the deployment default. */
+    minConfidence?: number;
+  } = {},
 ): Promise<QueuePage> {
   const q = new URLSearchParams({ status: params.status ?? "PENDING" });
   if (params.scheme) q.set("scheme", params.scheme);
@@ -400,6 +409,7 @@ export function fetchQueue(
   if (params.type) q.set("type", params.type);
   if (params.cursor) q.set("cursor", params.cursor);
   if (params.limit) q.set("limit", String(params.limit));
+  if (params.minConfidence !== undefined) q.set("minConfidence", String(params.minConfidence));
   return call("GET", `/v1/queue?${q}`);
 }
 

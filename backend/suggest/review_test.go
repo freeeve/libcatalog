@@ -169,6 +169,36 @@ func TestQueuePagination(t *testing.T) {
 	if err != nil || len(page2.Items) != 3 || page2.Cursor != "" {
 		t.Fatalf("page2 = %+v, %v", page2, err)
 	}
+	// The triage denominator (task 445): Total is the whole filtered set,
+	// the same on every page regardless of cursor.
+	if page1.Total != 5 || page2.Total != 5 {
+		t.Fatalf("totals = %d/%d, want 5 on both pages", page1.Total, page2.Total)
+	}
+}
+
+// TestQueueTotalRespectsFilters pins that the denominator counts what
+// triage will actually encounter: the same filters and confidence floor
+// as the rows (task 445).
+func TestQueueTotalRespectsFilters(t *testing.T) {
+	svc, _ := newService(t)
+	submit(t, svc, workIDN(0), controlled(transURI), TypeAdd, "h1")
+	submit(t, svc, workIDN(1), folk("cozy vibes"), TypeAdd, "h2")
+	if err := svc.PipelineSuggest(t.Context(), workIDN(2), controlled(transURI), 0.4); err != nil {
+		t.Fatal(err)
+	}
+
+	all, err := svc.Queue(t.Context(), QueueQuery{})
+	if err != nil || all.Total != 3 {
+		t.Fatalf("unfiltered total = %d, %v; want 3", all.Total, err)
+	}
+	floored, err := svc.Queue(t.Context(), QueueQuery{MinConfidence: 0.6})
+	if err != nil || floored.Total != 2 || len(floored.Items) != 2 {
+		t.Fatalf("floored = total %d, %d items, %v; want 2/2 (the 0.4 pipeline row hidden)", floored.Total, len(floored.Items), err)
+	}
+	scheme, err := svc.Queue(t.Context(), QueueQuery{Scheme: "homosaurus"})
+	if err != nil || scheme.Total != 2 {
+		t.Fatalf("scheme total = %d, %v; want 2", scheme.Total, err)
+	}
 }
 
 func workIDN(i int) string {

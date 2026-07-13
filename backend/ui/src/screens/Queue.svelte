@@ -9,7 +9,7 @@
   import { ApiError, fetchQueue, humanApiMessage, postPublish, postReview, setFolkTermStatus } from "../lib/api";
   import { canPublish } from "../lib/auth";
   import { getConfig } from "../lib/config";
-  import { createDecisionStore } from "../lib/decisions";
+  import { createDecisionStore, decisionKey } from "../lib/decisions";
   import { bindKeys, popScope, pushScope } from "../lib/keyboard";
   import { navigate } from "../lib/router";
   import { screenState } from "../lib/screenState.svelte";
@@ -47,6 +47,7 @@
     type: "",
     items: [] as Suggestion[],
     cursor: "",
+    total: 0,
     selected: 0,
     loadedAt: 0,
   }));
@@ -98,13 +99,43 @@
       });
       st.items = reset ? (page.items ?? []) : [...st.items, ...(page.items ?? [])];
       st.cursor = page.cursor ?? "";
+      st.total = page.total ?? 0;
       st.loadedAt = Date.now();
       st.selected = reset ? 0 : Math.min(st.selected, Math.max(0, st.items.length - 1));
+      if (reset) await reconcileStaged();
     } catch (e) {
       error = e instanceof ApiError && e.status === 401 ? "session expired -- sign in again" : "queue load failed";
       if (reset) st.items = [];
     } finally {
       loading = false;
+    }
+  }
+
+  /** Drops staged decisions whose rows are no longer open -- resolved in
+   *  another tab, by an earlier apply, or resurrected from sessionStorage
+   *  after their rows were decided. Verified against BOTH open statuses
+   *  with the floor at 0, so a filtered view never drops legit staged
+   *  work it merely cannot see; when the open set is too large to fetch
+   *  whole, the check abstains. Best effort: a failed fetch never blocks
+   *  triage. */
+  async function reconcileStaged(): Promise<void> {
+    if ($decisions.length === 0) return;
+    try {
+      const [pending, disputed] = await Promise.all([
+        fetchQueue({ status: "PENDING", minConfidence: 0, limit: 200 }),
+        fetchQueue({ status: "DISPUTED", minConfidence: 0, limit: 200 }),
+      ]);
+      if (pending.cursor || disputed.cursor) return;
+      const open = new Set(
+        [...(pending.items ?? []), ...(disputed.items ?? [])].map((s) => decisionKey(s.workId, s.term, s.type)),
+      );
+      const dropped = decisions.reconcile(open);
+      if (dropped.length > 0) {
+        const names = dropped.slice(0, 3).map((d) => d.term.label || d.term.id);
+        notice = `dropped ${dropped.length} staged decision${dropped.length === 1 ? "" : "s"} for already-resolved rows: ${names.join(", ")}${dropped.length > 3 ? ", …" : ""}`;
+      }
+    } catch {
+      // Reconcile is hygiene, not triage; the apply path reports staleness.
     }
   }
 
@@ -183,17 +214,21 @@
       if (res.published !== undefined) parts.push(`published ${res.published}`);
       if (res.skipped) parts.push(`skipped ${res.skipped}`);
       if (res.publishNote) parts.push(res.publishNote);
-      // Decisions another moderator resolved first were discarded. Say so, and
-      // keep them staged against their new status rather than clearing the
-      // moderator's work away with nothing on screen to contradict the notice
-      //.
+      // Decisions for rows already resolved were discarded server-side.
+      // Name them and LET THEM GO: re-staging pointed a decision at a row
+      // the pending list no longer shows -- an invisible zombie that
+      // re-reported "already decided" on every subsequent apply, forever.
+      // "someone else" was also usually wrong: in a one-reviewer
+      // deployment the resolver was the same person moments earlier.
       const stale = res.staleDecisions ?? [];
       if (stale.length > 0) {
-        parts.push(`${stale.length} already decided by someone else`);
+        const names = stale.slice(0, 3).map((d) => d.term.label || d.term.id);
+        parts.push(
+          `${stale.length} already resolved (${names.join(", ")}${stale.length > 3 ? ", …" : ""}) — perhaps in another tab or an earlier apply`,
+        );
       }
       notice = parts.join(" · ");
       decisions.clear();
-      for (const d of stale) decisions.stage(d);
       await load(true);
     } catch (e) {
       error = e instanceof ApiError ? `apply failed: ${humanApiMessage(e, "the request was rejected")}` : "apply failed";
@@ -276,7 +311,7 @@
     {:else if error}
       <span class="error">{error}</span>
     {:else}
-      {st.items.length} suggestion{st.items.length === 1 ? "" : "s"}{st.cursor ? " (more available)" : ""}
+      {#if st.total > st.items.length}showing {st.items.length} of {st.total} suggestion{st.total === 1 ? "" : "s"}{:else}{st.items.length} suggestion{st.items.length === 1 ? "" : "s"}{/if}
     {/if}
   </p>
   {#if notice}<p class="notice" role="status">{notice}</p>{/if}

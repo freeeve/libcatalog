@@ -102,4 +102,30 @@ describe("decision staging", () => {
     expect(store.payload()).toEqual([]);
     sessionStorage.clear();
   });
+
+  // The zombie fix (task 444): a persisted decision whose row was resolved
+  // elsewhere must drop on reconcile -- kept, it re-reported "already
+  // decided" on every apply forever -- while decisions for still-open rows
+  // survive, and the persisted mirror follows.
+  it("reconcile drops decisions for resolved rows and reports them", () => {
+    sessionStorage.clear();
+    const store = createDecisionStore("test.reconcile");
+    store.stage(approve("w1"));
+    store.stage(approve("w2", otherTerm));
+    const open = new Set([decisionKey("w2", otherTerm, "ADD")]);
+    const dropped = store.reconcile(open);
+    expect(dropped.map((d) => d.workId)).toEqual(["w1"]);
+    expect(store.payload().map((d) => d.workId)).toEqual(["w2"]);
+    const revived = createDecisionStore("test.reconcile");
+    expect(revived.payload().map((d) => d.workId)).toEqual(["w2"]);
+    sessionStorage.clear();
+  });
+
+  it("reconcile with every row open drops nothing and skips the sync", () => {
+    const store = createDecisionStore();
+    store.stage(approve("w1"));
+    const dropped = store.reconcile(new Set([decisionKey("w1", term, "ADD")]));
+    expect(dropped).toEqual([]);
+    expect(store.payload()).toHaveLength(1);
+  });
 });
