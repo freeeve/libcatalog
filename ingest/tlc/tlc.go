@@ -361,7 +361,9 @@ func (e *Enricher) ensureHostHarvest(ctx context.Context, host string, started t
 			}
 		}
 		if !failed {
-			items[term.URI] = recs
+			// Union, not overwrite: several driver terms can share one URI
+			// (the same concept searched in more than one language).
+			items[term.URI] = append(items[term.URI], recs...)
 		}
 		e.bump(started, func(st *ingest.EnrichStats) { st.Batches++ })
 	}

@@ -477,13 +477,8 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		}
 		scheme := cfg.EnrichTLCScheme
 		var tterms []tlc.Term
-		for _, t := range deps.Vocab.Terms(scheme) {
-			if t.MergedInto != "" {
-				continue
-			}
-			if q := t.Label("en"); q != "" {
-				tterms = append(tterms, tlc.Term{URI: t.ID, Labels: t.Labels, Query: q})
-			}
+		for _, d := range driverTerms(deps.Vocab.Terms(scheme), cfg.EnrichLangs) {
+			tterms = append(tterms, tlc.Term{URI: d.URI, Labels: d.Labels, Query: d.Query})
 		}
 		if len(tterms) == 0 {
 			logger.Warn("tlc enrichment disabled: driver vocabulary has no terms loaded", "scheme", scheme)
@@ -509,14 +504,14 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			return httpapi.Deps{}, fmt.Errorf("config: LCATD_ENRICH_VEGA: %w", err)
 		}
 		scheme := cfg.EnrichVegaScheme
+		// Vega is English-only regardless of EnrichLangs: it resolves each
+		// label to an EXPLICIT Homosaurus concept (source=homoit), and those
+		// concepts are English-labeled -- a Spanish query would resolve to a
+		// non-homoit (LCSH/Bilindex) concept and be gated out. The Spanish
+		// path belongs to the inference harvests, not Vega's assertion model.
 		var vterms []vega.Term
-		for _, t := range deps.Vocab.Terms(scheme) {
-			if t.MergedInto != "" {
-				continue
-			}
-			if q := t.Label("en"); q != "" {
-				vterms = append(vterms, vega.Term{URI: t.ID, Labels: t.Labels, Query: q})
-			}
+		for _, d := range driverTerms(deps.Vocab.Terms(scheme), []string{"en"}) {
+			vterms = append(vterms, vega.Term{URI: d.URI, Labels: d.Labels, Query: d.Query})
 		}
 		if len(vterms) == 0 {
 			logger.Warn("vega enrichment disabled: driver vocabulary has no terms loaded", "scheme", scheme)
@@ -543,13 +538,8 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		}
 		scheme := cfg.EnrichSirsiDynixScheme
 		var sterms []sirsidynix.Term
-		for _, t := range deps.Vocab.Terms(scheme) {
-			if t.MergedInto != "" {
-				continue
-			}
-			if q := t.Label("en"); q != "" {
-				sterms = append(sterms, sirsidynix.Term{URI: t.ID, Labels: t.Labels, Query: q})
-			}
+		for _, d := range driverTerms(deps.Vocab.Terms(scheme), cfg.EnrichLangs) {
+			sterms = append(sterms, sirsidynix.Term{URI: d.URI, Labels: d.Labels, Query: d.Query})
 		}
 		if len(sterms) == 0 {
 			logger.Warn("sirsidynix enrichment disabled: driver vocabulary has no terms loaded", "scheme", scheme)
@@ -568,13 +558,8 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 	if cfg.EnrichBiblioCommons != "" && deps.Vocab != nil && deps.Suggest != nil {
 		scheme := cfg.EnrichBiblioCommonsScheme
 		var terms []bibliocommons.Term
-		for _, t := range deps.Vocab.Terms(scheme) {
-			if t.MergedInto != "" {
-				continue
-			}
-			if q := t.Label("en"); q != "" {
-				terms = append(terms, bibliocommons.Term{URI: t.ID, Labels: t.Labels, Query: q})
-			}
+		for _, d := range driverTerms(deps.Vocab.Terms(scheme), cfg.EnrichLangs) {
+			terms = append(terms, bibliocommons.Term{URI: d.URI, Labels: d.Labels, Query: d.Query})
 		}
 		if len(terms) == 0 {
 			logger.Warn("bibliocommons enrichment disabled: driver vocabulary has no terms loaded", "scheme", scheme)
@@ -683,6 +668,60 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		}
 	}
 	return deps, nil
+}
+
+// driverTerm is one language-resolved harvest driver: a concept URI, its
+// full label map (so a match maps back to the concept in every language),
+// and the search string in one language.
+type driverTerm struct {
+	URI    string
+	Labels map[string]string
+	Query  string
+}
+
+// rawLabel returns a term's label in exactly lang from the raw label map --
+// no fallback to another language -- so a Spanish driver is emitted only
+// when a Spanish label actually exists. English additionally accepts the
+// untagged label, preserving the harvest's prior default.
+func rawLabel(t *vocab.Term, lang string) string {
+	if l := strings.TrimSpace(t.Labels[lang]); l != "" {
+		return l
+	}
+	if lang == "en" {
+		return strings.TrimSpace(t.Labels[""])
+	}
+	return ""
+}
+
+// driverTerms builds harvest driver terms from a scheme's terms across the
+// configured label languages: one entry per (concept, language) whose label
+// exists, deduped by (URI, query) so a term whose labels coincide across
+// languages is not searched twice. Retired (merged) concepts are skipped. A
+// match on any language's search string maps back to the concept's URI.
+func driverTerms(terms []*vocab.Term, langs []string) []driverTerm {
+	if len(langs) == 0 {
+		langs = []string{"en"}
+	}
+	var out []driverTerm
+	seen := map[string]bool{}
+	for _, t := range terms {
+		if t.MergedInto != "" {
+			continue
+		}
+		for _, lang := range langs {
+			q := rawLabel(t, lang)
+			if q == "" {
+				continue
+			}
+			key := t.ID + "\x00" + strings.ToLower(q)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			out = append(out, driverTerm{URI: t.ID, Labels: t.Labels, Query: q})
+		}
+	}
+	return out
 }
 
 // signingKey decodes the configured Ed25519 key (seed or full private key,

@@ -410,7 +410,10 @@ func (e *Enricher) ensureTenantHarvest(ctx context.Context, tenant Tenant, start
 			e.bump(started, func(st *ingest.EnrichStats) { st.Batches++ })
 			continue
 		}
-		items[term.URI] = recs
+		// Union, not overwrite: several driver terms can share one URI (the
+		// same concept searched in more than one language), and each adds
+		// its own matches.
+		items[term.URI] = append(items[term.URI], recs...)
 		e.bump(started, func(st *ingest.EnrichStats) { st.Batches++ })
 	}
 	th.items = items

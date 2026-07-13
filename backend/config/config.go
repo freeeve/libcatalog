@@ -255,6 +255,13 @@ type Config struct {
 	// runs at once across distinct sources (0 = unlimited, one per queued
 	// source). Same-source jobs stay serial regardless.
 	EnrichMaxParallel int
+	// EnrichLangs are the label languages the peer harvests drive their
+	// searches from, comma-separated (default "en"). Set "en,es" to also
+	// search each concept's Spanish label, reaching Spanish-cataloged peers
+	// (the Chilean/LatAm SirsiDynix cluster, Miami-Dade Vega, ...); a match
+	// still maps back to the concept's URI. A language with no label on a
+	// given term is skipped for that term.
+	EnrichLangs []string
 }
 
 // FromEnv reads configuration from LCATD_-prefixed environment variables.
@@ -399,6 +406,18 @@ func FromEnv() (Config, error) {
 			if s = strings.TrimSpace(s); s != "" {
 				cfg.VocabSchemes = append(cfg.VocabSchemes, s)
 			}
+		}
+	}
+	cfg.EnrichLangs = []string{"en"}
+	if raw, ok := os.LookupEnv("LCATD_ENRICH_LANGS"); ok {
+		cfg.EnrichLangs = nil
+		for s := range strings.SplitSeq(raw, ",") {
+			if s = strings.TrimSpace(s); s != "" {
+				cfg.EnrichLangs = append(cfg.EnrichLangs, s)
+			}
+		}
+		if len(cfg.EnrichLangs) == 0 {
+			cfg.EnrichLangs = []string{"en"}
 		}
 	}
 	cfg.ExtraFacets = []string{"sources"}

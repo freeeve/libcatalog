@@ -182,6 +182,43 @@ func TestSirsiDynixMultiTenantConsensus(t *testing.T) {
 	}
 }
 
+// TestSirsiDynixUnionsMultiLangTerms: two driver terms sharing one concept
+// URI but searching different language labels (English + Spanish) both
+// contribute matches -- the Spanish hitlist is not overwritten by the
+// English one (task 467).
+func TestSirsiDynixUnionsMultiLangTerms(t *testing.T) {
+	labels := map[string]string{"en": "Lesbians", "es": "Lesbianas"}
+	uri := "https://homosaurus.org/v5/homoit0000699"
+	terms := []Term{
+		{URI: uri, Labels: labels, Query: "Lesbians"},
+		{URI: uri, Labels: labels, Query: "Lesbianas"},
+	}
+	doer := &tenantDoer{pages: map[string]string{
+		"winca.ent.sirsidynix.net|default|Lesbians":  feed(entry(1, "English Book", "9781111111111")),
+		"winca.ent.sirsidynix.net|default|Lesbianas": feed(entry(2, "Libro en Espanol", "9782222222222")),
+	}}
+	works := []ingest.WorkSummary{
+		{WorkID: "wen", ISBNs: []string{"9781111111111"}},
+		{WorkID: "wes", ISBNs: []string{"9782222222222"}},
+	}
+	e := New([]Tenant{{Host: "winca.ent.sirsidynix.net", Profile: "default"}}, terms,
+		WithClient(doer), WithDelay(0))
+	got, err := e.Enrich(context.Background(), works)
+	if err != nil {
+		t.Fatalf("Enrich: %v", err)
+	}
+	matched := map[string]bool{}
+	for _, g := range got {
+		matched[g.WorkID] = true
+		if g.Subjects[0].URI != uri {
+			t.Fatalf("%s subject = %s, want the concept URI", g.WorkID, g.Subjects[0].URI)
+		}
+	}
+	if !matched["wen"] || !matched["wes"] {
+		t.Fatalf("matched = %v, want both the English- and Spanish-cataloged works", matched)
+	}
+}
+
 // TestScrubXML: invalid UTF-8 bytes and XML-illegal control characters are
 // dropped; clean text (incl. valid multi-byte UTF-8) is preserved (task 465).
 func TestScrubXML(t *testing.T) {

@@ -272,6 +272,22 @@ with a Cloudflare challenge; those answer with an HTML interstitial instead
 of an Atom feed and are detected and skipped (the skip counted), not
 harvested as empty.
 
+## Harvest languages
+
+The inference harvests (bibliocommons, tlc, sirsidynix) drive their searches
+from the loaded vocabulary's prefLabels, English by default.
+`LCATD_ENRICH_LANGS` (comma-separated, default `en`) adds other label
+languages: set `en,es` and each concept is also searched by its Spanish
+label where one exists, reaching peers that catalog LGBTQ material in
+Spanish (the Chilean/LatAm SirsiDynix cluster, Miami-Dade, San Diego, ...).
+A Spanish-string match still queues the concept's URI -- the same
+inference-model candidate as the English path, moderated in the queue. Terms
+with no label in a configured language are skipped for that language, and a
+concept whose labels coincide across languages is not searched twice. Vega
+is English-only regardless: it resolves each label to an EXPLICIT Homosaurus
+concept (`source=homoit`), and those concepts are English-labeled, so a
+Spanish query would resolve to a non-homoit concept and be gated out.
+
 ## Scheme filtering
 
 `LCATD_VOCAB_SCHEMES` (when set) filters which authority graphs load.
