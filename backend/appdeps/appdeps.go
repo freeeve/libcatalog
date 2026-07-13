@@ -28,6 +28,7 @@ import (
 	"github.com/freeeve/libcat/ingest/bibliocommons"
 	"github.com/freeeve/libcat/ingest/locsh"
 	"github.com/freeeve/libcat/ingest/openlibrary"
+	"github.com/freeeve/libcat/ingest/tlc"
 	"github.com/freeeve/libcat/ingest/vega"
 	"github.com/freeeve/libcat/ingest/wikidata"
 	"github.com/freeeve/libcat/storage/blob"
@@ -460,6 +461,41 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		enrichSources[sruenrich.Name] = enrich.Source{
 			Enricher: &sruenrich.Enricher{Search: deps.Copycat, Vocab: deps.Vocab, Delay: time.Second, Log: logger},
 			Mode:     enrich.ModeQueue,
+		}
+	}
+	// The TLC LS2 PAC peer harvest: one anonymous faceted search per driver
+	// term per tenant (the term is both keyword and Subject facet), matched
+	// by ISBN, queue-moderated with the same consensus semantics as the
+	// other peer harvests. Inference model: the subject index is unscoped.
+	if cfg.EnrichTLC != "" && deps.Vocab != nil && deps.Suggest != nil {
+		var hosts []string
+		for _, h := range strings.Split(cfg.EnrichTLC, ",") {
+			if h = strings.TrimSpace(h); h != "" {
+				hosts = append(hosts, h)
+			}
+		}
+		scheme := cfg.EnrichTLCScheme
+		var tterms []tlc.Term
+		for _, t := range deps.Vocab.Terms(scheme) {
+			if t.MergedInto != "" {
+				continue
+			}
+			if q := t.Label("en"); q != "" {
+				tterms = append(tterms, tlc.Term{URI: t.ID, Labels: t.Labels, Query: q})
+			}
+		}
+		if len(tterms) == 0 {
+			logger.Warn("tlc enrichment disabled: driver vocabulary has no terms loaded", "scheme", scheme)
+		} else if len(hosts) > 0 {
+			topts := []tlc.Option{tlc.WithLogger(logger)}
+			if cfg.EnrichTLCMaxPages > 0 {
+				topts = append(topts, tlc.WithMaxPages(cfg.EnrichTLCMaxPages))
+			}
+			enrichSources[tlc.Name] = enrich.Source{
+				Enricher: tlc.New(hosts, tterms, topts...),
+				Mode:     enrich.ModeQueue, Scheme: scheme,
+			}
+			logger.Info("tlc subject harvest configured", "hosts", hosts, "scheme", scheme, "terms", len(tterms))
 		}
 	}
 	// The III Vega Discover peer harvest: resolves each driver term to the

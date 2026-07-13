@@ -233,6 +233,21 @@ capping pages per concept (default 6 x 96 records). Harvests cache 24h per
 tenant. The siteCode must be the library's real subdomain -- DNS is a
 wildcard, so nothing validates a guess until the API answers 403.
 
+### TLC LS2 PAC peer harvest (tlc)
+
+`LCATD_ENRICH_TLC=<subdomain>[,<subdomain>...]` (each library's catalog
+subdomain of `<tenant>.tlcdelivers.com`, e.g. `nbpl`) registers a harvest
+of TLC LS2 PAC catalogs: one anonymous faceted search per driver term per
+tenant, the term serving as BOTH the keyword and a Subject facet filter so
+the facet enforces subject-cataloging precision. The subject index is
+unscoped (LCSH and Homosaurus merge, records carry no scheme tag), so like
+the BiblioCommons harvest this is the inference model -- the match is the
+exact Homosaurus prefLabel -- joined by a shared ISBN (probed records
+carried ISBNs universally; confidence 0.9, one tier). Queue-only, with the
+same consensus semantics, per-job `?hosts=` override, 24h per-tenant
+cache, per-tenant 1.5s politeness, and `LCATD_ENRICH_TLC_MAX_PAGES`
+(default 6 x 24 hits) as the other peer harvests.
+
 ## Scheme filtering
 
 `LCATD_VOCAB_SCHEMES` (when set) filters which authority graphs load.

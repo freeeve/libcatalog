@@ -230,6 +230,15 @@ type Config struct {
 	// EnrichVegaMaxPages caps resources pages per concept (default 6).
 	EnrichVegaScheme   string
 	EnrichVegaMaxPages int
+	// EnrichTLC enables the TLC LS2 PAC peer harvest: comma-separated
+	// catalog subdomains of <tenant>.tlcdelivers.com (e.g. "nbpl").
+	// Queue-only; the subject index is unscoped, so like the BiblioCommons
+	// harvest the match is the exact Homosaurus prefLabel, ISBN-joined.
+	EnrichTLC string
+	// EnrichTLCScheme picks the driver vocabulary (default "homosaurus");
+	// EnrichTLCMaxPages caps search pages per term (default 6 x 24 hits).
+	EnrichTLCScheme   string
+	EnrichTLCMaxPages int
 }
 
 // FromEnv reads configuration from LCATD_-prefixed environment variables.
@@ -280,6 +289,8 @@ func FromEnv() (Config, error) {
 		EnrichBiblioCommonsScheme: envOr("LCATD_ENRICH_BIBLIOCOMMONS_SCHEME", "homosaurus"),
 		EnrichVega:                os.Getenv("LCATD_ENRICH_VEGA"),
 		EnrichVegaScheme:          envOr("LCATD_ENRICH_VEGA_SCHEME", "homosaurus"),
+		EnrichTLC:                 os.Getenv("LCATD_ENRICH_TLC"),
+		EnrichTLCScheme:           envOr("LCATD_ENRICH_TLC_SCHEME", "homosaurus"),
 	}
 	if cfg.Sandbox {
 		cfg.ReadOnly = true // sandbox never persists
@@ -310,6 +321,18 @@ func FromEnv() (Config, error) {
 			return Config{}, fmt.Errorf("config: LCATD_ENRICH_BIBLIOCOMMONS_MAX_PAGES must be a positive integer")
 		}
 		cfg.EnrichBiblioCommonsMaxPages = n
+	}
+	for _, h := range strings.Split(cfg.EnrichTLC, ",") {
+		if strings.ContainsAny(strings.TrimSpace(h), "./:") {
+			return Config{}, fmt.Errorf("config: LCATD_ENRICH_TLC wants bare tlcdelivers.com subdomains (e.g. nbpl), not URLs")
+		}
+	}
+	if raw := os.Getenv("LCATD_ENRICH_TLC_MAX_PAGES"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n <= 0 {
+			return Config{}, fmt.Errorf("config: LCATD_ENRICH_TLC_MAX_PAGES must be a positive integer")
+		}
+		cfg.EnrichTLCMaxPages = n
 	}
 	if raw := os.Getenv("LCATD_ENRICH_VEGA_MAX_PAGES"); raw != "" {
 		n, err := strconv.Atoi(raw)
