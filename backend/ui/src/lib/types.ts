@@ -804,6 +804,9 @@ export interface CrosswalkCategory {
   keywords?: string[];
   uris?: string[];
   schemes?: string[];
+  /** Root term URIs whose transitive skos:narrower closure joins the
+   *  category, expanded at audit time from the loaded scheme. */
+  roots?: string[];
   /** Comparison share in [0,1]; requires benchmarkSource naming its origin. */
   benchmark?: number;
   benchmarkSource?: string;

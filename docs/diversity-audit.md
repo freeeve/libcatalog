@@ -88,6 +88,29 @@ keywords = ["veterans", "military families"]
 lcat diversity-audit --graph catalog.nq --crosswalk my-crosswalk.toml
 ```
 
+For a vocabulary the deployment has loaded, a category can follow the
+hierarchy instead of enumerating URIs by hand:
+
+```toml
+[[category]]
+id = "lgbtqia-lesbian"
+label = "Lesbian"
+roots = ["https://homosaurus.org/v5/homoit0000556",   # Lesbians
+         "https://homosaurus.org/v5/homoit0002277"]   # Sapphics
+keywords = ["lesbian", "sapphic", "butch"]
+```
+
+`roots` is sugar for "these URIs plus everything skos:narrower beneath
+them", expanded at audit time from the loaded scheme -- so the facet
+self-maintains as the vocabulary (or a peer-harvest) introduces new
+descendant terms. Make roots a small CURATED set, not one URI: closure only
+descends, so siblings and high parents each need their own root. And keep
+keywords: concept/-ism terms with no broader edge ("Lesbianism") are
+unreachable by closure and match by label only. Roots, uris, and keywords
+union. The CLI's `--graph` mode expands from the graph's own skos:broader
+edges; `--catalog` mode has no hierarchy, so roots there match only
+themselves.
+
 A zero in a category can mean a genuine collection gap *or* vocabulary the
 crosswalk does not know. When a community vocabulary is central to your
 collection, prefer scheme- or URI-level entries over keywords; the

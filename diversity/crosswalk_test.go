@@ -423,3 +423,69 @@ func TestReligionCategoryRescope(t *testing.T) {
 		t.Errorf("Wiccans = %v, want the faith-communities category", got)
 	}
 }
+
+// TestRootsExpandThroughNarrower pins the hierarchy-aware facet (task 452):
+// a category's roots match as bare URIs even with no resolver; with one,
+// every transitive skos:narrower descendant matches too, keywords still
+// union in, cycles and polyhierarchy terminate, and the receiver crosswalk
+// is untouched.
+func TestRootsExpandThroughNarrower(t *testing.T) {
+	const (
+		root  = "https://homosaurus.org/v5/homoit0000556" // Lesbians
+		child = "https://homosaurus.org/v5/homoit0001111" // Lesbian youth
+		grand = "https://homosaurus.org/v5/homoit0002222"
+		other = "https://homosaurus.org/v5/homoit0009999"
+	)
+	over := []byte(`
+[[category]]
+id = "lgbtqia-lesbian"
+label = "Lesbian"
+roots = ["` + root + `"]
+keywords = ["sapphic"]
+`)
+	cw, err := FromBytes(over)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Without a resolver: the root itself matches, descendants do not.
+	if got := cw.Categorize(root, "", "homosaurus"); !slices.Contains(got, "lgbtqia-lesbian") {
+		t.Fatalf("root uri did not match its own category: %v", got)
+	}
+	if got := cw.Categorize(child, "", "homosaurus"); slices.Contains(got, "lgbtqia-lesbian") {
+		t.Fatalf("descendant matched without a hierarchy source: %v", got)
+	}
+
+	narrower := map[string][]string{
+		root:  {child},
+		child: {grand, root}, // cycle back to the root: must terminate
+	}
+	expanded := cw.WithNarrower(func(uri string) []string { return narrower[uri] })
+
+	for _, uri := range []string{root, child, grand} {
+		if got := expanded.Categorize(uri, "", "homosaurus"); !slices.Contains(got, "lgbtqia-lesbian") {
+			t.Fatalf("%s not in the expanded facet: %v", uri, got)
+		}
+	}
+	if got := expanded.Categorize(other, "", "homosaurus"); slices.Contains(got, "lgbtqia-lesbian") {
+		t.Fatalf("an unrelated term joined the facet: %v", got)
+	}
+	// Keywords union in: a no-broader concept term still matches by label.
+	if got := expanded.Categorize("", "Sapphic fiction", "homosaurus"); !slices.Contains(got, "lgbtqia-lesbian") {
+		t.Fatalf("keyword stopped matching after expansion: %v", got)
+	}
+	// The receiver stayed unexpanded (concurrent-safe, cache-friendly).
+	if got := cw.Categorize(child, "", "homosaurus"); slices.Contains(got, "lgbtqia-lesbian") {
+		t.Fatalf("WithNarrower mutated its receiver: %v", got)
+	}
+	// A category never double-counts from multiple paths: one id, once.
+	n := 0
+	for _, id := range expanded.Categorize(child, "", "homosaurus") {
+		if id == "lgbtqia-lesbian" {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("category appeared %d times for one subject", n)
+	}
+}

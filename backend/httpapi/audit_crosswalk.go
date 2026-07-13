@@ -27,10 +27,15 @@ const crosswalkBlobPath = "data/audit/crosswalk.toml"
 // content hash doubles as the audit cache's crosswalk dimension, which keeps
 // memoized reports honest across processes sharing the blob store.
 type crosswalkSource struct {
-	bs   blob.Store
-	mu   sync.Mutex
-	hash string
-	cw   *diversity.Crosswalk
+	bs blob.Store
+	// narrower resolves a term URI to its skos:narrower children (the
+	// loaded vocab index), so root-defined facets expand at audit time.
+	// Applied on every effective() return rather than cached: a vocabulary
+	// reload must widen the closures without an override rewrite.
+	narrower func(uri string) []string
+	mu       sync.Mutex
+	hash     string
+	cw       *diversity.Crosswalk
 }
 
 // effective returns the compiled crosswalk plus the override's content hash
@@ -38,7 +43,7 @@ type crosswalkSource struct {
 func (s *crosswalkSource) effective(r *http.Request) (*diversity.Crosswalk, string, []byte, error) {
 	data, _, err := s.bs.Get(r.Context(), crosswalkBlobPath)
 	if errors.Is(err, blob.ErrNotFound) {
-		return diversity.Default(), "", nil, nil
+		return diversity.Default().WithNarrower(s.narrower), "", nil, nil
 	}
 	if err != nil {
 		return nil, "", nil, err
@@ -48,17 +53,17 @@ func (s *crosswalkSource) effective(r *http.Request) (*diversity.Crosswalk, stri
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.hash == hash && s.cw != nil {
-		return s.cw, hash, data, nil
+		return s.cw.WithNarrower(s.narrower), hash, data, nil
 	}
 	cw, err := diversity.FromBytes(data)
 	if err != nil {
 		// A persisted override that no longer parses (hand-edited blob,
 		// version skew) must not take the audit down; the seed still audits
 		// and the config surface reports the broken document.
-		return diversity.Default(), "", data, nil
+		return diversity.Default().WithNarrower(s.narrower), "", data, nil
 	}
 	s.hash, s.cw = hash, cw
-	return cw, hash, data, nil
+	return cw.WithNarrower(s.narrower), hash, data, nil
 }
 
 // crosswalkBody is the PUT/preview request envelope: exactly one of categories

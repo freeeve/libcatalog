@@ -35,6 +35,14 @@ type Category struct {
 	Keywords []string `toml:"keywords" json:"keywords,omitempty"`
 	URIs     []string `toml:"uris" json:"uris,omitempty"`
 	Schemes  []string `toml:"schemes" json:"schemes,omitempty"`
+	// Roots are authority URIs whose transitive skos:narrower closure joins
+	// the category -- "these URIs plus everything beneath them", expanded at
+	// audit time from the loaded scheme (WithNarrower), so the facet
+	// self-maintains as the vocabulary gains terms. A small CURATED set, not
+	// one URI: closure only descends, so siblings and high parents each need
+	// their own root; and concept/-ism terms with no broader edge stay the
+	// keywords' job. Roots union with uris and keywords.
+	Roots []string `toml:"roots" json:"roots,omitempty"`
 	// Benchmark is an operator-supplied comparison share in [0,1] (service-area
 	// demographics, publishing output, or the collection's own baseline), with
 	// BenchmarkSource naming where it came from ("ACS 2024 service area",
@@ -188,6 +196,7 @@ func build(seed []byte, overrides [][]byte) (*Crosswalk, error) {
 				merged.Category[i].Keywords = unionFold(merged.Category[i].Keywords, oc.Keywords)
 				merged.Category[i].URIs = unionExact(merged.Category[i].URIs, oc.URIs)
 				merged.Category[i].Schemes = unionFold(merged.Category[i].Schemes, oc.Schemes)
+				merged.Category[i].Roots = unionExact(merged.Category[i].Roots, oc.Roots)
 				if oc.Label != "" {
 					merged.Category[i].Label = oc.Label
 				}
@@ -221,6 +230,13 @@ func build(seed []byte, overrides [][]byte) (*Crosswalk, error) {
 		cw.keywords[c.ID] = seqs
 		for _, u := range c.URIs {
 			if u = strings.TrimSpace(u); u != "" {
+				cw.byURI[u] = append(cw.byURI[u], c.ID)
+			}
+		}
+		// A root is itself a URI match; its descendants join via
+		// WithNarrower when a hierarchy source is available.
+		for _, u := range c.Roots {
+			if u = strings.TrimSpace(u); u != "" && !contains(cw.byURI[u], c.ID) {
 				cw.byURI[u] = append(cw.byURI[u], c.ID)
 			}
 		}
@@ -259,6 +275,7 @@ func copyCategories(cats []Category) []Category {
 			Keywords:        append([]string(nil), c.Keywords...),
 			URIs:            append([]string(nil), c.URIs...),
 			Schemes:         append([]string(nil), c.Schemes...),
+			Roots:           append([]string(nil), c.Roots...),
 			BenchmarkSource: c.BenchmarkSource,
 		}
 		if c.Benchmark != nil {
@@ -267,6 +284,71 @@ func copyCategories(cats []Category) []Category {
 		}
 	}
 	return out
+}
+
+// WithNarrower returns a crosswalk whose categories' root sets are expanded
+// through the transitive skos:narrower closure the resolver describes: for
+// each category root, every descendant URI matches the category exactly as
+// an explicit uris entry would. The receiver is untouched (it stays safe
+// for concurrent use); a nil resolver, or a crosswalk with no roots,
+// returns the receiver itself. Polyhierarchy and cycles are fine -- closure
+// membership is a set.
+func (c *Crosswalk) WithNarrower(narrower func(uri string) []string) *Crosswalk {
+	if narrower == nil {
+		return c
+	}
+	hasRoots := false
+	for _, cat := range c.full {
+		if len(cat.Roots) > 0 {
+			hasRoots = true
+			break
+		}
+	}
+	if !hasRoots {
+		return c
+	}
+	out := &Crosswalk{
+		categories: c.categories,
+		full:       c.full,
+		index:      c.index,
+		byScheme:   c.byScheme,
+		keywords:   c.keywords,
+		byURI:      make(map[string][]string, len(c.byURI)),
+	}
+	for u, ids := range c.byURI {
+		out.byURI[u] = ids
+	}
+	for _, cat := range c.full {
+		if len(cat.Roots) == 0 {
+			continue
+		}
+		visited := map[string]bool{}
+		queue := append([]string(nil), cat.Roots...)
+		for len(queue) > 0 {
+			u := queue[0]
+			queue = queue[1:]
+			if u == "" || visited[u] {
+				continue
+			}
+			visited[u] = true
+			if !contains(out.byURI[u], cat.ID) {
+				// Clone-on-extend: the slice may be shared with the receiver.
+				out.byURI[u] = append(append([]string(nil), out.byURI[u]...), cat.ID)
+			}
+			queue = append(queue, narrower(u)...)
+		}
+	}
+	return out
+}
+
+// contains reports whether list holds v.
+func contains(list []string, v string) bool {
+	for _, x := range list {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }
 
 // Label returns a category's display label, or the id itself if unknown.

@@ -175,6 +175,15 @@ func New(deps Deps) http.Handler {
 		registerTags(mux, wl, deps.Verifier)
 		registerWorksSimilar(mux, ix, deps.Verifier, deps.Vocab)
 		cws := &crosswalkSource{bs: deps.Blob}
+		if deps.Vocab != nil {
+			ix := deps.Vocab
+			cws.narrower = func(uri string) []string {
+				if t, ok := ix.Resolve(uri); ok {
+					return t.Narrower
+				}
+				return nil
+			}
+		}
 		computeAudit := registerAudit(mux, ix, deps.Verifier, cws)
 		registerAuditSnapshots(mux, deps.Blob, deps.Verifier, computeAudit)
 		registerAuditCrosswalk(mux, deps.Blob, ix, deps.Verifier, cws)
