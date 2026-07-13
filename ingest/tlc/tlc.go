@@ -125,7 +125,7 @@ func WithCacheTTL(d time.Duration) Option { return func(e *Enricher) { e.cacheTT
 // New returns the harvester for the given tenant subdomains and terms.
 func New(hosts []string, terms []Term, opts ...Option) *Enricher {
 	e := &Enricher{
-		client:          http.DefaultClient,
+		client:          &http.Client{Timeout: ingest.DefaultRequestTimeout},
 		hosts:           hosts,
 		terms:           terms,
 		hitsPerPage:     24,

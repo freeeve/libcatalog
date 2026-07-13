@@ -141,7 +141,7 @@ func WithHostConcurrency(n int) Option {
 // New returns the harvester for the given peer hosts and driver term list.
 func New(hosts []string, terms []Term, opts ...Option) *Enricher {
 	e := &Enricher{
-		client:          http.DefaultClient,
+		client:          &http.Client{Timeout: ingest.DefaultRequestTimeout},
 		hosts:           hosts,
 		terms:           terms,
 		displayQuantity: 100,

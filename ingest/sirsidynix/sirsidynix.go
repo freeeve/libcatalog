@@ -196,7 +196,7 @@ func WithRetryBase(d time.Duration) Option { return func(e *Enricher) { e.retryB
 // New returns the harvester for the given tenants and driver term list.
 func New(tenants []Tenant, terms []Term, opts ...Option) *Enricher {
 	e := &Enricher{
-		client:          http.DefaultClient,
+		client:          &http.Client{Timeout: ingest.DefaultRequestTimeout},
 		tenants:         tenants,
 		terms:           terms,
 		delay:           1500 * time.Millisecond,

@@ -261,6 +261,36 @@ func (s *Service) RunQueuedJobs(ctx context.Context) (int, error) {
 	return ran, firstErr
 }
 
+// ReapStaleJobs fails every RUNNING record whose heartbeat has gone stale
+// and returns how many it reaped. It runs on a cadence INDEPENDENT of
+// RunQueuedJobs: the parallel drain joins its launched jobs, so a legit
+// long run (a multi-hour TLC crawl) keeps that call from returning and the
+// drain's own inline reap never fires again -- leaving a hung sibling
+// orphaned until a full process restart. A standalone reaper on its own
+// ticker recovers such orphans while the drain is still joined.
+func (s *Service) ReapStaleJobs(ctx context.Context) (int, error) {
+	if s.DB == nil {
+		return 0, nil
+	}
+	reaped := 0
+	for rec, err := range s.DB.Query(ctx, "JOB#ENRICH", "", store.QueryOpt{}) {
+		if err != nil {
+			return reaped, err
+		}
+		var job Job
+		if json.Unmarshal(rec.Data, &job) != nil {
+			continue
+		}
+		if job.Status == JobRunning && s.staleRunning(job) {
+			if err := s.reapJob(ctx, rec, job); err != nil {
+				return reaped, err
+			}
+			reaped++
+		}
+	}
+	return reaped, nil
+}
+
 // staleRunning reports whether a RUNNING job's worker is presumed dead.
 // Records written before heartbeats existed fall back to StartedAt.
 func (s *Service) staleRunning(job Job) bool {

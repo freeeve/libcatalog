@@ -167,7 +167,7 @@ func WithCacheTTL(d time.Duration) Option { return func(e *Enricher) { e.cacheTT
 // New returns the harvester for the given tenants and driver term list.
 func New(tenants []Tenant, terms []Term, opts ...Option) *Enricher {
 	e := &Enricher{
-		client:   http.DefaultClient,
+		client:   &http.Client{Timeout: ingest.DefaultRequestTimeout},
 		tenants:  tenants,
 		terms:    terms,
 		pageSize: 96,

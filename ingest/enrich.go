@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/freeeve/libcodex/rdf"
 
@@ -246,6 +247,15 @@ type Enricher interface {
 
 // enrichBatchSize bounds how many summaries one Enrich call receives.
 const enrichBatchSize = 50
+
+// DefaultRequestTimeout bounds a single outbound harvest request. A peer
+// host that stalls mid-response (a slow-loris, a dead connection that never
+// resets) would otherwise hang the request forever -- and with it the whole
+// queued job, which then never flushes its results and cannot be reaped
+// while a sibling drain is still joined. Providers give their default HTTP
+// client this timeout so a stuck request fails and the term advances (or
+// retries) instead of freezing the run.
+const DefaultRequestTimeout = 90 * time.Second
 
 // ErrEnricher marks a failure inside the enricher itself -- typically the
 // external service behind it (rate limit, timeout, DNS) -- as opposed to a

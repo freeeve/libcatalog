@@ -621,6 +621,26 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 					}
 				}
 			}()
+			// Independent orphan reaper: the drain joins its launched jobs,
+			// so a long legit run keeps RunQueuedJobs from returning and its
+			// inline reap never fires again. This ticker recovers a hung
+			// sibling on its own cadence, regardless of the drain.
+			go func() {
+				ticker := time.NewTicker(20 * time.Second)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-ticker.C:
+						if n, err := enrichSvc.ReapStaleJobs(ctx); err != nil && ctx.Err() == nil {
+							logger.Error("enrichment orphan reaper", "err", err)
+						} else if n > 0 {
+							logger.Warn("reaped stale enrichment jobs", "count", n)
+						}
+					}
+				}
+			}()
 		}
 	}
 	// The SIP2 availability bridge: mounted whenever an ACS address is

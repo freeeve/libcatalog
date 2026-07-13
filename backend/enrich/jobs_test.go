@@ -132,6 +132,47 @@ func TestOrphanedRunningJobIsReaped(t *testing.T) {
 	}
 }
 
+// TestReapStaleJobsStandalone pins the independent reaper (task 464): a
+// stale-heartbeat RUNNING orphan is failed by ReapStaleJobs on its own --
+// no drain, no dispatch -- while a fresh-heartbeat run is left alone. This
+// is the path that recovers a hung sibling while a long legit drain is
+// still joined and RunQueuedJobs cannot return.
+func TestReapStaleJobsStandalone(t *testing.T) {
+	svc := jobService(t)
+	now := time.Now().UTC()
+	svc.Now = func() time.Time { return now }
+
+	orphan, _ := svc.CreateJob(t.Context(), "a", "stats", nil, nil)
+	if _, err := svc.claimJob(t.Context(), orphan.ID); err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+	live, _ := svc.CreateJob(t.Context(), "a", "stub", nil, nil)
+	if _, err := svc.claimJob(t.Context(), live.ID); err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+
+	// The orphan's heartbeat froze; the live one beat just now.
+	now = now.Add(2 * time.Minute)
+	got, _ := svc.GetJob(t.Context(), live.ID)
+	got.HeartbeatAt = now
+	if err := svc.putJob(t.Context(), got, store.CondNone); err != nil {
+		t.Fatal(err)
+	}
+
+	reaped, err := svc.ReapStaleJobs(t.Context())
+	if err != nil || reaped != 1 {
+		t.Fatalf("ReapStaleJobs = %d, %v; want exactly the orphan reaped", reaped, err)
+	}
+	o, _ := svc.GetJob(t.Context(), orphan.ID)
+	if o.Status != JobFailed || o.Error != "interrupted by a restart" {
+		t.Fatalf("orphan = %+v, want FAILED interrupted-by-restart", o)
+	}
+	l, _ := svc.GetJob(t.Context(), live.ID)
+	if l.Status != JobRunning {
+		t.Fatalf("live job = %s, want still RUNNING (fresh heartbeat)", l.Status)
+	}
+}
+
 // TestJobFailureClassified proves a failed run lands FAILED with the same
 // generic client-facing classification the synchronous endpoint uses -- no
 // raw upstream detail in the record.
