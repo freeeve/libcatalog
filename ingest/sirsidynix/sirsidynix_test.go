@@ -2,6 +2,7 @@ package sirsidynix
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -178,6 +179,65 @@ func TestSirsiDynixMultiTenantConsensus(t *testing.T) {
 	}
 	if st := e.RunStats(); st.Total != 2 || st.Batches != 2 || st.Candidates != 1 {
 		t.Fatalf("stats = %+v", st)
+	}
+}
+
+// flakyDoer emits a set number of transient failures (a network error, or
+// a 503 when failWith is nil) before serving its body, counting attempts.
+type flakyDoer struct {
+	mu       sync.Mutex
+	fails    int
+	failWith error
+	body     string
+	calls    int
+}
+
+func (d *flakyDoer) Do(req *http.Request) (*http.Response, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.calls++
+	if d.fails > 0 {
+		d.fails--
+		if d.failWith != nil {
+			return nil, d.failWith
+		}
+		return &http.Response{StatusCode: 503, Body: io.NopCloser(strings.NewReader("busy"))}, nil
+	}
+	return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(d.body))}, nil
+}
+
+// TestSirsiDynixRetriesTransientFailure: a connection refused under load
+// backs off and retries rather than losing the whole term (task 463).
+func TestSirsiDynixRetriesTransientFailure(t *testing.T) {
+	doer := &flakyDoer{fails: 2, failWith: errors.New("dial tcp :443: connect: connection refused"),
+		body: feed(entry(1215347, "Zami", "9780895941220"))}
+	works := []ingest.WorkSummary{{WorkID: "w1", ISBNs: []string{"9780895941220"}}}
+	e := New([]Tenant{{Host: "winca.ent.sirsidynix.net", Profile: "default"}}, testTerms(),
+		WithClient(doer), WithDelay(0), WithRetryBase(0))
+	got, err := e.Enrich(context.Background(), works)
+	if err != nil || len(got) != 1 || got[0].WorkID != "w1" {
+		t.Fatalf("got = %+v, %v; want a match after retries", got, err)
+	}
+	if doer.calls != 3 {
+		t.Fatalf("calls = %d, want 3 (2 refused + 1 ok)", doer.calls)
+	}
+}
+
+// TestSirsiDynixRetries503: a transient 5xx is retried; a whole run of them
+// exhausts the budget and counts one skip, not a silent empty harvest.
+func TestSirsiDynixRetries503(t *testing.T) {
+	doer := &flakyDoer{fails: 99} // always 503
+	e := New([]Tenant{{Host: "winca.ent.sirsidynix.net", Profile: "default"}}, testTerms(),
+		WithClient(doer), WithDelay(0), WithRetryBase(0), WithMaxRetries(2))
+	got, err := e.Enrich(context.Background(), []ingest.WorkSummary{{WorkID: "w1", ISBNs: []string{"9780895941220"}}})
+	if err != nil || len(got) != 0 {
+		t.Fatalf("got = %+v, %v; want nothing (all attempts 503)", got, err)
+	}
+	if doer.calls != 3 {
+		t.Fatalf("calls = %d, want 3 (1 + 2 retries)", doer.calls)
+	}
+	if st := e.RunStats(); st.SkippedBatches != 1 {
+		t.Fatalf("skipped = %d, want the exhausted term counted", st.SkippedBatches)
 	}
 }
 

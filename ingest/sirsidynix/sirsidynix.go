@@ -122,7 +122,12 @@ type Enricher struct {
 	// hosts crawl concurrently, capped.
 	delay           time.Duration
 	hostConcurrency int
-	log             *slog.Logger
+	// maxRetries is how many extra attempts a request gets after a transient
+	// failure (a connection refused under harvest load, a 5xx); retryBase is
+	// the first backoff pause, doubled each attempt.
+	maxRetries int
+	retryBase  time.Duration
+	log        *slog.Logger
 
 	statsMu sync.Mutex
 	stats   ingest.EnrichStats
@@ -175,6 +180,19 @@ func WithLogger(l *slog.Logger) Option { return func(e *Enricher) { e.log = l } 
 // WithCacheTTL overrides how long a completed harvest is reused.
 func WithCacheTTL(d time.Duration) Option { return func(e *Enricher) { e.cacheTTL = d } }
 
+// WithMaxRetries overrides how many extra attempts a transiently-failing
+// request gets (0 disables retry).
+func WithMaxRetries(n int) Option {
+	return func(e *Enricher) {
+		if n >= 0 {
+			e.maxRetries = n
+		}
+	}
+}
+
+// WithRetryBase overrides the first retry backoff pause.
+func WithRetryBase(d time.Duration) Option { return func(e *Enricher) { e.retryBase = d } }
+
 // New returns the harvester for the given tenants and driver term list.
 func New(tenants []Tenant, terms []Term, opts ...Option) *Enricher {
 	e := &Enricher{
@@ -183,6 +201,8 @@ func New(tenants []Tenant, terms []Term, opts ...Option) *Enricher {
 		terms:           terms,
 		delay:           1500 * time.Millisecond,
 		hostConcurrency: 4,
+		maxRetries:      3,
+		retryBase:       time.Second,
 		cacheTTL:        24 * time.Hour,
 		cache:           &harvestCache{byTenant: map[string]*tenantHarvest{}},
 	}
@@ -418,36 +438,14 @@ type atomLink struct {
 // carrying an ISBN. Enterprise returns the whole result set in one response
 // (ps=1000), so there is no pagination.
 func (e *Enricher) hitlist(ctx context.Context, tenant Tenant, label string) ([]record, error) {
-	if e.delay > 0 {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(e.delay):
-		}
-	}
 	// The query lives in the path segment: qu=<label> with the SUBJECT
 	// index selector (pipes percent-encoded), ps=1000 for the full hitlist.
 	q := "qu=" + strings.ReplaceAll(url.QueryEscape(label), "+", "%20") +
 		"&rt=false%7C%7C%7CSUBJECT%7C%7C%7CSubject&ps=1000"
-	origin := "https://" + tenant.Host
-	target := origin + "/client/rss/hitlist/" + tenant.Profile + "/" + q
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	target := "https://" + tenant.Host + "/client/rss/hitlist/" + tenant.Profile + "/" + q
+	body, err := e.fetch(ctx, tenant, target)
 	if err != nil {
 		return nil, err
-	}
-	req.Header.Set("Accept", "application/atom+xml, application/xml;q=0.9, */*;q=0.8")
-	req.Header.Set("User-Agent", "libcat-subject-harvest/1.0 (https://github.com/freeeve/libcat)")
-	resp, err := e.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ingest.ErrEnricher, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: HTTP %d", ingest.ErrEnricher, resp.StatusCode)
-	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ingest.ErrEnricher, err)
 	}
 	// A Cloudflare-gated tenant answers with an HTML challenge, not an Atom
 	// feed. Detect it and fail loudly so the skip is counted, rather than
@@ -468,6 +466,87 @@ func (e *Enricher) hitlist(ctx context.Context, tenant Tenant, label string) ([]
 		recs = append(recs, record{title: strings.TrimSpace(ent.Title), link: alternateLink(ent.Links), isbns: isbns})
 	}
 	return recs, nil
+}
+
+// fetch GETs one hitlist URL with per-tenant politeness spacing and retry:
+// a transient failure (a connection refused under harvest load, a 5xx)
+// backs off and tries again up to maxRetries, so a busy Enterprise host is
+// paced through rather than losing the whole term. The politeness pause
+// precedes every attempt; the backoff (retryBase, doubled) is added before
+// each retry.
+func (e *Enricher) fetch(ctx context.Context, tenant Tenant, target string) ([]byte, error) {
+	var lastErr error
+	for attempt := 0; attempt <= e.maxRetries; attempt++ {
+		wait := e.delay
+		if attempt > 0 {
+			wait += e.retryBase << (attempt - 1)
+		}
+		if wait > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(wait):
+			}
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Accept", "application/atom+xml, application/xml;q=0.9, */*;q=0.8")
+		req.Header.Set("User-Agent", "libcat-subject-harvest/1.0 (https://github.com/freeeve/libcat)")
+		resp, err := e.client.Do(req)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			lastErr = fmt.Errorf("%w: %w", ingest.ErrEnricher, err)
+			e.logRetry(tenant, target, attempt, err)
+			continue
+		}
+		if retryableStatus(resp.StatusCode) {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("%w: HTTP %d", ingest.ErrEnricher, resp.StatusCode)
+			e.logRetry(tenant, target, attempt, lastErr)
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return nil, fmt.Errorf("%w: HTTP %d", ingest.ErrEnricher, resp.StatusCode)
+		}
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
+		resp.Body.Close()
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			lastErr = fmt.Errorf("%w: %w", ingest.ErrEnricher, err)
+			e.logRetry(tenant, target, attempt, err)
+			continue
+		}
+		return body, nil
+	}
+	return nil, lastErr
+}
+
+// logRetry notes a retried attempt (best effort; nil logger stays silent).
+func (e *Enricher) logRetry(tenant Tenant, target string, attempt int, err error) {
+	if e.log != nil && attempt < e.maxRetries {
+		e.log.Warn("sirsidynix request retrying", "tenant", tenant.Key(), "attempt", attempt+1, "err", err)
+	}
+}
+
+// retryableStatus reports whether an HTTP status is worth another attempt:
+// rate limiting and the transient 5xx family.
+func retryableStatus(code int) bool {
+	switch code {
+	case http.StatusTooManyRequests,
+		http.StatusInternalServerError,
+		http.StatusBadGateway,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout:
+		return true
+	}
+	return false
 }
 
 // isChallenge reports whether a response body is a Cloudflare (or similar)
