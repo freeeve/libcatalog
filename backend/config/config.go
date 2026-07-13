@@ -230,10 +230,12 @@ type Config struct {
 	// EnrichVegaMaxPages caps resources pages per concept (default 6).
 	EnrichVegaScheme   string
 	EnrichVegaMaxPages int
-	// EnrichTLC enables the TLC LS2 PAC peer harvest: comma-separated
-	// catalog subdomains of <tenant>.tlcdelivers.com (e.g. "nbpl").
-	// Queue-only; the subject index is unscoped, so like the BiblioCommons
-	// harvest the match is the exact Homosaurus prefLabel, ISBN-joined.
+	// EnrichTLC enables the TLC LS2 PAC peer harvest: comma-separated hosts,
+	// each either a bare subdomain of <tenant>.tlcdelivers.com (e.g. "nbpl")
+	// or a full vanity catalog host (e.g. "ls2pac.lapl.org", which many TLC
+	// libraries including LAPL serve the same API on). Queue-only; the
+	// subject index is unscoped, so like the BiblioCommons harvest the match
+	// is the exact Homosaurus prefLabel, ISBN-joined.
 	EnrichTLC string
 	// EnrichTLCScheme picks the driver vocabulary (default "homosaurus");
 	// EnrichTLCMaxPages caps search pages per term (default 6 x 24 hits).
@@ -339,8 +341,8 @@ func FromEnv() (Config, error) {
 		cfg.EnrichBiblioCommonsMaxPages = n
 	}
 	for _, h := range strings.Split(cfg.EnrichTLC, ",") {
-		if strings.ContainsAny(strings.TrimSpace(h), "./:") {
-			return Config{}, fmt.Errorf("config: LCATD_ENRICH_TLC wants bare tlcdelivers.com subdomains (e.g. nbpl), not URLs")
+		if strings.ContainsAny(strings.TrimSpace(h), "/: ") {
+			return Config{}, fmt.Errorf("config: LCATD_ENRICH_TLC wants a bare tlcdelivers.com subdomain (e.g. nbpl) or a full catalog host (e.g. ls2pac.lapl.org), not a URL")
 		}
 	}
 	if raw := os.Getenv("LCATD_ENRICH_TLC_MAX_PAGES"); raw != "" {

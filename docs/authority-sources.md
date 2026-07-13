@@ -235,9 +235,12 @@ wildcard, so nothing validates a guess until the API answers 403.
 
 ### TLC LS2 PAC peer harvest (tlc)
 
-`LCATD_ENRICH_TLC=<subdomain>[,<subdomain>...]` (each library's catalog
-subdomain of `<tenant>.tlcdelivers.com`, e.g. `nbpl`) registers a harvest
-of TLC LS2 PAC catalogs: one anonymous faceted search per driver term per
+`LCATD_ENRICH_TLC=<host>[,<host>...]` -- each entry is either a bare
+subdomain of `<tenant>.tlcdelivers.com` (e.g. `nbpl`) or a full vanity
+catalog host (e.g. `ls2pac.lapl.org`; many TLC libraries, LAPL among them,
+serve the same LS2 PAC API on their own domain). A token with a dot is used
+verbatim, one without expands to `<token>.tlcdelivers.com`. It registers a
+harvest of TLC LS2 PAC catalogs: one anonymous faceted search per driver term per
 tenant, the term serving as BOTH the keyword and a Subject facet filter so
 the facet enforces subject-cataloging precision. The subject index is
 unscoped (LCSH and Homosaurus merge, records carry no scheme tag), so like

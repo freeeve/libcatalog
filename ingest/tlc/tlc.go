@@ -1,8 +1,10 @@
 // Package tlc harvests peer libraries' subject cataloging from TLC (The
-// Library Corporation) LS2 PAC catalogs at <tenant>.tlcdelivers.com through
-// the anonymous search endpoint: one POST per driver term with the term as
-// BOTH the keyword and a Subject facet filter, so the keyword surfaces
-// candidates and the facet enforces subject-cataloging precision.
+// Library Corporation) LS2 PAC catalogs through the anonymous search
+// endpoint: one POST per driver term with the term as BOTH the keyword and
+// a Subject facet filter, so the keyword surfaces candidates and the facet
+// enforces subject-cataloging precision. A tenant is a bare
+// <tenant>.tlcdelivers.com subdomain or a full vanity catalog host (e.g.
+// ls2pac.lapl.org) serving the same API.
 //
 // The subject index is unscoped (LCSH, Homosaurus and others merge, and a
 // record carries no scheme tag), so like the BiblioCommons harvest this is
@@ -51,7 +53,8 @@ type Doer interface {
 // Enricher harvests one or more LS2 PAC tenants.
 type Enricher struct {
 	client Doer
-	// hosts are LS2 PAC subdomains (e.g. "nbpl" -> nbpl.tlcdelivers.com).
+	// hosts are LS2 PAC tenants: a bare subdomain (e.g. "nbpl" ->
+	// nbpl.tlcdelivers.com) or a full vanity host (e.g. "ls2pac.lapl.org").
 	hosts []string
 	terms []Term
 	// hitsPerPage is the verified request-schema page size; maxPages caps
@@ -400,7 +403,7 @@ func (e *Enricher) search(ctx context.Context, host, label string, page int) (se
 	if err != nil {
 		return searchPage{}, err
 	}
-	origin := "https://" + host + ".tlcdelivers.com"
+	origin := hostOrigin(host)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, origin+"/search", bytes.NewReader(payload))
 	if err != nil {
 		return searchPage{}, err
@@ -457,6 +460,17 @@ func (e *Enricher) search(ctx context.Context, host, label string, page int) (se
 		out.records = append(out.records, rec)
 	}
 	return out, nil
+}
+
+// hostOrigin resolves a config host token to its https origin. A bare
+// subdomain (no dot) expands to <host>.tlcdelivers.com; a token with a dot
+// is a vanity catalog host (e.g. ls2pac.lapl.org) serving the same LS2 PAC
+// API and is used verbatim.
+func hostOrigin(host string) string {
+	if strings.Contains(host, ".") {
+		return "https://" + host
+	}
+	return "https://" + host + ".tlcdelivers.com"
 }
 
 // hasSubject reports whether the work already carries the term URI.

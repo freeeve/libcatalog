@@ -153,6 +153,39 @@ func TestTLCNullTotalHitsFailsLoudly(t *testing.T) {
 	}
 }
 
+// TestTLCHostOrigin: a bare subdomain expands to <host>.tlcdelivers.com; a
+// full vanity host is used verbatim (task 462).
+func TestTLCHostOrigin(t *testing.T) {
+	if got := hostOrigin("nbpl"); got != "https://nbpl.tlcdelivers.com" {
+		t.Fatalf("bare subdomain origin = %q", got)
+	}
+	if got := hostOrigin("ls2pac.lapl.org"); got != "https://ls2pac.lapl.org" {
+		t.Fatalf("vanity host origin = %q", got)
+	}
+}
+
+// TestTLCVanityHost: a full vanity catalog host (LAPL serves the same LS2
+// PAC API on ls2pac.lapl.org) is queried verbatim and its records match
+// (task 462).
+func TestTLCVanityHost(t *testing.T) {
+	doer := &tenantDoer{pages: map[string]string{
+		"ls2pac.lapl.org|Trans people|0": searchBody(1, rec(1, "So Many Stars", "9781643756905")),
+	}}
+	works := []ingest.WorkSummary{{WorkID: "w1", ISBNs: []string{"9781643756905"}}}
+	e := New([]string{"ls2pac.lapl.org"}, testTerms(), WithClient(doer), WithDelay(0))
+	got, err := e.Enrich(context.Background(), works)
+	if err != nil || len(got) != 1 || got[0].WorkID != "w1" {
+		t.Fatalf("got = %+v, %v; want a match on the vanity host", got, err)
+	}
+	if end := got[0].Endorsements[0]; end.Sources[0] != "ls2pac.lapl.org" {
+		t.Fatalf("endorsement source = %q, want the vanity host verbatim", end.Sources[0])
+	}
+	// The request went to the verbatim host, not <host>.tlcdelivers.com.
+	if doer.hosts[0] != "ls2pac.lapl.org" {
+		t.Fatalf("requested host = %q, want the vanity host used verbatim", doer.hosts[0])
+	}
+}
+
 // TestTLCMultiTenantConsensus: two tenants matching one pair endorse a
 // single suggestion; Total = terms x hosts.
 func TestTLCMultiTenantConsensus(t *testing.T) {
