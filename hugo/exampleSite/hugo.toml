@@ -64,6 +64,11 @@ defaultContentLanguage = "en"
 [params]
   covers = true
 
+# Home-page bands (default-on; each declines individually with `= false`).
+# The greeting defaults to the site title; the tagline is optional copy.
+[params.home]
+  tagline = "Browse the shelves, search the catalog, discover something new."
+
 # Vocabulary groups for the subject facets: order + display names.
 # Schemes not listed here still render, after these, labeled by their code.
 [[params.subjectSchemes]]

@@ -23,7 +23,7 @@
 <script id="lcat-browse-config" type="application/json">{{ dict "subjects" (i18n "subjects") "subjectSchemes" (site.Params.subjectSchemes | default slice) | jsonify | safeJS }}</script>{{ end }}
 {{- /* The browse labels ride on the results element so lcat-browse.js localizes
        with the page; its built-in fallbacks are English. */ -}}
-<ol class="lcat-results" id="lcat-results"{{ if $browse }} data-lcat-browse="{{ site.Params.search.base | default "/search" }}" data-lcat-noresults="{{ i18n "browseNoResults" }}" data-lcat-resultsword="{{ i18n "browseResultsWord" }}" data-lcat-showing="{{ i18n "browseShowing" }}" data-lcat-showingrange="{{ i18n "browseShowingRange" }}" data-lcat-pagerlabel="{{ i18n "browsePagerLabel" }}" data-lcat-pagerprev="{{ i18n "browsePagerPrev" }}" data-lcat-pagernext="{{ i18n "browsePagerNext" }}" data-lcat-pagerpage="{{ i18n "browsePagerPage" }}"{{ end }}>
+<ol class="lcat-results{{ if ne (site.Params.browseLayout | default "grid") "list" }} lcat-results--grid{{ end }}" id="lcat-results"{{ if $browse }} data-lcat-browse="{{ site.Params.search.base | default "/search" }}" data-lcat-noresults="{{ i18n "browseNoResults" }}" data-lcat-resultsword="{{ i18n "browseResultsWord" }}" data-lcat-showing="{{ i18n "browseShowing" }}" data-lcat-showingrange="{{ i18n "browseShowingRange" }}" data-lcat-pagerlabel="{{ i18n "browsePagerLabel" }}" data-lcat-pagerprev="{{ i18n "browsePagerPrev" }}" data-lcat-pagernext="{{ i18n "browsePagerNext" }}" data-lcat-pagerpage="{{ i18n "browsePagerPage" }}"{{ end }}>
   {{ range $paginator.Pages }}
   <li>{{ partialCached "work-card.html" . .RelPermalink }}</li>
   {{ end }}

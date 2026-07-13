@@ -9,7 +9,7 @@
 <h1><span class="lcat-facet-dim">{{ .Data.Singular | humanize }}:</span> {{ $t.label }}{{ with $t.scheme }} <span class="lcat-term-scheme">({{ . }})</span>{{ end }}</h1>
 {{ $paginator := .Paginate .Pages }}
 <p class="lcat-resultcount" role="status">{{ i18n "workCount" (len .Pages) }}</p>
-<ol class="lcat-results" id="lcat-results">
+<ol class="lcat-results{{ if ne (site.Params.browseLayout | default "grid") "list" }} lcat-results--grid{{ end }}" id="lcat-results">
   {{ range $paginator.Pages }}
   <li>{{ partialCached "work-card.html" . .RelPermalink }}</li>
   {{ end }}

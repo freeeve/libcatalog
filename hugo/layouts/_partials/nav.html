@@ -1,17 +1,29 @@
 {{- /*
-  Primary site navigation: rendered only when the site defines a
-  [[menu.main]], so configuration alone gives an adopter an accessible header nav --
-  aria-current marks the active entry, and a section landing (e.g. /works/) stays
-  active on its child pages. Shadow this partial to change the markup; sites without
-  a main menu are byte-for-byte unchanged.
+  Primary site navigation: rendered when the site defines a [[menu.main]]
+  or publishes translations -- aria-current marks the active entry, and a
+  section landing (e.g. /works/) stays active on its child pages. The
+  language switcher rides as the trailing item: the multilingual build
+  already publishes per-language trees and hreflang links; this is the
+  visible door (codes, not names -- compact and self-labelling). Shadow
+  this partial to change the markup; single-language sites without a main
+  menu are byte-for-byte unchanged.
 */ -}}
-{{- with site.Menus.main }}
+{{- $langs := .Translations -}}
+{{- if or site.Menus.main $langs }}
 <nav class="lcat-nav" aria-label="{{ i18n "primaryNav" }}">
   <ul>
-    {{- range . }}
+    {{- range site.Menus.main }}
     {{- $active := or ($.IsMenuCurrent "main" .) ($.HasMenuCurrent "main" .) -}}
     {{- if and (not $active) (ne .URL "/") }}{{ $active = hasPrefix $.RelPermalink (.URL | relURL) }}{{ end -}}
     <li><a href="{{ .URL | relURL }}"{{ if $active }} aria-current="page"{{ end }}>{{ .Name }}</a></li>
+    {{- end }}
+    {{- if $langs }}
+    <li class="lcat-nav-langs">
+      <span aria-current="true" lang="{{ .Language.Lang }}">{{ .Language.Lang | upper }}</span>
+      {{- range $langs }}
+      <a href="{{ .RelPermalink }}" lang="{{ .Language.Lang }}" hreflang="{{ .Language.Lang }}">{{ .Language.Lang | upper }}</a>
+      {{- end }}
+    </li>
     {{- end }}
   </ul>
 </nav>

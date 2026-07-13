@@ -1,10 +1,16 @@
-{{- /* The home page is a Works browse under the site's title (it used
-       to inherit that from layouts/list.html, which is no longer the browse). */ -}}
+{{- /* The home page: hero band and stat tiles over the Works browse.
+       Both bands are default-on and individually declinable:
+       [params.home] hero = false / stats = false. */ -}}
+{{ define "hero" }}
+{{- if ne site.Params.home.hero false }}{{ partial "home-hero.html" . }}{{ end }}
+{{- if ne site.Params.home.stats false }}{{ partialCached "home-stats.html" . }}{{ end }}
+{{ end }}
+
 {{ define "sidebar" }}
 <aside class="lcat-sidebar" aria-label="{{ i18n "facets" }}">{{ partialCached "facets.html" . }}</aside>
 {{ end }}
 
 {{ define "main" }}
-<h1>{{ site.Title }}</h1>
+<h1{{ if ne site.Params.home.hero false }} class="lcat-visually-hidden"{{ end }}>{{ site.Title }}</h1>
 {{ partial "works-browse.html" . }}
 {{ end }}

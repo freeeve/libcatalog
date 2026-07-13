@@ -28,7 +28,7 @@
   {{- else -}}{{- warnf "curated %q: work %q not found, skipped" $.RelPermalink . -}}{{- end -}}
 {{- end }}
 <p class="lcat-resultcount" role="status">{{ i18n "workCount" (len $works) }}</p>
-<ol class="lcat-results">
+<ol class="lcat-results{{ if ne (site.Params.browseLayout | default "grid") "list" }} lcat-results--grid{{ end }}">
   {{ range $works }}
   <li>{{ partialCached "work-card.html" . .RelPermalink }}</li>
   {{ end }}

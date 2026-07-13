@@ -1,0 +1,40 @@
+{{- /*
+  Home stat tiles: a quiet band of bordered cards -- icon, uppercase label,
+  big number -- for the counts the built site already knows: titles,
+  authors, subjects, formats, series, and new-this-month. Default-on for
+  the home page; disable with [params.home] stats = false. Tiles whose
+  dimension the catalog lacks (no series taxonomy, no dated works) simply
+  do not render, so a sparse catalog shows a shorter row, never a zero.
+*/ -}}
+{{- $works := where site.RegularPages "Section" "works" -}}
+{{- $newCount := 0 -}}
+{{- $cutoff := now.AddDate 0 -1 0 -}}
+{{- range $works }}{{ if .Date.After $cutoff }}{{ $newCount = add $newCount 1 }}{{ end }}{{ end -}}
+{{- $tiles := slice -}}
+{{- with len $works }}{{ $tiles = $tiles | append (dict "label" (i18n "statTitles" | default "Titles") "n" . "icon" "book") }}{{ end -}}
+{{- with site.Taxonomies.contributors }}{{ with len . }}{{ $tiles = $tiles | append (dict "label" (i18n "statAuthors" | default "Authors") "n" . "icon" "person") }}{{ end }}{{ end -}}
+{{- with site.Taxonomies.subjects }}{{ with len . }}{{ $tiles = $tiles | append (dict "label" (i18n "statSubjects" | default "Subjects") "n" . "icon" "tag") }}{{ end }}{{ end -}}
+{{- with site.Taxonomies.formats }}{{ with len . }}{{ $tiles = $tiles | append (dict "label" (i18n "statFormats" | default "Formats") "n" . "icon" "shapes") }}{{ end }}{{ end -}}
+{{- with site.Taxonomies.series }}{{ with len . }}{{ $tiles = $tiles | append (dict "label" (i18n "statSeries" | default "Series") "n" . "icon" "stack") }}{{ end }}{{ end -}}
+{{- with $newCount }}{{ $tiles = $tiles | append (dict "label" (i18n "statNewThisMonth" | default "New this month") "n" . "icon" "spark") }}{{ end -}}
+{{- $icons := dict
+  "book" "M4 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4zM7 3v18"
+  "person" "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 10c0-4 4-6 8-6s8 2 8 6"
+  "tag" "M3 11l9-8 9 8-9 8-9-8zm9-3v.01"
+  "shapes" "M4 4h7v7H4zM15.5 4l4.5 7h-9zM8 14a4 4 0 1 0 0 8 4 4 0 0 0 0-8"
+  "stack" "M4 6h16M4 12h16M4 18h16"
+  "spark" "M12 2v6m0 8v6m10-10h-6M8 12H2m15.5-7.5l-4 4m-3 3l-4 4m11 0l-4-4m-3-3l-4-4"
+-}}
+{{- if $tiles }}
+<section class="lcat-stats" aria-label="{{ i18n "statsLabel" | default "Collection at a glance" }}" data-pagefind-ignore>
+  <dl class="lcat-stats-grid">
+    {{- range $tiles }}
+    <div class="lcat-stat">
+      <svg class="lcat-stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><path d="{{ index $icons .icon }}"></path></svg>
+      <dt class="lcat-stat-label">{{ .label }}</dt>
+      <dd class="lcat-stat-n">{{ lang.FormatNumberCustom 0 .n }}</dd>
+    </div>
+    {{- end }}
+  </dl>
+</section>
+{{- end }}

@@ -66,8 +66,11 @@ function esc(s) {
   );
 }
 
-/** card renders one result row from a decoded record (browseCard JSON). */
-function card(dec, rec) {
+/** card renders one result from a decoded record (browseCard JSON): a
+ *  cover-forward tile when the results list is the grid (the default
+ *  presentation; the record's cover URL or a lettered placeholder), the
+ *  classic text row under browseLayout = "list". */
+function card(dec, rec, grid) {
   let c;
   try {
     c = JSON.parse(dec.decode(rec));
@@ -76,12 +79,36 @@ function card(dec, rec) {
   }
   const href = "/works/" + encodeURIComponent(c.id) + "/";
   const contrib = (c.contributors || []).join(", ");
+  const title = esc(c.title || c.id);
+  if (grid) {
+    const media = c.cover
+      ? '<img class="lcat-cover lcat-cover--card" src="' +
+        esc(c.cover) +
+        '" alt="" loading="lazy" width="200" height="300">'
+      : '<span class="lcat-cover lcat-cover--card lcat-cover--placeholder" aria-hidden="true">' +
+        esc((c.title || c.id || "?").slice(0, 1).toUpperCase()) +
+        "</span>";
+    return (
+      '<li><a class="lcat-result lcat-result--tile" href="' +
+      href +
+      '"><span class="lcat-card-media">' +
+      media +
+      "</span>" +
+      '<span class="lcat-result-body"><span class="lcat-result-title">' +
+      title +
+      "</span>" +
+      (contrib
+        ? '<span class="lcat-result-contributors">' + esc(contrib) + "</span>"
+        : "") +
+      "</span></a></li>"
+    );
+  }
   return (
     '<li><a class="lcat-result" href="' +
     href +
     '">' +
     '<span class="lcat-result-title">' +
-    esc(c.title || c.id) +
+    title +
     "</span>" +
     (c.subtitle
       ? '<span class="lcat-result-subtitle">' + esc(c.subtitle) + "</span>"
@@ -972,9 +999,10 @@ function start() {
    * on page one and a "{from}-{to}" range beyond it. */
   function renderCards(recs, total, off) {
     off = off || 0;
+    const grid = results.classList.contains("lcat-results--grid");
     const html = [];
     for (const r of recs) {
-      if (r) html.push(card(dec, r));
+      if (r) html.push(card(dec, r, grid));
     }
     results.innerHTML = html.length
       ? html.join("")

@@ -3,11 +3,13 @@
    those variables in their own stylesheet (loaded after this one) -- no need to shadow
    assets/lcat.css or reimplement any chrome. Uses system fonts and CSS grid.
 
-   The default identity is "library-ish but modern": work titles in a zero-payload
-   system serif (the bookish register), UI chrome in a clean sans, catalog-drawer
-   small caps on facet labels, an index-card double rule under the work heading, and
-   a curator-green accent -- the same ink the cataloging backend renders editorial
-   provenance in. All of it retunes from the tokens; nothing is baked into markup. */
+   The default identity keeps the bone/curator-green palette over a modern,
+   editorial presentation: a grotesque display face (no webfont required --
+   the named faces resolve only where installed or adopter-loaded), uppercase
+   letter-spaced labels for nav/section/facet headings, square cards and
+   tiles beside pill-shaped search and CTAs, and a curator-green accent --
+   the same ink the cataloging backend renders editorial provenance in.
+   All of it retunes from the tokens; nothing is baked into markup. */
 :root {
   --lcat-fg: #1f2421; /* iron-gall green-black ink */
   --lcat-bg: #f7f6f2; /* bone: warm near-white, not cream */
@@ -17,20 +19,30 @@
   --lcat-border: #d9d5cb;
   --lcat-surface: #fff; /* raised cards and the facet panel: index-card white */
   --lcat-surface-alt: #edeae2; /* tag chips, subtle fills */
-  --lcat-radius: 6px;
+  /* Shape idiom: cards and tiles are square (editorial); search boxes and
+     CTAs are pills. Adopters who prefer rounded cards re-set --lcat-radius. */
+  --lcat-radius: 0;
+  --lcat-radius-pill: 999px;
   --lcat-shadow:
     0 1px 0 rgba(31, 36, 33, 0.07), 0 3px 10px rgba(31, 36, 33, 0.06);
   --lcat-gap: 2rem;
-  --lcat-maxw: 72rem; /* readable measure, wider than the old minimal 68rem */
-  /* Type roles: display carries the bookish personality (work titles only); the
-     body stays a modern sans; mono covers identifiers and call numbers. */
+  --lcat-maxw: 77.5rem; /* 1240px: room for the cover grid at desktop */
+  /* Type roles: display carries the personality (headings, work titles); the
+     body stays a system sans; mono covers identifiers and call numbers. The
+     display stack is a modern grotesque -- zero payload, but an adopter who
+     loads "Bricolage Grotesque" (or has Avenir) gets the full voice. */
   --lcat-on-accent: #fff; /* text on accent-filled controls */
   --lcat-avail-ok: #1e6b4e;
   --lcat-avail-hold: #8a5a00;
   --lcat-avail-none: #a34224;
-  --lcat-display: "Charter", "Iowan Old Style", "Palatino", Georgia, serif;
+  --lcat-display: "Bricolage Grotesque", "Avenir Next", "Avenir", "Seravek",
+    "Segoe UI Variable Display", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --lcat-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --lcat-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* The hero band's ground. Deliberately NOT re-set by dark mode: the band
+     is its own surface, like a cover, and its white text needs the deep
+     tone in both themes (dark mode's accent-ink flips light for headings). */
+  --lcat-hero-bg: #14523a;
 }
 /* `hidden` hides only through the UA rule `[hidden] { display: none }`, whose
    specificity any author `display` on the same element outranks. Every component
@@ -119,8 +131,17 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 summary:focus-visible {
-  outline: 3px solid var(--lcat-accent);
-  outline-offset: 2px;
+  outline: 2px solid var(--lcat-accent);
+  outline-offset: 3px;
+}
+/* The label idiom: uppercase, letter-spaced, small and quiet. Nav links,
+   section heads, facet group summaries and stat labels all speak it. */
+.lcat-label {
+  font-family: var(--lcat-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 .lcat-skip {
   position: absolute;
@@ -146,16 +167,37 @@ summary:focus-visible {
   border: 0;
 }
 .lcat-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  /* brand | search | nav on one row; search takes the middle and centers.
+     Narrower viewports drop the search to its own row, then stack all
+     three -- the same reflow discipline the 320px WCAG floor demands. */
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: "brand search nav";
+  gap: 0.75rem 1.5rem;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.8rem clamp(1rem, 4vw, 2rem);
+  padding: 1rem clamp(1rem, 4vw, 2rem);
   background: var(--lcat-surface);
   border-bottom: 1px solid var(--lcat-border);
 }
+@media (max-width: 56rem) {
+  .lcat-header {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "brand nav"
+      "search search";
+  }
+}
+@media (max-width: 34rem) {
+  .lcat-header {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "brand"
+      "search"
+      "nav";
+  }
+}
 .lcat-brand {
+  grid-area: brand;
   display: inline-flex;
   align-items: center;
   gap: 0.45em;
@@ -164,6 +206,7 @@ summary:focus-visible {
   font-size: 1.25rem;
   color: var(--lcat-accent-ink);
   text-decoration: none;
+  justify-self: start;
 }
 /* The default mark (logo.html) inherits currentColor from the anchor,
    so it tracks the theme -- including a forced data-lcat-theme -- for free. */
@@ -206,67 +249,126 @@ summary:focus-visible {
   border-color: var(--lcat-on-accent);
 }
 
-/* Primary nav: configuration-driven from [[menu.main]]; sits in the
-   header flex between brand and search, wrapping on narrow viewports. */
+/* Primary nav: configuration-driven from [[menu.main]]. Uppercase
+   letter-spaced links with an active underline -- the label idiom. */
+.lcat-nav {
+  grid-area: nav;
+  justify-self: end;
+}
 .lcat-nav ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 0.35rem 1.25rem;
   list-style: none;
   margin: 0;
   padding: 0;
+  align-items: center;
+  justify-content: center;
 }
 .lcat-nav a {
   display: inline-block;
-  padding: 0.35rem 0.7rem;
-  border-radius: 6px;
+  padding: 0.3rem 0 0.2rem;
   text-decoration: none;
-  font-weight: 600;
-  color: var(--lcat-accent-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lcat-fg);
+  border-bottom: 2px solid transparent;
 }
 .lcat-nav a:hover {
-  background: var(--lcat-surface-alt);
-  text-decoration: underline;
+  color: var(--lcat-accent);
 }
 .lcat-nav a[aria-current="page"] {
-  color: var(--lcat-accent);
-  box-shadow: inset 0 -3px 0 var(--lcat-accent);
+  border-bottom-color: var(--lcat-fg);
 }
-.lcat-search {
-  display: flex;
+/* Language switcher rides as the nav's trailing item: compact codes,
+   separated by a hairline, the current language inert. */
+.lcat-nav-langs {
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
-  min-width: 0;
-  max-width: 100%;
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--lcat-border);
 }
-/* The input prefers 16rem but shrinks with the viewport; a fixed floor
-   pushed the button off a 320px screen (WCAG 1.4.10 reflow). width, not
-   flex-basis: only width feeds the form's intrinsic size, keeping the
-   full 16rem on wide screens. The button never shrinks -- a clipped
-   label reads worse than a narrow input. */
-.lcat-search input {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--lcat-border);
-  border-radius: 4px;
-  width: 16rem;
+.lcat-nav-langs a,
+.lcat-nav-langs span[aria-current] {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lcat-nav-langs a {
+  color: var(--lcat-muted);
+  text-decoration: none;
+  border-bottom: 0;
+  padding: 0.3rem 0 0.2rem;
+}
+.lcat-nav-langs a:hover {
+  color: var(--lcat-accent);
+}
+.lcat-nav-langs span[aria-current] {
+  color: var(--lcat-fg);
+}
+/* The pill search. The whole form is the visible control (the input inside
+   is borderless), centered in the header's middle track. The input prefers
+   growing to the pill; min-width: 0 keeps the 320px WCAG reflow floor --
+   input shrinks, the button never does. */
+.lcat-search {
+  grid-area: search;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   min-width: 0;
+  max-width: min(28rem, 100%);
+  width: 100%;
+  justify-self: center;
+  background: var(--lcat-bg);
+  border: 1px solid var(--lcat-border);
+  border-radius: var(--lcat-radius-pill);
+  padding: 0.15rem 0.25rem 0.15rem 1rem;
+  transition: border-color 0.15s ease;
+}
+.lcat-search:focus-within {
+  border-color: var(--lcat-accent);
+}
+.lcat-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  padding: 0.45rem 0.25rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--lcat-fg);
 }
 .lcat-search button {
-  padding: 0.4rem 0.9rem;
+  flex: none;
+  padding: 0.4rem 1rem;
   border: 1px solid var(--lcat-accent);
   background: var(--lcat-accent);
   color: var(--lcat-on-accent);
-  border-radius: 4px;
+  border-radius: var(--lcat-radius-pill);
   cursor: pointer;
-  flex: none;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 /* Optional Pagefind search UI: the Component UI lives in a modal
    <dialog>, not the header -- in the header flex row its results drawer joined
    header layout and its page-width filter grid misrendered. Pagefind
    ships its own pagefind-ui.css; the custom properties align it with lcat.css.
-   Only present when [params.search] engine = "pagefind". */
+   Only present when [params.search] engine = "pagefind". The wrapper drops
+   the pill chrome -- its trigger is hidden until JS runs, and an empty
+   bordered pill would show as a stray outline. */
+.lcat-search-pagefind {
+  border: 0;
+  background: none;
+  padding: 0;
+}
 .lcat-search-trigger {
   border: 1px solid var(--lcat-border);
-  border-radius: 4px;
+  border-radius: var(--lcat-radius-pill);
   background: var(--lcat-surface-alt);
   color: var(--lcat-muted);
   padding: 0.4rem 1.1rem;
@@ -309,7 +411,7 @@ summary:focus-visible {
 }
 .lcat-layout {
   display: grid;
-  grid-template-columns: 16rem 1fr;
+  grid-template-columns: minmax(13rem, 15rem) 1fr;
   gap: var(--lcat-gap);
   max-width: var(--lcat-maxw);
   margin: 0 auto;
@@ -339,28 +441,49 @@ summary:focus-visible {
 .lcat-main:focus {
   outline: none;
 }
-/* Facet sidebar as a raised panel so it reads as a distinct filter surface. */
+/* Facet rail, unboxed: quiet hairlines between groups instead of a raised
+   panel, so the filters read as marginalia beside the results rather than
+   a competing surface. Sticky so a long result page keeps its filters. */
 .lcat-sidebar {
-  background: var(--lcat-surface);
-  border: 1px solid var(--lcat-border);
-  border-radius: var(--lcat-radius);
-  padding: 1rem 1.1rem;
   align-self: start;
-  box-shadow: var(--lcat-shadow);
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  padding-right: 0.25rem;
 }
 .lcat-facet {
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--lcat-border);
-  padding-bottom: 0.5rem;
+  border-top: 1px solid var(--lcat-border);
+  padding: 0.75rem 0 0.5rem;
+  margin: 0;
 }
-/* Facet group labels read like catalog-drawer labels: small caps, tracked out. */
+.lcat-facet:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+/* Facet group labels speak the label idiom, with a quiet +/- expander
+   marker on the right edge instead of the disclosure triangle. */
 .lcat-facet summary {
   cursor: pointer;
-  font-weight: 650;
-  font-size: 0.8rem;
+  font-weight: 700;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--lcat-accent-ink);
+  letter-spacing: 0.09em;
+  color: var(--lcat-muted);
+  list-style: none;
+  padding: 0.35rem 0;
+}
+.lcat-facet summary::-webkit-details-marker {
+  display: none;
+}
+.lcat-facet summary::after {
+  content: "+";
+  float: right;
+  font-weight: 400;
+  color: var(--lcat-muted);
+}
+.lcat-facet[open] > summary::after {
+  content: "−";
 }
 .lcat-facet-total,
 .lcat-count {
@@ -580,6 +703,148 @@ summary:focus-visible {
 .lcat-results > li {
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--lcat-border);
+}
+/* The cover-forward grid (the default browse presentation): tiles pack
+   from the start at a consistent width, so a three-match result set does
+   not stretch each cover to half the viewport. browseLayout = "list"
+   keeps the classic rows above. */
+.lcat-results--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 13rem));
+  justify-content: start;
+  gap: 1.5rem 1.25rem;
+}
+.lcat-results--grid > li {
+  padding: 0;
+  border-bottom: 0;
+  min-width: 0;
+}
+/* Compound selector: the base .lcat-card rule sits later in the file at
+   equal specificity, and its row-flex align-items would shrink the cover
+   column to content width. */
+.lcat-card.lcat-card--tile {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  height: 100%;
+  background: var(--lcat-surface);
+  border: 1px solid var(--lcat-border);
+  border-radius: var(--lcat-radius);
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.lcat-card--tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--lcat-shadow);
+  border-color: var(--lcat-muted);
+}
+.lcat-card-media {
+  display: block;
+  text-decoration: none;
+}
+.lcat-card--tile .lcat-cover--card {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--lcat-surface-alt);
+  margin: 0;
+}
+.lcat-card--tile .lcat-cover--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 2 / 3;
+  font-family: var(--lcat-display);
+  font-size: 3rem;
+  color: var(--lcat-muted);
+}
+.lcat-card--tile .lcat-card-body {
+  padding: 0.75rem 0.85rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.lcat-card--tile .lcat-card-title {
+  font-family: var(--lcat-sans);
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.lcat-card--tile .lcat-card-title a {
+  color: inherit;
+  text-decoration: none;
+}
+.lcat-card--tile .lcat-card-title a:hover,
+.lcat-card--tile .lcat-card-title a:focus-visible {
+  text-decoration: underline;
+}
+.lcat-card--tile .lcat-contribs {
+  font-size: 0.82rem;
+  margin: 0;
+}
+.lcat-card--tile .lcat-contribs a {
+  color: inherit;
+  text-decoration: none;
+}
+.lcat-card--tile .lcat-contribs a:hover {
+  text-decoration: underline;
+}
+/* The client reader's result tile (lcat-browse.js): the whole tile is one
+   anchor, so it restates the card-tile chrome on the link itself. */
+.lcat-result--tile {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--lcat-surface);
+  border: 1px solid var(--lcat-border);
+  border-radius: var(--lcat-radius);
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.lcat-result--tile:hover,
+.lcat-result--tile:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--lcat-shadow);
+  border-color: var(--lcat-muted);
+}
+.lcat-result--tile .lcat-cover--card {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--lcat-surface-alt);
+}
+.lcat-result--tile .lcat-cover--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 2 / 3;
+  font-family: var(--lcat-display);
+  font-size: 3rem;
+  color: var(--lcat-muted);
+}
+.lcat-result--tile .lcat-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 0.85rem 0.9rem;
+}
+.lcat-result--tile .lcat-result-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.lcat-result--tile:hover .lcat-result-title {
+  text-decoration: underline;
+}
+.lcat-result--tile .lcat-result-contributors {
+  font-size: 0.82rem;
+  color: var(--lcat-muted);
 }
 /* The generic section index: /lists/, and any prose section an
    adopter adds. Deliberately not .lcat-results -- these are pages, not works. */
@@ -1059,14 +1324,163 @@ summary:focus-visible {
   margin: 0;
 }
 
-/* Theme toggle (theme-toggle.html): hidden until its script runs, so a
-   no-JS page shows no dead control. */
+/* Home hero band (home-hero.html): accent-ink ground, translucent wave
+   layers, a big friendly greeting and a prominent pill search. The text
+   is always white-on-deep-accent regardless of theme -- the band is its
+   own surface, like a cover. */
+.lcat-hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--lcat-hero-bg);
+  color: #fff;
+}
+.lcat-hero-waves {
+  position: absolute;
+  inset: 0;
+}
+.lcat-hero-waves svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.lcat-hero-inner {
+  position: relative;
+  max-width: var(--lcat-maxw);
+  margin: 0 auto;
+  padding: 3.5rem clamp(1rem, 4vw, 2rem) 4rem;
+  text-align: center;
+}
+.lcat-hero-title {
+  margin: 0;
+  color: #fff;
+  font-family: var(--lcat-display);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+}
+.lcat-hero-tagline {
+  margin: 1rem auto 0;
+  max-width: 38rem;
+  font-size: 1.15rem;
+  opacity: 0.95;
+}
+.lcat-hero-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 38rem;
+  margin: 1.75rem auto 0;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: var(--lcat-radius-pill);
+  padding: 0.35rem 0.45rem 0.35rem 1.25rem;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+.lcat-hero-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  /* The pill stays light in both themes, so the text must not track the
+     theme's ink (which flips light in dark mode). */
+  color: #1a1a1a;
+  padding: 0.55rem 0.25rem;
+}
+.lcat-hero-search input::placeholder {
+  color: #5f5a54;
+  opacity: 1;
+}
+.lcat-hero-search .lcat-btn {
+  flex: none;
+  border-radius: var(--lcat-radius-pill);
+}
+/* Stat tiles (home-stats.html): bordered cards on the warm band beneath
+   the hero -- icon, uppercase label, big display number. */
+.lcat-stats {
+  background: var(--lcat-surface-alt);
+  border-bottom: 1px solid var(--lcat-border);
+}
+.lcat-stats-grid {
+  max-width: var(--lcat-maxw);
+  margin: 0 auto;
+  padding: 1.5rem clamp(1rem, 4vw, 2rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.6rem;
+}
+.lcat-stat {
+  background: var(--lcat-surface);
+  border: 1px solid var(--lcat-border);
+  border-radius: var(--lcat-radius);
+  padding: 0.8rem 0.6rem;
+  text-align: center;
+}
+.lcat-stat-icon {
+  display: block;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0 auto 0.4rem;
+  color: var(--lcat-accent);
+}
+.lcat-stat-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--lcat-muted);
+}
+.lcat-stat-n {
+  margin: 0.2rem 0 0;
+  font-family: var(--lcat-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+/* Theme toggle (theme-toggle.html): a floating half-disc button, fixed
+   bottom-left so it travels with the reader instead of costing header
+   room. Hidden until its script runs, so a no-JS page shows no dead
+   control. The disc is decorative; the accessible name is visually
+   hidden inside the button. */
 .lcat-theme-toggle {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
   border: 1px solid var(--lcat-border);
   background: var(--lcat-surface);
   color: var(--lcat-fg);
-  border-radius: 999px;
-  padding: 0.3rem 0.8rem;
-  font-size: 0.85rem;
   cursor: pointer;
+  box-shadow: var(--lcat-shadow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.lcat-theme-toggle:hover {
+  transform: scale(1.05);
+  border-color: var(--lcat-accent);
+}
+.lcat-theme-toggle-disc {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #1f2421 0 50%, #f7f6f2 50% 100%);
+  border: 1px solid var(--lcat-border);
+  transition: transform 0.3s ease;
+}
+.lcat-theme-toggle[data-theme-state="dark"] .lcat-theme-toggle-disc {
+  transform: rotate(180deg);
+}
+@media (max-width: 30rem) {
+  .lcat-theme-toggle {
+    left: 0.75rem;
+    bottom: 0.75rem;
+    width: 40px;
+    height: 40px;
+  }
 }

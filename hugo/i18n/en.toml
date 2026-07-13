@@ -214,3 +214,25 @@ other = "Not {{ .Label }}"
 
 [removeExclusion]
 other = "Remove exclusion of {{ .Label }}"
+
+# Home hero + stat tiles (default-on home bands; [params.home] declines).
+[statsLabel]
+other = "Collection at a glance"
+
+[statTitles]
+other = "Titles"
+
+[statAuthors]
+other = "Authors"
+
+[statSubjects]
+other = "Subjects"
+
+[statFormats]
+other = "Formats"
+
+[statSeries]
+other = "Series"
+
+[statNewThisMonth]
+other = "New this month"

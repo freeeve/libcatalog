@@ -1,0 +1,34 @@
+{{- /*
+  Home hero band: layered waves in the theme's accent over a deep accent
+  ground, a big friendly greeting, and a prominent pill search. Default-on
+  for the home page; disable with [params.home] hero = false. The greeting
+  and tagline are site params -- the default install greets with the site
+  title rather than anyone's brand copy:
+
+    [params.home]
+    greeting = "Welcome to our catalog"
+    tagline  = "Browse, search, and discover."
+
+  The waves are one inline SVG tinted by translucent white layers, so any
+  token retune (navy, plum, green) keeps a coherent hero for free.
+*/ -}}
+<section class="lcat-hero" aria-label="{{ site.Params.home.greeting | default site.Title }}" data-pagefind-ignore>
+  <div class="lcat-hero-waves" aria-hidden="true">
+    <svg viewBox="0 0 1440 320" preserveAspectRatio="none" focusable="false">
+      <path fill="rgba(255,255,255,0.05)" d="M0,192L60,181.3C120,171,240,149,360,154.7C480,160,600,192,720,197.3C840,203,960,181,1080,165.3C1200,149,1320,139,1380,133.3L1440,128L1440,320L0,320Z"></path>
+      <path fill="rgba(255,255,255,0.08)" d="M0,256L80,240C160,224,320,192,480,192C640,192,800,224,960,229.3C1120,235,1280,213,1360,202.7L1440,192L1440,320L0,320Z"></path>
+      <path fill="rgba(255,255,255,0.12)" d="M0,288L120,282.7C240,277,480,267,720,272C960,277,1200,299,1320,309.3L1440,320L0,320Z"></path>
+    </svg>
+  </div>
+  <div class="lcat-hero-inner">
+    <h2 class="lcat-hero-title">{{ site.Params.home.greeting | default site.Title }}</h2>
+    {{- with site.Params.home.tagline }}
+    <p class="lcat-hero-tagline">{{ . }}</p>
+    {{- end }}
+    <form class="lcat-hero-search" role="search" action="{{ "/works/" | relURL }}" method="get">
+      <label for="lcat-hero-q" class="lcat-visually-hidden">{{ i18n "searchLabel" }}</label>
+      <input type="search" id="lcat-hero-q" name="q" placeholder="{{ i18n "searchPlaceholder" }}" autocomplete="off">
+      <button type="submit" class="lcat-btn lcat-btn--solid">{{ i18n "searchButton" }}</button>
+    </form>
+  </div>
+</section>

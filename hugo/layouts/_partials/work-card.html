@@ -1,12 +1,16 @@
 {{- /* One Work in a result list. Expects a Work page (from the content adapter).
-       When the site opts into cover art ([params] covers = true) an optional
-       cover slot precedes the text; the .lcat-card-body wrapper keeps the text column
-       intact whether or not a cover renders.
+
+       The default presentation is the cover-forward TILE: cover on top
+       (a catalog without art gets the lettered placeholder -- that texture
+       is the grid), title and byline beneath, nothing louder. browseLayout
+       = "list" keeps the classic text row -- cover beside a full text
+       column with subject chips -- for text-heavy collections.
 
        Rendered via partialCached keyed on the work's .RelPermalink: a
        work's card is identical everywhere it appears (works list pagers, every term
        page it belongs to), so it renders once per work per language instead of once
-       per appearance. Keep the output a function of the work page alone. */ -}}
+       per appearance. Keep the output a function of the work page alone
+       (site params are build-constant, so they may steer it). */ -}}
 {{- /* Negative facet filters: the card carries its term keys as
        data attributes (pipe-separated, per taxonomy) so lcat-negatives.js can
        hide cards matching an exclusion. Emitted only when the site opts in --
@@ -22,8 +26,14 @@
     {{- with index $.Params $tax -}}{{- $negTerms = merge $negTerms (dict $tax (delimit . "|")) -}}{{- end -}}
   {{- end -}}
 {{- end -}}
-<article class="lcat-card"{{ range $tax, $terms := $negTerms }} data-lcat-{{ $tax }}="{{ $terms }}"{{ end }}>
-  {{- if site.Params.covers }}{{ partial "lcat-cover.html" (dict "url" .Params.cover "title" .Title "variant" "card") }}{{ end }}
+{{- $grid := ne (site.Params.browseLayout | default "grid") "list" -}}
+<article class="lcat-card{{ if $grid }} lcat-card--tile{{ end }}"{{ range $tax, $terms := $negTerms }} data-lcat-{{ $tax }}="{{ $terms }}"{{ end }}>
+  {{- if $grid }}
+  {{- /* The cover is a second, redundant door to the work (the title link
+         is the accessible one), so it leaves the tab order and the
+         accessibility tree. */ -}}
+  <a class="lcat-card-media" href="{{ .RelPermalink }}" tabindex="-1" aria-hidden="true">{{ partial "lcat-cover.html" (dict "url" .Params.cover "title" .Title "variant" "card") }}</a>
+  {{- else if site.Params.covers }}{{ partial "lcat-cover.html" (dict "url" .Params.cover "title" .Title "variant" "card") }}{{ end }}
   <div class="lcat-card-body">
     {{- /* h2: a result card sits directly under the page h1, so this is the next
            heading level -- jumping to h3 breaks heading order (WCAG 1.3.1 / 2.4.6). */ -}}
@@ -36,15 +46,17 @@
     {{- partial "work-card-extra.html" . }}
     {{- /* Contributor names link to their term pages; the taxonomy
            indexes raw names, so the name IS the lookup key. The role
-           suffix stays outside the link text. */}}
+           suffix stays outside the link text. Tiles keep two names --
+           a byline, not a colophon. */}}
     {{- with .Params.contributorList }}
     <p class="lcat-contribs">
-      {{ range $i, $c := first 4 . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" (partial "lcat-cap.html" $c.name)) }}{{ if $url }}<a href="{{ $url }}">{{ $c.name }}</a>{{ else }}{{ $c.name }}{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
+      {{ range $i, $c := first (cond $grid 2 4) . }}{{ if $i }}; {{ end }}{{ $url := partial "lcat-term-url.html" (dict "taxonomy" "contributors" "key" (partial "lcat-cap.html" $c.name)) }}{{ if $url }}<a href="{{ $url }}">{{ $c.name }}</a>{{ else }}{{ $c.name }}{{ end }}{{ with $c.role }} <span class="lcat-role">({{ . }})</span>{{ end }}{{ end }}
     </p>
     {{- end }}
-    {{- /* Subject chips, linked to their term pages like the detail page's
- -- from subjectList so the display is the localized label,
-           not the adapter's taxonomy slug; URLs via lcat-term-url. */}}
+    {{- /* Subject chips only on the list row: a tile that carries five
+           chips is a poster with footnotes. The term pages stay one click
+           away through the work page. */}}
+    {{- if not $grid }}
     {{- with .Params.subjectList }}
     {{- $lang := site.Language.Lang }}
     <ul class="lcat-tags">
@@ -54,6 +66,7 @@
       <li>{{ if $url }}<a href="{{ $url }}">{{ $label }}</a>{{ else }}{{ $label }}{{ end }}</li>
       {{- end }}
     </ul>
+    {{- end }}
     {{- end }}
   </div>
 </article>

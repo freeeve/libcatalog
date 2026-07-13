@@ -1,13 +1,18 @@
 {{- /* Patron-facing light/dark toggle (Aspen "display modes"): sets and
        persists data-lcat-theme on <html>; the OS preference applies when no
        choice is stored (the pre-paint script in baseof.html avoids a flash).
-       Progressive: the button stays hidden without JavaScript. */ -}}
+       A floating half-disc button, fixed bottom-left -- the visual is the
+       decorative disc; the accessible name lives in the visually-hidden
+       label the script keeps current. Progressive: the button stays hidden
+       without JavaScript. */ -}}
 <button type="button" class="lcat-theme-toggle" id="lcat-theme-toggle" hidden
-        aria-pressed="false">{{ i18n "darkMode" | default "Dark mode" }}</button>
+        aria-pressed="false"><span class="lcat-theme-toggle-disc" aria-hidden="true"></span><span
+        class="lcat-visually-hidden" id="lcat-theme-toggle-label">{{ i18n "darkMode" | default "Dark mode" }}</span></button>
 <script>
   (function () {
     var btn = document.getElementById("lcat-theme-toggle");
-    if (!btn) return;
+    var label = document.getElementById("lcat-theme-toggle-label");
+    if (!btn || !label) return;
     var root = document.documentElement;
     function dark() {
       var forced = root.getAttribute("data-lcat-theme");
@@ -17,7 +22,8 @@
     function paint() {
       var d = dark();
       btn.setAttribute("aria-pressed", String(d));
-      btn.textContent = d ? {{ i18n "lightMode" | default "Light mode" | jsonify | safeJS }} : {{ i18n "darkMode" | default "Dark mode" | jsonify | safeJS }};
+      btn.setAttribute("data-theme-state", d ? "dark" : "light");
+      label.textContent = d ? {{ i18n "lightMode" | default "Light mode" | jsonify | safeJS }} : {{ i18n "darkMode" | default "Dark mode" | jsonify | safeJS }};
     }
     btn.addEventListener("click", function () {
       var next = dark() ? "light" : "dark";

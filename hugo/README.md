@@ -888,8 +888,40 @@ Re-setting the tokens re-themes the buttons with everything else; keep
 Set `[params] covers = true` and result cards + Work detail pages render a cover slot from
 each Work's `cover` param -- supply it via the adapter `extra` passthrough (see "Provide the
 projected data") as an `https://` image URL. A Work without a cover shows a graceful lettered
-placeholder in the list. Covers are **off by default**, so a catalog without cover art is
-unchanged.
+placeholder in the list. `covers` governs the detail page and the classic
+list rows; the browse GRID below always renders its cover slot (the lettered
+placeholder is the grid's texture).
+
+### The default presentation
+
+The theme's default rendering is cover-forward and modern: browse results as
+a tile grid (cover, title, byline), a pill search centered in the header,
+uppercase letter-spaced nav with a language switcher when the site publishes
+translations, an unboxed sticky facet rail, a floating bottom-left theme
+toggle, and -- on the home page -- a hero band with wave art and a stat-tile
+row. Each piece declines individually:
+
+```toml
+[params]
+browseLayout = "list"    # classic text rows instead of the tile grid
+
+[params.home]
+hero  = false            # no hero band
+stats = false            # no stat tiles
+greeting = "Welcome to our catalog"   # hero heading (default: site title)
+tagline  = "Browse, search, discover."
+```
+
+The hero ground is its own token, `--lcat-hero-bg`, deliberately constant
+across light and dark (the band is its own surface, like a cover); re-set it
+alongside the other tokens to re-key the waves. The display face is a
+grotesque stack with zero payload -- load "Bricolage Grotesque" (or rely on
+an installed Avenir) for the full voice, or re-set `--lcat-display`.
+
+Deployment-specific chrome that is not part of the theme -- a safety
+quick-exit bar, a donation banner -- belongs in the `banner.html` injection
+hook (see "Injection hooks"), which renders at the very top of `<body>` on
+every page.
 
 ## Overriding
 

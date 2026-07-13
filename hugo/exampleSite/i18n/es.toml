@@ -181,3 +181,24 @@ other = "Español"
 
 ["lang-jpn"]
 other = "Japonés"
+
+[statsLabel]
+other = "La colección de un vistazo"
+
+[statTitles]
+other = "Títulos"
+
+[statAuthors]
+other = "Autores"
+
+[statSubjects]
+other = "Materias"
+
+[statFormats]
+other = "Formatos"
+
+[statSeries]
+other = "Series"
+
+[statNewThisMonth]
+other = "Novedades del mes"
