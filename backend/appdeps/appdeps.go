@@ -28,6 +28,7 @@ import (
 	"github.com/freeeve/libcat/ingest/bibliocommons"
 	"github.com/freeeve/libcat/ingest/locsh"
 	"github.com/freeeve/libcat/ingest/openlibrary"
+	"github.com/freeeve/libcat/ingest/vega"
 	"github.com/freeeve/libcat/ingest/wikidata"
 	"github.com/freeeve/libcat/storage/blob"
 
@@ -459,6 +460,39 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 		enrichSources[sruenrich.Name] = enrich.Source{
 			Enricher: &sruenrich.Enricher{Search: deps.Copycat, Vocab: deps.Vocab, Delay: time.Second, Log: logger},
 			Mode:     enrich.ModeQueue,
+		}
+	}
+	// The III Vega Discover peer harvest: resolves each driver term to the
+	// region's shared concept, pages its FormatGroups per tenant, matches
+	// by ISBN, and queues the driver term -- a peer's EXPLICIT Homosaurus
+	// assertion (the concept states source=homoit). Queue-only.
+	if cfg.EnrichVega != "" && deps.Vocab != nil && deps.Suggest != nil {
+		tenants, err := vega.ParseTenants(cfg.EnrichVega)
+		if err != nil {
+			return httpapi.Deps{}, fmt.Errorf("config: LCATD_ENRICH_VEGA: %w", err)
+		}
+		scheme := cfg.EnrichVegaScheme
+		var vterms []vega.Term
+		for _, t := range deps.Vocab.Terms(scheme) {
+			if t.MergedInto != "" {
+				continue
+			}
+			if q := t.Label("en"); q != "" {
+				vterms = append(vterms, vega.Term{URI: t.ID, Labels: t.Labels, Query: q})
+			}
+		}
+		if len(vterms) == 0 {
+			logger.Warn("vega enrichment disabled: driver vocabulary has no terms loaded", "scheme", scheme)
+		} else if len(tenants) > 0 {
+			vopts := []vega.Option{vega.WithLogger(logger)}
+			if cfg.EnrichVegaMaxPages > 0 {
+				vopts = append(vopts, vega.WithMaxPages(cfg.EnrichVegaMaxPages))
+			}
+			enrichSources[vega.Name] = enrich.Source{
+				Enricher: vega.New(tenants, vterms, vopts...),
+				Mode:     enrich.ModeQueue, Scheme: scheme,
+			}
+			logger.Info("vega subject harvest configured", "tenants", len(tenants), "scheme", scheme, "terms", len(vterms))
 		}
 	}
 	// The BiblioCommons peer-library subject harvest: drives subject searches

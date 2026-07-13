@@ -208,6 +208,31 @@ host list overlapping a warm host -- re-matches without touching that peer
 again. The feed's OCLC numbers are parsed but not
 yet matched (work summaries do not carry OCLC identifiers).
 
+### III Vega Discover peer harvest (vega)
+
+`LCATD_ENRICH_VEGA=<siteCode>.<region>[,<siteCode>.<region>...]` (e.g.
+`nypl.na2,mdpls.na` -- each library's Vega catalog subdomain and region,
+read off its catalog URL `https://<siteCode>.<region>.iiivega.com/`)
+registers a harvest of III Vega Discover catalogs -- the systems
+BiblioCommons cannot reach (NYPL among them). Unlike the RSS harvest's
+search-term inference, Vega's concept model states its vocabulary
+outright: each driver term resolves (suggestions -> concept, gated on the
+concept's `source=homoit`) to the region's shared concept UUID, whose
+cataloged FormatGroups then page in with typed identifiers -- so a match
+is a peer's EXPLICIT Homosaurus assertion joined by a shared ISBN
+(confidence 0.9; there is no title-fallback tier). Queue-only, moderated,
+with the same consensus semantics as the BiblioCommons harvest: N
+corroborating tenants endorse one suggestion, each with a verifiable
+record link.
+
+Mechanics: concept resolution is cached per REGION (every tenant in `na`
+shares one UUID per label), so multi-tenant runs resolve each label once;
+politeness is per region host (all of a region's traffic hits
+`<region>.iiivega.com`), requests 1.5s apart, `LCATD_ENRICH_VEGA_MAX_PAGES`
+capping pages per concept (default 6 x 96 records). Harvests cache 24h per
+tenant. The siteCode must be the library's real subdomain -- DNS is a
+wildcard, so nothing validates a guess until the API answers 403.
+
 ## Scheme filtering
 
 `LCATD_VOCAB_SCHEMES` (when set) filters which authority graphs load.

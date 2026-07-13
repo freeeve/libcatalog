@@ -219,6 +219,17 @@ type Config struct {
 	EnrichBiblioCommonsScheme      string
 	EnrichBiblioCommonsMaxPages    int
 	EnrichBiblioCommonsConcurrency int
+	// EnrichVega enables the III Vega Discover peer harvest: comma-separated
+	// tenants as <siteCode>.<region> (e.g. "nypl.na2,mdpls.na" -- the
+	// library's catalog subdomain and Vega region). Queue-only, like the
+	// BiblioCommons harvest it parallels; the concept model states its
+	// vocabulary explicitly (source=homoit), so a match is a peer's own
+	// Homosaurus assertion.
+	EnrichVega string
+	// EnrichVegaScheme picks the driver vocabulary (default "homosaurus");
+	// EnrichVegaMaxPages caps resources pages per concept (default 6).
+	EnrichVegaScheme   string
+	EnrichVegaMaxPages int
 }
 
 // FromEnv reads configuration from LCATD_-prefixed environment variables.
@@ -267,6 +278,8 @@ func FromEnv() (Config, error) {
 		EnrichWikidataEndpoint:    os.Getenv("LCATD_ENRICH_WIKIDATA_ENDPOINT"),
 		EnrichBiblioCommons:       os.Getenv("LCATD_ENRICH_BIBLIOCOMMONS"),
 		EnrichBiblioCommonsScheme: envOr("LCATD_ENRICH_BIBLIOCOMMONS_SCHEME", "homosaurus"),
+		EnrichVega:                os.Getenv("LCATD_ENRICH_VEGA"),
+		EnrichVegaScheme:          envOr("LCATD_ENRICH_VEGA_SCHEME", "homosaurus"),
 	}
 	if cfg.Sandbox {
 		cfg.ReadOnly = true // sandbox never persists
@@ -297,6 +310,13 @@ func FromEnv() (Config, error) {
 			return Config{}, fmt.Errorf("config: LCATD_ENRICH_BIBLIOCOMMONS_MAX_PAGES must be a positive integer")
 		}
 		cfg.EnrichBiblioCommonsMaxPages = n
+	}
+	if raw := os.Getenv("LCATD_ENRICH_VEGA_MAX_PAGES"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n <= 0 {
+			return Config{}, fmt.Errorf("config: LCATD_ENRICH_VEGA_MAX_PAGES must be a positive integer")
+		}
+		cfg.EnrichVegaMaxPages = n
 	}
 	if raw := os.Getenv("LCATD_ENRICH_BIBLIOCOMMONS_CONCURRENCY"); raw != "" {
 		n, err := strconv.Atoi(raw)
