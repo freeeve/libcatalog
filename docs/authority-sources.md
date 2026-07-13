@@ -167,9 +167,13 @@ Homosaurus 650s at targets that carry them).
 
 ### BiblioCommons peer-library subject harvest (bibliocommons)
 
-`LCATD_ENRICH_BIBLIOCOMMONS=<subdomain>` (e.g. `ccslib` for the CCS
-consortium, an early Homosaurus adopter) registers a harvest of a peer
-library's public BiblioCommons OPAC. The direction is deliberately reversed:
+`LCATD_ENRICH_BIBLIOCOMMONS=<subdomain>[,<subdomain>...]` (e.g. `ccslib`
+for the CCS consortium, an early Homosaurus adopter, or a list like
+`ccslib,seattle,sfpl`) registers a harvest of peer libraries' public
+BiblioCommons OPACs. A job may override the peer list per run --
+`POST /v1/enrich/bibliocommons/jobs?hosts=seattle,kcls` -- so one operator
+sweeps any subset of the ~20 known Homosaurus-cataloging BiblioCommons
+systems without a restart. The direction is deliberately reversed:
 a BiblioCommons record page exposes no subjects to an unauthenticated
 reader, but the public RSS search
 (`/search/rss?q=<term>&t=subject`) feeds every title a subject is assigned
@@ -183,13 +187,23 @@ queues the DRIVER term on every matched work that does not already carry
 it. Queue-only: another library's cataloging is a candidate, not an
 assertion.
 
+Several hosts turn the run into a consensus vote: the same term matched to
+the same work from N peers files ONE queue row whose supporter count is N
+and whose source note names the corroborating libraries ("via kcls,
+seattle, sfpl" on the queue row) -- so peer-consensus terms rank above
+singletons in the support-ordered queue, at the strongest match tier any
+peer earned. A re-run refreshes an open machine row's census in place;
+patron-backed and already-reviewed rows are never touched.
+
 The inherent bound: the harvest can only confirm terms it queries, never
 reveal one it did not -- coverage equals the driver vocabulary. Politeness
-and cost: requests pause 1.5s apart and each term stops at
+and cost: requests to one host pause 1.5s apart (distinct hosts crawl
+concurrently, capped at four) and each term stops at
 `LCATD_ENRICH_BIBLIOCOMMONS_MAX_PAGES` (default 6, i.e. 600 items; large
-terms are truncated and logged). A completed crawl is reused for 24 hours,
-so re-running against a different `?filter` scope re-matches without
-touching the peer OPAC again. The feed's OCLC numbers are parsed but not
+terms are truncated and logged). A completed crawl is reused per host for 24
+hours, so re-running against a different `?filter` scope -- or a different
+host list overlapping a warm host -- re-matches without touching that peer
+again. The feed's OCLC numbers are parsed but not
 yet matched (work summaries do not carry OCLC identifiers).
 
 ## Scheme filtering

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/freeeve/libcat/ingest"
@@ -47,9 +48,13 @@ type Job struct {
 	Source string `json:"source"`
 	// Filters are the run's [key, value] scope terms (ingest.MatchExtras
 	// semantics -- the same scoping the synchronous run and the audit use).
-	Filters   [][2]string `json:"filters,omitempty"`
-	Requester string      `json:"requester"`
-	Status    JobStatus   `json:"status"`
+	Filters [][2]string `json:"filters,omitempty"`
+	// Hosts is the per-job peer-host override, for sources that take one
+	// (the bibliocommons harvest): sweep a different peer list without a
+	// restart. Empty keeps the source's configured hosts.
+	Hosts     []string  `json:"hosts,omitempty"`
+	Requester string    `json:"requester"`
+	Status    JobStatus `json:"status"`
 	// Stats is the live progress while RUNNING (updated per statsInterval
 	// when the source reports counters) and the final tallies after.
 	Stats *ingest.EnrichStats `json:"stats,omitempty"`
@@ -79,19 +84,32 @@ func jobKey(id string) store.Key { return store.Key{PK: "JOB#ENRICH", SK: id} }
 // CreateJob queues an asynchronous run. The source must exist (the caller's
 // mistake surfaces at kick time, not first drain); execution happens on the
 // worker via RunQueuedJobs.
-func (s *Service) CreateJob(ctx context.Context, requester, source string, filters [][2]string) (Job, error) {
+func (s *Service) CreateJob(ctx context.Context, requester, source string, filters [][2]string, hosts []string) (Job, error) {
 	if s.DB == nil {
 		return Job{}, fmt.Errorf("%w: async jobs need the record store", ErrMisconfigured)
 	}
-	if _, ok := s.Sources[source]; !ok {
+	src, ok := s.Sources[source]
+	if !ok {
 		return Job{}, fmt.Errorf("%w: %q", ErrUnknownSource, source)
+	}
+	// Host overrides fail at kick time, not first drain: an unknown
+	// capability or a URL-shaped host is the caller's mistake to see now.
+	if len(hosts) > 0 {
+		if _, ok := src.Enricher.(HostScoped); !ok {
+			return Job{}, fmt.Errorf("%w: source %q does not take hosts", ErrValidation, source)
+		}
+		for _, h := range hosts {
+			if h == "" || strings.ContainsAny(h, "./: ") {
+				return Job{}, fmt.Errorf("%w: host %q must be a bare subdomain (e.g. seattle)", ErrValidation, h)
+			}
+		}
 	}
 	suffix := make([]byte, 8)
 	if _, err := rand.Read(suffix); err != nil {
 		return Job{}, err
 	}
 	job := Job{
-		ID: hex.EncodeToString(suffix), Source: source, Filters: filters,
+		ID: hex.EncodeToString(suffix), Source: source, Filters: filters, Hosts: hosts,
 		Requester: requester, Status: JobQueued, CreatedAt: s.jobNow().UTC(),
 	}
 	if err := s.putJob(ctx, job, store.CondIfAbsent); err != nil {
@@ -224,9 +242,18 @@ func (s *Service) runJob(ctx context.Context, id string) error {
 	// record so GET shows batches advancing. Best effort: a lost update is
 	// the next tick's problem. The tick runs even for a source with no
 	// counters to report: each write refreshes the heartbeat that keeps the
-	// drain's orphan reaper off a live run.
+	// drain's orphan reaper off a live run. A host-scoped job reads the
+	// scoped view's counters -- RunHosted builds the same view from the
+	// same job fields.
 	src := s.Sources[job.Source]
-	reporter, reports := src.Enricher.(ingest.StatsReporter)
+	scoped, scopeErr := s.scopedEnricher(src, job.Source, job.Hosts)
+	if scopeErr != nil {
+		job.FinishedAt = s.jobNow().UTC()
+		job.Status = JobFailed
+		job.Error = "enrichment run failed"
+		return s.putJob(ctx, *job, store.CondNone)
+	}
+	reporter, reports := scoped.(ingest.StatsReporter)
 	stopStats := make(chan struct{})
 	statsDone := make(chan struct{})
 	go func() {
@@ -250,7 +277,7 @@ func (s *Service) runJob(ctx context.Context, id string) error {
 		}
 	}()
 
-	result, runErr := s.Run(ctx, job.Source, keep)
+	result, runErr := s.RunHosted(ctx, job.Source, keep, job.Hosts)
 	close(stopStats)
 	<-statsDone
 

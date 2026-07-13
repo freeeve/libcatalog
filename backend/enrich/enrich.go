@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/freeeve/libcat/ingest"
@@ -83,17 +84,39 @@ type Result struct {
 	Stats *ingest.EnrichStats `json:"stats,omitempty"`
 }
 
+// HostScoped is an optional Enricher capability: ForHosts returns a
+// per-run view of the enricher scoped to the given peer hosts (the
+// bibliocommons harvest), so one job can sweep a different peer list
+// without a restart.
+type HostScoped interface {
+	ForHosts(hosts []string) ingest.Enricher
+}
+
+// ErrValidation reports a caller mistake in a run/job request (bad host,
+// hosts on a source that takes none); the HTTP layer answers 400.
+var ErrValidation = errors.New("enrich: invalid request")
+
 // Run executes one configured source by name. A non-nil keep scopes the run
 // to the summaries it accepts: only those works are handed to the enricher
 // (an external-service source queries for exactly the scoped set) and only
 // their grains gain statements; out-of-scope works keep what they have.
 func (s *Service) Run(ctx context.Context, name string, keep func(*ingest.WorkSummary) bool) (Result, error) {
+	return s.RunHosted(ctx, name, keep, nil)
+}
+
+// RunHosted is Run with an optional per-run peer-host override for sources
+// that take one.
+func (s *Service) RunHosted(ctx context.Context, name string, keep func(*ingest.WorkSummary) bool, hosts []string) (Result, error) {
 	src, ok := s.Sources[name]
 	if !ok {
 		return Result{}, fmt.Errorf("%w: %q", ErrUnknownSource, name)
 	}
+	enr, err := s.scopedEnricher(src, name, hosts)
+	if err != nil {
+		return Result{}, err
+	}
 	stats := func() *ingest.EnrichStats {
-		if sr, ok := src.Enricher.(ingest.StatsReporter); ok {
+		if sr, ok := enr.(ingest.StatsReporter); ok {
 			st := sr.RunStats()
 			return &st
 		}
@@ -101,13 +124,26 @@ func (s *Service) Run(ctx context.Context, name string, keep func(*ingest.WorkSu
 	}
 	switch src.Mode {
 	case ModeDirect:
-		n, err := ingest.RunEnrichScoped(ctx, s.Blob, s.GrainPrefix, src.Enricher, keep)
+		n, err := ingest.RunEnrichScoped(ctx, s.Blob, s.GrainPrefix, enr, keep)
 		return Result{Source: name, Mode: src.Mode, Works: n, Stats: stats()}, err
 	case ModeQueue:
-		n, err := s.runQueued(ctx, src, keep)
+		n, err := s.runQueued(ctx, src, enr, keep)
 		return Result{Source: name, Mode: src.Mode, Works: n, Stats: stats()}, err
 	}
 	return Result{}, fmt.Errorf("%w: source %q has invalid mode %q", ErrMisconfigured, name, src.Mode)
+}
+
+// scopedEnricher resolves the run's enricher: the configured one, or a
+// per-run host-scoped view when hosts are named and the source takes them.
+func (s *Service) scopedEnricher(src Source, name string, hosts []string) (ingest.Enricher, error) {
+	if len(hosts) == 0 {
+		return src.Enricher, nil
+	}
+	hs, ok := src.Enricher.(HostScoped)
+	if !ok {
+		return nil, fmt.Errorf("%w: source %q does not take hosts", ErrValidation, name)
+	}
+	return hs.ForHosts(hosts), nil
 }
 
 // Names lists the configured sources.
@@ -119,7 +155,7 @@ func (s *Service) Names() []string {
 	return names
 }
 
-func (s *Service) runQueued(ctx context.Context, src Source, keep func(*ingest.WorkSummary) bool) (int, error) {
+func (s *Service) runQueued(ctx context.Context, src Source, enricher ingest.Enricher, keep func(*ingest.WorkSummary) bool) (int, error) {
 	if s.Queue == nil {
 		return 0, fmt.Errorf("%w: queue mode needs the suggestion service", ErrMisconfigured)
 	}
@@ -136,14 +172,14 @@ func (s *Service) runQueued(ctx context.Context, src Source, keep func(*ingest.W
 		}
 		summaries = kept
 	}
-	results, err := src.Enricher.Enrich(ctx, summaries)
+	results, err := enricher.Enrich(ctx, summaries)
 	if err != nil {
 		return 0, fmt.Errorf("%w: %w", ingest.ErrEnricher, err)
 	}
 	queued := 0
 	for _, res := range results {
 		landed := false
-		for _, subj := range res.Subjects {
+		for si, subj := range res.Subjects {
 			label := subj.URI
 			if l := vocab.PickLabel(subj.Labels); l != "" {
 				label = l
@@ -156,7 +192,16 @@ func (s *Service) runQueued(ctx context.Context, src Source, keep func(*ingest.W
 				scheme = project.SchemeForURI(subj.URI)
 			}
 			term := vocab.TermRef{Scheme: scheme, ID: subj.URI, Label: label}
-			err := s.Queue.PipelineSuggest(ctx, res.WorkID, term, res.Confidence)
+			// A subject arriving with an endorsement carries peer
+			// consensus: the supporter count ranks it in the queue and
+			// the sources say which libraries corroborated.
+			var err error
+			if si < len(res.Endorsements) && res.Endorsements[si].Count > 0 {
+				e := res.Endorsements[si]
+				err = s.Queue.PipelineSuggestVouched(ctx, res.WorkID, term, res.Confidence, e.Count, strings.Join(e.Sources, ", "))
+			} else {
+				err = s.Queue.PipelineSuggest(ctx, res.WorkID, term, res.Confidence)
+			}
 			if err != nil {
 				return queued, err
 			}

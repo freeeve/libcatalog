@@ -22,6 +22,7 @@
   let jobs = $state<EnrichJob[]>([]);
   let source = $state("");
   let scope = $state("");
+  let hosts = $state("");
   let running = $state(false);
   let kicking = $state(false);
   let syncResult = $state<EnrichRunResult | null>(null);
@@ -33,6 +34,13 @@
     return scope
       .split(/\s+/)
       .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
+  function hostList(): string[] {
+    return hosts
+      .split(/[\s,]+/)
+      .map((h) => h.trim())
       .filter(Boolean);
   }
 
@@ -69,7 +77,7 @@
     error = "";
     syncResult = null;
     try {
-      await createEnrichJob(source, filters());
+      await createEnrichJob(source, filters(), hostList());
       await load();
     } catch (e) {
       error = humanApiMessage(e, "queuing the job failed");
@@ -161,6 +169,12 @@
         </select>
         <label for="enr-scope">Scope</label>
         <input id="enr-scope" bind:value={scope} placeholder="key=value key2=value2 (empty = whole corpus)" />
+        <label for="enr-hosts">Peer hosts</label>
+        <input
+          id="enr-hosts"
+          bind:value={hosts}
+          placeholder="seattle, sfpl, kcls (sources that take hosts; empty = configured)"
+        />
         <button type="submit" class="button" disabled={kicking || running || !source}>
           {kicking ? "Queuing…" : "Run as job"}
         </button>
@@ -196,6 +210,7 @@
               <div class="head">
                 <span class="src">{j.source}</span>
                 {#if scopeOf(j)}<span class="scope">{scopeOf(j)}</span>{/if}
+                {#if j.hosts?.length}<span class="scope">{j.hosts.join(", ")}</span>{/if}
                 <span class={`status s-${j.status.toLowerCase()}`}>{j.status}</span>
                 <span class="muted meta">
                   {j.requester} · queued {when(j.createdAt)}{#if j.startedAt}

@@ -46,7 +46,7 @@ func jobService(t *testing.T) *Service {
 // queued.
 func TestJobLifecycle(t *testing.T) {
 	svc := jobService(t)
-	job, err := svc.CreateJob(t.Context(), "admin@example.org", "stats", [][2]string{})
+	job, err := svc.CreateJob(t.Context(), "admin@example.org", "stats", [][2]string{}, nil)
 	if err != nil {
 		t.Fatalf("CreateJob: %v", err)
 	}
@@ -84,14 +84,14 @@ func TestOrphanedRunningJobIsReaped(t *testing.T) {
 	now := time.Now().UTC()
 	svc.Now = func() time.Time { return now }
 
-	orphan, err := svc.CreateJob(t.Context(), "admin@example.org", "stats", nil)
+	orphan, err := svc.CreateJob(t.Context(), "admin@example.org", "stats", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := svc.claimJob(t.Context(), orphan.ID); err != nil {
 		t.Fatalf("claim: %v", err)
 	}
-	live, err := svc.CreateJob(t.Context(), "admin@example.org", "stub", nil)
+	live, err := svc.CreateJob(t.Context(), "admin@example.org", "stub", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestOrphanedRunningJobIsReaped(t *testing.T) {
 // raw upstream detail in the record.
 func TestJobFailureClassified(t *testing.T) {
 	svc := jobService(t)
-	job, err := svc.CreateJob(t.Context(), "admin@example.org", "fail", nil)
+	job, err := svc.CreateJob(t.Context(), "admin@example.org", "fail", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,14 +155,14 @@ func TestJobFailureClassified(t *testing.T) {
 // record store, and unknown ids are ErrJobNotFound.
 func TestJobValidation(t *testing.T) {
 	svc := jobService(t)
-	if _, err := svc.CreateJob(t.Context(), "a", "zz-nope", nil); !errors.Is(err, ErrUnknownSource) {
+	if _, err := svc.CreateJob(t.Context(), "a", "zz-nope", nil, nil); !errors.Is(err, ErrUnknownSource) {
 		t.Fatalf("unknown source err = %v", err)
 	}
 	if _, err := svc.GetJob(t.Context(), "deadbeef"); !errors.Is(err, ErrJobNotFound) {
 		t.Fatalf("unknown id err = %v", err)
 	}
 	noDB := &Service{Sources: map[string]Source{"stub": {Enricher: stubEnricher{}, Mode: ModeDirect}}}
-	if _, err := noDB.CreateJob(t.Context(), "a", "stub", nil); !errors.Is(err, ErrMisconfigured) {
+	if _, err := noDB.CreateJob(t.Context(), "a", "stub", nil, nil); !errors.Is(err, ErrMisconfigured) {
 		t.Fatalf("no-DB err = %v", err)
 	}
 }
@@ -170,7 +170,7 @@ func TestJobValidation(t *testing.T) {
 // TestJobClaimContention: a job already RUNNING is not double-run.
 func TestJobClaimContention(t *testing.T) {
 	svc := jobService(t)
-	job, err := svc.CreateJob(t.Context(), "a", "stub", nil)
+	job, err := svc.CreateJob(t.Context(), "a", "stub", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,8 +191,8 @@ func TestJobList(t *testing.T) {
 	base := time.Date(2026, 7, 11, 12, 0, 0, 0, time.UTC)
 	tick := 0
 	svc.Now = func() time.Time { tick++; return base.Add(time.Duration(tick) * time.Minute) }
-	first, _ := svc.CreateJob(t.Context(), "a", "stub", nil)
-	second, _ := svc.CreateJob(t.Context(), "a", "stats", nil)
+	first, _ := svc.CreateJob(t.Context(), "a", "stub", nil, nil)
+	second, _ := svc.CreateJob(t.Context(), "a", "stats", nil, nil)
 	jobs, err := svc.ListJobs(t.Context())
 	if err != nil || len(jobs) != 2 {
 		t.Fatalf("ListJobs = %d, %v", len(jobs), err)
@@ -202,4 +202,47 @@ func TestJobList(t *testing.T) {
 	}
 	_ = first
 	_ = second
+}
+
+// hostedEnricher records which hosts a per-run view was scoped to.
+type hostedEnricher struct {
+	hosts []string
+}
+
+func (e *hostedEnricher) Name() string { return "hosted" }
+func (e *hostedEnricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]ingest.Enrichment, error) {
+	return nil, nil
+}
+func (e *hostedEnricher) ForHosts(hosts []string) ingest.Enricher {
+	return &hostedEnricher{hosts: hosts}
+}
+
+// TestJobHostOverride pins the per-job peer-host seam (task 446): hosts on
+// a HostScoped source validate at kick time and reach the run; hosts on any
+// other source, or URL-shaped hosts, refuse with ErrValidation.
+func TestJobHostOverride(t *testing.T) {
+	svc := jobService(t)
+	svc.Sources["hosted"] = Source{Enricher: &hostedEnricher{}, Mode: ModeDirect}
+
+	job, err := svc.CreateJob(t.Context(), "a", "hosted", nil, []string{"seattle", "sfpl"})
+	if err != nil {
+		t.Fatalf("CreateJob with hosts: %v", err)
+	}
+	if len(job.Hosts) != 2 {
+		t.Fatalf("job = %+v, want the hosts recorded", job)
+	}
+	if _, err := svc.RunQueuedJobs(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := svc.GetJob(t.Context(), job.ID)
+	if got.Status != JobDone {
+		t.Fatalf("hosted job = %+v, want DONE", got)
+	}
+
+	if _, err := svc.CreateJob(t.Context(), "a", "stub", nil, []string{"seattle"}); !errors.Is(err, ErrValidation) {
+		t.Fatalf("hosts on a non-hosted source err = %v, want ErrValidation", err)
+	}
+	if _, err := svc.CreateJob(t.Context(), "a", "hosted", nil, []string{"https://seattle.example"}); !errors.Is(err, ErrValidation) {
+		t.Fatalf("URL-shaped host err = %v, want ErrValidation", err)
+	}
 }

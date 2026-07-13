@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/freeeve/libcat/ingest"
 
@@ -64,7 +65,17 @@ func registerEnrich(mux *http.ServeMux, svc *enrich.Service, verifier auth.Token
 			return
 		}
 		id, _ := auth.FromContext(r.Context())
-		job, err := svc.CreateJob(r.Context(), id.Email, r.PathValue("source"), filters)
+		// ?hosts=seattle,sfpl -- the per-job peer override for sources
+		// that take one; validated in CreateJob.
+		var hosts []string
+		if raw := strings.TrimSpace(r.URL.Query().Get("hosts")); raw != "" {
+			for _, h := range strings.Split(raw, ",") {
+				if h = strings.TrimSpace(h); h != "" {
+					hosts = append(hosts, h)
+				}
+			}
+		}
+		job, err := svc.CreateJob(r.Context(), id.Email, r.PathValue("source"), filters, hosts)
 		if err != nil {
 			writeEnrichRunError(w, logger, r.PathValue("source"), err)
 			return
@@ -105,6 +116,10 @@ func writeEnrichRunError(w http.ResponseWriter, logger *slog.Logger, source stri
 	switch {
 	case errors.Is(err, enrich.ErrUnknownSource):
 		writeError(w, http.StatusNotFound, "unknown enrichment source")
+	case errors.Is(err, enrich.ErrValidation):
+		// The caller's mistake (bad host, hosts on a source that takes
+		// none) -- say what, not just that.
+		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, context.DeadlineExceeded):
 		logger.Error("enrichment run timed out", "source", source, "err", err)
 		writeError(w, http.StatusGatewayTimeout, "enrichment upstream timed out")

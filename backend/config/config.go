@@ -202,12 +202,13 @@ type Config struct {
 	// there is nothing for the moderation queue to moderate. Set "direct"
 	// to enable.
 	EnrichWikidata string
-	// EnrichBiblioCommons enables the peer-library subject harvest: the
-	// BiblioCommons subdomain of the peer OPAC (e.g. "ccslib"). The harvest
-	// drives subject searches from a loaded vocabulary's terms and queues
-	// moderated suggestions on ISBN- or title+author-matched works.
-	// Queue-only: another library's cataloging is a candidate, not an
-	// assertion.
+	// EnrichBiblioCommons enables the peer-library subject harvest: one or
+	// more BiblioCommons subdomains, comma-separated (e.g. "ccslib" or
+	// "ccslib,seattle,sfpl"). The harvest drives subject searches from a
+	// loaded vocabulary's terms and queues moderated suggestions on ISBN-
+	// or title+author-matched works; several hosts turn the run into a
+	// consensus vote. Queue-only: another library's cataloging is a
+	// candidate, not an assertion. Jobs may override the list per run.
 	EnrichBiblioCommons string
 	// EnrichBiblioCommonsScheme picks the driver vocabulary (default
 	// "homosaurus"); it must be loaded. EnrichBiblioCommonsMaxPages caps RSS
@@ -281,8 +282,10 @@ func FromEnv() (Config, error) {
 	if cfg.EnrichOpenLibrary != "" && cfg.EnrichOpenLibraryDump == "" {
 		return Config{}, fmt.Errorf("config: LCATD_ENRICH_OPENLIBRARY needs LCATD_ENRICH_OPENLIBRARY_DUMP (the editions dump path)")
 	}
-	if strings.ContainsAny(cfg.EnrichBiblioCommons, "./:") {
-		return Config{}, fmt.Errorf("config: LCATD_ENRICH_BIBLIOCOMMONS must be the bare BiblioCommons subdomain (e.g. ccslib), not a URL")
+	for _, h := range strings.Split(cfg.EnrichBiblioCommons, ",") {
+		if strings.ContainsAny(strings.TrimSpace(h), "./:") {
+			return Config{}, fmt.Errorf("config: LCATD_ENRICH_BIBLIOCOMMONS wants bare BiblioCommons subdomains (e.g. ccslib,seattle), not URLs")
+		}
 	}
 	if raw := os.Getenv("LCATD_ENRICH_BIBLIOCOMMONS_MAX_PAGES"); raw != "" {
 		n, err := strconv.Atoi(raw)

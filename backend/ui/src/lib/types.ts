@@ -864,6 +864,8 @@ export interface EnrichJob {
   id: string;
   source: string;
   filters?: [string, string][];
+  /** Per-job peer-host override (sources that take one). */
+  hosts?: string[];
   requester: string;
   status: "QUEUED" | "RUNNING" | "DONE" | "FAILED";
   stats?: EnrichStats;

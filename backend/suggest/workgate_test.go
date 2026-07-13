@@ -132,3 +132,51 @@ func TestRejectClearsApprovedUnpublishedGhost(t *testing.T) {
 		t.Fatalf("published row after reject attempt = %+v, %v; want still APPROVED", kept, err)
 	}
 }
+
+// TestPipelineSuggestVouched pins the consensus write (task 446): a vouched
+// candidate lands with its supporter count and source list; a fresh census
+// updates an open machine row in place instead of duplicating; a resolved
+// row stays resolved.
+func TestPipelineSuggestVouched(t *testing.T) {
+	svc, _ := newService(t)
+	ctx := t.Context()
+	term := controlled(transURI)
+	if err := svc.PipelineSuggestVouched(ctx, "wvouch0000001", term, 0.9, 3, "kcls, seattle, sfpl"); err != nil {
+		t.Fatal(err)
+	}
+	page, err := svc.Queue(ctx, QueueQuery{})
+	if err != nil || len(page.Items) != 1 {
+		t.Fatalf("queue = %+v, %v", page, err)
+	}
+	sg := page.Items[0]
+	if sg.SupporterCount != 3 || sg.SourceRef != "kcls, seattle, sfpl" || sg.Confidence != 0.9 {
+		t.Fatalf("row = %+v, want 3 supporters via three hosts", sg)
+	}
+
+	// A wider census refreshes the open row in place -- one row, new count.
+	if err := svc.PipelineSuggestVouched(ctx, "wvouch0000001", term, 0.75, 6, "six hosts"); err != nil {
+		t.Fatal(err)
+	}
+	page, _ = svc.Queue(ctx, QueueQuery{})
+	if len(page.Items) != 1 || page.Items[0].SupporterCount != 6 || page.Items[0].SourceRef != "six hosts" {
+		t.Fatalf("after recensus = %+v, want the same row at 6 supporters", page.Items)
+	}
+	if page.Items[0].Confidence != 0.9 {
+		t.Fatalf("confidence = %v, want the stronger tier kept", page.Items[0].Confidence)
+	}
+
+	// Review resolves it; a later census must not resurrect or mutate it.
+	if _, err := svc.Review(ctx, []Decision{{WorkID: "wvouch0000001", Term: term, Type: TypeAdd, Approve: true}}, "mod@x"); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.PipelineSuggestVouched(ctx, "wvouch0000001", term, 0.9, 9, "nine hosts"); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := svc.ForWork(ctx, "wvouch0000001")
+	if err != nil || len(rows) != 1 {
+		t.Fatal(err)
+	}
+	if rows[0].Status != StatusApproved || rows[0].SupporterCount != 6 {
+		t.Fatalf("resolved row after census = %+v, want untouched APPROVED at 6", rows[0])
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/freeeve/libcat/ingest"
@@ -84,7 +85,7 @@ func TestEnrichMatchTiers(t *testing.T) {
 			[4]string{"Stone Butch Blues", "Leslie Feinberg", "9781555838539", "27897047"},
 		),
 	}}
-	e := New("ccslib", testTerms(), WithClient(doer), WithDelay(0))
+	e := New([]string{"ccslib"}, testTerms(), WithClient(doer), WithDelay(0))
 	got, err := e.Enrich(context.Background(), testWorks())
 	if err != nil {
 		t.Fatalf("Enrich: %v", err)
@@ -140,7 +141,7 @@ func TestEnrichPaginationAndCap(t *testing.T) {
 		"Nonbinary people|1": full, "Nonbinary people|2": short,
 		"Lesbians|1": full, "Lesbians|2": full, "Lesbians|3": full, "Lesbians|4": full,
 	}}
-	e := New("ccslib", testTerms(), WithClient(doer), WithDelay(0), WithMaxPages(3))
+	e := New([]string{"ccslib"}, testTerms(), WithClient(doer), WithDelay(0), WithMaxPages(3))
 	e.displayQuantity = 2
 	if _, err := e.Enrich(context.Background(), nil); err != nil {
 		t.Fatalf("Enrich: %v", err)
@@ -173,7 +174,7 @@ func TestEnrichHarvestCachedAcrossRuns(t *testing.T) {
 	doer := &stubDoer{pages: map[string]string{
 		"Nonbinary people|1": rssPage([4]string{"Gender Queer: A Memoir", "Maia Kobabe", "9781549304002", ""}),
 	}}
-	e := New("ccslib", testTerms(), WithClient(doer), WithDelay(0))
+	e := New([]string{"ccslib"}, testTerms(), WithClient(doer), WithDelay(0))
 	if _, err := e.Enrich(context.Background(), testWorks()); err != nil {
 		t.Fatalf("first run: %v", err)
 	}
@@ -199,7 +200,7 @@ func TestEnrichTermFailureIsSkippedNotFatal(t *testing.T) {
 		},
 		fail: map[string]int{"Nonbinary people|1": http.StatusInternalServerError},
 	}
-	e := New("ccslib", testTerms(), WithClient(doer), WithDelay(0))
+	e := New([]string{"ccslib"}, testTerms(), WithClient(doer), WithDelay(0))
 	works := []ingest.WorkSummary{
 		{WorkID: "w9", Title: "Stone Butch Blues", Contributors: []string{"Leslie Feinberg"}, ISBNs: []string{"9781555838539"}},
 	}
@@ -271,5 +272,103 @@ func TestAuthorsAgree(t *testing.T) {
 	}
 	if authorsAgree("", []string{"Anyone"}) {
 		t.Fatal("empty peer author must not agree")
+	}
+}
+
+// hostDoer serves canned RSS keyed by "host|q|page", goroutine-safe (hosts
+// crawl concurrently).
+type hostDoer struct {
+	mu    sync.Mutex
+	pages map[string]string
+	urls  []string
+}
+
+func (d *hostDoer) Do(req *http.Request) (*http.Response, error) {
+	d.mu.Lock()
+	d.urls = append(d.urls, req.URL.String())
+	host := strings.TrimSuffix(req.URL.Hostname(), ".bibliocommons.com")
+	q := req.URL.Query()
+	body, ok := d.pages[host+"|"+q.Get("q")+"|"+q.Get("page")]
+	d.mu.Unlock()
+	if !ok {
+		body = rssPage()
+	}
+	return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader([]byte(body)))}, nil
+}
+
+// TestMultiHostConsensus pins the task 446 contract: the same term matched
+// to the same work from several hosts emits ONE suggestion endorsed by all
+// of them at the strongest tier any host earned; a single-host match stays
+// a singleton; Total is hosts x terms.
+func TestMultiHostConsensus(t *testing.T) {
+	gq := [4]string{"Gender Queer: A Memoir", "Maia Kobabe", "9781549304002", ""}
+	gqNoISBN := [4]string{"Gender Queer", "Maia Kobabe", "", ""}
+	doer := &hostDoer{pages: map[string]string{
+		"seattle|Nonbinary people|1": rssPage(gq),
+		"sfpl|Nonbinary people|1":    rssPage(gqNoISBN), // title+author tier only
+		"kcls|Nonbinary people|1":    rssPage(gq),
+		"kcls|Lesbians|1":            rssPage([4]string{"Stone Butch Blues II", "Leslie Feinberg", "", ""}),
+	}}
+	works := []ingest.WorkSummary{
+		{WorkID: "w1", Title: "Gender Queer", Contributors: []string{"Maia Kobabe"}, ISBNs: []string{"9781549304002"}},
+		{WorkID: "w5", Title: "Stone Butch Blues II", Contributors: []string{"Leslie Feinberg"}},
+	}
+	e := New([]string{"seattle", "sfpl", "kcls"}, testTerms(), WithClient(doer), WithDelay(0))
+	got, err := e.Enrich(context.Background(), works)
+	if err != nil {
+		t.Fatalf("Enrich: %v", err)
+	}
+
+	var w1, w5 *ingest.Enrichment
+	for i := range got {
+		switch got[i].WorkID {
+		case "w1":
+			w1 = &got[i]
+		case "w5":
+			w5 = &got[i]
+		}
+	}
+	if w1 == nil || len(w1.Subjects) != 1 || len(w1.Endorsements) != 1 {
+		t.Fatalf("w1 = %+v, want one endorsed subject", w1)
+	}
+	// Strongest tier wins (two hosts matched by ISBN, one by title+author).
+	if w1.Confidence != 0.9 {
+		t.Fatalf("w1 confidence = %v, want the strongest tier 0.9", w1.Confidence)
+	}
+	end := w1.Endorsements[0]
+	if end.Count != 3 || strings.Join(end.Sources, ",") != "kcls,seattle,sfpl" {
+		t.Fatalf("w1 endorsement = %+v, want all three hosts, sorted", end)
+	}
+	if w5 == nil || len(w5.Endorsements) != 1 || w5.Endorsements[0].Count != 1 || w5.Endorsements[0].Sources[0] != "kcls" {
+		t.Fatalf("w5 = %+v, want a kcls singleton", w5)
+	}
+	if st := e.RunStats(); st.Total != 6 || st.Batches != 6 {
+		t.Fatalf("stats = %d/%d, want 6/6 (3 hosts x 2 terms)", st.Batches, st.Total)
+	}
+}
+
+// TestForHostsSharesTheCrawlCache pins the per-job host override: a view
+// over a subset re-uses the base view's warm crawls and its own run stats
+// speak in its own hosts-x-terms total (task 446).
+func TestForHostsSharesTheCrawlCache(t *testing.T) {
+	doer := &hostDoer{pages: map[string]string{
+		"seattle|Nonbinary people|1": rssPage([4]string{"Gender Queer", "Maia Kobabe", "9781549304002", ""}),
+	}}
+	base := New([]string{"seattle", "sfpl"}, testTerms(), WithClient(doer), WithDelay(0))
+	if _, err := base.Enrich(context.Background(), testWorks()); err != nil {
+		t.Fatal(err)
+	}
+	fetched := len(doer.urls)
+
+	view := base.ForHosts([]string{"seattle"})
+	if _, err := view.Enrich(context.Background(), testWorks()); err != nil {
+		t.Fatal(err)
+	}
+	if len(doer.urls) != fetched {
+		t.Fatalf("the view refetched a warm host: %d -> %d requests", fetched, len(doer.urls))
+	}
+	st := view.(interface{ RunStats() ingest.EnrichStats }).RunStats()
+	if st.Total != 2 || st.Batches != 2 {
+		t.Fatalf("view stats = %d/%d, want 2/2 (1 host x 2 terms, cache-warm)", st.Batches, st.Total)
 	}
 }

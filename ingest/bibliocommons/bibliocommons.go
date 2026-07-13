@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -53,31 +54,52 @@ type Doer interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// Enricher harvests one BiblioCommons OPAC.
+// Enricher harvests one or more BiblioCommons OPACs. Multiple hosts turn
+// the harvest into a consensus vote: the same term matched to the same
+// work from several peers emits one suggestion endorsed by all of them.
 type Enricher struct {
 	client Doer
-	// host is the BiblioCommons subdomain (e.g. "ccslib").
-	host  string
+	// hosts are BiblioCommons subdomains (e.g. "ccslib", "seattle").
+	hosts []string
 	terms []Term
 	// displayQuantity is items per RSS page; maxPages caps pages per term
 	// (big terms run to hundreds of pages; a capped harvest says so).
 	displayQuantity int
 	maxPages        int
-	// delay is the politeness pause between requests (a shared public
-	// OPAC; the prototype used 1.5s).
+	// delay is the politeness pause between requests to ONE host (a shared
+	// public OPAC; the prototype used 1.5s). Distinct hosts crawl
+	// concurrently (capped) -- politeness is per host.
 	delay time.Duration
 	log   *slog.Logger
 
 	statsMu sync.Mutex
 	stats   ingest.EnrichStats
 
-	// The harvest is memoized: its cost is per TERM, independent of which
-	// works are in scope, so a re-run (or a re-scope) within the TTL
-	// re-matches without touching the peer OPAC again.
-	cacheMu  sync.Mutex
-	cache    []harvested
-	cachedAt time.Time
+	// The harvest is memoized per host: its cost is per (host, term),
+	// independent of which works are in scope, so a re-run (or a re-scope,
+	// or an overlapping host list) within the TTL re-matches without
+	// touching that peer again. Shared across ForHosts views.
+	cache    *harvestCache
 	cacheTTL time.Duration
+}
+
+// hostConcurrency caps how many peer OPACs crawl at once; each host's own
+// crawl stays sequential with the politeness delay.
+const hostConcurrency = 4
+
+// harvestCache holds per-host completed crawls, shared across per-run
+// enricher views.
+type harvestCache struct {
+	mu     sync.Mutex
+	byHost map[string]*hostHarvest
+}
+
+// hostHarvest is one host's crawl; its mutex single-flights concurrent
+// crawlers of the same host.
+type hostHarvest struct {
+	mu    sync.Mutex
+	items []harvested
+	at    time.Time
 }
 
 // harvested is one driver term's collected feed items.
@@ -105,16 +127,17 @@ func WithLogger(l *slog.Logger) Option { return func(e *Enricher) { e.log = l } 
 // peer OPAC is crawled again.
 func WithCacheTTL(d time.Duration) Option { return func(e *Enricher) { e.cacheTTL = d } }
 
-// New returns the harvester for one host and driver term list.
-func New(host string, terms []Term, opts ...Option) *Enricher {
+// New returns the harvester for the given peer hosts and driver term list.
+func New(hosts []string, terms []Term, opts ...Option) *Enricher {
 	e := &Enricher{
 		client:          http.DefaultClient,
-		host:            host,
+		hosts:           hosts,
 		terms:           terms,
 		displayQuantity: 100,
 		maxPages:        6,
 		delay:           1500 * time.Millisecond,
 		cacheTTL:        24 * time.Hour,
+		cache:           &harvestCache{byHost: map[string]*hostHarvest{}},
 	}
 	for _, o := range opts {
 		o(e)
@@ -122,23 +145,35 @@ func New(host string, terms []Term, opts ...Option) *Enricher {
 	return e
 }
 
+// ForHosts returns a per-run view over a different peer list -- the per-job
+// host override. The crawl cache is shared (a host crawled by any view is
+// warm for every view within the TTL); the run stats are the view's own.
+func (e *Enricher) ForHosts(hosts []string) ingest.Enricher {
+	return &Enricher{
+		client:          e.client,
+		hosts:           append([]string(nil), hosts...),
+		terms:           e.terms,
+		displayQuantity: e.displayQuantity,
+		maxPages:        e.maxPages,
+		delay:           e.delay,
+		log:             e.log,
+		cacheTTL:        e.cacheTTL,
+		cache:           e.cache,
+	}
+}
+
 // Name implements ingest.Enricher.
 func (e *Enricher) Name() string { return Name }
 
-// RunStats implements ingest.StatsReporter: Total is the driver term count
-// (known at construction), Batches the terms processed so far -- so
-// Batches/Total is a true progress fraction -- and SkippedBatches the terms
-// abandoned on a fetch error. Safe mid-run.
+// RunStats implements ingest.StatsReporter: Total is hosts x driver terms
+// (known at construction), Batches the (host, term) crawls completed so far
+// -- so Batches/Total is a true progress fraction, cache-warm hosts counted
+// instantly -- and SkippedBatches the per-host terms abandoned on a fetch
+// error. Safe mid-run.
 func (e *Enricher) RunStats() ingest.EnrichStats {
 	e.statsMu.Lock()
 	defer e.statsMu.Unlock()
 	return e.stats
-}
-
-func (e *Enricher) setStats(st ingest.EnrichStats) {
-	e.statsMu.Lock()
-	e.stats = st
-	e.statsMu.Unlock()
 }
 
 // rssItem is one <item> of the search feed.
@@ -267,15 +302,20 @@ func authorsAgree(peer string, contributors []string) bool {
 }
 
 // Enrich implements ingest.Enricher: harvest each driver term's RSS feed
-// (memoized within the cache TTL), match items back to the scoped works, and
+// from every configured host (memoized per host within the cache TTL; hosts
+// crawl concurrently, capped), match items back to the scoped works, and
 // suggest the DRIVER term on every matched work that does not already carry
-// it.
+// it. The same (work, term) pair matched from several hosts emits ONE
+// suggestion endorsed by all of them, at the strongest tier any host earned.
 func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]ingest.Enrichment, error) {
 	started := time.Now()
-	harvest, err := e.ensureHarvest(ctx, started)
-	if err != nil {
-		return nil, err
+	valid := 0
+	for _, term := range e.terms {
+		if term.Query != "" && term.URI != "" {
+			valid++
+		}
 	}
+	e.bump(started, func(st *ingest.EnrichStats) { st.Total = valid * len(e.hosts) })
 
 	// Corpus match indexes.
 	byISBN := map[string][]int{}
@@ -291,53 +331,111 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 		}
 	}
 
+	// Consensus accumulator: per (work, term URI), the strongest tier any
+	// host earned and every host that corroborated.
+	type matchKey struct {
+		work int
+		uri  string
+	}
+	type consensus struct {
+		term  Term
+		conf  float64
+		hosts map[string]bool
+	}
+	var aggMu sync.Mutex
+	agg := map[matchKey]*consensus{}
+
+	sem := make(chan struct{}, hostConcurrency)
+	var wg sync.WaitGroup
+	errs := make(chan error, len(e.hosts))
+	for _, host := range e.hosts {
+		wg.Add(1)
+		go func(host string) {
+			defer wg.Done()
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			case <-ctx.Done():
+				errs <- ctx.Err()
+				return
+			}
+			harvest, err := e.ensureHostHarvest(ctx, host, started)
+			if err != nil {
+				errs <- err
+				return
+			}
+			for _, h := range harvest {
+				for _, it := range h.items {
+					var idx []int
+					conf := confISBNMatch
+					if it.isbn != "" && len(byISBN[it.isbn]) > 0 {
+						idx = byISBN[it.isbn]
+					} else if t := normTitle(it.title); t != "" && len(byTitle[t]) > 0 && it.author != "" {
+						// Fallback demands author agreement -- a bare title
+						// match on generic titles is the measured noise.
+						for _, wi := range byTitle[t] {
+							if authorsAgree(it.author, works[wi].Contributors) {
+								idx = append(idx, wi)
+							}
+						}
+						conf = confTitleMatch
+					}
+					for _, wi := range idx {
+						if hasSubject(&works[wi], h.term.URI) {
+							continue
+						}
+						aggMu.Lock()
+						key := matchKey{work: wi, uri: h.term.URI}
+						c := agg[key]
+						if c == nil {
+							c = &consensus{term: h.term, conf: conf, hosts: map[string]bool{}}
+							agg[key] = c
+						}
+						if conf > c.conf {
+							c.conf = conf
+						}
+						c.hosts[host] = true
+						aggMu.Unlock()
+					}
+				}
+			}
+		}(host)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// One Enrichment per (work, tier), subjects beside their endorsements.
 	type tierKey struct {
 		work int
 		conf float64
 	}
-	suggested := map[tierKey][]Term{}
-	seen := map[string]bool{} // workIdx|uri
-	for _, h := range harvest {
-		for _, it := range h.items {
-			var idx []int
-			conf := confISBNMatch
-			if it.isbn != "" && len(byISBN[it.isbn]) > 0 {
-				idx = byISBN[it.isbn]
-			} else if t := normTitle(it.title); t != "" && len(byTitle[t]) > 0 && it.author != "" {
-				// Fallback demands author agreement -- a bare title
-				// match on generic titles is the measured noise.
-				for _, wi := range byTitle[t] {
-					if authorsAgree(it.author, works[wi].Contributors) {
-						idx = append(idx, wi)
-					}
-				}
-				conf = confTitleMatch
-			}
-			for _, wi := range idx {
-				if hasSubject(&works[wi], h.term.URI) {
-					continue
-				}
-				key := fmt.Sprintf("%d|%s", wi, h.term.URI)
-				if seen[key] {
-					continue
-				}
-				seen[key] = true
-				tk := tierKey{work: wi, conf: conf}
-				suggested[tk] = append(suggested[tk], h.term)
-			}
-		}
+	grouped := map[tierKey][]*consensus{}
+	for key, c := range agg {
+		tk := tierKey{work: key.work, conf: c.conf}
+		grouped[tk] = append(grouped[tk], c)
 	}
-
 	var out []ingest.Enrichment
 	for i := range works {
 		for _, conf := range []float64{confISBNMatch, confTitleMatch} {
-			terms := suggested[tierKey{work: i, conf: conf}]
-			if len(terms) == 0 {
+			group := grouped[tierKey{work: i, conf: conf}]
+			if len(group) == 0 {
 				continue
 			}
+			sort.Slice(group, func(a, b int) bool { return group[a].term.URI < group[b].term.URI })
 			enr := ingest.Enrichment{WorkID: works[i].WorkID, Confidence: conf}
-			for _, t := range terms {
-				enr.Subjects = append(enr.Subjects, bibframe.AuthoritySubject{URI: t.URI, Labels: t.Labels})
+			for _, c := range group {
+				enr.Subjects = append(enr.Subjects, bibframe.AuthoritySubject{URI: c.term.URI, Labels: c.term.Labels})
+				hosts := make([]string, 0, len(c.hosts))
+				for h := range c.hosts {
+					hosts = append(hosts, h)
+				}
+				sort.Strings(hosts)
+				enr.Endorsements = append(enr.Endorsements, ingest.Endorsement{Count: len(hosts), Sources: hosts})
 			}
 			out = append(out, enr)
 		}
@@ -345,28 +443,41 @@ func (e *Enricher) Enrich(ctx context.Context, works []ingest.WorkSummary) ([]in
 	return out, nil
 }
 
-// ensureHarvest returns the term-by-term feed crawl, reusing a completed one
-// within the TTL so a re-run or re-scope is match-only.
-func (e *Enricher) ensureHarvest(ctx context.Context, started time.Time) ([]harvested, error) {
-	e.cacheMu.Lock()
-	defer e.cacheMu.Unlock()
-	if e.cache != nil && started.Sub(e.cachedAt) < e.cacheTTL {
-		return e.cache, nil
+// bump mutates the run stats under the lock and refreshes the elapsed time.
+func (e *Enricher) bump(started time.Time, f func(*ingest.EnrichStats)) {
+	e.statsMu.Lock()
+	f(&e.stats)
+	e.stats.ElapsedMS = time.Since(started).Milliseconds()
+	e.statsMu.Unlock()
+}
+
+// ensureHostHarvest returns one host's term-by-term crawl, reusing a
+// completed one within the TTL (shared across ForHosts views; concurrent
+// crawlers of the same host single-flight on its entry). A cache hit still
+// advances Batches by the term count, so the progress fraction is honest
+// whichever hosts were warm.
+func (e *Enricher) ensureHostHarvest(ctx context.Context, host string, started time.Time) ([]harvested, error) {
+	e.cache.mu.Lock()
+	hh := e.cache.byHost[host]
+	if hh == nil {
+		hh = &hostHarvest{}
+		e.cache.byHost[host] = hh
+	}
+	e.cache.mu.Unlock()
+
+	hh.mu.Lock()
+	defer hh.mu.Unlock()
+	if hh.items != nil && started.Sub(hh.at) < e.cacheTTL {
+		done := 0
+		for _, term := range e.terms {
+			if term.Query != "" && term.URI != "" {
+				done++
+			}
+		}
+		e.bump(started, func(st *ingest.EnrichStats) { st.Batches += done })
+		return hh.items, nil
 	}
 
-	var st ingest.EnrichStats
-	publish := func() {
-		st.ElapsedMS = time.Since(started).Milliseconds()
-		e.setStats(st)
-	}
-	// The run is sized up front -- one search per driver term -- so
-	// progress is a true fraction: Batches terms done out of Total.
-	for _, term := range e.terms {
-		if term.Query != "" && term.URI != "" {
-			st.Total++
-		}
-	}
-	publish()
 	var harvest []harvested
 	first := true
 	for _, term := range e.terms {
@@ -386,31 +497,27 @@ func (e *Enricher) ensureHarvest(ctx context.Context, started time.Time) ([]harv
 				}
 			}
 			first = false
-			items, err := e.fetchPage(ctx, term.Query, page)
+			items, err := e.fetchPage(ctx, host, term.Query, page)
 			if err != nil {
-				st.SkippedBatches++
-				publish()
+				e.bump(started, func(st *ingest.EnrichStats) { st.SkippedBatches++ })
 				if e.log != nil {
-					e.log.Warn("bibliocommons page skipped", "term", term.Query, "page", page, "err", err)
+					e.log.Warn("bibliocommons page skipped", "host", host, "term", term.Query, "page", page, "err", err)
 				}
-				break // abandon this term; the next run backfills
+				break // abandon this term on this host; the next run backfills
 			}
-			publish()
 			h.items = append(h.items, items...)
 			if len(items) < e.displayQuantity {
 				break // short page = the term's last page
 			}
 			if page == e.maxPages && e.log != nil {
-				e.log.Info("bibliocommons term truncated at page cap", "term", term.Query, "pages", e.maxPages)
+				e.log.Info("bibliocommons term truncated at page cap", "host", host, "term", term.Query, "pages", e.maxPages)
 			}
 		}
-		st.Batches++
-		publish()
+		e.bump(started, func(st *ingest.EnrichStats) { st.Batches++ })
 		harvest = append(harvest, h)
 	}
-	publish()
-	e.cache = harvest
-	e.cachedAt = started
+	hh.items = harvest
+	hh.at = started
 	return harvest, nil
 }
 
@@ -424,10 +531,10 @@ func hasSubject(w *ingest.WorkSummary, uri string) bool {
 	return false
 }
 
-// fetchPage GETs one RSS page of a subject search.
-func (e *Enricher) fetchPage(ctx context.Context, query string, page int) ([]harvestItem, error) {
+// fetchPage GETs one RSS page of one host's subject search.
+func (e *Enricher) fetchPage(ctx context.Context, host, query string, page int) ([]harvestItem, error) {
 	u := fmt.Sprintf("https://%s.bibliocommons.com/search/rss?q=%s&t=subject&display_quantity=%d&page=%d",
-		e.host, url.QueryEscape(query), e.displayQuantity, page)
+		host, url.QueryEscape(query), e.displayQuantity, page)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err

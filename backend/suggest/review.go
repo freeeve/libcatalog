@@ -374,6 +374,61 @@ func (s *Service) PipelineSuggest(ctx context.Context, workID string, term vocab
 	return nil
 }
 
+// PipelineSuggestVouched is PipelineSuggest carrying peer consensus: the
+// candidate arrives with the number of independent sources that asserted it
+// and a note naming them (stored as SourceRef -- "seattle, sfpl, kcls").
+// Create sets SupporterCount so the queue's support-descending order ranks
+// consensus above singletons; when the pair already exists as an open
+// PIPELINE row, the fresh run's census updates the count and sources in
+// place instead of filing a duplicate. Patron-backed and resolved rows are
+// never touched -- votes and review outcomes outrank a re-run.
+func (s *Service) PipelineSuggestVouched(ctx context.Context, workID string, term vocab.TermRef, confidence float64, supporters int, sourceRef string) error {
+	if _, err := s.db.Get(ctx, store.Key{PK: workPK(workID), SK: tombstoneSK(term)}); err == nil {
+		return nil
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
+	now := s.now().UTC()
+	sg := Suggestion{
+		WorkID: workID, Term: term, Type: TypeAdd,
+		Status: StatusPending, Provenance: ProvenancePipeline,
+		Confidence: confidence, SupporterCount: supporters, SourceRef: sourceRef,
+		CreatedAt: now, LastActivityAt: now,
+	}
+	data, err := marshalSuggestion(sg)
+	if err != nil {
+		return err
+	}
+	key := store.Key{PK: workPK(workID), SK: suggSK(term, TypeAdd)}
+	if _, err := s.db.Put(ctx, store.Record{Key: key, Data: data}, store.CondIfAbsent); err == nil {
+		s.writeStatusIndex(ctx, StatusPending, key)
+		return nil
+	} else if !errors.Is(err, store.ErrConditionFailed) {
+		return err
+	}
+	// The pair exists: refresh consensus on an open machine row only.
+	err = s.casUpdate(ctx, key, "suggest: consensus conflict", false, func(data []byte, _ bool) ([]byte, error) {
+		cur, err := unmarshalSuggestion(data)
+		if err != nil {
+			return nil, err
+		}
+		if cur.Status != StatusPending || cur.Provenance != ProvenancePipeline {
+			return nil, errAlreadyResolved
+		}
+		cur.SupporterCount = supporters
+		cur.SourceRef = sourceRef
+		if confidence > cur.Confidence {
+			cur.Confidence = confidence
+		}
+		cur.LastActivityAt = now
+		return marshalSuggestion(cur)
+	})
+	if errors.Is(err, errAlreadyResolved) || errors.Is(err, store.ErrNotFound) {
+		return nil // moderation (or patrons) own it now
+	}
+	return err
+}
+
 // SetFolkStatus accepts or blocks a folksonomy term. Accepted terms enter
 // the autocomplete index; blocking removes them from it and refuses future
 // suggestions.

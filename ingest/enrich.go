@@ -130,6 +130,17 @@ type Enrichment struct {
 	// Confidence (0-1] qualifies queue-moderated enrichments; direct-mode
 	// callers may threshold on it.
 	Confidence float64
+	// Endorsements, when present, parallels Subjects: Endorsements[i]
+	// records the peer sources corroborating Subjects[i], so queue mode
+	// can rank cross-source consensus above singletons.
+	Endorsements []Endorsement `json:",omitempty"`
+}
+
+// Endorsement is one subject's peer-consensus record: how many independent
+// sources asserted it, and which.
+type Endorsement struct {
+	Count   int
+	Sources []string
 }
 
 // CreatorClaim is one resolved creator identity: the knowledge-base entity id

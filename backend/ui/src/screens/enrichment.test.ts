@@ -152,7 +152,7 @@ describe("Enrichment screen", () => {
     fetchEnrichJobs.mockResolvedValue({ jobs: [job({ status: "QUEUED" })] });
     document.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     await tick();
-    expect(createEnrichJob).toHaveBeenCalledWith("sru-subjects", ["inQll=true"]);
+    expect(createEnrichJob).toHaveBeenCalledWith("sru-subjects", ["inQll=true"], []);
     expect(document.querySelector(".job")?.textContent).toContain("QUEUED");
     expect(document.querySelector(".job")?.textContent).toContain("waiting for the worker");
   });

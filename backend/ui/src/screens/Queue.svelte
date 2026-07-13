@@ -352,6 +352,7 @@
               ? ` ${s.confidence.toFixed(2)}`
               : ""}
           </span>
+          {#if s.sourceRef}<span class="sourceref" title="corroborating sources">via {s.sourceRef}</span>{/if}
         </span>
         <span class="staged">{#if staged}{stagedLabel(staged)}{/if}</span>
         {#if sel}

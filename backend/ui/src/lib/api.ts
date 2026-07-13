@@ -369,9 +369,10 @@ export function runEnrichSource(source: string, filters: string[] = []): Promise
 
 /** Queues an asynchronous enrichment run; a worker executes it and the job
  *  record carries live counters while it runs (admin). */
-export function createEnrichJob(source: string, filters: string[] = []): Promise<EnrichJob> {
+export function createEnrichJob(source: string, filters: string[] = [], hosts: string[] = []): Promise<EnrichJob> {
   const q = new URLSearchParams();
   for (const f of filters) q.append("filter", f);
+  if (hosts.length > 0) q.set("hosts", hosts.join(","));
   const qs = q.toString();
   return call("POST", `/v1/enrich/${encodeURIComponent(source)}/jobs${qs ? `?${qs}` : ""}`);
 }

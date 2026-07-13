@@ -164,7 +164,7 @@ secrets arrive as a `secretRef` and need no file mounts.
 | `LCATD_STORE_DIR` | a persistent local (journal-backed) document store; DynamoDB wins when both are set |
 | `LCATD_SIP2_ADDR` (+ `_USER`, `_PASS`, `_LOCATION`, `_INSTITUTION`, `_ERROR_DETECTION`) | the public SIP2 availability bridge at `POST /v1/availability/sip2` |
 | `LCATD_QUEUE_MIN_CONFIDENCE` | the review queue's default confidence floor in [0,1]: PIPELINE suggestions below it stay stored but hidden (`?minConfidence=` overrides per request; 0 shows everything) |
-| `LCATD_ENRICH_BIBLIOCOMMONS` (+ `_SCHEME`, `_MAX_PAGES`) | the peer-library subject harvest: a BiblioCommons subdomain (e.g. `ccslib`) whose public RSS subject searches, driven from the named vocabulary's terms (default `homosaurus`), queue moderated suggestions on ISBN/title+author-matched works ([details](authority-sources.md)) |
+| `LCATD_ENRICH_BIBLIOCOMMONS` (+ `_SCHEME`, `_MAX_PAGES`) | the peer-library subject harvest: one or more BiblioCommons subdomains, comma-separated (e.g. `ccslib,seattle,sfpl`), whose public RSS subject searches, driven from the named vocabulary's terms (default `homosaurus`), queue moderated suggestions on ISBN/title+author-matched works; several hosts aggregate into peer-consensus supporter counts, and jobs may override the list per run ([details](authority-sources.md)) |
 | `LCATD_AWS_ENDPOINT` | redirects every AWS client at once |
 | `LCATD_S3_ENDPOINT` | redirects only S3, overriding the above |
 | `LCATD_DYNAMO_ENDPOINT` | redirects only DynamoDB, overriding the above |

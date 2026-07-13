@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"os"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/freeeve/libcodex/sip2"
@@ -482,12 +483,18 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 			if cfg.EnrichBiblioCommonsMaxPages > 0 {
 				opts = append(opts, bibliocommons.WithMaxPages(cfg.EnrichBiblioCommonsMaxPages))
 			}
+			var hosts []string
+			for _, h := range strings.Split(cfg.EnrichBiblioCommons, ",") {
+				if h = strings.TrimSpace(h); h != "" {
+					hosts = append(hosts, h)
+				}
+			}
 			enrichSources[bibliocommons.Name] = enrich.Source{
-				Enricher: bibliocommons.New(cfg.EnrichBiblioCommons, terms, opts...),
+				Enricher: bibliocommons.New(hosts, terms, opts...),
 				Mode:     enrich.ModeQueue, Scheme: scheme,
 			}
 			logger.Info("bibliocommons subject harvest configured",
-				"host", cfg.EnrichBiblioCommons, "scheme", scheme, "terms", len(terms))
+				"hosts", hosts, "scheme", scheme, "terms", len(terms))
 		}
 	}
 	if len(enrichSources) > 0 && deps.Blob != nil {
