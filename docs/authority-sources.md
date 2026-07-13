@@ -248,6 +248,27 @@ same consensus semantics, per-job `?hosts=` override, 24h per-tenant
 cache, per-tenant 1.5s politeness, and `LCATD_ENRICH_TLC_MAX_PAGES`
 (default 6 x 24 hits) as the other peer harvests.
 
+### SirsiDynix Enterprise peer harvest (sirsidynix)
+
+`LCATD_ENRICH_SIRSIDYNIX=<host>[/<profile>][,...]` registers a harvest of
+SirsiDynix Enterprise catalogs. Each entry is a tenant: a bare subdomain
+(e.g. `winca`) expands to `<host>.ent.sirsidynix.net`, a host with a dot is
+used verbatim (for the sites that front the catalog on a custom domain),
+and the profile defaults to `default`. Per tenant, one anonymous
+Subject-scoped RSS hitlist runs per driver term
+(`/client/rss/hitlist/<profile>/qu=<label>&rt=false|||SUBJECT|||Subject`),
+returning the whole result set in a single request (no pagination). The
+subject index is unscoped, so like the BiblioCommons and TLC harvests this
+is the inference model -- the match is the exact Homosaurus prefLabel --
+joined by a shared ISBN pulled from each entry's content block (nearly
+universal in probed catalogs; confidence 0.9, one tier). Each endorsement
+carries the record's public detail link as verifiable evidence. Queue-only,
+with the same consensus semantics, 24h per-tenant cache, and per-tenant
+1.5s politeness as the other peer harvests. Some tenants front the catalog
+with a Cloudflare challenge; those answer with an HTML interstitial instead
+of an Atom feed and are detected and skipped (the skip counted), not
+harvested as empty.
+
 ## Scheme filtering
 
 `LCATD_VOCAB_SCHEMES` (when set) filters which authority graphs load.

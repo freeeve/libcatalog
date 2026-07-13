@@ -239,6 +239,16 @@ type Config struct {
 	// EnrichTLCMaxPages caps search pages per term (default 6 x 24 hits).
 	EnrichTLCScheme   string
 	EnrichTLCMaxPages int
+	// EnrichSirsiDynix enables the SirsiDynix Enterprise peer harvest:
+	// comma-separated <host>[/<profile>] entries. A host with no dot is a
+	// bare Enterprise subdomain expanded to <host>.ent.sirsidynix.net (e.g.
+	// "winca"); the profile defaults to "default". Queue-only; the subject
+	// index is unscoped, so like the BiblioCommons harvest the match is the
+	// exact Homosaurus prefLabel, ISBN-joined.
+	EnrichSirsiDynix string
+	// EnrichSirsiDynixScheme picks the driver vocabulary (default
+	// "homosaurus").
+	EnrichSirsiDynixScheme string
 }
 
 // FromEnv reads configuration from LCATD_-prefixed environment variables.
@@ -291,6 +301,8 @@ func FromEnv() (Config, error) {
 		EnrichVegaScheme:          envOr("LCATD_ENRICH_VEGA_SCHEME", "homosaurus"),
 		EnrichTLC:                 os.Getenv("LCATD_ENRICH_TLC"),
 		EnrichTLCScheme:           envOr("LCATD_ENRICH_TLC_SCHEME", "homosaurus"),
+		EnrichSirsiDynix:          os.Getenv("LCATD_ENRICH_SIRSIDYNIX"),
+		EnrichSirsiDynixScheme:    envOr("LCATD_ENRICH_SIRSIDYNIX_SCHEME", "homosaurus"),
 	}
 	if cfg.Sandbox {
 		cfg.ReadOnly = true // sandbox never persists

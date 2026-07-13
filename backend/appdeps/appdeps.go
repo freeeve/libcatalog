@@ -28,6 +28,7 @@ import (
 	"github.com/freeeve/libcat/ingest/bibliocommons"
 	"github.com/freeeve/libcat/ingest/locsh"
 	"github.com/freeeve/libcat/ingest/openlibrary"
+	"github.com/freeeve/libcat/ingest/sirsidynix"
 	"github.com/freeeve/libcat/ingest/tlc"
 	"github.com/freeeve/libcat/ingest/vega"
 	"github.com/freeeve/libcat/ingest/wikidata"
@@ -529,6 +530,35 @@ func Build(ctx context.Context, cfg config.Config, logger *slog.Logger) (httpapi
 				Mode:     enrich.ModeQueue, Scheme: scheme,
 			}
 			logger.Info("vega subject harvest configured", "tenants", len(tenants), "scheme", scheme, "terms", len(vterms))
+		}
+	}
+	// The SirsiDynix Enterprise peer harvest: one anonymous Subject-scoped
+	// RSS hitlist per driver term per tenant, matched by ISBN, queue-
+	// moderated with the same consensus semantics as the other peer
+	// harvests. Inference model: the subject index is unscoped.
+	if cfg.EnrichSirsiDynix != "" && deps.Vocab != nil && deps.Suggest != nil {
+		tenants, err := sirsidynix.ParseTenants(cfg.EnrichSirsiDynix)
+		if err != nil {
+			return httpapi.Deps{}, fmt.Errorf("config: LCATD_ENRICH_SIRSIDYNIX: %w", err)
+		}
+		scheme := cfg.EnrichSirsiDynixScheme
+		var sterms []sirsidynix.Term
+		for _, t := range deps.Vocab.Terms(scheme) {
+			if t.MergedInto != "" {
+				continue
+			}
+			if q := t.Label("en"); q != "" {
+				sterms = append(sterms, sirsidynix.Term{URI: t.ID, Labels: t.Labels, Query: q})
+			}
+		}
+		if len(sterms) == 0 {
+			logger.Warn("sirsidynix enrichment disabled: driver vocabulary has no terms loaded", "scheme", scheme)
+		} else if len(tenants) > 0 {
+			enrichSources[sirsidynix.Name] = enrich.Source{
+				Enricher: sirsidynix.New(tenants, sterms, sirsidynix.WithLogger(logger)),
+				Mode:     enrich.ModeQueue, Scheme: scheme,
+			}
+			logger.Info("sirsidynix subject harvest configured", "tenants", len(tenants), "scheme", scheme, "terms", len(sterms))
 		}
 	}
 	// The BiblioCommons peer-library subject harvest: drives subject searches
