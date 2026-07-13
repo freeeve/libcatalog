@@ -30,6 +30,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/freeeve/libcat/bibframe"
 	"github.com/freeeve/libcat/ingest"
@@ -454,7 +455,7 @@ func (e *Enricher) hitlist(ctx context.Context, tenant Tenant, label string) ([]
 		return nil, fmt.Errorf("%w: challenge interstitial (host gated)", ingest.ErrEnricher)
 	}
 	var feed atomFeed
-	if err := xml.Unmarshal(body, &feed); err != nil {
+	if err := xml.Unmarshal(scrubXML(body), &feed); err != nil {
 		return nil, fmt.Errorf("sirsidynix: parse hitlist: %w", err)
 	}
 	var recs []record
@@ -598,6 +599,51 @@ func extractISBNs(content string) []string {
 		}
 	}
 	return out
+}
+
+// scrubXML makes a hitlist body safe for the XML parser: Enterprise feeds
+// carry raw bytes that are invalid UTF-8 (a MARC record's Latin-1 remnant
+// slips through the RSS serializer) and stray C0 control characters, either
+// of which makes xml.Unmarshal reject the WHOLE page -- losing the entire
+// subject term, persistently, since the bad byte lives in the source
+// record. This drops the invalid UTF-8 bytes and the XML-illegal control
+// characters (C0 except tab/LF/CR, plus DEL) and leaves everything else,
+// including valid multi-byte UTF-8, untouched. Allocation-free when the
+// body is already clean, which is nearly every page.
+func scrubXML(body []byte) []byte {
+	if utf8.Valid(body) {
+		clean := true
+		for _, b := range body {
+			if isIllegalXMLByte(b) {
+				clean = false
+				break
+			}
+		}
+		if clean {
+			return body
+		}
+	}
+	out := make([]byte, 0, len(body))
+	for i := 0; i < len(body); {
+		r, size := utf8.DecodeRune(body[i:])
+		if r == utf8.RuneError && size == 1 {
+			i++ // an invalid UTF-8 byte; drop it
+			continue
+		}
+		if size == 1 && isIllegalXMLByte(body[i]) {
+			i++
+			continue
+		}
+		out = append(out, body[i:i+size]...)
+		i += size
+	}
+	return out
+}
+
+// isIllegalXMLByte reports the C0 control characters XML 1.0 forbids
+// (everything below 0x20 except tab/LF/CR) and DEL.
+func isIllegalXMLByte(b byte) bool {
+	return (b < 0x20 && b != '\t' && b != '\n' && b != '\r') || b == 0x7f
 }
 
 // hasSubject reports whether the work already carries the term URI.

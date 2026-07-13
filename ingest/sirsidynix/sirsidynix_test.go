@@ -182,6 +182,39 @@ func TestSirsiDynixMultiTenantConsensus(t *testing.T) {
 	}
 }
 
+// TestScrubXML: invalid UTF-8 bytes and XML-illegal control characters are
+// dropped; clean text (incl. valid multi-byte UTF-8) is preserved (task 465).
+func TestScrubXML(t *testing.T) {
+	if got := string(scrubXML([]byte("clean text"))); got != "clean text" {
+		t.Fatalf("clean fast-path = %q", got)
+	}
+	if got := string(scrubXML([]byte("caf\xc3\xa9"))); got != "café" {
+		t.Fatalf("valid multibyte = %q, want preserved", got)
+	}
+	// 0xff is an invalid UTF-8 byte; 0x03 is an XML-illegal C0 control; the
+	// tab must survive.
+	if got := string(scrubXML([]byte("a\xffb\x03c\tok"))); got != "abc\tok" {
+		t.Fatalf("scrubbed = %q, want the bad bytes dropped", got)
+	}
+}
+
+// TestSirsiDynixParsesDespiteBadBytes: a hitlist whose entry carries an
+// invalid UTF-8 byte and a control character still parses and matches,
+// rather than losing the whole term to xml.Unmarshal (task 465).
+func TestSirsiDynixParsesDespiteBadBytes(t *testing.T) {
+	bad := entry(1215347, "Za\xffmi\x03", "9780895941220")
+	doer := &tenantDoer{pages: map[string]string{
+		"winca.ent.sirsidynix.net|default|Lesbians": feed(bad),
+	}}
+	works := []ingest.WorkSummary{{WorkID: "w1", ISBNs: []string{"9780895941220"}}}
+	e := New([]Tenant{{Host: "winca.ent.sirsidynix.net", Profile: "default"}}, testTerms(),
+		WithClient(doer), WithDelay(0))
+	got, err := e.Enrich(context.Background(), works)
+	if err != nil || len(got) != 1 || got[0].WorkID != "w1" {
+		t.Fatalf("got = %+v, %v; want the ISBN matched despite invalid bytes", got, err)
+	}
+}
+
 // flakyDoer emits a set number of transient failures (a network error, or
 // a 503 when failWith is nil) before serving its body, counting attempts.
 type flakyDoer struct {
