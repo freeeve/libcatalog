@@ -64,3 +64,22 @@ a surprised consumer is not.
 repo has cut them before (`v0.4.1`, `v0.7.2`, `v0.100.1`, `v0.103.1`). Reaching
 for a minor by reflex inflates the number until it stops carrying information,
 which is the failure this document exists to prevent.
+
+### The backend tag is built by CI
+
+`release.sh` tags root and `hugo/` at HEAD and pushes them itself, then pushes
+the backend `go.mod`-bump commit and **dispatches the `release-backend` GitHub
+Actions workflow** to create the `backend/v<V>` tag. It does this rather than
+tag backend locally because the tagged commit must embed the *real* admin SPA:
+`backend/ui/dist` is a committed placeholder (a bare `go build` must not embed a
+stale app), so `go install .../backend/cmd/lcatd@<tag>` would otherwise ship the
+"UI not built" page. CI runs `npm ci && npm run build` in `backend/ui`, commits
+the built dist on top of the release commit, and tags *that* -- pushing only the
+tag, so `main` keeps its placeholder.
+
+It has to be CI, and the build has to precede the tag, because a Go module tag
+is immutable once the proxy fetches it: there is no "build at tag time and move
+the tag" -- the dist must already be in the tag's commit, and `go install`
+cannot run npm. `release.sh` waits for the CI-created tag to appear on origin
+before it reports success (`gh run list --workflow=release-backend.yml` shows the
+run). Requires the `gh` CLI with the `workflow` scope.

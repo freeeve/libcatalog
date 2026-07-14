@@ -76,16 +76,41 @@ git push origin main "v$V" "hugo/v$V"
 if ! git diff --quiet backend/go.mod backend/go.sum; then
   git commit -m "release(backend): require root v$V in lockstep (tasks/146)" backend/go.mod backend/go.sum
 fi
-git tag -a "backend/v$V" -m "lockstep release v$V (root + hugo + backend)"
-git push origin main "backend/v$V"
+git push origin main
+
+# The backend tag is created by CI, not here (tasks/479): the release-backend
+# workflow builds the admin SPA and tags THIS commit with the real ui/dist
+# embedded, so `go install .../backend/cmd/lcatd@backend/v$V` ships a working UI
+# instead of the committed placeholder. It must be CI, not release.sh, because a
+# Go module tag is immutable once the proxy fetches it -- the built dist has to
+# be in the tagged commit at creation, and `go install` cannot run npm. The
+# built dist is committed on top of this commit and only the tag is pushed, so
+# main keeps its placeholder.
+if ! command -v gh >/dev/null; then
+  echo "release.sh: gh CLI required to dispatch the backend-tag build (tasks/479)" >&2
+  exit 1
+fi
+backend_sha=$(git rev-parse HEAD)
+gh workflow run release-backend.yml -f version="$V" -f sha="$backend_sha"
+echo "==> dispatched release-backend CI to build the SPA and create backend/v$V at ${backend_sha:0:12}"
 
 # Three releases shipped with local-only tags (tasks/139, 145, 152), so don't
 # trust the push's exit status alone: confirm each tag ref is actually visible
-# on origin, and fail loudly if any is missing.
-for fam in "" "hugo/" "backend/"; do
+# on origin, and fail loudly if any is missing. root and hugo are pushed here;
+# the backend tag is created asynchronously by CI, so poll for it.
+for fam in "" "hugo/"; do
   if ! git ls-remote --exit-code --tags origin "refs/tags/${fam}v$V" >/dev/null; then
     echo "release.sh: ${fam}v$V not visible on origin after push" >&2
     exit 1
   fi
 done
-echo "released v$V (root, hugo, backend) at $(git rev-parse --short HEAD); tags verified on origin"
+echo "==> waiting for CI to create backend/v$V (up to 5m)..."
+for _ in $(seq 1 30); do
+  if git ls-remote --exit-code --tags origin "refs/tags/backend/v$V" >/dev/null 2>&1; then
+    echo "released v$V (root, hugo, backend); backend tag with the built SPA created by CI"
+    exit 0
+  fi
+  sleep 10
+done
+echo "release.sh: backend/v$V not created by CI within 5m -- check the release-backend workflow run (gh run list --workflow=release-backend.yml)" >&2
+exit 1
