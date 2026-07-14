@@ -3,6 +3,7 @@ package enrich
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -170,6 +171,20 @@ func TestReapStaleJobsStandalone(t *testing.T) {
 	l, _ := svc.GetJob(t.Context(), live.ID)
 	if l.Status != JobRunning {
 		t.Fatalf("live job = %s, want still RUNNING (fresh heartbeat)", l.Status)
+	}
+}
+
+// TestClassifyPeerUnreachable: an unreachable-peer failure surfaces its
+// host-naming message to the operator (task 469), unlike the generic
+// upstream classes which stay opaque.
+func TestClassifyPeerUnreachable(t *testing.T) {
+	err := fmt.Errorf("%w: nypl.na2", ingest.ErrPeerUnreachable)
+	if got := classifyJobError(err); got != "peer unreachable: nypl.na2" {
+		t.Fatalf("classify = %q, want a clean host-naming message", got)
+	}
+	// A generic upstream failure still stays opaque.
+	if got := classifyJobError(fmt.Errorf("%w: HTTP 500", ingest.ErrEnricher)); got != "enrichment upstream failed" {
+		t.Fatalf("generic classify = %q", got)
 	}
 }
 

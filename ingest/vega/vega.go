@@ -372,6 +372,7 @@ func (e *Enricher) ensureTenantHarvest(ctx context.Context, tenant Tenant, start
 	}
 
 	items := map[string][]fgItem{}
+	unreachable := 0
 	for _, term := range e.terms {
 		if term.Query == "" || term.URI == "" {
 			continue
@@ -381,12 +382,20 @@ func (e *Enricher) ensureTenantHarvest(ctx context.Context, tenant Tenant, start
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
+			if ingest.IsUnreachable(err) {
+				if unreachable++; unreachable >= ingest.UnreachableAbortAfter {
+					return nil, fmt.Errorf("%w: %s", ingest.ErrPeerUnreachable, tenant.Key())
+				}
+			} else {
+				unreachable = 0
+			}
 			e.bump(started, func(st *ingest.EnrichStats) { st.Batches++; st.SkippedBatches++ })
 			if e.log != nil {
 				e.log.Warn("vega concept resolution skipped", "tenant", tenant.Key(), "term", term.Query, "err", err)
 			}
 			continue
 		}
+		unreachable = 0
 		if conceptID == "" {
 			// The region has no homoit concept for this label; done.
 			e.bump(started, func(st *ingest.EnrichStats) { st.Batches++ })

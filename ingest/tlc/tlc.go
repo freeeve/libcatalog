@@ -333,6 +333,7 @@ func (e *Enricher) ensureHostHarvest(ctx context.Context, host string, started t
 	}
 
 	items := map[string][]record{}
+	unreachable := 0
 	for _, term := range e.terms {
 		if term.Query == "" || term.URI == "" {
 			continue
@@ -344,6 +345,13 @@ func (e *Enricher) ensureHostHarvest(ctx context.Context, host string, started t
 			if err != nil {
 				if ctx.Err() != nil {
 					return nil, ctx.Err()
+				}
+				if ingest.IsUnreachable(err) {
+					if unreachable++; unreachable >= ingest.UnreachableAbortAfter {
+						return nil, fmt.Errorf("%w: %s", ingest.ErrPeerUnreachable, host)
+					}
+				} else {
+					unreachable = 0
 				}
 				e.bump(started, func(st *ingest.EnrichStats) { st.SkippedBatches++ })
 				if e.log != nil {
@@ -361,6 +369,7 @@ func (e *Enricher) ensureHostHarvest(ctx context.Context, host string, started t
 			}
 		}
 		if !failed {
+			unreachable = 0
 			// Union, not overwrite: several driver terms can share one URI
 			// (the same concept searched in more than one language).
 			items[term.URI] = append(items[term.URI], recs...)

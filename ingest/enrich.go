@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"path"
 	"slices"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/freeeve/libcodex/rdf"
@@ -262,6 +264,46 @@ const DefaultRequestTimeout = 90 * time.Second
 // storage read/write failure around it. Callers use errors.Is to tell a
 // retryable upstream condition from an internal fault.
 var ErrEnricher = errors.New("enricher failed")
+
+// ErrPeerUnreachable marks a peer harvest that gave up because its host is
+// not reachable: too many consecutive connection-class failures (DNS,
+// refused, timeout). It wraps ErrEnricher so existing upstream-failure
+// checks still match, and its message names the host so a mistyped entry in
+// a multi-host list is identified. The circuit-break exists because a per-
+// term timeout bounds ONE request, not a run in which every request fails --
+// a typo'd host would otherwise grind every driver term (hours) to no end.
+var ErrPeerUnreachable = fmt.Errorf("%w: peer unreachable", ErrEnricher)
+
+// UnreachableAbortAfter is how many CONSECUTIVE connection-class failures a
+// peer harvest tolerates before failing the run fast. A per-term miss (a 404,
+// no concept in a region) is normal and resets the count; only transport
+// failures accumulate, so a healthy host with sparse coverage never trips it.
+const UnreachableAbortAfter = 25
+
+// IsUnreachable reports whether an error is connection-class -- the host does
+// not resolve, refuses the connection, is unroutable, or times out -- as
+// opposed to a content/parse failure or an HTTP status. These are the
+// failures that mean "this host is misconfigured", the ones a circuit-break
+// should count.
+func IsUnreachable(err error) bool {
+	if err == nil {
+		return false
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return true
+	}
+	if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.ECONNRESET) ||
+		errors.Is(err, syscall.EHOSTUNREACH) || errors.Is(err, syscall.ENETUNREACH) ||
+		errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return false
+}
 
 // MatchExtras reports whether a summary's extras satisfy every [key, value]
 // filter term, ANDed; a comma-joined extra (the sources convention) matches

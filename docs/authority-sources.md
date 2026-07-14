@@ -288,6 +288,19 @@ is English-only regardless: it resolves each label to an EXPLICIT Homosaurus
 concept (`source=homoit`), and those concepts are English-labeled, so a
 Spanish query would resolve to a non-homoit concept and be gated out.
 
+## Unreachable-host circuit break
+
+All four peer harvests fail fast on a misconfigured host. A per-term miss (a
+404, no concept in a region, an empty result) is normal and the run
+continues, but a host that does not resolve, refuses the connection, or
+times out is a configuration error: after a bounded number of CONSECUTIVE
+connection-class failures the harvest aborts and the job goes FAILED with
+`peer unreachable: <host>`, naming the offending entry. So a typo in a
+multi-host list surfaces in seconds -- the operator is told which host --
+instead of grinding every driver term (hours) to produce nothing. The
+per-request timeout bounds one request; this bounds a run where every
+request fails.
+
 ## Scheme filtering
 
 `LCATD_VOCAB_SCHEMES` (when set) filters which authority graphs load.

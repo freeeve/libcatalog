@@ -484,6 +484,11 @@ func (s *Service) runJob(ctx context.Context, id string) error {
 // classification: generic per class, raw detail stays server-side.
 func classifyJobError(err error) string {
 	switch {
+	case errors.Is(err, ingest.ErrPeerUnreachable):
+		// The host is operator-supplied config, so naming it is safe and is
+		// the whole point: a mistyped entry in a multi-host list is named.
+		// Strip the ErrEnricher wrap prefix so the message reads cleanly.
+		return strings.TrimPrefix(err.Error(), ingest.ErrEnricher.Error()+": ")
 	case errors.Is(err, context.DeadlineExceeded):
 		return "enrichment upstream timed out"
 	case errors.Is(err, ingest.ErrEnricher):

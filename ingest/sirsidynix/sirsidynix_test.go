@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -249,6 +250,67 @@ func TestSirsiDynixParsesDespiteBadBytes(t *testing.T) {
 	got, err := e.Enrich(context.Background(), works)
 	if err != nil || len(got) != 1 || got[0].WorkID != "w1" {
 		t.Fatalf("got = %+v, %v; want the ISBN matched despite invalid bytes", got, err)
+	}
+}
+
+// dnsDoer fails every request as an unresolvable host and counts calls.
+type dnsDoer struct {
+	mu    sync.Mutex
+	calls int
+}
+
+func (d *dnsDoer) Do(req *http.Request) (*http.Response, error) {
+	d.mu.Lock()
+	d.calls++
+	d.mu.Unlock()
+	return nil, &net.DNSError{Err: "no such host", Name: req.URL.Hostname(), IsNotFound: true}
+}
+
+func manyTerms(n int) []Term {
+	terms := make([]Term, n)
+	for i := range terms {
+		terms[i] = Term{URI: fmt.Sprintf("https://homosaurus.org/v5/u%d", i), Labels: map[string]string{"en": "x"}, Query: fmt.Sprintf("q%d", i)}
+	}
+	return terms
+}
+
+// TestSirsiDynixCircuitBreaksOnUnreachable pins the fast-fail (task 469): an
+// unresolvable host aborts the run after a bounded number of consecutive
+// connection failures with a host-naming error, not after grinding every
+// driver term.
+func TestSirsiDynixCircuitBreaksOnUnreachable(t *testing.T) {
+	doer := &dnsDoer{}
+	e := New([]Tenant{{Host: "zzdead.ent.sirsidynix.net", Profile: "default"}}, manyTerms(200),
+		WithClient(doer), WithDelay(0), WithMaxRetries(0), WithRetryBase(0))
+	_, err := e.Enrich(context.Background(), nil)
+	if !errors.Is(err, ingest.ErrPeerUnreachable) {
+		t.Fatalf("err = %v, want ErrPeerUnreachable", err)
+	}
+	if !strings.Contains(err.Error(), "zzdead") {
+		t.Fatalf("err = %v, want the unreachable host named", err)
+	}
+	if doer.calls > ingest.UnreachableAbortAfter+2 {
+		t.Fatalf("calls = %d, want ~%d (aborted early, not all 200 terms)", doer.calls, ingest.UnreachableAbortAfter)
+	}
+}
+
+// TestSirsiDynixEmptyResultsNeverCircuitBreak: a reachable host whose every
+// term returns no matches is normal coverage, not a fault -- it runs every
+// term and returns cleanly.
+func TestSirsiDynixEmptyResultsNeverCircuitBreak(t *testing.T) {
+	n := ingest.UnreachableAbortAfter * 2
+	doer := &tenantDoer{pages: map[string]string{}} // every label -> empty feed
+	e := New([]Tenant{{Host: "winca.ent.sirsidynix.net", Profile: "default"}}, manyTerms(n),
+		WithClient(doer), WithDelay(0))
+	got, err := e.Enrich(context.Background(), []ingest.WorkSummary{{WorkID: "w1", ISBNs: []string{"9780895941220"}}})
+	if err != nil {
+		t.Fatalf("Enrich over empty-but-reachable = %v, want no error", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("got = %+v, want nothing matched", got)
+	}
+	if st := e.RunStats(); st.Batches != n || st.SkippedBatches != 0 {
+		t.Fatalf("stats = %+v, want every term run, none skipped", st)
 	}
 }
 
