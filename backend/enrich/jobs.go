@@ -10,11 +10,13 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/freeeve/libcat/ingest"
 
 	"github.com/freeeve/libcat/backend/store"
+	"github.com/freeeve/libcat/backend/suggest"
 )
 
 // JobStatus is the async-run lifecycle.
@@ -25,6 +27,16 @@ const (
 	JobRunning JobStatus = "RUNNING"
 	JobDone    JobStatus = "DONE"
 	JobFailed  JobStatus = "FAILED"
+)
+
+// JobKind discriminates what a job does. The empty kind is an enrichment run
+// (the original and only kind), kept empty so existing records deserialize
+// unchanged; QUEUE_APPROVE is a filter-scoped bulk queue approve-all.
+type JobKind string
+
+const (
+	JobKindEnrich     JobKind = ""
+	JobKindApproveAll JobKind = "QUEUE_APPROVE"
 )
 
 // jobTTL bounds how long finished jobs stay listable.
@@ -45,8 +57,19 @@ const staleAfter = 60 * time.Second
 // drained by the worker, its record carrying live batch counters while it
 // runs so a poller can show progress on an hours-long corpus pass.
 type Job struct {
-	ID     string `json:"id"`
-	Source string `json:"source"`
+	ID string `json:"id"`
+	// Kind is the empty enrichment kind unless this is a bulk queue action.
+	Kind   JobKind `json:"kind,omitempty"`
+	Source string  `json:"source"`
+	// Approve is the queue scope for a QUEUE_APPROVE job (nil otherwise): the
+	// snapshot of pending rows the run approves is taken from this filter.
+	Approve *suggest.QueueQuery `json:"approve,omitempty"`
+	// Done/Total are generic progress for a QUEUE_APPROVE run (enrichment uses
+	// Stats instead): rows acted on so far, out of the kick-time snapshot.
+	Done  int `json:"done,omitempty"`
+	Total int `json:"total,omitempty"`
+	// ApproveResult is the completed bulk-approve tally (DONE, QUEUE_APPROVE).
+	ApproveResult *suggest.ApproveAllResult `json:"approveResult,omitempty"`
 	// Filters are the run's [key, value] scope terms (ingest.MatchExtras
 	// semantics -- the same scoping the synchronous run and the audit use).
 	Filters [][2]string `json:"filters,omitempty"`
@@ -127,6 +150,102 @@ func (s *Service) CreateJob(ctx context.Context, requester, source string, filte
 		return Job{}, err
 	}
 	return job, nil
+}
+
+// CreateApproveAllJob kicks a filter-scoped bulk queue approve-all as an async
+// job on the same board (so it lists, heartbeats, and is orphan-reaped like an
+// enrichment run). It claims and runs in a detached goroutine -- approving tens
+// of thousands of rows is minutes of CAS writes, not a request -- while the
+// claim keeps a concurrent container worker from double-running it.
+func (s *Service) CreateApproveAllJob(ctx context.Context, requester string, q suggest.QueueQuery) (Job, error) {
+	if s.DB == nil {
+		return Job{}, fmt.Errorf("%w: async jobs need the record store", ErrMisconfigured)
+	}
+	if s.Queue == nil {
+		return Job{}, fmt.Errorf("%w: approve-all needs the review queue", ErrMisconfigured)
+	}
+	suffix := make([]byte, 8)
+	if _, err := rand.Read(suffix); err != nil {
+		return Job{}, err
+	}
+	// Store only the scope; paging fields are meaningless for a full scan.
+	q.Status, q.Limit, q.Cursor = suggest.StatusPending, 0, ""
+	job := Job{
+		ID: hex.EncodeToString(suffix), Kind: JobKindApproveAll, Approve: &q,
+		Requester: requester, Status: JobQueued, CreatedAt: s.jobNow().UTC(),
+		Target: "queue approve-all: " + describeApproveScope(q),
+	}
+	if err := s.putJob(ctx, job, store.CondIfAbsent); err != nil {
+		return Job{}, err
+	}
+	// Detach from the request so the run outlives the HTTP response; the claim
+	// inside runJob makes a same-instant container-worker pass a no-op.
+	go func() { _ = s.runJob(context.WithoutCancel(ctx), job.ID) }()
+	return job, nil
+}
+
+// describeApproveScope renders a QUEUE_APPROVE job's queue filter for its Target
+// descriptor: the optional filters, PENDING implied.
+func describeApproveScope(q suggest.QueueQuery) string {
+	parts := []string{"PENDING"}
+	if q.Type != "" {
+		parts = append(parts, "type="+string(q.Type))
+	}
+	if q.Scheme != "" {
+		parts = append(parts, "scheme="+q.Scheme)
+	}
+	if q.Provenance != "" {
+		parts = append(parts, "provenance="+string(q.Provenance))
+	}
+	if q.MinConfidence > 0 {
+		parts = append(parts, fmt.Sprintf("minConfidence>=%g", q.MinConfidence))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// runApproveAll executes a claimed QUEUE_APPROVE job: it drives the review
+// queue's ApproveAll, mirroring its running (done, total) into the record on the
+// same heartbeat cadence the enrichment path uses, then records the tally.
+func (s *Service) runApproveAll(ctx context.Context, job *Job) error {
+	var done, total int64
+	stop := make(chan struct{})
+	beat := make(chan struct{})
+	go func() {
+		defer close(beat)
+		ticker := time.NewTicker(statsInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				job.Done = int(atomic.LoadInt64(&done))
+				job.Total = int(atomic.LoadInt64(&total))
+				job.HeartbeatAt = s.jobNow().UTC()
+				_ = s.putJob(ctx, *job, store.CondNone)
+			}
+		}
+	}()
+	res, runErr := s.Queue.ApproveAll(ctx, *job.Approve, job.Requester, func(d, t int) {
+		atomic.StoreInt64(&done, int64(d))
+		atomic.StoreInt64(&total, int64(t))
+	})
+	close(stop)
+	<-beat
+
+	job.FinishedAt = s.jobNow().UTC()
+	job.Done = res.Approved + res.Skipped
+	job.Total = res.Total
+	if runErr != nil {
+		job.Status = JobFailed
+		job.Error = "queue approve-all failed"
+		return s.putJob(ctx, *job, store.CondNone)
+	}
+	job.Status = JobDone
+	job.ApproveResult = &res
+	return s.putJob(ctx, *job, store.CondNone)
 }
 
 // GetJob returns one job. The surface is admin-gated, so there is no
@@ -414,6 +533,9 @@ func (s *Service) runJob(ctx context.Context, id string) error {
 	job, err := s.claimJob(ctx, id)
 	if err != nil {
 		return err
+	}
+	if job.Kind == JobKindApproveAll {
+		return s.runApproveAll(ctx, job)
 	}
 	var keep func(*ingest.WorkSummary) bool
 	if len(job.Filters) > 0 {

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/freeeve/libcat/backend/store"
@@ -377,6 +378,111 @@ func (s *Service) Review(ctx context.Context, decisions []Decision, actor string
 		res.Applied++
 	}
 	return res, nil
+}
+
+// ApproveAllResult reports a filter-scoped bulk approve-all run.
+type ApproveAllResult struct {
+	Total    int    `json:"total"`    // rows in the kick-time snapshot
+	Approved int    `json:"approved"` // moved PENDING/DISPUTED -> APPROVED
+	Skipped  int    `json:"skipped"`  // already resolved or gone when reached
+	RunID    string `json:"runId"`
+}
+
+// ApproveAll approves every PENDING suggestion matching q in one filter-scoped
+// bulk run -- the server-side "accept all in the queue" the /v1/review 100-cap
+// makes impractical from a client. It only APPROVES; it never publishes, so
+// since an approved-unpublished row is rejectable, the whole run is reversible
+// right up until publish. The work set is SNAPSHOT at the start, so a
+// concurrent enrichment adding rows mid-run cannot widen the blast radius;
+// already-resolved rows are skipped (idempotent re-run); and it writes ONE
+// aggregate audit entry naming the scope and counts, not one per row. onProgress,
+// when set, is called after each row with the running (done, total).
+func (s *Service) ApproveAll(ctx context.Context, q QueueQuery, actor string, onProgress func(done, total int)) (ApproveAllResult, error) {
+	q.Status = StatusPending
+	// Snapshot the matching rows up front -- the kick-time cap.
+	type target struct {
+		key    store.Key
+		workID string
+	}
+	var targets []target
+	if err := s.EachQueued(ctx, q, func(sg Suggestion) error {
+		targets = append(targets, target{
+			key:    store.Key{PK: workPK(sg.WorkID), SK: suggSK(sg.Term, sg.Type)},
+			workID: sg.WorkID,
+		})
+		return nil
+	}); err != nil {
+		return ApproveAllResult{}, err
+	}
+	res := ApproveAllResult{Total: len(targets), RunID: NewRunID()}
+	now := s.now().UTC()
+	seen := map[string]bool{}
+	var works []string
+	for _, t := range targets {
+		err := s.transition(ctx, t.key, StatusApproved, func(sg *Suggestion) {
+			sg.ReviewedAt = now
+			sg.ReviewedBy = actor
+		})
+		switch {
+		case errors.Is(err, errAlreadyResolved), errors.Is(err, store.ErrNotFound):
+			res.Skipped++
+		case err != nil:
+			return res, fmt.Errorf("suggest: approve-all %s: %w", t.workID, err)
+		default:
+			res.Approved++
+			if !seen[t.workID] {
+				seen[t.workID] = true
+				works = append(works, t.workID)
+			}
+		}
+		if onProgress != nil {
+			onProgress(res.Approved+res.Skipped, res.Total)
+		}
+	}
+	// One aggregate entry for the whole run, not one per row -- and none at all
+	// for a run that matched nothing, so a re-run over a drained scope leaves no
+	// audit noise.
+	if res.Total > 0 {
+		s.writeAudit(ctx, AuditEntry{
+			Action: "QUEUE_APPROVE_ALL", Actor: actor, RunID: res.RunID,
+			Note: RunNote{
+				Selection: describeQueueQuery(q),
+				Matched:   res.Total, Applied: res.Approved, Works: works,
+			}.String(),
+		})
+	}
+	return res, nil
+}
+
+// CountPending returns how many PENDING suggestions match q -- the count an
+// approve-all confirmation echoes back before the run commits.
+func (s *Service) CountPending(ctx context.Context, q QueueQuery) (int, error) {
+	q.Status = StatusPending
+	n := 0
+	err := s.EachQueued(ctx, q, func(Suggestion) error {
+		n++
+		return nil
+	})
+	return n, err
+}
+
+// describeQueueQuery renders a queue scope for an audit note: the filters that
+// were set, PENDING implied.
+func describeQueueQuery(q QueueQuery) string {
+	parts := []string{"status=PENDING"}
+	if q.Type != "" {
+		parts = append(parts, "type="+string(q.Type))
+	}
+	if q.Scheme != "" {
+		parts = append(parts, "scheme="+q.Scheme)
+	}
+	if q.Provenance != "" {
+		parts = append(parts, "provenance="+string(q.Provenance))
+	}
+	if q.MinConfidence > 0 {
+		parts = append(parts, fmt.Sprintf("minConfidence>=%g", q.MinConfidence))
+	}
+	return strings.Join(parts, " AND ")
 }
 
 // ManualTerm lets a librarian add a term patrons and pipelines missed. The

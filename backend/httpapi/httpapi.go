@@ -214,6 +214,11 @@ func New(deps Deps) http.Handler {
 	if deps.Enrich != nil && deps.Verifier != nil {
 		registerEnrich(mux, deps.Enrich, deps.Verifier, deps.Logger)
 	}
+	// Bulk queue actions run as jobs on the enrichment board, so they need both
+	// the review queue and the enrich service.
+	if deps.Suggest != nil && deps.Enrich != nil && deps.Verifier != nil {
+		registerQueueActions(mux, deps.Suggest, deps.Enrich, deps.Verifier)
+	}
 	if deps.SIP2 != nil {
 		registerAvailability(mux, deps.SIP2, deps.Logger)
 	}

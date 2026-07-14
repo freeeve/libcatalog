@@ -635,6 +635,7 @@ of them: `/` serves the admin SPA, `/v1/` is the JSON-404 catch-all.
 | `POST` | `/v1/queries` | librarian | `batch_handlers.go` |
 | `DELETE` | `/v1/queries/{id}` | librarian | `batch_handlers.go` |
 | `GET` | `/v1/queue` | moderator | `review_handlers.go` |
+| `POST` | `/v1/queue/approve-all` | librarian | `queue_actions_handlers.go` |
 | `GET` | `/v1/readyz` | public | `httpapi.go` |
 | `POST` | `/v1/review` | moderator | `review_handlers.go` |
 | `GET` | `/v1/stats` | librarian | `review_handlers.go` |
