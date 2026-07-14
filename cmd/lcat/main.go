@@ -103,6 +103,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "lcat diversity-audit:", err)
 			os.Exit(1)
 		}
+	case "authorities":
+		if err := runAuthorities(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "lcat authorities:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -136,6 +141,8 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "             [--filter k=v]... [--source <name>] [--format text|json] [--out <file>]")
 	fmt.Fprintln(os.Stderr, "             (content-diversity audit, coverage-first; --graph = full corpus incl. suppressed,")
 	fmt.Fprintln(os.Stderr, "              --catalog = the public projection)")
+	fmt.Fprintln(os.Stderr, "  lcat authorities <catalog.nq> [--scheme lcsh] [--min-works n] [--max-works n] [--top n] [--format text|json] [--out <file>]")
+	fmt.Fprintln(os.Stderr, "             (cross-work subject authority usage; --max-works 1 finds single-use headings)")
 	fmt.Fprintln(os.Stderr, "  lcat vocab-gc --store <blob-root> [--prefix data/authorities/] [--reap] [--json]")
 	fmt.Fprintln(os.Stderr, "              (sidecar artifact sets whose snapshot is gone; a removal before v0.137.0 left them behind)")
 	fmt.Fprintln(os.Stderr, "  lcat grain-repair --dir <grains> [--dry-run]")
