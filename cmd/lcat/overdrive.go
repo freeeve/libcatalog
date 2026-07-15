@@ -16,7 +16,10 @@ import (
 // `lcat ingest --provider overdrive`.
 func runOverdrive(args []string) error {
 	fs := flag.NewFlagSet("overdrive", flag.ExitOnError)
-	cache := fs.String("cache", "", "OverDrive page-cache directory (contains page-*.json)")
+	cache := fs.String("cache", "", "OverDrive page-cache directory (contains page-*.json); omit to fetch live via --library")
+	library := fs.String("library", "", "OverDrive library key to fetch live from the thunder API (when --cache is omitted)")
+	writeCache := fs.String("write-cache", "", "with --library, also mirror fetched pages into this directory (reusable page cache)")
+	perPage := fs.Int("per-page", 0, "live page size (default 200)")
 	out := fs.String("out", "", "output directory for canonical grains (direct JSON->BIBFRAME)")
 	provider := fs.String("provider", overdrive.ProviderName, "provenance graph feed:<provider> for the records")
 	reconcile := fs.String("reconcile", "", "flag feed-only works this scan no longer lists: review | auto-suppress")
@@ -25,15 +28,27 @@ func runOverdrive(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *cache == "" {
-		return fmt.Errorf("--cache is required")
+	if *cache == "" && *library == "" {
+		return fmt.Errorf("one of --cache (offline page cache) or --library (live fetch) is required")
+	}
+	if *cache != "" && *library != "" {
+		return fmt.Errorf("--cache and --library are mutually exclusive: --cache reads offline, --library fetches live")
 	}
 	if *out == "" {
 		return fmt.Errorf("--out (grains output directory) is required")
 	}
-	cfg := ingest.Config{Feed: *provider, Source: *cache}
+	cfg := ingest.Config{Feed: *provider, Source: *cache, Params: map[string]string{}}
 	if *ownedOnly {
-		cfg.Params = map[string]string{"ownedOnly": "true"}
+		cfg.Params["ownedOnly"] = "true"
+	}
+	if *library != "" {
+		cfg.Params["library"] = *library
+		if *writeCache != "" {
+			cfg.Params["writeCache"] = *writeCache
+		}
+		if *perPage > 0 {
+			cfg.Params["perPage"] = fmt.Sprintf("%d", *perPage)
+		}
 	}
 	return runIngest(providerRegistry(), overdrive.ProviderName, cfg, *out, *reconcile, *allowEmpty)
 }

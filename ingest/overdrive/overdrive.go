@@ -2,9 +2,9 @@
 // directly to libcodex BIBFRAME Work/Instance grains (see bibframe.go). It is the
 // ingest half of the OverDrive reference provider (ARCHITECTURE §9): each cached Item
 // exposes Identity/Work/Instance for the shared ingest.Run pipeline, so a cached
-// collection becomes canonical feed:overdrive grains with no MARC intermediate. The
-// live fetch is a separate concern; this reads the on-disk page cache so a build needs
-// no API call.
+// collection becomes canonical feed:overdrive grains with no MARC intermediate. Pages
+// come from either an on-disk cache (offline builds, no API call) or a live crawl of
+// the thunder API (live.go), which can mirror what it fetches back into the cache.
 package overdrive
 
 import (

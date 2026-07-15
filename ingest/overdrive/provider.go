@@ -3,6 +3,8 @@ package overdrive
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/freeeve/libcat/ingest"
 )
@@ -18,22 +20,54 @@ const ProviderName = "overdrive"
 type Provider struct {
 	feed      string
 	cache     string
+	live      *liveFetcher
 	ownedOnly bool
 }
 
-// New is the ingest.Factory for OverDrive. It takes the scan cache directory from
-// Config.Source and the provenance feed from Config.Feed (defaulting to
-// feed:overdrive). Params["ownedOnly"]="true" ingests only titles the library
-// holds (see Records). It errors when no cache is configured.
+// New is the ingest.Factory for OverDrive. The source is either a page cache
+// (Config.Source, read offline) or the live thunder API (no Source, with
+// Params["library"] the OverDrive library key -- optionally Params["baseURL"],
+// Params["perPage"], Params["rateMs"], and Params["writeCache"] to mirror the
+// fetched pages into a reusable cache). Params["ownedOnly"]="true" ingests only
+// titles the library holds (see Records). Config.Feed sets the provenance feed
+// (default feed:overdrive). It errors when neither a cache nor a library is set.
 func New(cfg ingest.Config) (ingest.Provider, error) {
-	if cfg.Source == "" {
-		return nil, fmt.Errorf("overdrive: cache directory (Config.Source) is required")
-	}
 	feed := cfg.Feed
 	if feed == "" {
 		feed = ProviderName
 	}
-	return Provider{feed: feed, cache: cfg.Source, ownedOnly: cfg.Params["ownedOnly"] == "true"}, nil
+	p := Provider{feed: feed, ownedOnly: cfg.Params["ownedOnly"] == "true"}
+	switch {
+	case cfg.Source != "":
+		p.cache = cfg.Source
+	case cfg.Params["library"] != "":
+		p.live = newLiveFetcher(cfg.Params)
+	default:
+		return nil, fmt.Errorf("overdrive: a page cache (Config.Source) or a live library key (Params[\"library\"]) is required")
+	}
+	return p, nil
+}
+
+// newLiveFetcher builds the live pager from the string params, applying
+// defaults for the base URL, page size, and request rate.
+func newLiveFetcher(params map[string]string) *liveFetcher {
+	lf := &liveFetcher{
+		baseURL:  DefaultBaseURL,
+		library:  params["library"],
+		perPage:  defaultPerPage,
+		writeDir: params["writeCache"],
+		rate:     defaultRate,
+	}
+	if v := params["baseURL"]; v != "" {
+		lf.baseURL = v
+	}
+	if n, err := strconv.Atoi(params["perPage"]); err == nil && n > 0 {
+		lf.perPage = n
+	}
+	if ms, err := strconv.Atoi(params["rateMs"]); err == nil && ms >= 0 {
+		lf.rate = time.Duration(ms) * time.Millisecond
+	}
+	return lf
 }
 
 // Name returns the provider's provenance feed graph name.
@@ -42,12 +76,17 @@ func (p Provider) Name() string { return p.feed }
 // Role reports OverDrive as a bibliographic ingest source (feed:<name>).
 func (p Provider) Role() ingest.Role { return ingest.RoleIngest }
 
-// Records reads the OverDrive scan cache and returns its items as ingest records,
-// in page order. Each Item already exposes Identity/Work/Instance, so it is an
-// ingest.Record with no adaptation. ctx is accepted for the Provider contract; the
-// cache read is local and does not observe cancellation.
-func (p Provider) Records(_ context.Context) ([]ingest.Record, error) {
-	items, err := ReadCache(p.cache)
+// Records yields the OverDrive items as ingest records, in page order, from the
+// live API (observing ctx) or the local page cache. Each Item already exposes
+// Identity/Work/Instance, so it is an ingest.Record with no adaptation.
+func (p Provider) Records(ctx context.Context) ([]ingest.Record, error) {
+	var items []Item
+	var err error
+	if p.live != nil {
+		items, err = p.live.items(ctx)
+	} else {
+		items, err = ReadCache(p.cache)
+	}
 	if err != nil {
 		return nil, err
 	}
