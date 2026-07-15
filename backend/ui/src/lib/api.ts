@@ -50,6 +50,7 @@ import type {
   ProfileSummary,
   Promotion,
   PublishResponse,
+  QueueApproveJob,
   QueuePage,
   ReviewResponse,
   SavedQuery,
@@ -293,11 +294,18 @@ export function fetchStats(month: string): Promise<MonthStats> {
 }
 
 /** The content-diversity audit over the live work index (librarian).
- *  Filters are `key=value` terms matched against work extras, ANDed. */
-export function fetchDiversityAudit(filters: string[] = [], source?: string): Promise<DiversityReport> {
+ *  Filters are `key=value` terms matched against work extras, ANDed.
+ *  With `simulate`, the response also carries the read-only "if we accepted the
+ *  pending ADD queue" projection (report.simulation) so the screen can diff
+ *  current vs projected coverage. */
+export function fetchDiversityAudit(
+  filters: string[] = [],
+  opts: { source?: string; simulate?: boolean } = {},
+): Promise<DiversityReport> {
   const q = new URLSearchParams();
   for (const f of filters) q.append("filter", f);
-  if (source) q.set("source", source);
+  if (opts.source) q.set("source", opts.source);
+  if (opts.simulate) q.set("simulate", "queue");
   const qs = q.toString();
   return call("GET", `/v1/audit/diversity${qs ? `?${qs}` : ""}`);
 }
@@ -423,6 +431,53 @@ export function postReview(decisions: Decision[], publish: boolean): Promise<Rev
 /** Publishes approved-but-unpublished suggestions (librarian). */
 export function postPublish(): Promise<PublishResponse> {
   return call("POST", "/v1/publish");
+}
+
+/** The scope of a bulk approve-all: the same PENDING-queue filters the review
+ *  screen offers, minus status (always PENDING). */
+export interface ApproveAllScope {
+  scheme?: string;
+  provenance?: string;
+  type?: string;
+  minConfidence?: number;
+}
+
+/** The dry-run answer to approve-all: how many pending rows the filter would
+ *  approve. confirmRequired marks that a second call carrying `confirm=count`
+ *  is needed to actually run it; message explains a zero count. */
+export interface ApproveAllPreview {
+  count: number;
+  confirmRequired?: boolean;
+  message?: string;
+}
+
+/** approveAllScope renders a scope into query params (status is forced PENDING
+ *  server-side, so it is never sent). */
+function approveAllScope(scope: ApproveAllScope): URLSearchParams {
+  const q = new URLSearchParams();
+  if (scope.scheme) q.set("scheme", scope.scheme);
+  if (scope.provenance) q.set("provenance", scope.provenance);
+  if (scope.type) q.set("type", scope.type);
+  if (scope.minConfidence !== undefined) q.set("minConfidence", String(scope.minConfidence));
+  return q;
+}
+
+/** Dry-runs approve-all: returns the count of pending rows the filter matches
+ *  without approving anything, so the librarian confirms against a real number
+ *  (librarian). */
+export function previewApproveAll(scope: ApproveAllScope = {}): Promise<ApproveAllPreview> {
+  const qs = approveAllScope(scope).toString();
+  return call("POST", `/v1/queue/approve-all${qs ? `?${qs}` : ""}`);
+}
+
+/** Runs approve-all after a dry-run: `confirm` must equal the count the preview
+ *  returned or the server refuses (409) because the queue moved. Returns the
+ *  async QUEUE_APPROVE job that carries live progress; the run stays reversible
+ *  (nothing is published) (librarian). */
+export function confirmApproveAll(scope: ApproveAllScope, confirm: number): Promise<QueueApproveJob> {
+  const q = approveAllScope(scope);
+  q.set("confirm", String(confirm));
+  return call("POST", `/v1/queue/approve-all?${q}`);
 }
 
 /** Controlled-vocabulary autocomplete (full terms with relations). */

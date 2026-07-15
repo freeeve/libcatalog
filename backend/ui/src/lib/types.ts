@@ -805,6 +805,23 @@ export interface DiversityReport {
    *  remainder to totalWorks, so it stacks honestly. */
   multiplicity?: { uncategorized: number; matchedOne: number; matchedMulti: number };
   creators?: CreatorAudit;
+  /** The read-only "if we accepted the pending ADD queue" projection, present
+   *  only when the audit was requested with simulate=queue. The top-level report
+   *  stays the current corpus so the screen can diff current vs projected. */
+  simulation?: DiversitySimulation;
+}
+
+/** The queue what-if projection: the audit re-run over each work's current
+ *  subjects unioned with its pending ADD suggestions (nothing mutated). */
+export interface DiversitySimulation {
+  /** The queue scope the projection honoured (always PENDING ADD, plus any
+   *  confidence/provenance/scheme floor). */
+  filter: string;
+  /** Pending ADD suggestions unioned in, and the distinct works they touched. */
+  applied: number;
+  works: number;
+  /** The audit over current subjects PLUS those suggestions. */
+  projected: DiversityReport;
 }
 
 /** One recorded audit in a scope's dated series. */
@@ -901,6 +918,34 @@ export interface EnrichJob {
   error?: string;
   createdAt: string;
   startedAt?: string;
+  finishedAt?: string;
+}
+
+/** The completed tally of a bulk queue approve-all run. */
+export interface ApproveAllResult {
+  /** Rows in the kick-time snapshot. */
+  total: number;
+  /** Moved PENDING/DISPUTED -> APPROVED. */
+  approved: number;
+  /** Already resolved or gone when reached. */
+  skipped: number;
+  runId: string;
+}
+
+/** The async QUEUE_APPROVE job returned by POST /v1/queue/approve-all: a bulk
+ *  approve-all runs on the enrichment job board so it heartbeats and is
+ *  orphan-reaped. It never publishes, so the run stays reversible. */
+export interface QueueApproveJob {
+  id: string;
+  kind?: string;
+  status: "QUEUED" | "RUNNING" | "DONE" | "FAILED";
+  requester: string;
+  /** Live progress: rows acted on so far, out of total. */
+  done?: number;
+  total?: number;
+  approveResult?: ApproveAllResult;
+  error?: string;
+  createdAt: string;
   finishedAt?: string;
 }
 

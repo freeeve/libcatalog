@@ -3,14 +3,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import {
   clearTermCache,
+  confirmApproveAll,
   createDraft,
   decidePromotion,
   deleteDraft,
   fetchAudit,
+  fetchDiversityAudit,
   fetchDraft,
   fetchDrafts,
   fetchPromotions,
   fetchQueue,
+  previewApproveAll,
   fetchTags,
   fetchTerm,
   fetchWorkDoc,
@@ -156,6 +159,32 @@ describe("queue and review wrappers", () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/v1/terms");
     expect(JSON.parse(init.body)).toEqual({ action: "blockFolk", folkTerm: "cozy-fantasy" });
+  });
+
+  it("previewApproveAll dry-runs the current filter without confirm", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ count: 12, confirmRequired: true }));
+    const res = await previewApproveAll({ scheme: "lcsh", type: "ADD", minConfidence: 0.85 });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/v1/queue/approve-all?scheme=lcsh&type=ADD&minConfidence=0.85");
+    expect(init.method).toBe("POST");
+    expect(res.count).toBe(12);
+    expect(res.confirmRequired).toBe(true);
+  });
+
+  it("confirmApproveAll carries the confirmed count and returns the job", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ id: "job1", kind: "QUEUE_APPROVE", status: "QUEUED", requester: "a@b.co", createdAt: "t" }, 202));
+    const job = await confirmApproveAll({ provenance: "PIPELINE" }, 12);
+    expect(fetchMock.mock.calls[0][0]).toBe("/v1/queue/approve-all?provenance=PIPELINE&confirm=12");
+    expect(job.id).toBe("job1");
+    expect(job.status).toBe("QUEUED");
+  });
+
+  it("confirmApproveAll surfaces a 409 when the pending count moved", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ count: 9, confirm: 12, message: "re-confirm" }, 409));
+    await expect(confirmApproveAll({}, 12)).rejects.toMatchObject({ status: 409 });
   });
 });
 
@@ -338,6 +367,16 @@ describe("audit wrapper", () => {
     const res = await fetchAudit("2026-07", "w/1");
     expect(fetchMock.mock.calls[1][0]).toBe("/v1/audit?month=2026-07&workId=w%2F1");
     expect(res.entries).toEqual([]);
+  });
+
+  it("fetchDiversityAudit adds simulate=queue only when asked", async () => {
+    await seedSession();
+    fetchMock.mockResolvedValueOnce(json({ totalWorks: 0, coveredWorks: 0, coverage: 0, categories: [] }));
+    await fetchDiversityAudit(["inQll=true"]);
+    expect(fetchMock.mock.calls[0][0]).toBe("/v1/audit/diversity?filter=inQll%3Dtrue");
+    fetchMock.mockResolvedValueOnce(json({ totalWorks: 0, coveredWorks: 0, coverage: 0, categories: [] }));
+    await fetchDiversityAudit(["inQll=true"], { simulate: true });
+    expect(fetchMock.mock.calls[1][0]).toBe("/v1/audit/diversity?filter=inQll%3Dtrue&simulate=queue");
   });
 });
 

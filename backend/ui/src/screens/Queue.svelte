@@ -6,7 +6,17 @@
   // POST /v1/review batch. Folk-scheme rows add immediate accept/block
   // governance for librarians.
   import { onMount } from "svelte";
-  import { ApiError, fetchQueue, humanApiMessage, postPublish, postReview, setFolkTermStatus } from "../lib/api";
+  import {
+    ApiError,
+    confirmApproveAll,
+    fetchQueue,
+    humanApiMessage,
+    postPublish,
+    postReview,
+    previewApproveAll,
+    setFolkTermStatus,
+  } from "../lib/api";
+  import type { ApproveAllScope } from "../lib/api";
   import { canPublish } from "../lib/auth";
   import { getConfig } from "../lib/config";
   import { createDecisionStore, decisionKey } from "../lib/decisions";
@@ -63,6 +73,11 @@
   let error = $state("");
   let notice = $state("");
   let pickerFor = $state<Suggestion | null>(null);
+  // Bulk approve-all is a two-step: a dry run fills approveAllPreview with the
+  // count the current filter would approve, then a confirm carrying that exact
+  // count runs it. approveAllBusy covers both legs.
+  let approveAllBusy = $state(false);
+  let approveAllPreview = $state<{ count: number } | null>(null);
 
   const librarian = $derived(canPublish($sessionStore));
   const approveCount = $derived($decisions.filter((d) => d.approve).length);
@@ -254,6 +269,69 @@
     }
   }
 
+  /** The current filter as an approve-all scope; status is always PENDING
+   *  server-side, so it is not sent. The button is only offered on the PENDING
+   *  view, so the scope the librarian sees is the scope that runs. */
+  function approveScope(): ApproveAllScope {
+    return {
+      scheme: st.scheme || undefined,
+      provenance: st.provenance || undefined,
+      type: st.type || undefined,
+    };
+  }
+
+  /** Step one: dry-run approve-all for the current filter and surface the count
+   *  to confirm against. A zero count reports and arms nothing. */
+  async function startApproveAll(): Promise<void> {
+    approveAllBusy = true;
+    error = "";
+    notice = "";
+    approveAllPreview = null;
+    try {
+      const preview = await previewApproveAll(approveScope());
+      if (preview.count === 0) {
+        notice = preview.message || "nothing pending matches the filter";
+        return;
+      }
+      approveAllPreview = { count: preview.count };
+    } catch (e) {
+      error = e instanceof ApiError ? `approve-all failed: ${humanApiMessage(e, "the request was rejected")}` : "approve-all failed";
+    } finally {
+      approveAllBusy = false;
+    }
+  }
+
+  function cancelApproveAll(): void {
+    approveAllPreview = null;
+  }
+
+  /** Step two: run approve-all, confirming against the previewed count. A 409
+   *  means the queue moved between the two calls -- re-run the dry run so the
+   *  next confirm is against a fresh number rather than approving blind. */
+  async function commitApproveAll(): Promise<void> {
+    if (!approveAllPreview) return;
+    const count = approveAllPreview.count;
+    approveAllBusy = true;
+    error = "";
+    notice = "";
+    try {
+      const job = await confirmApproveAll(approveScope(), count);
+      approveAllPreview = null;
+      notice = `approving ${count} suggestion${count === 1 ? "" : "s"} in the background (job ${job.id})`;
+      await load(true);
+    } catch (e) {
+      approveAllPreview = null;
+      if (e instanceof ApiError && e.status === 409) {
+        error = "the pending count changed; re-checking";
+        await startApproveAll();
+        return;
+      }
+      error = e instanceof ApiError ? `approve-all failed: ${humanApiMessage(e, "the request was rejected")}` : "approve-all failed";
+    } finally {
+      approveAllBusy = false;
+    }
+  }
+
   async function folk(action: "acceptFolk" | "blockFolk", s: Suggestion): Promise<void> {
     notice = "";
     error = "";
@@ -271,9 +349,23 @@
     <h1>Review queue</h1>
     <a href="#/promotions">Tag promotions</a>
     {#if librarian}
+      {#if st.status === "PENDING"}
+        <button class="button button--quiet" onclick={startApproveAll} disabled={applying || approveAllBusy || approveAllPreview !== null}
+          >Approve all matching</button>
+      {/if}
       <button class="button button--quiet" onclick={publishApproved} disabled={applying}>Publish approved</button>
     {/if}
   </header>
+
+  {#if approveAllPreview}
+    <div class="approve-all-confirm" role="alertdialog" aria-label="Confirm bulk approve">
+      <span
+        >Approve all {approveAllPreview.count} pending suggestion{approveAllPreview.count === 1 ? "" : "s"} matching this filter?
+        This runs in the background and stays reversible (nothing is published).</span>
+      <button class="button" onclick={commitApproveAll} disabled={approveAllBusy}>Approve {approveAllPreview.count}</button>
+      <button class="button button--quiet" onclick={cancelApproveAll} disabled={approveAllBusy}>Cancel</button>
+    </div>
+  {/if}
 
   <form class="filters" aria-label="Queue filters" onsubmit={(ev) => ev.preventDefault()}>
     <label>
@@ -439,6 +531,21 @@
   .notice {
     color: var(--ok);
     font-weight: 600;
+  }
+  .approve-all-confirm {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 0.5rem 0;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface-raised, var(--surface));
+  }
+  .approve-all-confirm span {
+    flex: 1;
+    min-width: 16rem;
   }
   .qrow {
     display: grid;

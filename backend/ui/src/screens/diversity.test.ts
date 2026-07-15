@@ -185,14 +185,49 @@ describe("Diversity audit screen", () => {
     input!.dispatchEvent(new Event("input", { bubbles: true }));
     document.querySelector("form.scope")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     await tick();
-    expect(fetchDiversityAudit).toHaveBeenLastCalledWith(["inQll=true"]);
+    expect(fetchDiversityAudit).toHaveBeenLastCalledWith(["inQll=true"], { simulate: false });
     expect(fetchDiversitySnapshots).toHaveBeenLastCalledWith(["inQll=true"]);
   });
 
   it("honors an initial filter from the route query", async () => {
     arm();
     await render({ initialFilter: "inQll=true" });
-    expect(fetchDiversityAudit).toHaveBeenCalledWith(["inQll=true"]);
+    expect(fetchDiversityAudit).toHaveBeenCalledWith(["inQll=true"], { simulate: false });
+  });
+
+  it("toggling simulate re-audits with the queue what-if and shows the projection", async () => {
+    // First load is the plain audit; the toggle triggers a simulate load whose
+    // response carries a projection (lgbtqia 400 -> 450).
+    fetchDiversityAudit.mockResolvedValueOnce(REPORT);
+    fetchDiversitySnapshots.mockResolvedValue({ snapshots: [] });
+    await render();
+    fetchDiversityAudit.mockResolvedValueOnce({
+      ...REPORT,
+      simulation: {
+        filter: "status=PENDING AND type=ADD",
+        applied: 60,
+        works: 40,
+        projected: {
+          ...REPORT,
+          coverage: 0.85,
+          categories: [
+            { id: "lgbtqia", label: "LGBTQIA+", works: 450, shareCovered: 0.56, shareTotal: 0.45, bilingual: 120, englishOnly: 330 },
+            { id: "indigenous", label: "Indigenous peoples", works: 0, shareCovered: 0, shareTotal: 0, bilingual: 0, englishOnly: 0 },
+          ],
+        },
+      },
+    });
+    const toggle = document.querySelector<HTMLInputElement>(".sim-toggle input");
+    toggle!.dispatchEvent(new Event("change", { bubbles: true }));
+    await tick();
+    expect(fetchDiversityAudit).toHaveBeenLastCalledWith([], { simulate: true });
+    // The what-if banner and the projected column both appear.
+    expect(document.querySelector(".sim-banner")?.textContent).toContain("60 pending suggestions");
+    const headers = [...document.querySelectorAll("table.cats thead th")].map((h) => h.textContent);
+    expect(headers.join("|")).toContain("Projected");
+    const projCell = document.querySelector<HTMLElement>("table.cats tbody tr .projected-cell");
+    expect(projCell?.textContent).toContain("450");
+    expect(projCell?.textContent).toContain("+50");
   });
 
   it("renders the creator audit match-rate-first with not-stated rows and bars", async () => {

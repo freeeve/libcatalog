@@ -19,6 +19,10 @@
   // extras (e.g. "language=eng"), ANDed -- the endpoint's ?filter semantics.
   // svelte-ignore state_referenced_locally
   let filterText = $state(initialFilter);
+  // Simulate the queue: re-run the audit as if every pending ADD suggestion
+  // were accepted, so the coverage and category shares can be diffed against
+  // the current corpus. Read-only -- it approves nothing.
+  let simulate = $state(false);
 
   function filterTerms(): string[] {
     return filterText.split(/\s+/).filter((t) => t.includes("="));
@@ -30,7 +34,7 @@
     try {
       const terms = filterTerms();
       [report, snapshots] = await Promise.all([
-        fetchDiversityAudit(terms),
+        fetchDiversityAudit(terms, { simulate }),
         fetchDiversitySnapshots(terms).then((r) => r.snapshots ?? []),
       ]);
     } catch (e) {
@@ -38,6 +42,18 @@
     } finally {
       loading = false;
     }
+  }
+
+  /** Toggles the queue what-if and reloads under the new mode. */
+  function toggleSimulate(): void {
+    simulate = !simulate;
+    void load();
+  }
+
+  /** The projected work count for a category id, or undefined when not
+   *  simulating (so the projected column stays absent). */
+  function projectedWorks(r: DiversityReport, id: string): number | undefined {
+    return r.simulation?.projected.categories.find((c) => c.id === id)?.works;
   }
 
   function apply(ev: SubmitEvent): void {
@@ -171,6 +187,10 @@
       bind:value={filterText}
     />
     <button type="submit" disabled={loading}>Apply</button>
+    <label class="sim-toggle">
+      <input type="checkbox" checked={simulate} onchange={toggleSimulate} disabled={loading} />
+      Simulate accepting the queue
+    </label>
     <span class="muted hint">
       space-separated <code>key=value</code> terms over work extras; empty = whole corpus
     </span>
@@ -208,6 +228,16 @@
       collection.
     </p>
 
+    {#if report.simulation}
+      <p class="sim-banner" role="status">
+        <strong>Queue what-if:</strong>
+        {report.simulation.applied.toLocaleString()} pending suggestion{report.simulation.applied === 1 ? "" : "s"}
+        ({report.simulation.filter}) across {report.simulation.works.toLocaleString()} work{report.simulation.works === 1 ? "" : "s"}
+        would move coverage {pct(report.coverage)} → {pct(report.simulation.projected.coverage)}. The
+        <em>Projected</em> column shows each category's works if these were accepted; nothing is approved.
+      </p>
+    {/if}
+
     <div class="strip" role="img" aria-label="Exclusive composition of the collection">
       {#each decomposition(report) as band (band.cls)}
         {#if band.frac > 0}
@@ -229,6 +259,9 @@
           <th scope="col" class="n">Works</th>
           <th scope="col" class="n">% subj.</th>
           <th scope="col" class="n">% coll.</th>
+          {#if report.simulation}
+            <th scope="col" class="n" title="Works in this category if the pending queue were accepted">Projected</th>
+          {/if}
           {#if hasBilingual(report)}
             <th scope="col" class="n" title="Works reachable in a second label language (en+es)">Bilingual</th>
           {/if}
@@ -254,6 +287,15 @@
             <td class="n">{c.works.toLocaleString()}</td>
             <td class="n">{pct(c.shareCovered)}</td>
             <td class="n">{pct(c.shareTotal)}</td>
+            {#if report.simulation}
+              {@const proj = projectedWorks(report, c.id)}
+              <td class="n projected-cell">
+                {#if proj !== undefined}
+                  {proj.toLocaleString()}
+                  {#if proj !== c.works}<span class="delta" class:up={proj > c.works}>{proj > c.works ? "+" : ""}{(proj - c.works).toLocaleString()}</span>{/if}
+                {/if}
+              </td>
+            {/if}
             {#if hasBilingual(report)}
               <td class="n bilingual-cell" title={`${c.bilingual.toLocaleString()} of ${c.works.toLocaleString()} works reachable in a second label language`}>
                 {#if c.works > 0}
@@ -441,6 +483,32 @@
   }
   .hint {
     font-size: 0.8rem;
+  }
+  .sim-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink-muted, #667);
+    white-space: nowrap;
+  }
+  .sim-banner {
+    margin: 0 0 1rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface-raised, var(--surface));
+    font-size: 0.85rem;
+  }
+  .projected-cell .delta {
+    margin-left: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink-muted, #667);
+  }
+  .projected-cell .delta.up {
+    color: var(--ok, #2a7);
   }
   .coverage {
     display: flex;
