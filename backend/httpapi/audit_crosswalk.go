@@ -209,7 +209,7 @@ func registerAuditCrosswalk(mux *http.ServeMux, bs blob.Store, ix *workindex.Ind
 			if !includeInAudit(s, filters) {
 				continue
 			}
-			a.Add(summaryRefs(s, vix, auditLangs))
+			a.AddWeighted(summaryRefs(s, vix, auditLangs), workWeight(s))
 		}
 		writeJSON(w, http.StatusOK, auditResponse{
 			Input:  "work index (cataloging corpus: suppressed included, tombstoned excluded)",

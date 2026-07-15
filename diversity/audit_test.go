@@ -140,6 +140,42 @@ func TestAuditorLanglessSubject(t *testing.T) {
 	}
 }
 
+// TestAuditorWeighted checks the per-work weight tally: a category's Weight is
+// the sum of its works' weights (double-counting across categories like Works
+// does), TotalWeight sums every work's weight including uncategorized ones, and
+// an unweighted Add contributes 0.
+func TestAuditorWeighted(t *testing.T) {
+	a := NewAuditor(Default())
+	a.AddWeighted([]SubjectRef{sub("", "Lesbian fiction")}, 5) // lgbtqia, weight 5
+	a.AddWeighted([]SubjectRef{sub("", "Gay men")}, 3)         // lgbtqia, weight 3
+	a.AddWeighted([]SubjectRef{sub("", "Cooking")}, 2)         // no category, weight 2
+	a.Add([]SubjectRef{sub("", "Queer theory")})               // lgbtqia, weight 0
+
+	r := a.Report()
+	if r.TotalWeight != 10 {
+		t.Errorf("TotalWeight = %d, want 10 (5+3+2, incl. uncategorized)", r.TotalWeight)
+	}
+	if lg := tally(r, "lgbtqia").Weight; lg != 8 {
+		t.Errorf("lgbtqia weight = %d, want 8 (5+3+0)", lg)
+	}
+	// A category with no weighted works reports zero weight.
+	if w := tally(r, "immigrant-diaspora").Weight; w != 0 {
+		t.Errorf("immigrant-diaspora weight = %d, want 0", w)
+	}
+}
+
+// TestAuditorUnweightedHasNoWeight checks that a purely unweighted audit (the
+// CLI path) reports no weight, so the field stays absent for callers that never
+// supply one.
+func TestAuditorUnweightedHasNoWeight(t *testing.T) {
+	a := NewAuditor(Default())
+	a.Add([]SubjectRef{sub("", "Gay men")})
+	r := a.Report()
+	if r.TotalWeight != 0 || tally(r, "lgbtqia").Weight != 0 {
+		t.Errorf("unweighted audit should carry no weight, got total %d / lgbtqia %d", r.TotalWeight, tally(r, "lgbtqia").Weight)
+	}
+}
+
 // TestAuditorEmptyCorpus checks the divide-by-zero guards: an empty corpus reports
 // zero coverage and zero shares, not NaN.
 func TestAuditorEmptyCorpus(t *testing.T) {

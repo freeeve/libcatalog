@@ -99,6 +99,12 @@
     return configured.filter((lang) => r.categories.some((c) => (c.labelLangWorks?.[lang] ?? 0) > 0));
   }
 
+  /** Whether any work carries a copies-held weight; the Copies column only
+   *  appears when a holdings provider (e.g. OverDrive) supplied ownedCopies. */
+  function hasWeight(r: DiversityReport): boolean {
+    return (r.totalWeight ?? 0) > 0;
+  }
+
   /** A category's work count reachable via a controlled subject label in lang. */
   function langWorks(c: DiversityCategory, lang: string): number {
     return c.labelLangWorks?.[lang] ?? 0;
@@ -266,6 +272,9 @@
           <th scope="col">Category</th>
           <th scope="col" class="bar-col"><span class="visually-hidden">Share of subjected works</span></th>
           <th scope="col" class="n">Works</th>
+          {#if hasWeight(report)}
+            <th scope="col" class="n" title="Copies held (e.g. OverDrive owned copies) -- collection depth, not title count">Copies</th>
+          {/if}
           <th scope="col" class="n">% subj.</th>
           <th scope="col" class="n">% coll.</th>
           {#if report.simulation}
@@ -295,6 +304,9 @@
               </div>
             </td>
             <td class="n">{c.works.toLocaleString()}</td>
+            {#if hasWeight(report)}
+              <td class="n copies-cell">{(c.weight ?? 0).toLocaleString()}</td>
+            {/if}
             <td class="n">{pct(c.shareCovered)}</td>
             <td class="n">{pct(c.shareTotal)}</td>
             {#if report.simulation}
@@ -324,6 +336,14 @@
         {/each}
       </tbody>
     </table>
+    {#if hasWeight(report)}
+      <p class="muted hint copies-note">
+        The Copies column weights each category by copies held (e.g. OverDrive
+        owned copies): {(report.totalWeight ?? 0).toLocaleString()} across the scope.
+        It reads collection <em>depth</em> -- a category with few titles but many copies --
+        which the title counts alone hide.
+      </p>
+    {/if}
     {#if langCols.length > 0}
       <p class="muted hint labellang-note">
         The {langCols.map((l) => l.toUpperCase()).join(" / ")} label column{langCols.length === 1 ? "" : "s"}

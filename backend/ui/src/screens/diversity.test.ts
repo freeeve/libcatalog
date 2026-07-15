@@ -234,6 +234,33 @@ describe("Diversity audit screen", () => {
     expect(document.querySelector(".reslang")).toBeNull();
   });
 
+  it("shows a Copies column weighting categories by held quantity when present", async () => {
+    fetchDiversityAudit.mockResolvedValue({
+      ...REPORT,
+      totalWeight: 520,
+      categories: [
+        { id: "lgbtqia", label: "LGBTQIA+", works: 400, shareCovered: 0.5, shareTotal: 0.4, weight: 480 },
+        { id: "indigenous", label: "Indigenous peoples", works: 0, shareCovered: 0, shareTotal: 0, weight: 0 },
+      ],
+    });
+    fetchDiversitySnapshots.mockResolvedValue({ snapshots: [] });
+    await render();
+    const headers = [...document.querySelectorAll("table.cats thead th")].map((h) => h.textContent);
+    expect(headers.join("|")).toContain("Copies");
+    const rows = [...document.querySelectorAll("table.cats tbody tr")];
+    expect(rows[0]?.querySelector(".copies-cell")?.textContent).toContain("480");
+    expect(document.querySelector(".copies-note")?.textContent).toContain("520");
+  });
+
+  it("omits the Copies column when no work carries a held quantity", async () => {
+    arm();
+    await render();
+    const headers = [...document.querySelectorAll("table.cats thead th")].map((h) => h.textContent);
+    expect(headers.join("|")).not.toContain("Copies");
+    expect(document.querySelector(".copies-cell")).toBeNull();
+    expect(document.querySelector(".copies-note")).toBeNull();
+  });
+
   it("passes the applied key=value terms to both endpoints", async () => {
     arm();
     await render();

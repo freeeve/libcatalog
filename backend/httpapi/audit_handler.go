@@ -376,8 +376,9 @@ func registerAudit(mux *http.ServeMux, ix *workindex.Index, vix *vocab.Index, au
 					continue
 				}
 				refs := summaryRefs(s, vix, auditLangs)
-				a.Add(refs)
-				proj.Add(append(refs, suggested[s.WorkID]...))
+				w := workWeight(s)
+				a.AddWeighted(refs, w)
+				proj.AddWeighted(append(refs, suggested[s.WorkID]...), w)
 			}
 			sim = &auditSimulation{
 				Filter:    describeSimQuery(simQ),
@@ -391,7 +392,7 @@ func registerAudit(mux *http.ServeMux, ix *workindex.Index, vix *vocab.Index, au
 				if !include(s) {
 					continue
 				}
-				a.Add(summaryRefs(s, vix, auditLangs))
+				a.AddWeighted(summaryRefs(s, vix, auditLangs), workWeight(s))
 			}
 		}
 		resp := auditResponse{
@@ -477,6 +478,23 @@ func summaryRefs(s *ingest.WorkSummary, vix *vocab.Index, langs []string) []dive
 		refs = append(refs, diversity.SubjectRef{Labels: []string{t}})
 	}
 	return refs
+}
+
+// workWeight is the per-work weight the audit tallies alongside title counts:
+// the copies the library holds, from the ownedCopies extra a holdings provider
+// (OverDrive) stamps on the work. Absent or unparseable reads as 0, so a corpus
+// with no holdings data simply reports no weight. It lets a category be read by
+// collection depth (copies held) rather than title count.
+func workWeight(s *ingest.WorkSummary) int {
+	v := s.Extras["ownedCopies"]
+	if v == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
 }
 
 // simulateQuery reads the queue-simulation params off the audit request. It

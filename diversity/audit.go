@@ -36,6 +36,10 @@ type Report struct {
 	// Coverage is CoveredWorks/TotalWorks in [0,1]. A low value means the audit
 	// speaks for only part of the collection; read every category share with it.
 	Coverage float64 `json:"coverage"`
+	// TotalWeight is the sum of the per-work weights across every work (0 when
+	// the caller supplied no weights). It lets the report be read by collection
+	// depth (e.g. copies held) rather than title count; omitted when zero.
+	TotalWeight int `json:"totalWeight,omitempty"`
 	// Categories are the diversity categories in the crosswalk's reporting order.
 	Categories []CategoryTally `json:"categories"`
 	// Multiplicity decomposes CoveredWorks exclusively -- how many covered
@@ -64,6 +68,10 @@ type CategoryTally struct {
 	Works        int     `json:"works"`
 	ShareCovered float64 `json:"shareCovered"`
 	ShareTotal   float64 `json:"shareTotal"`
+	// Weight is the sum of the per-work weights of this category's works (e.g.
+	// copies held), so a category can be read by collection depth rather than
+	// title count. Omitted when zero (no weights supplied).
+	Weight int `json:"weight,omitempty"`
 	// LabelLangWorks counts, per configured subject-label language, how many of
 	// this category's works reached it through at least one controlled term
 	// carrying a label in that language -- subject-heading reachability, NOT the
@@ -84,26 +92,36 @@ type CategoryTally struct {
 // once from a crosswalk, Add each work's subjects, then read Report. It is not safe
 // for concurrent Add.
 type Auditor struct {
-	cw         *Crosswalk
-	total      int
-	covered    int
-	multi      MultiplicityTally
-	perCat     map[string]int
-	perCatLang map[string]map[string]int
+	cw           *Crosswalk
+	total        int
+	covered      int
+	multi        MultiplicityTally
+	perCat       map[string]int
+	perCatLang   map[string]map[string]int
+	weightTotal  int
+	perCatWeight map[string]int
 }
 
 // NewAuditor returns an Auditor over the given crosswalk.
 func NewAuditor(cw *Crosswalk) *Auditor {
-	return &Auditor{cw: cw, perCat: map[string]int{}, perCatLang: map[string]map[string]int{}}
+	return &Auditor{cw: cw, perCat: map[string]int{}, perCatLang: map[string]map[string]int{}, perCatWeight: map[string]int{}}
 }
 
-// Add folds one work's subjects into the tally. A work counts toward CoveredWorks
-// when it carries at least one subject with a URI or a non-empty label, and toward
-// a category once when any of its subjects maps there. A work with no usable
-// subjects contributes only to TotalWorks -- it dilutes coverage, which is the
-// point of reporting coverage.
+// Add folds one work's subjects into the tally with no weight. See AddWeighted.
 func (a *Auditor) Add(subjects []SubjectRef) {
+	a.AddWeighted(subjects, 0)
+}
+
+// AddWeighted folds one work's subjects into the tally, also accumulating an
+// opaque per-work weight (e.g. copies held) alongside the title count. A work
+// counts toward CoveredWorks when it carries at least one subject with a URI or
+// a non-empty label, and toward a category once when any of its subjects maps
+// there; its weight adds to each matched category and to the corpus total. A
+// work with no usable subjects contributes only to TotalWorks (and TotalWeight)
+// -- it dilutes coverage, which is the point of reporting coverage.
+func (a *Auditor) AddWeighted(subjects []SubjectRef, weight int) {
 	a.total++
+	a.weightTotal += weight
 	covered := false
 	cats := map[string]bool{}
 	// catLangs holds, per category this work reached, the set of subject-label
@@ -154,6 +172,7 @@ func (a *Auditor) Add(subjects []SubjectRef) {
 	}
 	for id := range cats {
 		a.perCat[id]++
+		a.perCatWeight[id] += weight
 	}
 	for id, langs := range catLangs {
 		perLang := a.perCatLang[id]
@@ -170,7 +189,7 @@ func (a *Auditor) Add(subjects []SubjectRef) {
 // Report snapshots the tally as a coverage-first Report, with categories in the
 // crosswalk's stable reporting order. Shares are 0 when their denominator is 0.
 func (a *Auditor) Report() Report {
-	r := Report{TotalWorks: a.total, CoveredWorks: a.covered, Multiplicity: a.multi}
+	r := Report{TotalWorks: a.total, CoveredWorks: a.covered, TotalWeight: a.weightTotal, Multiplicity: a.multi}
 	if a.total > 0 {
 		r.Coverage = float64(a.covered) / float64(a.total)
 	}
@@ -181,7 +200,7 @@ func (a *Auditor) Report() Report {
 			langWorks = make(map[string]int, len(perLang))
 			maps.Copy(langWorks, perLang)
 		}
-		t := CategoryTally{ID: c.ID, Label: c.Label, Works: works, LabelLangWorks: langWorks, Benchmark: c.Benchmark, BenchmarkSource: c.BenchmarkSource}
+		t := CategoryTally{ID: c.ID, Label: c.Label, Works: works, Weight: a.perCatWeight[c.ID], LabelLangWorks: langWorks, Benchmark: c.Benchmark, BenchmarkSource: c.BenchmarkSource}
 		if a.covered > 0 {
 			t.ShareCovered = float64(t.Works) / float64(a.covered)
 		}

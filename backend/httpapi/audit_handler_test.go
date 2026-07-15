@@ -399,6 +399,55 @@ func TestAuditResourceLanguagesMultilingualOnly(t *testing.T) {
 	}
 }
 
+// weightPage decodes the weight fields of an audit response.
+type weightPage struct {
+	TotalWeight int `json:"totalWeight"`
+	Categories  []struct {
+		ID     string `json:"id"`
+		Works  int    `json:"works"`
+		Weight int    `json:"weight"`
+	} `json:"categories"`
+}
+
+// TestAuditDiversityHeldQuantity checks the copies-held weighting: the audit
+// sums each work's ownedCopies extra into a per-category Weight and a corpus
+// TotalWeight, so a category can be read by collection depth, not just title
+// count. A missing extra weighs 0.
+func TestAuditDiversityHeldQuantity(t *testing.T) {
+	h, bs := newRecordsAPI(t)
+	// Two LGBTQIA+ works via Homosaurus scheme, one deeply held, one single copy.
+	seedAuditWork(t, bs, "wheld00001a", "https://homosaurus.org/v5/homoit0000506", "Chosen family", "",
+		map[string]string{"ownedCopies": "12"})
+	seedAuditWork(t, bs, "wheld00001b", "https://homosaurus.org/v5/homoit0000508", "Gender identity", "",
+		map[string]string{"ownedCopies": "1"})
+	// A work with no ownedCopies extra weighs 0 but still counts as a title.
+	seedAuditWork(t, bs, "wheld00001c", "https://homosaurus.org/v5/homoit0000900", "Genderqueer", "", nil)
+
+	rec := request(t, h, http.MethodGet, "/v1/audit/diversity", "lib-token", "", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("audit = %d (%s)", rec.Code, rec.Body.String())
+	}
+	var p weightPage
+	if err := json.Unmarshal(rec.Body.Bytes(), &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.TotalWeight != 13 {
+		t.Errorf("totalWeight = %d, want 13 (12+1+0)", p.TotalWeight)
+	}
+	var lg struct{ works, weight int }
+	for _, c := range p.Categories {
+		if c.ID == "lgbtqia" {
+			lg.works, lg.weight = c.Works, c.Weight
+		}
+	}
+	if lg.works != 3 {
+		t.Fatalf("lgbtqia works = %d, want 3", lg.works)
+	}
+	if lg.weight != 13 {
+		t.Errorf("lgbtqia weight = %d, want 13 (copies held, not the 3 titles)", lg.weight)
+	}
+}
+
 // getResLangs fetches the audit and decodes only its resource-language block.
 func getResLangs(t *testing.T, h http.Handler, query string) resLangPage {
 	t.Helper()

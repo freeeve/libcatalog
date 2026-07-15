@@ -781,6 +781,10 @@ export interface DiversityCategory {
   works: number;
   shareCovered: number;
   shareTotal: number;
+  /** Sum of this category's works' weights (copies held), so a category can be
+   *  read by collection depth rather than title count. Absent when no work in
+   *  the corpus carries a weight. */
+  weight?: number;
   /** Per subject-label language, the number of works in this category reached
    *  through at least one controlled term carrying a label in that language --
    *  subject-heading reachability, NOT the book's own language. Keys are the
@@ -817,6 +821,9 @@ export interface DiversityReport {
   totalWorks: number;
   coveredWorks: number;
   coverage: number;
+  /** Sum of every work's weight (copies held). Absent when no work carries one;
+   *  present enables the per-category Copies column. */
+  totalWeight?: number;
   categories: DiversityCategory[];
   /** The configured subject-label languages, in column order -- the keys each
    *  category's labelLangWorks is reported against, so the UI renders one column
