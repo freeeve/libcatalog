@@ -480,7 +480,9 @@
     grid-template-columns: minmax(12rem, auto) 1fr auto auto;
     gap: 0 0.9rem;
     align-items: baseline;
-    padding: 0.22rem 0.55rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.22rem 0.55rem 0.22rem 0;
     text-decoration: none;
     color: inherit;
   }
@@ -529,5 +531,13 @@
     height: 1.05rem;
     margin-right: 0.4rem;
     accent-color: var(--accent, #4a7dff);
+  }
+  /* Lay each result row out as a flex line so the merge checkbox sits inline
+     as a leading column instead of stacking above the record. The <li> is
+     rendered by RowList, so reach it through :global scoped under this list. */
+  .results-list :global(.rowlist > li) {
+    display: flex;
+    align-items: center;
+    padding-left: 0.55rem;
   }
 </style>
