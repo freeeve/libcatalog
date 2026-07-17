@@ -111,6 +111,12 @@ func projectCatalog(opts projectOptions) error {
 	if err != nil {
 		return err
 	}
+	// A graph ingested before the repo rename carries extras under the old
+	// namespace, which the projection cannot read; without this warning they
+	// vanish from the public catalog with exit 0.
+	if n := project.PreRenameCount(ds); n > 0 {
+		fmt.Fprintf(os.Stderr, "project: %d value(s) under the pre-rename libcatalog namespace will not project; re-ingest or migrate the graph\n", n)
+	}
 	var cats []*project.Catalog
 	for _, p := range providers {
 		cats = append(cats, project.ProjectDataset(ds, p))

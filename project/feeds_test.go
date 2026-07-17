@@ -3,6 +3,8 @@ package project
 import (
 	"strings"
 	"testing"
+
+	"github.com/freeeve/libcodex/rdf"
 )
 
 func TestFeedsListsFeedGraphsSorted(t *testing.T) {
@@ -40,6 +42,25 @@ func TestFeedsIgnoresNonFeedGraphs(t *testing.T) {
 	}
 	if len(got) != 0 {
 		t.Fatalf("Feeds = %v, want none", got)
+	}
+}
+
+// TestPreRenameCount covers the pre-rename-namespace detector (task 497): only
+// predicates under the old libcatalog namespace count, current-namespace extras
+// and ordinary BIBFRAME statements do not.
+func TestPreRenameCount(t *testing.T) {
+	nq := strings.Join([]string{
+		`<#wa000001Work> <https://github.com/freeeve/libcatalog/ns#extra/cover> "old.jpg" <feed:hardcover> .`,
+		`<#wa000001Work> <https://github.com/freeeve/libcatalog/ns#extra/rating> "5" <feed:hardcover> .`,
+		`<#wa000001Work> <https://github.com/freeeve/libcat/ns#extra/cover> "new.jpg" <feed:hardcover> .`,
+		`<#wa000001Work> <http://id.loc.gov/ontologies/bibframe/title> "A" <feed:hardcover> .`,
+	}, "\n") + "\n"
+	ds, err := rdf.ParseNQuads([]byte(nq))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := PreRenameCount(ds); n != 2 {
+		t.Fatalf("PreRenameCount = %d, want 2", n)
 	}
 }
 
