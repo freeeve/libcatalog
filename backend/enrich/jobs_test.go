@@ -257,7 +257,11 @@ func TestJobClaimContention(t *testing.T) {
 // TestJobList returns newest first with a deterministic clock.
 func TestJobList(t *testing.T) {
 	svc := jobService(t)
-	base := time.Date(2026, 7, 11, 12, 0, 0, 0, time.UTC)
+	// Anchor at real now (not a fixed past date): a job's ExpireAt is base+jobTTL,
+	// and the store drops records expired against the wall clock, so a hardcoded
+	// base rots the moment it falls more than jobTTL behind. The per-tick offset
+	// keeps the ordering deterministic.
+	base := time.Now().UTC()
 	tick := 0
 	svc.Now = func() time.Time { tick++; return base.Add(time.Duration(tick) * time.Minute) }
 	first, _ := svc.CreateJob(t.Context(), "a", "stub", nil, nil)
@@ -471,7 +475,9 @@ func TestDrainRunsDistinctSourcesConcurrently(t *testing.T) {
 // per-IP limiter.
 func TestDrainKeepsSameSourceSerial(t *testing.T) {
 	svc := jobService(t)
-	base := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	// Anchor at real now so the jobs' ExpireAt (base+jobTTL) stays in the future;
+	// the per-tick offset keeps the two same-source jobs deterministically ordered.
+	base := time.Now().UTC()
 	tick := 0
 	svc.Now = func() time.Time { tick++; return base.Add(time.Duration(tick) * time.Minute) }
 
@@ -588,7 +594,10 @@ func TestDispatchQueuedSameSourceSerial(t *testing.T) {
 			"slow": {Enricher: &gatedEnricher{name: "slow", started: started, release: release}, Mode: ModeDirect},
 		},
 	}
-	svc.Now = func() time.Time { return time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC) }
+	// Anchor at real now so the queued job's ExpireAt (now+jobTTL) is not already
+	// past the wall clock the store expires against.
+	now := time.Now().UTC()
+	svc.Now = func() time.Time { return now }
 	if _, err := svc.CreateJob(t.Context(), "a", "slow", nil, nil); err != nil {
 		t.Fatal(err)
 	}
